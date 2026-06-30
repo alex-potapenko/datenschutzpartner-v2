@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Dormant during presales/POC — activated by enabling the Renovate app on this repo at promotion (see AGENTS.md → Handover). Tuned for low noise.",
+  "extends": ["config:recommended"],
+  "schedule": ["before 7am on monday"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 7am on the first day of the month"]
+  }
+}

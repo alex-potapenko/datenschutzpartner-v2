@@ -1,0 +1,26 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Start the dev server (MSW mocks enabled in poc stage)
+    cmd: pnpm dev
+
+  verify:
+    desc: 'The handover gate: lint + format + typecheck + tests'
+    cmd: pnpm verify
+
+  verify:full:
+    desc: verify + production build + Playwright smoke (incl. a11y scan)
+    cmd: pnpm verify:full
+
+  test:
+    desc: Run unit/component tests
+    cmd: pnpm test
+
+  e2e:
+    desc: Run Playwright smoke tests
+    cmd: pnpm e2e
+
+  promote:
+    desc: Flip the project from poc to production stage (activates git guardrails)
+    cmd: bash scripts/promote.sh

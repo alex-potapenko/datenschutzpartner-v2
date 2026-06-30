@@ -1,0 +1,35 @@
+{
+  "common": {
+    "appName": "mp-frontend",
+    "loading": "Wird geladen …",
+    "error": "Etwas ist schiefgelaufen",
+    "retry": "Erneut versuchen",
+    "notFound": "Seite nicht gefunden",
+    "backHome": "Zur Startseite",
+    "toggleTheme": "Design wechseln"
+  },
+  "home": {
+    "title": "m+p Frontend-Template",
+    "intro": "Klickbarer Prototyp mit gemocktem API. Beispiel-Feature:",
+    "cta": "Kontakte öffnen"
+  },
+  "contacts": {
+    "title": "Kontakte",
+    "empty": "Noch keine Kontakte",
+    "emptyHint": "Erstelle den ersten Kontakt über das Formular.",
+    "created": "Kontakt erstellt",
+    "deleted": "Kontakt gelöscht",
+    "delete": "Löschen",
+    "form": {
+      "heading": "Neuer Kontakt",
+      "name": "Name",
+      "email": "E-Mail",
+      "company": "Firma (optional)",
+      "submit": "Erstellen"
+    }
+  },
+  "validation": {
+    "required": "Pflichtfeld",
+    "email": "Ungültige E-Mail-Adresse"
+  }
+}

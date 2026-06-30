@@ -1,0 +1,25 @@
+# Git gates — run automatically, never skipped silently.
+# scripts/guard-main.sh is stage-aware: free in poc stage, strict in production.
+# scripts/check-node.sh fails fast (with guidance) if Node is too old, instead
+# of letting pnpm crash with a cryptic corepack error.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: guard-main
+      run: bash scripts/guard-main.sh
+    - name: eslint
+      glob: '*.{ts,tsx}'
+      run: bash scripts/check-node.sh && pnpm exec eslint --fix {staged_files}
+      stage_fixed: true
+    - name: prettier
+      glob: '*.{ts,tsx,css,json,md}'
+      run: bash scripts/check-node.sh && pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: typecheck
+      run: bash scripts/check-node.sh && pnpm typecheck
+    - name: test
+      run: bash scripts/check-node.sh && pnpm test

@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+@import '@heroui/styles';
+@import '../styles/tokens.css';
+
+/* Class-based dark mode (HeroUI toggles the `dark` class) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  /* Expose the brand ramp as Tailwind utilities: bg-key-500, text-key-700, … */
+  --color-key-50: var(--key-50);
+  --color-key-100: var(--key-100);
+  --color-key-200: var(--key-200);
+  --color-key-300: var(--key-300);
+  --color-key-400: var(--key-400);
+  --color-key-500: var(--key-500);
+  --color-key-600: var(--key-600);
+  --color-key-700: var(--key-700);
+  --color-key-800: var(--key-800);
+  --color-key-900: var(--key-900);
+  --color-key-950: var(--key-950);
+}
+
+body {
+  font-family: var(--font-sans);
+}

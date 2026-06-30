@@ -1,0 +1,35 @@
+{
+  "common": {
+    "appName": "mp-frontend",
+    "loading": "Loading …",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "notFound": "Page not found",
+    "backHome": "Back to home",
+    "toggleTheme": "Toggle theme"
+  },
+  "home": {
+    "title": "m+p frontend template",
+    "intro": "Clickable prototype with a mocked API. Example feature:",
+    "cta": "Open contacts"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "empty": "No contacts yet",
+    "emptyHint": "Create the first contact using the form.",
+    "created": "Contact created",
+    "deleted": "Contact deleted",
+    "delete": "Delete",
+    "form": {
+      "heading": "New contact",
+      "name": "Name",
+      "email": "Email",
+      "company": "Company (optional)",
+      "submit": "Create"
+    }
+  },
+  "validation": {
+    "required": "Required",
+    "email": "Invalid email address"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "name": "mp-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.6.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "mp": {
+    "stage": "poc"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
+    "verify:full": "pnpm verify && pnpm build && pnpm e2e",
+    "prepare": "lefthook install"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  },
+  "dependencies": {
+    "@heroui/react": "^3.1.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@heroui/styles": "^3.1.0",
+    "@hookform/resolvers": "^5.4.0",
+    "@t3-oss/env-nextjs": "^0.13.11",
+    "@tanstack/react-query": "^5.101.0",
+    "clsx": "^2.1.1",
+    "immer": "^11.1.8",
+    "motion": "^12.19.2",
+    "next": "16.2.9",
+    "next-themes": "^0.4.6",
+    "next-intl": "^4.13.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.78.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.60.0",
+    "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.101.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jsdom": "^29.1.1",
+    "lefthook": "^2.1.9",
+    "msw": "^2.14.6",
+    "prettier": "^3.8.4",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8.61.0",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.8"
+  }
+}

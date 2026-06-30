@@ -1,0 +1,44 @@
+/*
+ * Design tokens — the single place to brand this app.
+ *
+ * The `--key-*` ramp is the brand color scale. HeroUI semantic variables
+ * (--accent, …) are mapped onto it below, so changing the ramp re-brands
+ * every component. Do not hardcode colors anywhere else in the app.
+ *
+ * Defaults: mühlemann+popp mustard. Replace the ramp for client projects.
+ */
+:root {
+  /* Brand color ramp (key) */
+  --key-50: #fbf6e9;
+  --key-100: #f6eccd;
+  --key-200: #efdda6;
+  --key-300: #e7cd7e;
+  --key-400: #ddba5c;
+  --key-500: #d4a843; /* m+p mustard */
+  --key-600: #b98e33;
+  --key-700: #997427;
+  --key-800: #7a5c1f;
+  --key-900: #5c4517;
+  --key-950: #3d2d0f;
+
+  /* HeroUI semantic mapping — components consume these */
+  --accent: var(--key-500);
+  --accent-hover: var(--key-600);
+  --accent-foreground: #1a1a1a;
+  --accent-soft: var(--key-100);
+  --accent-soft-hover: var(--key-200);
+  --accent-soft-foreground: var(--key-800);
+
+  /* Focus ring follows the brand */
+  --field-focus: var(--key-500);
+}
+
+.dark,
+[data-theme='dark'] {
+  --accent: var(--key-400);
+  --accent-hover: var(--key-300);
+  --accent-foreground: #1a1a1a;
+  --accent-soft: var(--key-950);
+  --accent-soft-hover: var(--key-900);
+  --accent-soft-foreground: var(--key-200);
+}
