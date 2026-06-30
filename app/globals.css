@@ -2,13 +2,20 @@
 @import '@heroui/styles';
 @import '../styles/tokens.css';
 
-/* Class-based dark mode (HeroUI toggles the `dark` class) */
 @custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: 'Geometos Neue';
+  src: url('/fonts/geometos-neue.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme inline {
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 
-  /* Expose the brand ramp as Tailwind utilities: bg-key-500, text-key-700, … */
+  /* Brand ramp as Tailwind utilities: bg-key-500, text-key-700, … */
   --color-key-50: var(--key-50);
   --color-key-100: var(--key-100);
   --color-key-200: var(--key-200);
@@ -20,8 +27,40 @@
   --color-key-800: var(--key-800);
   --color-key-900: var(--key-900);
   --color-key-950: var(--key-950);
+
+  --color-border: var(--border);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --shadow-card: var(--shadow-card);
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Geometos Neue', var(--font-sans);
+}
+
+/* Checkbox: explicit border since box-shadow is disabled */
+.checkbox__control {
+  border: 1px solid #d1d5db !important;
+  box-shadow: none !important;
+}
+
+/* Squircle — CSS fallback */
+.squircle {
+  border-radius: 20px;
+}
+
+@supports (corner-shape: squircle) {
+  .squircle {
+    corner-shape: squircle;
+    border-radius: 37px;
+  }
 }

@@ -1,8 +1,10 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from '@/components/ui';
 import { ThemeProvider } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Toaster } from 'sonner';
 import { env } from '@/env';
 
@@ -36,17 +38,29 @@ function useMswReady() {
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const mswReady = useMswReady();
+  const router = useRouter();
 
   if (!mswReady) {
     return null;
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster position="bottom-center" />
-      </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      <RouterProvider
+        navigate={(href) => {
+          router.push(href);
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <Toaster position="bottom-center" />
+        </QueryClientProvider>
+      </RouterProvider>
     </ThemeProvider>
   );
 }

@@ -1,22 +1,4 @@
-export {
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  ListBox,
-  ListBoxItem,
-  Pagination,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-  Tab,
-  TabList,
-  TabPanel,
-  Tabs,
-} from '@heroui/react';
+/**
+ * Local seam over HeroUI collection components.
+ */
+export { Table, Tabs } from '@heroui/react';

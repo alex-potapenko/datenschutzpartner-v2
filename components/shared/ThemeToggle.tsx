@@ -3,7 +3,7 @@
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
 import { useSyncExternalStore } from 'react';
-import { Button, MoonIcon, SunIcon } from '@/components/ui';
+import { Button } from '@/components/ui';
 
 /**
  * useSyncExternalStore is the lint-clean way to detect client-side mounting
@@ -38,7 +38,7 @@ export function ThemeToggle() {
         setTheme(isDark ? 'light' : 'dark');
       }}
     >
-      {isDark ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
+      {isDark ? '☀' : '🌙'}
     </Button>
   );
 }

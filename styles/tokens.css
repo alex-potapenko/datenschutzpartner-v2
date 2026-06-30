@@ -1,43 +1,53 @@
 /*
- * Design tokens — the single place to brand this app.
- *
- * The `--key-*` ramp is the brand color scale. HeroUI semantic variables
- * (--accent, …) are mapped onto it below, so changing the ramp re-brands
- * every component. Do not hardcode colors anywhere else in the app.
- *
- * Defaults: mühlemann+popp mustard. Replace the ramp for client projects.
+ * Design tokens — DSP brand.
+ * --key-* ramp = Datenschutzpartner blue (#2F5486 = key-500).
+ * Re-theme by editing this file only.
  */
 :root {
-  /* Brand color ramp (key) */
-  --key-50: #fbf6e9;
-  --key-100: #f6eccd;
-  --key-200: #efdda6;
-  --key-300: #e7cd7e;
-  --key-400: #ddba5c;
-  --key-500: #d4a843; /* m+p mustard */
-  --key-600: #b98e33;
-  --key-700: #997427;
-  --key-800: #7a5c1f;
-  --key-900: #5c4517;
-  --key-950: #3d2d0f;
+  /* Brand color ramp */
+  --key-50: #f0f4fa;
+  --key-100: #dde8f4;
+  --key-200: #bdd1eb;
+  --key-300: #8fb3db;
+  --key-400: #5e8ec8;
+  --key-500: #2f5486;
+  --key-600: #264571;
+  --key-700: #1e375c;
+  --key-800: #162947;
+  --key-900: #0e1c32;
+  --key-950: #09111f;
 
-  /* HeroUI semantic mapping — components consume these */
+  /* HeroUI semantic mapping */
   --accent: var(--key-500);
   --accent-hover: var(--key-600);
-  --accent-foreground: #1a1a1a;
+  --accent-foreground: #ffffff;
   --accent-soft: var(--key-100);
   --accent-soft-hover: var(--key-200);
   --accent-soft-foreground: var(--key-800);
 
-  /* Focus ring follows the brand */
+  /* Field focus ring */
   --field-focus: var(--key-500);
+
+  /* App-specific tokens */
+  --border: #ebebeb;
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted: #737373;
+  --success: #16a34a;
+  --warning: #d97706;
+  --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.12);
+
+  /* Classic form field styling */
+  --field-border: #d1d5db;
+  --field-border-width: 1px;
+  --field-shadow: none;
 }
 
 .dark,
 [data-theme='dark'] {
   --accent: var(--key-400);
   --accent-hover: var(--key-300);
-  --accent-foreground: #1a1a1a;
+  --accent-foreground: #ffffff;
   --accent-soft: var(--key-950);
   --accent-soft-hover: var(--key-900);
   --accent-soft-foreground: var(--key-200);

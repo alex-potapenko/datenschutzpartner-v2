@@ -1,12 +1,4 @@
-export {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Avatar,
-  Badge,
-  Chip,
-  EmptyState,
-  ProgressBar,
-  Skeleton,
-  Spinner,
-} from '@heroui/react';
+/**
+ * Local seam over HeroUI feedback components.
+ */
+export { Chip, Spinner } from '@heroui/react';

@@ -1,14 +1,24 @@
+/**
+ * Local seam over HeroUI overlays (modals, dropdowns).
+ */
 export {
-  AlertDialog,
-  Drawer,
-  Modal,
+  ModalRoot,
+  ModalBackdrop,
+  ModalContainer,
+  ModalDialog,
+  ModalHeader,
   ModalBody,
   ModalFooter,
-  ModalHeader,
   ModalHeading,
-  ModalTrigger,
-  Popover,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  useOverlayState,
+} from '@heroui/react';
+
+export {
+  DropdownRoot,
+  DropdownTrigger,
+  DropdownPopover,
+  DropdownMenu,
+  DropdownItem,
+  DropdownSection,
+  RouterProvider,
 } from '@heroui/react';

@@ -8,11 +8,12 @@ import './globals.css';
 const manrope = Manrope({
   variable: '--font-manrope',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'mp-frontend',
-  description: 'mühlemann+popp frontend template',
+  title: 'Datenschutzpartner — Privacy Policy Generator',
+  description: 'Scan your website and generate a GDPR-compliant privacy policy in seconds.',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -24,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${manrope.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">
+      <body className="bg-background text-foreground flex min-h-full flex-col">
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
