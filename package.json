@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "mp": {
-    "stage": "poc"
+    "stage": "production"
   },
   "scripts": {
     "dev": "next dev",
@@ -23,7 +23,7 @@
     "e2e": "playwright test",
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "verify:full": "pnpm verify && pnpm build && pnpm e2e",
-    "prepare": "lefthook install"
+    "prepare": "node -e \"if (!(process.env.CI || process.env.VERCEL)) require('child_process').execSync('lefthook install', { stdio: 'inherit' })\""
   },
   "msw": {
     "workerDirectory": [

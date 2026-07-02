@@ -4,20 +4,28 @@ import { join } from 'node:path';
 const OUT = join(process.cwd(), 'content/insights');
 
 const SOURCES = {
-  'news-2026-06-02': 'https://www.datenschutzpartner.ch/2026/06/02/news-questions-datenschutzrecht-20260602/',
-  'news-2026-05-05': 'https://www.datenschutzpartner.ch/2026/05/05/news-questions-datenschutzrecht-20260505/',
-  'news-2026-04-07': 'https://www.datenschutzpartner.ch/2026/04/07/news-questions-datenschutzrecht-20260407/',
+  'news-2026-06-02':
+    'https://www.datenschutzpartner.ch/2026/06/02/news-questions-datenschutzrecht-20260602/',
+  'news-2026-05-05':
+    'https://www.datenschutzpartner.ch/2026/05/05/news-questions-datenschutzrecht-20260505/',
+  'news-2026-04-07':
+    'https://www.datenschutzpartner.ch/2026/04/07/news-questions-datenschutzrecht-20260407/',
   'ki-dienste-schweiz': 'https://www.datenschutzpartner.ch/webinar-ki-dienste-schweiz-20260707/',
-  'ai-act-transparenz': 'https://www.datenschutzpartner.ch/2026/05/19/webinar-ai-act-transparenzpflichten-20260519/',
+  'ai-act-transparenz':
+    'https://www.datenschutzpartner.ch/2026/05/19/webinar-ai-act-transparenzpflichten-20260519/',
   'ki-alternative-dienste':
     'https://www.datenschutzpartner.ch/2026/04/21/webinar-alternative-ki-dienste-compliance-20260421/',
   'nis-2': 'https://www.datenschutzpartner.ch/2025/04/08/webinar-nis-2-richtlinie-20250408/',
-  'impressum-checkliste': 'https://www.datenschutzpartner.ch/2021/09/10/checkliste-impressumspflicht/',
+  'impressum-checkliste':
+    'https://www.datenschutzpartner.ch/2021/09/10/checkliste-impressumspflicht/',
   'video-hinweisschild':
     'https://www.datenschutzpartner.ch/2022/11/27/hinweisschild-video-ueberwachung-informationspflicht/',
-  loeschbegehren: 'https://www.datenschutzpartner.ch/2024/11/12/webinar-loeschbegehren-dsg-dsgvo-20241112/',
-  'ai-act-pflichten': 'https://www.datenschutzpartner.ch/2025/01/14/webinar-ai-act-pflichten-fuer-alle-20250114/',
-  'edoeb-cookies': 'https://www.datenschutzpartner.ch/2025/02/11/webinar-edoeb-leitfaden-cookies-20250211/',
+  loeschbegehren:
+    'https://www.datenschutzpartner.ch/2024/11/12/webinar-loeschbegehren-dsg-dsgvo-20241112/',
+  'ai-act-pflichten':
+    'https://www.datenschutzpartner.ch/2025/01/14/webinar-ai-act-pflichten-fuer-alle-20250114/',
+  'edoeb-cookies':
+    'https://www.datenschutzpartner.ch/2025/02/11/webinar-edoeb-leitfaden-cookies-20250211/',
 };
 
 function decode(text) {
@@ -76,7 +84,9 @@ function toMarkdown({ paras, lis, h2s }) {
     lines.push(p, '');
   }
 
-  lines.push('Mitglieder der Datenschutz-Academy finden Aufzeichnung, Folien und weiterführende Materialien im Academy-Bereich.');
+  lines.push(
+    'Mitglieder der Datenschutz-Academy finden Aufzeichnung, Folien und weiterführende Materialien im Academy-Bereich.'
+  );
   return lines.join('\n').trim() + '\n';
 }
 

@@ -1,24 +1,31 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-test('contacts flow: list, create, a11y', async ({ page }) => {
-  await page.goto('/contacts');
-
-  // Seeded mock data renders (default locale: de)
-  await expect(page.getByRole('heading', { name: 'Kontakte' })).toBeVisible();
-  await expect(page.getByText('Anna Keller')).toBeVisible();
-
-  // Accessibility scan on the stable loaded UI (deterministic — no transient toast).
-  // Serious/critical violations fail the build.
+async function assertNoSeriousA11yViolations(page: import('@playwright/test').Page) {
   const results = await new AxeBuilder({ page }).analyze();
   const blocking = results.violations.filter((v) =>
     ['serious', 'critical'].includes(v.impact ?? '')
   );
   expect(blocking).toEqual([]);
+}
 
-  // Create a contact through the form
-  await page.getByLabel('Name').fill('Nora Test');
-  await page.getByLabel('E-Mail').fill('nora.test@example.ch');
-  await page.getByRole('button', { name: 'Erstellen' }).click();
-  await expect(page.getByText('Nora Test')).toBeVisible();
+test('landing page: hero, scan form, a11y', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Prüfe Deine Website');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('auf Datenschutzrisiken');
+  await expect(page.getByLabel('Website-URL')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Scannen' })).toBeVisible();
+
+  await assertNoSeriousA11yViolations(page);
+});
+
+test('contact page: form and a11y', async ({ page }) => {
+  await page.goto('/contact');
+
+  await expect(page.getByRole('heading', { name: 'Kontakt', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Kontaktformular' })).toBeVisible();
+  await expect(page.getByLabel('Vorname und Name')).toBeVisible();
+
+  await assertNoSeriousA11yViolations(page);
 });
