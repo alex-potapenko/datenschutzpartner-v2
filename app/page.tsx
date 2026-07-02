@@ -7,13 +7,14 @@ import {
   Cloud,
   Users,
   ShieldCheck,
-  GraduationCap,
   GlobeHemisphereEast,
+  GraduationCap,
   Bell,
   CreditCard,
   MapPin,
   Camera,
 } from '@/components/ui';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { TopBar } from '@/components/shared/TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { ScanForm } from '@/components/shared/ScanForm';
@@ -24,155 +25,162 @@ import { ScanPreviewCard } from '@/components/shared/ScanPreviewCard';
 import { InsightsSection } from '@/components/shared/InsightsSection';
 import { AboutSection } from '@/components/shared/AboutSection';
 import { NewsletterSection } from '@/components/shared/NewsletterSection';
+import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const locale = await getLocale();
+  const t = await getTranslations('landing');
+
+  const scanItems = [
+    {
+      label: t('scanItemTracking'),
+      value: t('scanItemTrackingValue'),
+      icon: <Crosshair size={18} />,
+      color: '#ef4444',
+    },
+    {
+      label: t('scanItemCookies'),
+      value: t('scanItemCookiesValue'),
+      icon: <Cookie size={18} />,
+      color: '#92400e',
+    },
+    {
+      label: t('scanItemAnalytics'),
+      value: t('scanItemAnalyticsValue'),
+      icon: <ChartBar size={18} />,
+      color: '#7c3aed',
+    },
+    {
+      label: t('scanItemContactForm'),
+      value: t('scanItemDetected'),
+      icon: <EnvelopeSimple size={18} />,
+      color: '#16a34a',
+    },
+    {
+      label: t('scanItemHosting'),
+      value: t('scanItemHostingValue'),
+      icon: <Cloud size={18} />,
+      color: '#3b82f6',
+    },
+    {
+      label: t('scanItemCookieBanner'),
+      value: t('scanItemDetected'),
+      icon: <Bell size={18} />,
+      color: '#d97706',
+    },
+    {
+      label: t('scanItemPayment'),
+      value: t('scanItemPaymentValue'),
+      icon: <CreditCard size={18} />,
+      color: '#6366f1',
+    },
+    {
+      label: t('scanItemGeolocation'),
+      value: t('scanItemDetected'),
+      icon: <MapPin size={18} />,
+      color: '#f97316',
+    },
+    {
+      label: t('scanItemMediaCapture'),
+      value: t('scanItemNotDetected'),
+      icon: <Camera size={18} />,
+      color: '#16a34a',
+    },
+  ];
+
+  const scanPreviewLabels = {
+    scan: t('scanPreviewScan'),
+    issues: t('scanPreviewIssues'),
+    privacyPolicy: t('scanPreviewPolicy'),
+    complete: t('scanPreviewComplete'),
+    issuesFound: t('scanPreviewIssuesFound'),
+    notCompliant: t('scanPreviewNotCompliant'),
+  };
+
   return (
     <>
       <TopBar />
 
       <main>
-        {/* Hero */}
         <section className="border-border bg-background border-b">
           <Container>
             <div className="border-border grid items-start border-r border-l lg:grid-cols-2">
-              {/* Left */}
-              <div className="border-border flex flex-col border-r">
-                <div className="flex flex-col gap-10 px-8 pt-20 pb-10">
-                  <h1 className="text-foreground text-5xl leading-tight font-bold">
-                    Check your website
+              <div className="border-border flex flex-col max-lg:border-b lg:border-r">
+                <div className="flex flex-col gap-6 px-4 pt-12 pb-8 sm:gap-10 sm:px-8 sm:pt-16 lg:pt-20">
+                  <h1 className="text-foreground text-2xl leading-tight font-bold sm:text-3xl lg:text-4xl">
+                    {t('heroTitleLine1')}
                     <br />
-                    for{' '}
                     <span className="relative inline-block" style={{ color: 'var(--accent)' }}>
-                      privacy risks
+                      {t('heroTitleHighlight')}
                       <img
                         src="/risk-underline.svg"
                         alt=""
                         aria-hidden="true"
-                        className="absolute -bottom-1 left-0 w-full"
+                        className={`absolute left-0 w-full origin-bottom ${
+                          locale === 'de' ? '-bottom-2 scale-y-50' : '-bottom-2.5'
+                        }`}
                       />
                     </span>
                     .
                   </h1>
-                  <p className="text-foreground max-w-md text-lg leading-relaxed">
-                    We scan your website and generate a compliant privacy policy automatically.
+                  <p className="text-foreground max-w-md text-base leading-relaxed sm:text-lg">
+                    {t('heroSubtitle')}
                   </p>
                 </div>
 
-                <div className="relative z-10 -mx-9 pl-2">
+                <div className="relative z-10 px-4 sm:px-8 lg:-mx-9 lg:px-0 lg:pl-2">
                   <ScanForm />
                 </div>
 
-                <div className="flex px-8 py-10">
+                <div className="flex flex-row gap-4 px-4 py-8 sm:px-8 sm:py-10">
                   <TrustBadge
-                    icon={<Users size={24} />}
-                    title="2,400+"
-                    subtitle="businesses trust us"
+                    icon={<Users size={24} weight="fill" />}
+                    title={t('trustBusinesses')}
+                    subtitle={t('trustBusinessesSub')}
                   />
                   <TrustBadge
-                    icon={<ShieldCheck size={24} />}
-                    title="Swiss"
-                    subtitle="legal expertise"
+                    icon={<ShieldCheck size={24} weight="fill" />}
+                    title={t('trustSwiss')}
+                    subtitle={t('trustSwissSub')}
                   />
-                  <TrustBadge icon={<Lock size={24} />} title="GDPR & nFADP" subtitle="compliant" />
+                  <TrustBadge
+                    icon={<Lock size={24} weight="fill" />}
+                    title={t('trustCompliant')}
+                    subtitle={t('trustCompliantSub')}
+                  />
                 </div>
               </div>
 
-              {/* Right — scan preview */}
-              <div className="relative flex h-0 min-h-full items-start justify-center px-16 pt-20">
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    top: -60,
-                    left: -40,
-                    width: 320,
-                    height: 320,
-                    borderRadius: '50%',
-                    background: '#ef4444',
-                    opacity: 0.16,
-                    filter: 'blur(96px)',
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    top: 80,
-                    right: -60,
-                    width: 320,
-                    height: 320,
-                    borderRadius: '50%',
-                    background: '#7c3aed',
-                    opacity: 0.16,
-                    filter: 'blur(96px)',
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    top: '45%',
-                    left: -60,
-                    width: 320,
-                    height: 320,
-                    borderRadius: '50%',
-                    background: '#3b82f6',
-                    opacity: 0.16,
-                    filter: 'blur(96px)',
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    bottom: -40,
-                    right: -20,
-                    width: 320,
-                    height: 320,
-                    borderRadius: '50%',
-                    background: '#16a34a',
-                    opacity: 0.16,
-                    filter: 'blur(96px)',
-                  }}
-                />
+              <div className="relative flex items-start justify-center px-4 pt-10 pb-12 sm:px-16 sm:pt-16 lg:h-0 lg:min-h-full lg:pt-20 lg:pb-0">
+                <div className="pointer-events-none absolute inset-0 z-0 overflow-visible">
+                  <HeroGlowOrbs />
+                </div>
 
-                <div
-                  className="relative flex w-full justify-center overflow-hidden"
-                  style={{
-                    maxHeight: '100%',
-                    maskImage: 'linear-gradient(to top, transparent 0%, black 30%)',
-                    WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 30%)',
-                  }}
-                >
-                  <ScanPreviewCard items={SCAN_ITEMS} />
+                <div className="hero-preview-fade relative z-10 flex w-full justify-center">
+                  <ScanPreviewCard items={scanItems} labels={scanPreviewLabels} />
                 </div>
               </div>
             </div>
           </Container>
         </section>
 
-        {/* Feature cards */}
         <section className="border-border bg-background border-b">
           <Container>
-            <div className="border-border grid border-r border-l sm:grid-cols-3">
-              <FeatureCard
-                icon={<Cookie size={48} weight="fill" />}
-                title="Cookie Banner Generator"
-                description="Generate a compliant cookie consent banner for your website in minutes."
-                linkLabel="Get started"
-                href="#"
-                borderRight
-              />
+            <div className="border-border grid border-r border-l lg:grid-cols-2">
               <FeatureCard
                 icon={<GlobeHemisphereEast size={48} weight="fill" />}
-                title="Do you operate in the EU?"
-                description="You may be legally required to appoint a representative."
-                linkLabel="Learn more"
-                href="#"
+                title={t('featureEuTitle')}
+                description={t('featureEuDescription')}
+                linkLabel={t('learnMore')}
+                href="/eu-rep"
                 borderRight
               />
               <FeatureCard
                 icon={<GraduationCap size={48} weight="fill" />}
-                title="Academy"
-                description="Learn about privacy, compliance and data protection."
-                linkLabel="Explore"
-                href="#"
+                title={t('featureAcademyTitle')}
+                description={t('featureAcademyDescription')}
+                linkLabel={t('learnMore')}
+                href="/academy"
               />
             </div>
           </Container>
@@ -187,30 +195,3 @@ export default function LandingPage() {
     </>
   );
 }
-
-const SCAN_ITEMS = [
-  {
-    label: 'Tracking technologies',
-    value: '12 detected',
-    icon: <Crosshair size={18} />,
-    color: '#ef4444',
-  },
-  { label: 'Cookies in use', value: '8 detected', icon: <Cookie size={18} />, color: '#92400e' },
-  {
-    label: 'Analytics tools',
-    value: 'Google Analytics',
-    icon: <ChartBar size={18} />,
-    color: '#7c3aed',
-  },
-  {
-    label: 'Contact form',
-    value: 'Detected',
-    icon: <EnvelopeSimple size={18} />,
-    color: '#16a34a',
-  },
-  { label: 'Hosting', value: 'EU-based', icon: <Cloud size={18} />, color: '#3b82f6' },
-  { label: 'Cookie banner', value: 'Detected', icon: <Bell size={18} />, color: '#d97706' },
-  { label: 'Payment processor', value: 'Stripe', icon: <CreditCard size={18} />, color: '#6366f1' },
-  { label: 'Geolocation', value: 'Detected', icon: <MapPin size={18} />, color: '#f97316' },
-  { label: 'Media capture', value: 'Not detected', icon: <Camera size={18} />, color: '#16a34a' },
-];

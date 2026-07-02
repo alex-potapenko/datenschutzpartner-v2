@@ -5,12 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepLayout } from './ui/StepLayout';
 import { ScanStep } from './steps/ScanStep';
-import { DecisionStep } from './steps/DecisionStep';
 import { ImprovedStep, type ImprovedFormData } from './steps/ImprovedStep';
 import { EuRepStep } from './steps/EuRepStep';
 import { SummaryStep } from './steps/SummaryStep';
 
-type Step = 'scan' | 'decision' | 'improved' | 'eu-rep' | 'summary';
+type Step = 'scan' | 'improved' | 'eu-rep' | 'summary';
 
 export default function ResultContent() {
   const params = useSearchParams();
@@ -30,11 +29,11 @@ export default function ResultContent() {
   })();
 
   const [step, setStep] = useState<Step>('scan');
-  const [path, setPath] = useState<'basic' | 'improved'>('basic');
   const [formData, setFormData] = useState<ImprovedFormData | undefined>();
   const [scanDone, setScanDone] = useState(false);
   const [includeEuRep, setIncludeEuRep] = useState(false);
   const [euRepPlan, setEuRepPlan] = useState<'budget' | 'standard' | 'premium' | undefined>();
+  const [euRepSkipped, setEuRepSkipped] = useState(false);
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(['scan']));
 
   function goToStep(next: Step) {
@@ -49,16 +48,21 @@ export default function ResultContent() {
 
   function handleEuRepSelect(plan: 'budget' | 'standard' | 'premium') {
     setEuRepPlan(plan);
+    setEuRepSkipped(false);
+    goToStep('summary');
+  }
+
+  function handleEuRepSkip() {
+    setEuRepPlan(undefined);
+    setEuRepSkipped(true);
     goToStep('summary');
   }
 
   function handleBack() {
-    if (step === 'decision') goToStep('scan');
-    else if (step === 'improved') goToStep('decision');
-    else if (step === 'eu-rep') goToStep(path === 'improved' ? 'improved' : 'decision');
+    if (step === 'improved') goToStep('scan');
+    else if (step === 'eu-rep') goToStep('improved');
     else if (step === 'summary') {
-      if (includeEuRep) goToStep('eu-rep');
-      else goToStep(path === 'improved' ? 'improved' : 'decision');
+      goToStep(includeEuRep ? 'eu-rep' : 'improved');
     }
   }
 
@@ -72,7 +76,6 @@ export default function ResultContent() {
     <StepLayout
       step={step}
       domain={domain}
-      path={path}
       includeEuRep={includeEuRep}
       canGoBack={canGoBack}
       onBack={handleBack}
@@ -96,38 +99,31 @@ export default function ResultContent() {
               onIncludeEuRepChange={setIncludeEuRep}
               onContinue={() => {
                 setScanDone(true);
-                goToStep('decision');
-              }}
-            />
-          )}
-
-          {step === 'decision' && (
-            <DecisionStep
-              onBasic={() => {
-                setPath('basic');
-                goToStep('summary');
-              }}
-              onImproved={() => {
-                setPath('improved');
                 goToStep('improved');
               }}
-              onBack={handleBack}
             />
           )}
 
           {step === 'improved' && (
-            <ImprovedStep domain={domain} onSubmit={handleImprovedSubmit} onBack={handleBack} />
+            <ImprovedStep
+              domain={domain}
+              includeEuRep={includeEuRep}
+              onSubmit={handleImprovedSubmit}
+              onBack={handleBack}
+            />
           )}
 
-          {step === 'eu-rep' && <EuRepStep onSelect={handleEuRepSelect} onBack={handleBack} />}
+          {step === 'eu-rep' && (
+            <EuRepStep onSelect={handleEuRepSelect} onSkip={handleEuRepSkip} onBack={handleBack} />
+          )}
 
-          {step === 'summary' && (
+          {step === 'summary' && formData && (
             <SummaryStep
               domain={domain}
               formData={formData}
-              path={path}
               includeEuRep={includeEuRep}
               euRepPlan={euRepPlan}
+              euRepSkipped={euRepSkipped}
               onPreview={() => {}}
               onBack={handleBack}
             />

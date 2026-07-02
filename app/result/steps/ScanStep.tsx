@@ -47,17 +47,23 @@ import {
 } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 
-type ItemStatus = 'detected' | 'not-detected' | 'warning';
-type ItemTier = 'active' | 'privacy' | 'legal';
+import {
+  SCAN_GROUP_DEFINITIONS,
+  SCAN_ITEM_COUNT,
+  logoUrl,
+  type ScanIconKey,
+  type ScanItemStatus,
+  type ScanItemTier,
+} from '../content/scan-groups';
 
 interface ScanItem {
   icon: React.ReactNode;
   logo?: string;
   name: string;
   description: string;
-  status: ItemStatus;
+  status: ScanItemStatus;
   value?: string;
-  tier?: ItemTier;
+  tier?: ScanItemTier;
 }
 
 interface ScanGroup {
@@ -65,249 +71,44 @@ interface ScanGroup {
   items: ScanItem[];
 }
 
-const L = (domain: string) => `https://img.logo.dev/${domain}?token=pk_SVxg-nzqQv6sx6IKaC4yVA`;
+const SCAN_ICONS: Record<ScanIconKey, React.ReactNode> = {
+  chat: <ChatCircle size={20} weight="fill" />,
+  users: <UsersThree size={20} weight="fill" />,
+  bell: <Bell size={20} weight="fill" />,
+  map: <MapPin size={20} weight="fill" />,
+  youtube: <YoutubeLogo size={20} weight="fill" />,
+  text: <TextT size={20} weight="fill" />,
+  instagram: <InstagramLogo size={20} weight="fill" />,
+  megaphone: <MegaphoneSimple size={20} weight="fill" />,
+  cloud: <Cloud size={20} weight="fill" />,
+  credit: <CreditCard size={20} weight="fill" />,
+  storefront: <Storefront size={20} weight="fill" />,
+  envelope: <EnvelopeSimple size={20} weight="fill" />,
+  user: <UserCircle size={20} weight="fill" />,
+  shield: <ShieldCheck size={20} weight="fill" />,
+  cookie: <Cookie size={20} weight="fill" />,
+  robot: <Robot size={20} weight="fill" />,
+  chart: <ChartBar size={20} weight="fill" />,
+  crosshair: <Crosshair size={20} weight="fill" />,
+};
 
-const SCAN_GROUPS: ScanGroup[] = [
-  {
-    label: 'Communication and CRM',
-    items: [
-      {
-        icon: <ChatCircle size={20} weight="fill" />,
-        logo: L('intercom.com'),
-        name: 'Intercom',
-        description: 'Live chat & customer messaging',
-        status: 'detected',
-        value: 'Active',
-        tier: 'legal',
-      },
-      {
-        icon: <UsersThree size={20} weight="fill" />,
-        logo: L('hubspot.com'),
-        name: 'HubSpot',
-        description: 'CRM & marketing automation',
-        status: 'detected',
-        value: 'Active',
-        tier: 'legal',
-      },
-      {
-        icon: <Bell size={20} weight="fill" />,
-        logo: L('mailchimp.com'),
-        name: 'Mailchimp',
-        description: 'Email marketing platform',
-        status: 'detected',
-        value: 'Active',
-        tier: 'legal',
-      },
-    ],
-  },
-  {
-    label: 'Embedded Third-Party Content',
-    items: [
-      {
-        icon: <MapPin size={20} weight="fill" />,
-        logo: L('maps.google.com'),
-        name: 'Google Maps',
-        description: 'Interactive map embeds',
-        status: 'detected',
-        value: 'Active',
-        tier: 'active',
-      },
-      {
-        icon: <YoutubeLogo size={20} weight="fill" />,
-        logo: L('youtube.com'),
-        name: 'YouTube',
-        description: 'Embedded video content',
-        status: 'detected',
-        value: 'Active',
-        tier: 'active',
-      },
-      {
-        icon: <TextT size={20} weight="fill" />,
-        logo: L('fonts.google.com'),
-        name: 'Google Fonts',
-        description: 'Third-party web fonts',
-        status: 'detected',
-        value: 'Active',
-        tier: 'active',
-      },
-      {
-        icon: <InstagramLogo size={20} weight="fill" />,
-        logo: L('linkedin.com'),
-        name: 'Social Media Buttons',
-        description: 'LinkedIn, Instagram share widgets',
-        status: 'detected',
-        value: 'LinkedIn, Instagram',
-        tier: 'privacy',
-      },
-      {
-        icon: <MegaphoneSimple size={20} weight="fill" />,
-        logo: L('meta.com'),
-        name: 'Meta Pixel',
-        description: 'Facebook tracking & retargeting',
-        status: 'warning',
-        value: 'Active',
-        tier: 'privacy',
-      },
-    ],
-  },
-  {
-    label: 'Infrastructure and Hosting',
-    items: [
-      {
-        icon: <Cloud size={20} weight="fill" />,
-        logo: L('cloudflare.com'),
-        name: 'Cloudflare',
-        description: 'Hosting & CDN provider',
-        status: 'detected',
-        value: 'EU-based',
-        tier: 'active',
-      },
-      {
-        icon: <CreditCard size={20} weight="fill" />,
-        logo: L('stripe.com'),
-        name: 'Stripe',
-        description: 'Payment processing',
-        status: 'detected',
-        value: 'Active',
-        tier: 'legal',
-      },
-      {
-        icon: <Storefront size={20} weight="fill" />,
-        name: 'Online Shop',
-        description: 'E-commerce system',
-        status: 'not-detected',
-        value: 'Not found',
-      },
-    ],
-  },
-  {
-    label: 'E-Commerce and Forms',
-    items: [
-      {
-        icon: <EnvelopeSimple size={20} weight="fill" />,
-        name: 'Contact Form',
-        description: 'Collects visitor data',
-        status: 'detected',
-        value: 'Detected',
-        tier: 'legal',
-      },
-      {
-        icon: <Bell size={20} weight="fill" />,
-        name: 'Newsletter Sign-Up',
-        description: 'Email subscription form',
-        status: 'detected',
-        value: 'Detected',
-        tier: 'legal',
-      },
-      {
-        icon: <UserCircle size={20} weight="fill" />,
-        name: 'User Accounts',
-        description: 'Registration & login',
-        status: 'detected',
-        value: 'Detected',
-        tier: 'legal',
-      },
-    ],
-  },
-  {
-    label: 'Security and Technical Services',
-    items: [
-      {
-        icon: <ShieldCheck size={20} weight="fill" />,
-        logo: L('cloudflare.com'),
-        name: 'Cloudflare CDN',
-        description: 'Content delivery & DDoS protection',
-        status: 'detected',
-        value: 'Active',
-        tier: 'active',
-      },
-      {
-        icon: <Cookie size={20} weight="fill" />,
-        logo: L('cookiebot.com'),
-        name: 'Cookiebot',
-        description: 'Cookie consent management',
-        status: 'detected',
-        value: 'Active',
-        tier: 'active',
-      },
-      {
-        icon: <Robot size={20} weight="fill" />,
-        logo: L('google.com'),
-        name: 'Google reCAPTCHA',
-        description: 'Bot protection',
-        status: 'detected',
-        value: 'Active',
-        tier: 'active',
-      },
-    ],
-  },
-  {
-    label: 'Analytics and Advertising',
-    items: [
-      {
-        icon: <ChartBar size={20} weight="fill" />,
-        logo: L('google.com'),
-        name: 'Google Analytics 4',
-        description: 'Website analytics & reporting',
-        status: 'detected',
-        value: 'Active',
-        tier: 'privacy',
-      },
-      {
-        icon: <Crosshair size={20} weight="fill" />,
-        name: 'Tracking Technologies',
-        description: 'Cookies, pixels & fingerprinting scripts',
-        status: 'warning',
-        value: '12 detected',
-        tier: 'privacy',
-      },
-      {
-        icon: <Cookie size={20} weight="fill" />,
-        name: 'Cookies in Use',
-        description: 'All cookie types combined',
-        status: 'warning',
-        value: '8 detected',
-        tier: 'privacy',
-      },
-      {
-        icon: <MegaphoneSimple size={20} weight="fill" />,
-        logo: L('google.com'),
-        name: 'Google Ads',
-        description: 'Remarketing & conversion tracking',
-        status: 'warning',
-        value: 'Active',
-        tier: 'privacy',
-      },
-    ],
-  },
-  {
-    label: 'User Accounts and Authentication',
-    items: [
-      {
-        icon: <UserCircle size={20} weight="fill" />,
-        name: 'Login System',
-        description: 'Custom user account registration',
-        status: 'detected',
-        value: 'Active',
-        tier: 'legal',
-      },
-      {
-        icon: <ShieldCheck size={20} weight="fill" />,
-        logo: L('google.com'),
-        name: 'Google Sign-In',
-        description: 'Single Sign-On via Google',
-        status: 'detected',
-        value: 'SSO Active',
-        tier: 'legal',
-      },
-    ],
-  },
-];
+const SCAN_GROUPS: ScanGroup[] = SCAN_GROUP_DEFINITIONS.map((group) => ({
+  label: group.label,
+  items: group.items.map((item) => ({
+    icon: SCAN_ICONS[item.iconKey],
+    logo: item.logoDomain ? logoUrl(item.logoDomain) : undefined,
+    name: item.name,
+    description: item.description,
+    status: item.status,
+    value: item.value,
+    tier: item.tier,
+  })),
+}));
 
-const TOTAL_ITEMS = SCAN_GROUPS.reduce((acc, g) => acc + g.items.length, 0);
+const TOTAL_ITEMS = SCAN_ITEM_COUNT;
 
 const STATUS_CONFIG: Record<
-  ItemStatus,
+  ScanItemStatus,
   { icon: React.ReactNode; label: string; color: string; bg: string }
 > = {
   detected: {
@@ -458,18 +259,18 @@ export function ScanStep({
       {/* Header */}
       <div className="border-border border-b">
         <Container>
-          <div className="border-border flex flex-col gap-3 border-r border-l px-8 pt-16 pb-10">
+          <div className="border-border flex flex-col gap-3 border-r border-l px-4 pt-10 pb-8 sm:px-8 sm:pt-16 sm:pb-10">
             <div className="flex items-center gap-3">
-              <h1 className="text-foreground text-4xl font-bold">
+              <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
                 {isComplete ? 'Scan complete.' : `Scanning ${domain}...`}
               </h1>
               {!isComplete && <Spinner size={28} />}
             </div>
-            <p className="text-muted max-w-lg text-base leading-relaxed">
-              {isComplete
-                ? `We detected ${SCAN_GROUPS.length} categories of data processing on your website.`
-                : 'Analyzing your website for data processing tools and technologies.'}
-            </p>
+            {!isComplete && (
+              <p className="text-muted max-w-lg text-base leading-relaxed">
+                Analyzing your website for data processing tools and technologies.
+              </p>
+            )}
           </div>
         </Container>
       </div>
@@ -508,11 +309,11 @@ export function ScanStep({
           return (
             <div className="border-border border-b">
               <Container>
-                <div className="border-border grid grid-cols-3 border-r border-l">
+                <div className="border-border grid grid-cols-1 border-r border-l sm:grid-cols-3">
                   {stats.map((s, i) => (
                     <div
                       key={s.label}
-                      className={`flex flex-col gap-3 p-8 ${i < stats.length - 1 ? 'border-border border-r' : ''}`}
+                      className={`border-border flex flex-col gap-3 p-4 sm:p-8 ${i < stats.length - 1 ? 'max-sm:border-b sm:border-r' : ''}`}
                     >
                       <div className="flex items-center gap-1">
                         {s.icon}
@@ -544,12 +345,11 @@ export function ScanStep({
             return (
               <div key={group.label} className="flex flex-col">
                 <div
-                  className={`grid ${groupIndex < SCAN_GROUPS.length - 1 ? 'border-border border-b' : ''}`}
-                  style={{ gridTemplateColumns: '1fr 1fr' }}
+                  className={`grid grid-cols-1 lg:grid-cols-2 ${groupIndex < SCAN_GROUPS.length - 1 ? 'border-border border-b' : ''}`}
                 >
                   {/* Left — category */}
-                  <div className="border-border flex flex-col gap-8 border-r p-8">
-                    <h2 className="text-xl leading-snug font-semibold" style={{ color: '#525252' }}>
+                  <div className="border-border flex flex-col gap-5 border-b p-4 sm:gap-8 sm:p-8 lg:border-r lg:border-b-0">
+                    <h2 className="text-lg leading-snug font-semibold" style={{ color: '#525252' }}>
                       {group.label}
                     </h2>
                     {isAnalytics && (
@@ -562,7 +362,7 @@ export function ScanStep({
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-base leading-none">🇪🇺</span>
-                          <h3 className="text-foreground text-base font-medium">
+                          <h3 className="text-foreground !font-sans text-base font-medium">
                             EU Representative May Be Required
                           </h3>
                         </div>
@@ -579,7 +379,9 @@ export function ScanStep({
                             variant="outline"
                             size="sm"
                             className="rounded-full text-xs"
-                            onPress={() => { learnMoreModal.open(); }}
+                            onPress={() => {
+                              learnMoreModal.open();
+                            }}
                           >
                             Learn more
                           </Button>
@@ -611,9 +413,9 @@ export function ScanStep({
                       return (
                         <div
                           key={item.name}
-                          className="flex items-center justify-between gap-4 px-8 py-4"
+                          className="flex items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8"
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                             {item.logo ? (
                               <LogoIcon
                                 logo={item.logo}
@@ -660,16 +462,16 @@ export function ScanStep({
                                 {item.icon}
                               </div>
                             )}
-                            <div className="flex flex-col gap-0.5">
+                            <div className="flex min-w-0 flex-col gap-0.5">
                               <h3
-                                className="text-base font-semibold"
+                                className="truncate !font-sans text-base font-semibold"
                                 style={{
                                   color: isDone || isScanning ? 'var(--foreground)' : '#9ca3af',
                                 }}
                               >
                                 {item.name}
                               </h3>
-                              <p className="text-muted text-xs">{item.description}</p>
+                              <p className="text-muted truncate text-xs">{item.description}</p>
                             </div>
                           </div>
 
@@ -731,7 +533,7 @@ export function ScanStep({
                     monitors the behaviour of, people located in the EU/EEA.
                   </p>
                   <div className="flex flex-col gap-2">
-                    <h4 className="text-foreground font-semibold">
+                    <h4 className="text-foreground text-sm font-semibold">
                       When does it apply to your website?
                     </h4>
                     <ul className="text-muted flex list-disc flex-col gap-1.5 pl-5">
@@ -742,7 +544,7 @@ export function ScanStep({
                     </ul>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <h4 className="text-foreground font-semibold">
+                    <h4 className="text-foreground text-sm font-semibold">
                       Article 27 — EU Representative
                     </h4>
                     <p className="text-muted">
@@ -759,7 +561,12 @@ export function ScanStep({
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant="primary" onPress={() => { learnMoreModal.close(); }}>
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    learnMoreModal.close();
+                  }}
+                >
                   Got it
                 </Button>
               </ModalFooter>

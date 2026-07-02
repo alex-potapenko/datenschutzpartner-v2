@@ -27,7 +27,7 @@ export function OptionCard({
     <div
       role="button"
       tabIndex={0}
-      className="relative flex cursor-pointer flex-col gap-6 rounded-[20px] border p-8 transition-shadow hover:shadow-[0_8px_40px_rgba(0,0,0,0.10)]"
+      className="relative flex cursor-pointer flex-col gap-6 rounded-[20px] border p-4 transition-shadow hover:shadow-[0_8px_40px_rgba(0,0,0,0.10)] sm:p-8"
       style={{
         borderColor: recommended ? 'var(--accent)' : 'var(--border)',
         background: recommended ? 'rgba(47,84,134,0.03)' : 'white',
@@ -54,7 +54,7 @@ export function OptionCard({
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-foreground text-xl font-semibold">{title}</h3>
+        <h3 className="text-foreground text-lg font-semibold">{title}</h3>
         <p className="text-muted text-sm leading-relaxed">{description}</p>
       </div>
 

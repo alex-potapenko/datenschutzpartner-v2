@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui';
 import { EnvelopeSimple } from '@/components/ui';
 import { Container } from './Container';
 
 export function NewsletterSection() {
+  const t = useTranslations('newsletter');
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -18,18 +21,17 @@ export function NewsletterSection() {
   return (
     <section className="border-border bg-background border-b">
       <Container>
-        <div className="border-border relative flex flex-col items-center gap-12 overflow-hidden border-r border-l px-8 py-20 text-center">
+        <div className="border-border relative flex flex-col items-center gap-8 overflow-hidden border-r border-l px-4 py-12 text-center sm:gap-12 sm:px-8 sm:py-20">
           <img
             src="/dsp-mark-outline.svg"
             alt=""
             aria-hidden
-            className="pointer-events-none absolute select-none"
+            className="pointer-events-none absolute w-[480px] max-w-none select-none sm:w-[720px] lg:w-[960px]"
             style={{
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, calc(-50% + 10px))',
-              width: 960,
-              height: 960,
+              aspectRatio: '1 / 1',
               opacity: 0.5,
               zIndex: 1,
             }}
@@ -92,12 +94,12 @@ export function NewsletterSection() {
           />
 
           <div className="relative z-10 flex max-w-2xl flex-col gap-4">
-            <h2 className="text-foreground text-4xl font-bold">Stay ahead of privacy law.</h2>
-            <p className="text-foreground text-base leading-relaxed whitespace-nowrap">
-              Get practical insights on GDPR, the Swiss DSG, and data protection compliance
-              delivered to your inbox.
-              <br />
-              No spam, unsubscribe anytime.
+            <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
+              {t('title')}
+            </h2>
+            <p className="text-foreground text-base leading-relaxed">
+              {t('bodyLine1')}
+              <br className="hidden sm:inline" /> {t('bodyLine2')}
             </p>
           </div>
 
@@ -110,13 +112,13 @@ export function NewsletterSection() {
                 >
                   <EnvelopeSimple size={24} weight="fill" style={{ color: 'var(--accent)' }} />
                 </div>
-                <p className="text-foreground text-base font-semibold">You&apos;re subscribed!</p>
-                <p className="text-muted text-sm">We&apos;ll be in touch soon.</p>
+                <p className="text-foreground text-base font-semibold">{t('successTitle')}</p>
+                <p className="text-muted text-sm">{t('successBody')}</p>
               </div>
             ) : (
               <form
                 onSubmit={handleSubmit}
-                className="flex items-center gap-3 rounded-full bg-white p-2 pl-5 shadow-[0_4px_24px_rgba(0,0,0,0.08)]"
+                className="flex flex-col gap-3 rounded-2xl bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.08)] sm:flex-row sm:items-center sm:rounded-full sm:p-2 sm:pl-5"
               >
                 <input
                   type="email"
@@ -124,25 +126,25 @@ export function NewsletterSection() {
                   onChange={(e) => {
                     setEmail(e.target.value);
                   }}
-                  placeholder="Your email address"
+                  placeholder={t('placeholder')}
                   required
-                  className="text-foreground placeholder:text-muted flex-1 bg-transparent text-base outline-none"
+                  className="text-foreground placeholder:text-muted min-w-0 flex-1 bg-transparent px-2 text-base outline-none sm:px-0"
                 />
                 <Button
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="shrink-0 gap-2 rounded-full"
+                  className="w-full shrink-0 gap-2 rounded-full sm:w-auto"
                 >
-                  Subscribe
+                  {t('subscribe')}
                 </Button>
               </form>
             )}
             <p className="text-muted mt-3 text-center text-xs">
-              By subscribing you agree to our{' '}
-              <a href="/privacy" className="underline transition-opacity hover:opacity-70">
-                Privacy Policy
-              </a>
+              {t('privacyPrefix')}{' '}
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                {t('privacyLink')}
+              </Link>
               .
             </p>
           </div>

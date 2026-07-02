@@ -1,34 +1,38 @@
+'use client';
+
 import Link from 'next/link';
-import { LinkedinLogo, ThreadsLogo, InstagramLogo, Globe } from '@/components/ui';
+import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { LinkedinLogo, ThreadsLogo, InstagramLogo, Butterfly } from '@/components/ui';
 import { Container } from './Container';
 import { Logo } from './Logo';
 
-const FOOTER_NAV = [
+const FOOTER_SECTIONS = [
   {
-    heading: 'Product',
+    headingKey: 'products',
     links: [
-      { label: 'Privacy Generator', href: '/scan' },
-      { label: 'EU Representative', href: '#' },
-      { label: 'Academy', href: '#' },
+      { key: 'privacyGenerator', href: '/scan' },
+      { key: 'euRepresentative', href: '#' },
+      { key: 'academy', href: '/academy' },
     ],
   },
   {
-    heading: 'Company',
+    headingKey: 'company',
     links: [
-      { label: 'Insights', href: '#' },
-      { label: 'About us', href: '#' },
-      { label: 'Contact', href: 'https://www.datenschutzpartner.ch/kontakt/' },
+      { key: 'insights', href: '/insights' },
+      { key: 'aboutUs', href: '/about' },
+      { key: 'contact', href: '/contact' },
     ],
   },
   {
-    heading: 'Legal',
+    headingKey: 'legal',
     links: [
-      { label: 'Imprint', href: '#' },
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Terms of Service', href: '#' },
+      { key: 'imprint', href: '/imprint' },
+      { key: 'privacyPolicy', href: '/privacy' },
+      { key: 'termsOfService', href: '/terms' },
     ],
   },
-];
+] as const;
 
 const SOCIAL_LINKS = [
   {
@@ -36,7 +40,7 @@ const SOCIAL_LINKS = [
     href: 'https://www.linkedin.com/company/datenschutzpartner',
     icon: <LinkedinLogo size={20} weight="fill" />,
   },
-  { label: 'Bluesky', href: 'https://bsky.app', icon: <Globe size={20} weight="fill" /> },
+  { label: 'Bluesky', href: 'https://bsky.app', icon: <Butterfly size={20} weight="fill" /> },
   {
     label: 'Threads',
     href: 'https://www.threads.net',
@@ -49,17 +53,25 @@ const SOCIAL_LINKS = [
   },
 ];
 
+function isFooterLinkActive(pathname: string, href: string) {
+  if (!href.startsWith('/')) return false;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function Footer() {
+  const pathname = usePathname();
+  const t = useTranslations('footer');
+  const tc = useTranslations('common');
+
   return (
     <footer id="site-footer">
       <Container>
         <div className="border-border relative border-r border-l">
-          <div className="border-border grid border-b lg:grid-cols-2">
-            {/* Brand & Contacts */}
-            <div className="border-border flex flex-col gap-6 border-r p-8 pt-20">
+          <div className="border-border flex flex-col-reverse lg:grid lg:grid-cols-2">
+            <div className="border-border flex flex-col gap-6 p-4 pt-20 sm:p-8 lg:border-r">
               <Link
                 href="/"
-                aria-label="Home"
+                aria-label={tc('home')}
                 className="block w-full"
                 style={{ color: 'var(--accent)' }}
               >
@@ -67,15 +79,11 @@ export function Footer() {
               </Link>
 
               <div className="text-foreground flex flex-col gap-1 text-sm">
-                <span>Swiss legal expertise for your privacy compliance.</span>
-                <span>Datenschutzpartner AG, Hauptstrasse 19, 5742 Kölliken, Schweiz</span>
-                <Link
-                  href="mailto:info@datenschutzpartner.ch"
-                  className="transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  info@datenschutzpartner.ch
-                </Link>
+                <span>{t('tagline')}</span>
+                <span>{t('address')}</span>
+                <p>
+                  <Link href="mailto:info@datenschutzpartner.ch">info@datenschutzpartner.ch</Link>
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -93,27 +101,37 @@ export function Footer() {
               </div>
 
               <p className="text-foreground text-sm">
-                © {new Date().getFullYear()} Datenschutzpartner AG
+                {t('copyright', { year: new Date().getFullYear() })}
               </p>
             </div>
 
-            {/* Nav columns */}
-            <div className="grid grid-cols-3 gap-8 p-8 pt-20">
-              {FOOTER_NAV.map(({ heading, links }) => (
-                <div key={heading} className="flex flex-col gap-4">
-                  <p className="text-foreground text-base font-medium">{heading}</p>
+            <div className="border-border grid grid-cols-3 gap-8 border-b p-4 pt-20 sm:p-8 lg:border-b-0">
+              {FOOTER_SECTIONS.map(({ headingKey, links }) => (
+                <div key={headingKey} className="flex flex-col gap-4">
+                  <h3 className="text-muted text-sm font-medium">{t(headingKey)}</h3>
                   <ul className="flex flex-col gap-2.5">
-                    {links.map(({ label, href }) => (
-                      <li key={label}>
-                        <Link
-                          href={href}
-                          className="text-base font-medium transition-opacity hover:opacity-70"
-                          style={{ color: 'var(--accent)' }}
-                        >
-                          {label}
-                        </Link>
-                      </li>
-                    ))}
+                    {links.map(({ key, href }) => {
+                      const active = isFooterLinkActive(pathname, href);
+                      const label = t(key);
+
+                      return (
+                        <li key={key}>
+                          {active ? (
+                            <span aria-current="page" className="text-muted text-base font-normal">
+                              {label}
+                            </span>
+                          ) : (
+                            <Link
+                              href={href}
+                              className="text-base font-normal transition-colors hover:text-[var(--link-hover)]"
+                              style={{ color: 'var(--accent)' }}
+                            >
+                              {label}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}

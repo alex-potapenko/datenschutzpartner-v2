@@ -25,8 +25,9 @@
   --accent-soft-hover: var(--key-200);
   --accent-soft-foreground: var(--key-800);
 
-  /* Field focus ring */
-  --field-focus: var(--key-500);
+  /* Link hover: always a darker shade of the link's accent color, in any theme */
+  --link-hover: color-mix(in srgb, var(--accent) 78%, #000);
+  --link-underline: rgb(from var(--key-500) r g b / 0.5);
 
   /* App-specific tokens */
   --border: #ebebeb;
@@ -34,13 +35,12 @@
   --foreground: #171717;
   --muted: #737373;
   --success: #16a34a;
+  --success-soft: color-mix(in srgb, var(--success) 14%, var(--background));
+  --success-soft-foreground: var(--success);
   --warning: #d97706;
+  --feature-purple: #7c3aed;
+  --feature-red: #dc2626;
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.12);
-
-  /* Classic form field styling */
-  --field-border: #d1d5db;
-  --field-border-width: 1px;
-  --field-shadow: none;
 }
 
 .dark,

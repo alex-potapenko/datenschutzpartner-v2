@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui';
 import { X, Check } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
+import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import { Logo } from '@/components/shared/Logo';
 
 interface StepDef {
@@ -26,7 +28,6 @@ interface StepDef {
 interface StepLayoutProps {
   step: string;
   domain: string;
-  path: 'basic' | 'improved';
   includeEuRep?: boolean;
   children: ReactNode;
   canGoBack?: boolean;
@@ -38,18 +39,18 @@ interface StepLayoutProps {
 export function StepLayout({
   step,
   domain,
-  path,
   includeEuRep,
   children,
   onStepClick,
   visitedSteps,
 }: StepLayoutProps) {
+  const t = useTranslations('result.steps');
+
   const steps: StepDef[] = [
-    { id: 'scan', label: 'Scan' },
-    { id: 'decision', label: 'Privacy Policy Setup' },
-    ...(path === 'improved' ? [{ id: 'improved', label: 'Questionnaire' }] : []),
-    ...(includeEuRep ? [{ id: 'eu-rep', label: 'EU Representative' }] : []),
-    { id: 'summary', label: 'Review' },
+    { id: 'scan', label: t('scan') },
+    { id: 'improved', label: t('questionnaire') },
+    ...(includeEuRep ? [{ id: 'eu-rep', label: t('euRep') }] : []),
+    { id: 'summary', label: t('summary') },
   ];
 
   const indexMap: Record<string, number> = {};
@@ -66,18 +67,21 @@ export function StepLayout({
       <div className="shrink-0 text-white" style={{ background: 'var(--accent)' }}>
         <Container>
           <div className="flex items-stretch border-r border-l border-white/20">
-            <div className="flex w-1/2 items-center px-8 py-5">
+            <div className="flex w-1/2 items-center px-4 py-4 sm:px-8 sm:py-5">
               <Logo height={22} />
             </div>
-            <div className="flex w-1/2 items-center justify-end px-8 py-5">
+            <div className="flex w-1/2 items-center justify-end gap-2 px-4 py-4 sm:gap-3 sm:px-8 sm:py-5">
+              <LocaleSwitcher />
               <Button
                 variant="outline"
                 size="md"
                 className="gap-2 border-white/20 text-white hover:bg-white/10"
-                onPress={() => { modal.open(); }}
+                onPress={() => {
+                  modal.open();
+                }}
               >
                 <X size={16} weight="bold" />
-                Cancel
+                <span className="hidden sm:inline">Cancel</span>
               </Button>
             </div>
           </div>
@@ -91,10 +95,10 @@ export function StepLayout({
       >
         <Container>
           <div
-            className="border-r border-l px-8 py-8"
+            className="border-r border-l px-4 py-6 sm:px-8 sm:py-8"
             style={{ borderColor: 'rgba(255,255,255,0.12)' }}
           >
-            <h1 className="text-5xl text-white">{domain}</h1>
+            <h1 className="truncate text-2xl text-white sm:text-3xl lg:text-4xl">{domain}</h1>
           </div>
         </Container>
       </div>
@@ -120,7 +124,7 @@ export function StepLayout({
                     animate={{ opacity: 1, width: 'auto' }}
                     exit={{ opacity: 0, width: 0 }}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className={`flex flex-1 items-center gap-3 overflow-hidden border-r px-8 py-6 last:border-r-0 ${clickable ? 'cursor-pointer' : ''}`}
+                    className={`flex flex-1 items-center justify-center gap-3 overflow-hidden border-r px-2 py-4 last:border-r-0 sm:justify-start sm:px-8 sm:py-6 ${clickable ? 'cursor-pointer' : ''}`}
                     onClick={
                       clickable
                         ? () => {
@@ -155,7 +159,7 @@ export function StepLayout({
                       </div>
                     )}
                     <span
-                      className="text-base font-medium whitespace-nowrap"
+                      className="hidden text-base font-medium whitespace-nowrap sm:inline"
                       style={{ color: done || active ? 'white' : 'rgba(255,255,255,0.35)' }}
                     >
                       {s.label}
@@ -192,9 +196,14 @@ export function StepLayout({
                     window.location.href = '/';
                   }}
                 >
-                  Quit Generator
+                  Quit
                 </Button>
-                <Button variant="primary" onPress={() => { modal.close(); }}>
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    modal.close();
+                  }}
+                >
                   Proceed Working
                 </Button>
               </ModalFooter>

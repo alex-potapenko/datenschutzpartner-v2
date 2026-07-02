@@ -20,7 +20,7 @@ export default function ErrorPage({
 
   return (
     <main className="flex grow flex-col items-center justify-center gap-4 py-24">
-      <h1 className="text-2xl font-bold">{t('error')}</h1>
+      <h1 className="text-xl font-bold">{t('error')}</h1>
       <Button onPress={reset}>{t('retry')}</Button>
     </main>
   );

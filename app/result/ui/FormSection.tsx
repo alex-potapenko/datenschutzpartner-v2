@@ -7,6 +7,7 @@ import {
   CheckboxIndicator,
   CheckboxContent,
 } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 interface FormSectionProps {
   title: string;
@@ -18,7 +19,7 @@ export function FormSection({ title, description, children }: FormSectionProps) 
   return (
     <div className="border-border flex flex-col gap-6 border-b py-10 last:border-b-0">
       <div className="flex flex-col gap-1">
-        <h3 className="text-foreground text-lg font-semibold">{title}</h3>
+        <h3 className="text-foreground text-base font-semibold">{title}</h3>
         {description && <p className="text-muted text-sm">{description}</p>}
       </div>
       <div className="flex flex-col gap-4">{children}</div>
@@ -59,6 +60,7 @@ export function TextInput({
 }: TextInputProps) {
   return (
     <Input
+      variant="secondary"
       type={type}
       value={value}
       onChange={onChange}
@@ -91,8 +93,11 @@ export function RadioGroup({ options, value, onChange }: RadioGroupProps) {
             key={opt.value}
             type="button"
             size="lg"
-            variant={selected ? 'primary' : 'outline'}
-            className="rounded-full"
+            variant="outline"
+            className={cn(
+              'rounded-full',
+              selected && 'border-key-500 bg-key-100 text-foreground border-2'
+            )}
             onPress={() => {
               onChange(opt.value);
             }}
@@ -113,7 +118,7 @@ interface CheckboxFieldProps {
 
 export function CheckboxField({ label, checked, onChange }: CheckboxFieldProps) {
   return (
-    <Checkbox isSelected={checked} onChange={onChange}>
+    <Checkbox variant="secondary" isSelected={checked} onChange={onChange}>
       <CheckboxControl>
         <CheckboxIndicator />
       </CheckboxControl>

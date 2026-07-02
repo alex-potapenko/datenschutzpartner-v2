@@ -12,6 +12,12 @@
 - **Accessibility is required** — labelled fields, real button/link semantics, keyboard
   reachable. CI runs an axe scan that fails on serious/critical issues.
 - **Responsive**, mobile-first; verify narrow and wide.
+- **Body text is dark by default** — use `text-foreground` for all body copy. `text-muted` is reserved for explicitly secondary content (captions, helper text, timestamps, metadata). Never use `text-muted` as the default for regular paragraphs or list items.
+
+## Typography
+
+- **Body / UI default:** Geist (`--font-geist-sans` via `next/font/google`) — paragraphs, forms, most interface copy.
+- **Display / accent:** Geometos Neue (`next/font/local` → `--font-geometos-neue`, utility `font-display`, global `h1`–`h3`) — headlines, nav labels, buttons, and selected emphasis lines. Font file: `public/fonts/GeometosNeueBold.ttf` (bold only, mapped across the full weight range) (must be present in the repo).
 
 ## Animation
 

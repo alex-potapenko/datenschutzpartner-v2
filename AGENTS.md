@@ -40,7 +40,7 @@ Use **pnpm** only. Node version is pinned in `.nvmrc`.
 4. **Client state**: Zustand + immer in `store/`, one file per domain — UI state only, no server data.
 5. **API contract**: every endpoint exists twice and must stay in sync: typed functions in `api/` and MSW handlers in `mocks/handlers.ts`. The mock IS the draft API contract for the backend team.
 6. **Forms**: react-hook-form + zodResolver; validation schemas come from the `api/` domain module; error messages are i18n keys.
-7. **Text**: no hardcoded user-facing strings — everything through next-intl (`messages/de|en|fr.json`, default `de`).
+7. **Text**: no hardcoded user-facing strings — everything through next-intl (`messages/de.json`, `messages/en.json`, default `de`).
 8. **Env vars**: only via `env.ts` (zod-validated). Never `process.env` in app code.
 9. **Server Components by default**; add `'use client'` only at interactive leaves. Every route group keeps `error.tsx` / `loading.tsx` working.
 10. **Accessibility is non-negotiable**: labelled fields, real buttons/links, keyboard reachable. CI runs an axe scan; serious/critical violations fail.

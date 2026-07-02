@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/shared/ThemeProvider';
 import { useTranslations } from 'next-intl';
 import { useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui';

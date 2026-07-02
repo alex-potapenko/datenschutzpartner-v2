@@ -1,43 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { TextInput, RadioGroup, CheckboxField } from '../ui/FormSection';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
 import { Container } from '@/components/shared/Container';
+import {
+  type ImprovedFormData,
+  REVENUE_TYPE_OPTIONS,
+  SPECIAL_DATA_OPTIONS,
+  SUPERVISORY_AUTHORITY_OPTIONS,
+} from '../content/improved-form';
 
-export interface ImprovedFormData {
-  companyName: string;
-  domain: string;
-  email: string;
-  street: string;
-  postalCode: string;
-  city: string;
-  country: string;
-  generatesRevenue: string;
-  revenueTypes: string[];
-  processesSpecialData: string;
-  specialDataCategories: string[];
-  basedInSwitzerland: string;
-  processesEUData: string;
-  systematically: string;
-  offersToEU: string;
-  monitorsEUBehaviour: string;
-  hasEUEstablishment: string;
-  hasEURepresentative: string;
-  euRepresentativeAddress: string;
-  transfersToThirdCountry: string;
-  usesDataForMarketing: string;
-  usesProfiling: string;
-  hasEmployeePrivacyNotice: string;
-  employeePrivacyUrl: string;
-  listSupervisoryAuthority: string;
-  supervisoryAuthority: string;
-}
+export type { ImprovedFormData };
 
 interface ImprovedStepProps {
   domain: string;
+  includeEuRep?: boolean;
   onSubmit: (data: ImprovedFormData) => void;
   onBack?: () => void;
 }
@@ -74,12 +55,9 @@ function Reveal({ show, children }: { show: boolean; children: React.ReactNode }
 
 function CategoryRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div
-      className="border-border grid border-b last:border-b-0"
-      style={{ gridTemplateColumns: '1fr 1fr' }}
-    >
-      <div className="border-border border-r p-8">
-        <h2 className="text-xl leading-snug font-semibold" style={{ color: '#525252' }}>
+    <div className="border-border grid grid-cols-1 border-b last:border-b-0 lg:grid-cols-2">
+      <div className="border-border border-b p-4 sm:p-8 lg:border-r lg:border-b-0">
+        <h2 className="text-lg leading-snug font-semibold" style={{ color: '#525252' }}>
           {label}
         </h2>
       </div>
@@ -98,7 +76,7 @@ function QField({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 px-6 py-6">
+    <div className="flex flex-col gap-3 px-4 py-4 sm:px-8 sm:py-6">
       <p className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>
         {label}
       </p>
@@ -108,7 +86,9 @@ function QField({
   );
 }
 
-export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
+export function ImprovedStep({ domain, includeEuRep, onSubmit, onBack }: ImprovedStepProps) {
+  const t = useTranslations('result.improvedStep');
+  const tEuRep = useTranslations('services.euRep');
   const companyGuess = domain.replace(/^www\./, '').split('.')[0] ?? domain;
   const companyName = companyGuess.charAt(0).toUpperCase() + companyGuess.slice(1);
 
@@ -156,10 +136,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
 
   return (
     <>
-      <StepHeader
-        title="Complete your privacy policy."
-        description="We pre-filled everything we could from your scan. Just confirm a few details — the rest is covered automatically."
-      />
+      <StepHeader title="Complete your privacy policy." />
       <Container>
         <div className="border-border flex flex-col border-r border-l">
           {/* Controller Identity */}
@@ -193,14 +170,14 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               />
             </QField>
             <QField label="Postal address">
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <TextInput
                   value={form.street}
                   onChange={(e) => {
                     set('street', e.target.value);
                   }}
                   placeholder="Street and number"
-                  className="flex-[2]"
+                  className="sm:flex-[2]"
                 />
                 <TextInput
                   value={form.postalCode}
@@ -208,7 +185,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                     set('postalCode', e.target.value);
                   }}
                   placeholder="Postal code"
-                  className="flex-1"
+                  className="sm:flex-1"
                 />
                 <TextInput
                   value={form.city}
@@ -216,7 +193,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                     set('city', e.target.value);
                   }}
                   placeholder="City"
-                  className="flex-1"
+                  className="sm:flex-1"
                 />
               </div>
               <TextInput
@@ -244,12 +221,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
             <Reveal show={form.generatesRevenue === 'yes'}>
               <QField label="How does the website generate direct revenue?">
                 <div className="flex flex-col gap-2">
-                  {[
-                    { value: 'memberships', label: 'Memberships / subscriptions' },
-                    { value: 'products', label: 'Sale of products / services' },
-                    { value: 'advertising', label: 'Advertising' },
-                    { value: 'other', label: 'Other' },
-                  ].map((opt) => (
+                  {REVENUE_TYPE_OPTIONS.map((opt) => (
                     <CheckboxField
                       key={opt.value}
                       label={opt.label}
@@ -275,15 +247,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
             <Reveal show={form.processesSpecialData === 'yes'}>
               <QField label="Which special categories?">
                 <div className="flex flex-col gap-2">
-                  {[
-                    { value: 'health', label: 'Health data' },
-                    { value: 'religion', label: 'Religious / philosophical beliefs' },
-                    { value: 'politics', label: 'Political opinions' },
-                    { value: 'union', label: 'Trade union membership' },
-                    { value: 'genetic', label: 'Genetic data' },
-                    { value: 'biometric', label: 'Biometric data' },
-                    { value: 'sexuality', label: 'Data about sex life / sexual orientation' },
-                  ].map((opt) => (
+                  {SPECIAL_DATA_OPTIONS.map((opt) => (
                     <CheckboxField
                       key={opt.value}
                       label={opt.label}
@@ -455,12 +419,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               <QField label="Which supervisory authority?">
                 <RadioGroup
                   name="supervisoryAuthority"
-                  options={[
-                    { value: 'edob', label: 'EDÖB (Switzerland)' },
-                    { value: 'bfdi', label: 'BfDI (Germany)' },
-                    { value: 'dsb', label: 'DSB (Austria)' },
-                    { value: 'other', label: 'Other' },
-                  ]}
+                  options={[...SUPERVISORY_AUTHORITY_OPTIONS]}
                   value={form.supervisoryAuthority}
                   onChange={(v) => {
                     set('supervisoryAuthority', v);
@@ -477,7 +436,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
         onContinue={() => {
           onSubmit(form);
         }}
-        ctaLabel="Review summary"
+        ctaLabel={includeEuRep ? tEuRep('label') : t('continueToSummary')}
       />
     </>
   );

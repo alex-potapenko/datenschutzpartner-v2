@@ -1,5 +1,5 @@
 /**
- * Local seam over HeroUI overlays (modals, dropdowns).
+ * Local seam over HeroUI overlays (modals, dropdowns, drawers).
  */
 export {
   ModalRoot,
@@ -11,6 +11,19 @@ export {
   ModalFooter,
   ModalHeading,
   useOverlayState,
+} from '@heroui/react';
+
+export {
+  DrawerRoot,
+  DrawerTrigger,
+  DrawerBackdrop,
+  DrawerContent,
+  DrawerDialog,
+  DrawerHeader,
+  DrawerHeading,
+  DrawerBody,
+  DrawerFooter,
+  DrawerCloseTrigger,
 } from '@heroui/react';
 
 export {

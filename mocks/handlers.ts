@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import type { Contact, ContactCreate } from '@/api/contacts';
+import type { ForgotPasswordInput, LoginInput } from '@/api/auth';
 import { createCollection } from './db';
 
 /**
@@ -26,5 +27,23 @@ export const handlers = [
   http.delete('/api/contacts/:id', ({ params }) => {
     const removed = contacts.remove(String(params.id));
     return new HttpResponse(null, { status: removed ? 204 : 404 });
+  }),
+
+  http.post('/api/auth/login', async ({ request }) => {
+    const input = (await request.json()) as LoginInput;
+
+    if (input.email === 'demo@datenschutzpartner.ch' && input.password === 'demo') {
+      return HttpResponse.json({ token: 'mock-token', email: input.email });
+    }
+
+    return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
+  }),
+
+  http.post('/api/auth/forgot-password', async ({ request }) => {
+    const input = (await request.json()) as ForgotPasswordInput;
+    if (!input.email) {
+      return HttpResponse.json({ message: 'invalid_email' }, { status: 400 });
+    }
+    return HttpResponse.json({ sent: true as const });
   }),
 ];

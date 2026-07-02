@@ -41,13 +41,13 @@ export function BasicStep({ onUnlock, onImprove }: BasicStepProps) {
       />
       <Container>
         <div className="border-border border-r border-l">
-          <div className="mx-auto flex max-w-2xl flex-col gap-10 px-8 py-10">
+          <div className="mx-auto flex max-w-2xl flex-col gap-10 px-4 py-10 sm:px-8">
             <div
               className="relative overflow-hidden rounded-[20px] border"
               style={{ borderColor: 'var(--border)' }}
             >
               <div
-                className="text-foreground space-y-4 p-8 text-sm leading-relaxed select-none"
+                className="text-foreground space-y-4 p-4 text-sm leading-relaxed select-none sm:p-8"
                 style={{
                   maskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 75%)',
                   WebkitMaskImage:
@@ -69,7 +69,7 @@ export function BasicStep({ onUnlock, onImprove }: BasicStepProps) {
               </div>
 
               <div
-                className="absolute right-0 bottom-0 left-0 flex flex-col items-center gap-6 px-8 pt-24 pb-10"
+                className="absolute right-0 bottom-0 left-0 flex flex-col items-center gap-6 px-4 pt-24 pb-10 sm:px-8"
                 style={{
                   background:
                     'linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.95) 30%, white 60%)',

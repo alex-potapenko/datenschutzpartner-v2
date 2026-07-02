@@ -5,14 +5,25 @@
  */
 import {
   // Navigation / UI
+  ButterflyIcon as Butterfly,
   ArrowLeftIcon as ArrowLeft,
   ArrowRightIcon as ArrowRight,
   ArrowsLeftRightIcon as ArrowsLeftRight,
+  PlusIcon as Plus,
   CaretDownIcon as CaretDown,
+  CaretLeftIcon as CaretLeft,
   CaretRightIcon as CaretRight,
   CheckIcon as Check,
+  CopyIcon as Copy,
+  ShareNetworkIcon as ShareNetwork,
+  SignInIcon as SignIn,
   XIcon as X,
   ListIcon as List,
+  ListChecksIcon as ListChecks,
+  GridFourIcon as GridFour,
+  PlayCircleIcon as PlayCircle,
+  PlayIcon as Play,
+  ClockIcon as Clock,
 
   // Data / Business
   BuildingsIcon as Buildings,
@@ -29,6 +40,8 @@ import {
   MapPinIcon as MapPin,
   ShieldCheckIcon as ShieldCheck,
   StorefrontIcon as Storefront,
+  FlagIcon as Flag,
+  TagIcon as Tag,
 
   // Communication
   BellIcon as Bell,
@@ -41,10 +54,12 @@ import {
 
   // Media / Social
   CameraIcon as Camera,
+  CalendarBlankIcon as CalendarBlank,
   CloudIcon as Cloud,
   CookieIcon as Cookie,
   CrosshairIcon as Crosshair,
   EyeIcon as Eye,
+  EyeSlashIcon as EyeSlash,
   GraduationCapIcon as GraduationCap,
   InstagramLogoIcon as InstagramLogo,
   LinkedinLogoIcon as LinkedinLogo,
@@ -72,14 +87,25 @@ import {
 
 export {
   // Navigation / UI
+  Butterfly,
   ArrowLeft,
   ArrowRight,
   ArrowsLeftRight,
+  Plus,
   CaretDown,
+  CaretLeft,
   CaretRight,
   Check,
+  Copy,
+  ShareNetwork,
+  SignIn,
   X,
   List,
+  ListChecks,
+  GridFour,
+  PlayCircle,
+  Play,
+  Clock,
 
   // Data / Business
   Buildings,
@@ -96,6 +122,8 @@ export {
   MapPin,
   ShieldCheck,
   Storefront,
+  Flag,
+  Tag,
 
   // Communication
   Bell,
@@ -108,10 +136,12 @@ export {
 
   // Media / Social
   Camera,
+  CalendarBlank,
   Cloud,
   Cookie,
   Crosshair,
   Eye,
+  EyeSlash,
   GraduationCap,
   InstagramLogo,
   LinkedinLogo,

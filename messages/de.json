@@ -1,17 +1,673 @@
 {
   "common": {
-    "appName": "mp-frontend",
+    "appName": "Datenschutzpartner",
     "loading": "Wird geladen …",
     "error": "Etwas ist schiefgelaufen",
     "retry": "Erneut versuchen",
     "notFound": "Seite nicht gefunden",
-    "backHome": "Zur Startseite",
-    "toggleTheme": "Design wechseln"
+    "backHome": "Startseite",
+    "toggleTheme": "Design wechseln",
+    "language": "Sprache wählen",
+    "switchTo": "Zu {locale} wechseln",
+    "home": "Startseite",
+    "menu": "Menü",
+    "close": "Schliessen",
+    "logo": "Datenschutzpartner"
   },
-  "home": {
-    "title": "m+p Frontend-Template",
-    "intro": "Klickbarer Prototyp mit gemocktem API. Beispiel-Feature:",
-    "cta": "Kontakte öffnen"
+  "meta": {
+    "defaultTitle": "Datenschutzpartner — Datenschutz-Generator",
+    "defaultDescription": "Scanne Deine Website und erstelle in Sekunden eine DSGVO-konforme Datenschutzerklärung."
+  },
+  "nav": {
+    "services": "Services",
+    "insights": "Insights",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "company": "Unternehmen",
+    "logIn": "Anmelden"
+  },
+  "services": {
+    "privacyGenerator": {
+      "label": "Datenschutz-Generator",
+      "description": "Erstelle in Minuten eine konforme Datenschutzerklärung"
+    },
+    "cookieBanner": {
+      "label": "Cookie-Banner-Generator",
+      "description": "Erstelle in Minuten ein konformes Cookie-Consent-Banner"
+    },
+    "euRep": {
+      "label": "EU-Vertreter",
+      "description": "Benenne Deinen GDPR-Art.-27-Vertreter"
+    },
+    "academy": {
+      "label": "Academy",
+      "description": "Lerne Datenschutzrecht mit unseren Expertinnen und Experten"
+    }
+  },
+  "footer": {
+    "tagline": "Schweizer Rechtsexpertise für Deine Datenschutz-Compliance.",
+    "address": "Datenschutzpartner AG, Hauptstrasse 19, 5742 Kölliken, Schweiz",
+    "copyright": "© {year} Datenschutzpartner AG",
+    "products": "Produkte",
+    "company": "Unternehmen",
+    "legal": "Rechtliches",
+    "privacyGenerator": "Datenschutz-Generator",
+    "euRepresentative": "EU-Vertreter",
+    "academy": "Academy",
+    "insights": "Insights",
+    "aboutUs": "Über uns",
+    "contact": "Kontakt",
+    "imprint": "Impressum",
+    "privacyPolicy": "Datenschutzerklärung",
+    "termsOfService": "AGB"
+  },
+  "landing": {
+    "heroTitleLine1": "Prüfe Deine Website",
+    "heroTitleHighlight": "auf Datenschutzrisiken",
+    "heroSubtitle": "Wir scannen Deine Website und erstellen automatisch eine konforme Datenschutzerklärung.",
+    "trustBusinesses": "2'400+",
+    "trustBusinessesSub": "Unternehmen vertrauen uns",
+    "trustSwiss": "Rechtsexpertise aus der Schweiz",
+    "trustSwissSub": "",
+    "trustCompliant": "DSGVO & nDSG",
+    "trustCompliantSub": "konform",
+    "featureCookieTitle": "Cookie-Banner-Generator",
+    "featureCookieDescription": "Erstelle in Minuten ein konformes Cookie-Consent-Banner für Deine Website.",
+    "featureEuTitle": "Tätigst Du in der EU?",
+    "featureEuDescription": "Möglicherweise bist Du gesetzlich verpflichtet, einen Vertreter zu benennen.",
+    "featureAcademyTitle": "Academy",
+    "featureAcademyDescription": "Lerne mehr über Datenschutz, Compliance und den Schutz personenbezogener Daten.",
+    "getStarted": "Loslegen",
+    "learnMore": "Mehr erfahren",
+    "explore": "Entdecken",
+    "scanPlaceholder": "Deine Website eingeben",
+    "scanUrlAria": "Website-URL",
+    "scanButton": "Scannen",
+    "scanPreviewScan": "Scan",
+    "scanPreviewIssues": "Befunde",
+    "scanPreviewPolicy": "Datenschutz",
+    "scanPreviewComplete": "Abgeschlossen",
+    "scanPreviewIssuesFound": "5 gefunden",
+    "scanPreviewNotCompliant": "Nicht konform",
+    "scanItemTracking": "Tracking-Technologien",
+    "scanItemTrackingValue": "12 erkannt",
+    "scanItemCookies": "Cookies im Einsatz",
+    "scanItemCookiesValue": "8 erkannt",
+    "scanItemAnalytics": "Analyse-Tools",
+    "scanItemAnalyticsValue": "Google Analytics",
+    "scanItemContactForm": "Kontaktformular",
+    "scanItemDetected": "Erkannt",
+    "scanItemHosting": "Hosting",
+    "scanItemHostingValue": "EU-basiert",
+    "scanItemCookieBanner": "Cookie-Banner",
+    "scanItemPayment": "Zahlungsanbieter",
+    "scanItemPaymentValue": "Stripe",
+    "scanItemGeolocation": "Geolokalisierung",
+    "scanItemMediaCapture": "Medienaufnahme",
+    "scanItemNotDetected": "Nicht erkannt"
+  },
+  "aboutSection": {
+    "title": "Über uns.",
+    "body": "Mit der DSGVO und dem neuen Schweizer Datenschutzgesetz (DSG), das seit September 2023 gilt, helfen wir Unternehmen, Privatpersonen und Organisationen im anspruchsvollen Datenschutzrecht. Wir bieten flexible und kostengünstige Lösungen — von unserem Datenschutz-Generator bis zur Academy, Newsletter und Podcast.",
+    "learnMore": "Mehr erfahren",
+    "imageAlt": "Team von Datenschutzpartner"
+  },
+  "about": {
+    "metaTitle": "Über Datenschutzpartner — Datenschutzpartner",
+    "metaDescription": "Das Team und die Geschichte der Datenschutzpartner AG — Schweizer Expertise für Datenschutz-Compliance.",
+    "title": "Über Datenschutzpartner",
+    "intro": "Die <imprint>Datenschutzpartner AG</imprint> wurde 2015 von Martin Steiger und Andreas Von Gunten als Papiertiger GmbH gegründet. Seit 2020 ist Cornelia Diethelm am Unternehmen beteiligt.",
+    "teamImageAlt": "Das Team von Datenschutzpartner",
+    "teamAriaLabel": "Team",
+    "corneliaBio": "Spezialistin für digitale Ethik und hat das <cdr>Centre for Digital Responsibility</cdr> aufgebaut. Sie ist in der Geschäftsleitung von Datenschutzpartner für die Unternehmenskommunikation zuständig und gewährleistet die Qualitätskontrolle.",
+    "andreasBio": "Inhaber von <smartkmu>SmartKMU</smartkmu>. Er ist in der Geschäftsleitung von Datenschutzpartner für die operativen Angelegenheiten sowie für die Finanzen zuständig.",
+    "marcBio": "Digital Business & Operations Manager bei Datenschutzpartner und handhabt das Tagesgeschäft. Er steuert die Online-Präsenz und kümmert sich um die Buchhaltung und die Kundenkommunikation.",
+    "martinBio": "Anwalt und Unternehmer für Recht im digitalen Raum. Er ist Geschäftsführer und Mitgründer von Datenschutzpartner. Die Anwaltskanzlei von Martin Steiger ist die <steiger>Steiger Legal AG</steiger>."
+  },
+  "login": {
+    "metaTitle": "Anmelden — Datenschutzpartner",
+    "metaDescription": "Melde Dich bei Deinem Datenschutzpartner-Konto an.",
+    "title": "Anmelden",
+    "email": "E-Mail",
+    "emailPlaceholder": "maria@muster.ch",
+    "password": "Passwort",
+    "passwordPlaceholder": "Dein Passwort",
+    "submit": "Anmelden",
+    "forgotPassword": "Passwort vergessen?",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen",
+    "success": "Erfolgreich angemeldet.",
+    "errors": {
+      "invalidCredentials": "E-Mail oder Passwort ist falsch.",
+      "generic": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
+    }
+  },
+  "forgotPassword": {
+    "metaTitle": "Passwort vergessen — Datenschutzpartner",
+    "metaDescription": "Fordere einen Link zum Zurücksetzen Deines Passworts an.",
+    "title": "Passwort vergessen",
+    "description": "Gib Deine E-Mail-Adresse ein. Wir senden Dir einen Link zum Zurücksetzen Deines Passworts.",
+    "email": "E-Mail",
+    "emailPlaceholder": "maria@muster.ch",
+    "submit": "Link senden",
+    "backToLogin": "Anmelden",
+    "success": "Falls ein Konto mit dieser E-Mail existiert, haben wir Dir einen Link zum Zurücksetzen gesendet."
+  },
+  "contact": {
+    "metaTitle": "Kontakt — Datenschutzpartner",
+    "metaDescription": "Nimm Kontakt mit der Datenschutzpartner AG auf.",
+    "title": "Kontakt",
+    "addressHeading": "Adresse",
+    "addressLine": "Hauptstrasse 19, 5742 Kölliken, Schweiz",
+    "socialHeading": "Soziale Netzwerke",
+    "note": "Termine nur nach vorgängiger Vereinbarung. Weitere Angaben zur Datenschutzpartner AG findest Du im <imprint>Impressum</imprint>.",
+    "formHeading": "Kontaktformular",
+    "form": {
+      "name": "Vorname und Name",
+      "company": "Firma",
+      "email": "E-Mail-Adresse",
+      "message": "Mitteilung",
+      "namePlaceholder": "Maria Muster",
+      "companyPlaceholder": "Muster AG",
+      "emailPlaceholder": "maria@muster.ch",
+      "messagePlaceholder": "Deine Nachricht an uns …",
+      "spamLabel": "Trage das Ergebnis folgender Rechnung ein:",
+      "spamAria": "Spamschutz",
+      "privacyNote": "Wenn Du mit uns Kontakt aufnimmst, bearbeiten wir Deine Personendaten. Lies unsere <privacy>Datenschutzerklärung</privacy>.",
+      "submit": "Absenden",
+      "submitting": "Wird gesendet…",
+      "successTitle": "Danke für deine Nachricht!",
+      "successBody": "Wir melden uns so bald wie möglich bei dir.",
+      "errors": {
+        "nameRequired": "Bitte gib deinen Namen ein.",
+        "emailInvalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
+        "messageRequired": "Bitte gib eine Mitteilung ein.",
+        "spamRequired": "Bitte löse die Aufgabe.",
+        "spamIncorrect": "Das Ergebnis ist nicht korrekt."
+      }
+    }
+  },
+  "insights": {
+    "metaTitle": "Insights — Datenschutzpartner",
+    "metaDescription": "Webinare, News & Fragen und Podcasts zu Datenschutz, DSG und GDPR von Datenschutzpartner.",
+    "title": "Insights.",
+    "allInsights": "Alle Insights",
+    "tabs": {
+      "webinars": "Webinare",
+      "newsQuestions": "News & Fragen",
+      "podcasts": "Podcasts"
+    },
+    "tabsNavigation": "Insights-Kategorien",
+    "backToInsights": "Alle Insights",
+    "articleMetaTitle": "{title} — Datenschutzpartner",
+    "listenToEpisode": "Folge im Podcast anhören",
+    "author": "Autor",
+    "presenter": "Referent",
+    "published": "Veröffentlicht",
+    "liveAt": "Live um",
+    "addToCalendar": "Zum Kalender hinzufügen",
+    "authorRoleDefault": "Rechtsanwalt",
+    "share": "Teilen",
+    "shareLinkedIn": "Auf LinkedIn teilen",
+    "shareBluesky": "Auf Bluesky teilen",
+    "shareThreads": "Auf Threads teilen",
+    "copyLink": "Link kopieren",
+    "linkCopied": "Link kopiert",
+    "linkCopiedTooltip": "Link in die Zwischenablage kopiert!",
+    "previousArticle": "Vorheriger Beitrag",
+    "nextArticle": "Nächster Beitrag",
+    "articleNavigation": "Beitragsnavigation",
+    "paginationPrevious": "Zurück",
+    "paginationNext": "Weiter",
+    "paginationNavigation": "Seitennavigation"
+  },
+  "academy": {
+    "metaTitle": "Academy — Datenschutzpartner",
+    "metaDescription": "Datenschutz-Academy: Live-Webinare, News & Fragen und Wissensdatenbank für die Umsetzung von DSG, GDPR und AI Act.",
+    "title": "Datenschutz-Academy.",
+    "archiveTitle": "Academy-Inhalte",
+    "backToOverview": "Zur Academy-Übersicht",
+    "tabs": {
+      "webinars": "Webinare",
+      "newsQuestions": "News & Fragen"
+    },
+    "tabsNavigation": "Academy-Kategorien",
+    "backToAcademy": "Zur Academy",
+    "pastSessions": {
+      "metaTitle": "Vergangene Sessions — Datenschutzpartner Academy",
+      "metaDescription": "Aufzeichnungen und Zusammenfassungen vergangener Academy-Webinare und News & Questions.",
+      "title": "Vergangene Sessions",
+      "backToAcademy": "Academy",
+      "tabsNavigation": "Kategorien vergangener Sessions",
+      "yearTabsNavigation": "Jahre vergangener Sessions",
+      "empty": "In dieser Kategorie gibt es noch keine vergangenen Sessions.",
+      "bannerMembershipTitle": "Mitgliedschaft",
+      "tabs": {
+        "all": "Alle Sessions",
+        "webinars": "Webinare",
+        "newsQuestions": "News & Questions"
+      }
+    },
+    "articleMetaTitle": "{title} — Datenschutzpartner Academy",
+    "author": "Autor",
+    "presenter": "Referent",
+    "published": "Veröffentlicht",
+    "liveAt": "Live um",
+    "addToCalendar": "Zum Kalender hinzufügen",
+    "authorRoleDefault": "Rechtsanwalt",
+    "share": "Teilen",
+    "shareLinkedIn": "Auf LinkedIn teilen",
+    "shareBluesky": "Auf Bluesky teilen",
+    "shareThreads": "Auf Threads teilen",
+    "copyLink": "Link kopieren",
+    "linkCopied": "Link kopiert",
+    "linkCopiedTooltip": "Link in die Zwischenablage kopiert!",
+    "previousArticle": "Vorheriger Beitrag",
+    "nextArticle": "Nächster Beitrag",
+    "articleNavigation": "Beitragsnavigation",
+    "landing": {
+      "heroTitle": "Datenschutz-Academy",
+      "heroHeadlineLine1": "Bleib compliant.",
+      "heroHeadlineLine2": "Bleib dem Recht voraus.",
+      "heroSubtitle": "Eine Mitgliedschaft für alles, was Du brauchst, um Schweizer DSG, EU-DSGVO und AI Act umzusetzen — Live-Webinare, Aufzeichnungen, einsatzfertige Checklisten und Expertenantworten auf Deine Fragen.",
+      "heroImageAlt": "Leuchtende Glühbirne auf einer Treppe — Symbol für Wissen und Weiterbildung",
+      "overview": {
+        "title": "Alles rund um Datenschutz an einem Ort",
+        "intro": "Eine Mitgliedschaft für Live-Expertise, wachsende Aufzeichnungsbibliothek und einsatzfertige Vorlagen — für alle, die Schweizer und europäisches Datenschutzrecht umsetzen.",
+        "items": {
+          "compliance": {
+            "title": "Das neue Schweizer DSG sicher umsetzen",
+            "description": "In Kraft seit 1. September 2023. Wir halten Dich zudem compliant mit EU-DSGVO, AI Act und weiterem anwendbarem Recht."
+          },
+          "sessions": {
+            "title": "Regelmässige Webinare, «News & Questions»",
+            "description": "Nimm an Live-Sessions zu aktuellen Themen teil und stelle Deine Fragen — wir informieren Dich über Entwicklungen, die für Dich wirklich relevant sind."
+          },
+          "resources": {
+            "title": "Checklisten, Generatoren, Aufzeichnungsarchiv",
+            "description": "Checkliste Impressum, Datenschutzerklärung Videoüberwachung, Generator für Mitarbeiter-Datenschutzerklärungen — plus 100+ aufgezeichnete Veranstaltungen und 50+ Stunden zum Nachholen."
+          }
+        }
+      },
+      "joinCta": "Jetzt Mitglied werden",
+      "stats": {
+        "ariaLabel": "Academy in Zahlen",
+        "webinars": {
+          "value": "10",
+          "label": "Live-Webinare pro Jahr"
+        },
+        "events": {
+          "value": "20",
+          "label": "Live-Veranstaltungen pro Jahr"
+        },
+        "recordings": {
+          "value": "50+",
+          "label": "Stunden Aufzeichnungen on demand"
+        },
+        "frameworks": {
+          "value": "3",
+          "label": "Rahmenwerke · DSG · DSGVO · AI Act"
+        }
+      },
+      "previewSectionTitle": "Das passiert gerade in der Academy",
+      "preview": {
+        "sectionTitle": "Das passiert gerade in der Academy",
+        "comingUpTitle": "Demnächst",
+        "comingUpEmpty": "Keine kommenden Sessions.",
+        "nextLiveBadge": "Nächste Live-Session",
+        "webinarBadge": "Webinar",
+        "newsQuestionsBadge": "N&Q",
+        "newsQuestionsShortBadge": "N&Q",
+        "newsQuestionsCompactMeta": "Stelle Deine offenen Fragen · {time}",
+        "webinarCompactMeta": "Live-Session · {time}",
+        "reserveSeat": "Platz reservieren",
+        "readMore": "Mehr lesen",
+        "tba": "TBA",
+        "onDemandTitle": "Vergangene Sessions",
+        "viewAllPastSessions": "Alle vergangenen Sessions ansehen",
+        "browseLibrary": "Gesamtes Archiv ansehen"
+      },
+      "upcomingTitle": "Nächste Termine",
+      "membershipTitle": "Mitgliedschaft",
+      "membershipDescription": "Live-Webinare, News & Questions, Aufzeichnungen und Vorlagen — alles für Deinen Datenschutz-Alltag.",
+      "membershipPriceAmount": "349.00",
+      "membershipPricePeriod": "/ 12 Monate",
+      "orderCta": "Bestellen",
+      "discoverCta": "Entdecken",
+      "membershipLegalPrefix": "Alle Preise zzgl. gesetzlicher Mehrwertsteuer. Es gelten die",
+      "membershipTermsLink": "Allgemeinen Geschäftsbedingungen",
+      "membershipLegalSuffix": "Die Mitgliedschaft in der Datenschutzpartner Academy verlängert sich automatisch um 12 Monate, sofern sie nicht gekündigt wird.",
+      "features": {
+        "webinarsLive": "Teilnahme an allen Live-Webinaren (10 × pro Jahr)",
+        "webinarsRecordings": "Zugriff auf Aufzeichnungen und Folien aller Webinare",
+        "newsLive": "Teilnahme bei «News & Questions» (10 × pro Jahr)",
+        "newsRecordings": "Zugriff auf alle Aufzeichnungen von «News & Questions»",
+        "legalSessions": "Zugriff auf alle Aufzeichnungen von Legal Sessions",
+        "employeeDeclaration": "Generator für Mitarbeiter-Datenschutzerklärungen",
+        "checklists": "Zugriff auf Checklisten und sonstige Unterlagen",
+        "newsletterBonus": "Bonus: Newsletter um Datenschutz",
+        "podcastBonus": "Bonus: «Datenschutz Plaudereien»-Podcast"
+      },
+      "faq": {
+        "title": "Häufig gestellte Fragen",
+        "intro": "Hast Du Deine Frage nicht gefunden? Bitte <contact>kontaktiere uns</contact>.",
+        "categories": {
+          "offer": {
+            "label": "Angebot & Veranstaltungen"
+          },
+          "access": {
+            "label": "Inhalte & Aufzeichnungen"
+          },
+          "participation": {
+            "label": "Technik & Teilnahme"
+          },
+          "membership": {
+            "label": "Mitgliedschaft & Service"
+          }
+        },
+        "items": {
+          "q1": {
+            "question": "Was sind Webinare?",
+            "answer": "Unsere Webinare sind Online-Schulungen zu aktuellen Themen aus dem Datenschutzrecht und manchmal zu Themen aus dem Recht im digitalen Raum.\n\nWir führen die Webinare unserer Datenschutz-Academy normalerweise live durch. Die Dauer der Webinare ist unterschiedlich, auch in Abhängigkeit von Fragen von Mitgliedern. Die meisten Webinare dauern zwischen 30 und 60 Minuten.\n\nDie Webinare werden von Martin Steiger, Rechtsanwalt und Mitgründer von Datenschutzpartner, oder einer anderen Fachperson – allenfalls gemeinsam mit weiteren Beteiligten – durchgeführt.\n\nAlle Webinare werden aufgezeichnet. Du kannst während Deiner Mitgliedschaft bei der Datenschutz-Academy die Aufzeichnungen aller bisherigen Veranstaltungen abrufen. Du kannst auch Folien und sonstige Unterlagen abrufen.\n\nInformationen über einzelne Webinare findest Du im Dashboard der Datenschutz-Academy."
+          },
+          "q2": {
+            "question": "Was sind News & Questions?",
+            "answer": "«News & Questions» ist eine regelmässige Veranstaltung unserer Datenschutz-Academy. Die Veranstaltung besteht aus den Teilen «News» und «Questions».\n\nIm «News»-Teil informieren wir die Mitglieder der Datenschutz-Academy über relevante Neuigkeiten aus dem Datenschutzrecht und verwandeten Themen.\n\nIm «Questions»-Teil können die Mitglieder der Datenschutz-Academy ihre eigenen Fragen stellen und erhalten hilfreiche Antworten von einer Fachperson, beispielsweise von Martin Steiger, Rechtsanwalt und Mitgründer von Datenschutzpartner.\n\nDie Mitglieder der Datenschutz-Academy können aber nicht nur ihre eigenen Fragen stellen, sondern sie hören auch die Antworten auf die Fragen anderer Mitglieder.\n\nMit «News & Questions» können Mitglieder der Datenschutz-Academy ihr Wissen gleich dreifach verbessern: Mit den Neuigkeiten, mit Antworten auf ihre eigenen Fragen und durch die Antworten auf die Fragen anderer Mitglieder.\n\n«News & Questions» dauert jeweils rund 30 Minuten, je nach Anzahl der Fragen und Neuigkeiten auch etwas kürzer oder länger.\n\nFür «News & Questions» nehmen Mitglieder der Datenschutz-Academy gemeinsam mit anderen Mitgliedern an einem Live-Webinar teil. Die Fragen können live über die Q&A-Funktion oder vorab per Mitglieder-Formular gestellt werden.\n\n«News & Questions» wird aufgezeichnet und für Mitglieder der Datenschutz-Academy veröffentlicht. Die Veröffentlichung umfasst unter anderem die gesammelten Fragen.\n\nDie Aufzeichnungen und Unterlagen aller Veranstaltungen finden sich im Dashboard der Datenschutz-Academy.\n\n«News & Questions» löste im Sommer 2025 die damaligen «Legal Sessions» ab."
+          },
+          "q3": {
+            "question": "Wie erfahre ich von neuen Inhalten und Terminen?",
+            "answer": "Informationen über Inhalte und Termine findest Du im Dashboard der Datenschutz-Academy. Wir informieren Dich ausserdem per E-Mail über neue Inhalte und Termine."
+          },
+          "q4": {
+            "question": "Wie erhalte ich Zugriff auf Aufzeichnungen und weitere Inhalte?",
+            "answer": "Du findest alle verfügbaren Aufzeichnungen und weiteren Inhalte, zum Beispiel Checklisten, im Dashboard der Datenschutz-Academy.\n\nWir veröffentlichen ausserdem die meisten Inhalte für Mitglieder der Datenschutz-Academy auf unserer Website. Um Inhalte für Mitglieder abrufen zu können, musst Du Dich anmelden."
+          },
+          "q5": {
+            "question": "Sind frühere Veranstaltungen abrufbar?",
+            "answer": "Ja, während einer laufenden Mitgliedschaft bei unserer Datenschutz-Academy sind alle bisherigen Veranstaltungen mit allen vorhandenen Aufzeichnungen, Folien und sonstigen Unterlagen abrufbar."
+          },
+          "q6": {
+            "question": "Wie praxisrelevant sind die Inhalte?",
+            "answer": "Unsere Datenschutz-Academy richtet sich an alle, die das Datenschutzrecht umsetzen müssen oder auf dem Laufenden bleiben möchten. Wir versuchen, unser Angebot möglichst praxisrelevant zu gestalten und legen den Fokus auf die Umsetzung in Organisationen und Unternehmen.\n\nMitglieder unserer Datenschutz-Academy haben insbesondere die Möglichkeit, eigene Fragen in unseren «News & Questions» zu stellen."
+          },
+          "q7": {
+            "question": "Gibt es besondere technische Voraussetzungen?",
+            "answer": "Nein, für die Teilnahme an unserer Datenschutz-Academy gibt es keine besonderen technischen Voraussetzungen.\n\nWir verwenden in erster Linie den Video-Konferenz-Dienst Zoom. Für die Teilnahme genügt damit ein aktueller Browser auf einem Mac oder PC, auf einem iPhone oder iPad, oder auf sonstigen aktuellen Geräten. Optimal ist allerdings, wenn Du die Zoom-App verwendest.\n\n(Abgesehen davon benötigst Du – selbstverständlich! – eine funktionierende Internet-Verbindung und eine Möglichkeit, den Ton der Webinare zu hören.)"
+          },
+          "q8": {
+            "question": "Wie kann ich Zoom ohne App verwenden?",
+            "answer": "Wenn Du den Weblink zu einer Zoom-Veranstaltung der Datenschutz-Academy im Browser aufrufst, wirst Du gefragt, ob Du die Zoom-App öffnen möchtest.\n\nWenn Du abbrichst oder ablehnst, kannst Du unten auf «Mit Ihrem Browser anmelden» (oder vergleichbar) klicken. Auf diesem Weg kannst Du Zoom im Browser verwenden und benötigst keine Zoom-App."
+          },
+          "q9": {
+            "question": "Wieso werde ich vor einem Webinar nach meinem Namen und meiner E-Mail-Adresse gefragt?",
+            "answer": "Wir verwenden in erster Linie den Videokonferenz-Dienst Zoom, um Webinare und andere Veranstaltungen online durchzuführen.\n\nZum Teil wirst Du vor der Teilnahme an solchen Veranstaltungen der Datenschutz-Academy nach Deinem Namen und Deiner E-Mail-Adresse gefragt.\n\nWir benötigen diese Angaben nicht. Du kannst deshalb beliebige Angaben hinterlassen."
+          },
+          "q10": {
+            "question": "Wie kann ich das Transkript bei Aufzeichnungen abrufen?",
+            "answer": "Bei neueren Veranstaltungen der Datenschutz-Academy, deren Aufzeichnungen als Video verfügbar sind, kannst Du das Transkript der Veranstaltung im Video-Fenster unten rechts mit einem Klick auf das Symbol mit Papier und Lupe abrufen.\n\nDu kannst im Transkript nach Text suchen und an die betreffenden Stellen springen. Genauso kannst Du aufgrund der Zeitstempel im Transkript vorwärts und rückwärts springen.\n\nDas Transkript wird automatisch erstellt. Es gilt deshalb inhaltlich das gesprochene Wort."
+          },
+          "q11": {
+            "question": "Wie kann ich die Untertitel bei Aufzeichnungen aktivieren?",
+            "answer": "Bei neueren Veranstaltungen der Datenschutz-Academy, deren Aufzeichnungen als Video verfügbar sind, kannst Du die Untertitel im Video-Fenster unten rechts mit einem Klick auf das «CC»-Symbol aktivieren (oder, wenn sie aktiv sind, deaktivieren).\n\nDie aktivierten Untertitel erscheinen im Video-Fenster am unteren Rand.\n\nDie Untertitel werden automatisch erstellt. Es gilt deshalb inhaltlich das gesprochene Wort."
+          },
+          "q12": {
+            "question": "Wieso werde ich geduzt?",
+            "answer": "Wir haben den Anspruch, Dein Datenschutzpartner zu sein. Dazu passt die Du-Kultur sehr gut. Wir haben deshalb vom anfänglichen und etwas distanzierte Siezen auf das kollegiale Du gewechselt.\n\nDu darfst uns selbstverständlich siezen, wenn Du möchtest. In diesem Fall werden wir Dich auch (wieder) siezen."
+          },
+          "q13": {
+            "question": "Wie kann ich für meine Mitgliedschaft bezahlen?",
+            "answer": "Du kannst Deine Mitgliedschaft bei unserer Datenschutz-Academy per Kreditkarte oder Rechnung bezahlen.\n\nDu erhältst Deine Rechnung als PDF-Datei per E-Mail. Die Zahlungsfrist beträgt 10 Tage. Für Zahlungen per Kreditkarte nutzen wir den Zahlungsdienst Stripe."
+          },
+          "q14": {
+            "question": "Was passiert, wenn ein Termin ausfällt?",
+            "answer": "Termine der Datenschutz-Academy, die ausfallen, zum Beispiel wegen Krankheit oder aus technischen Gründen, werden – soweit möglich – nachgeholt."
+          },
+          "q15": {
+            "question": "Verlängert sich meine Mitgliedschaft automatisch?",
+            "answer": "Ja, Deine Mitgliedschaft bei unserer Datenschutz-Academy verlängert sich automatisch.\n\nWir informieren Dich insbesondere unter «Mein Konto» über die Laufzeit Deiner Mitgliedschaft. Du kannst Deine Mitgliedschaft jederzeit per Ende der aktuellen Laufzeit kündigen."
+          }
+        }
+      }
+    }
+  },
+  "euRepPage": {
+    "metaTitle": "EU-Datenschutz-Vertretung — Datenschutzpartner",
+    "metaDescription": "Datenschutz-Vertretung im EWR gemäss Art. 27 DSGVO durch die VGS Datenschutzpartner GmbH mit Sitz in Deutschland.",
+    "eyebrow": "EU-Datenschutz-Vertretung",
+    "title": "Datenschutz-Vertretung in der Europäischen Union",
+    "heroSubtitle": "Sind Sie nicht sicher, ob Sie eine Datenschutz-Vertretung in der Europäischen Union (EU) benötigen? Unser <questionnaire>Fragebogen</questionnaire> hilft Ihnen weiter!",
+    "heroPanelTitle": "VGS Datenschutzpartner GmbH",
+    "heroPanelSubtitle": "Ihre Datenschutz-Vertretung im EWR mit Sitz in Deutschland",
+    "orderCta": "Bestellen",
+    "stats": {
+      "ariaLabel": "EU-Vertretung auf einen Blick",
+      "article27": {
+        "label": "Art. 27 DSGVO — konforme EU-Vertretung"
+      },
+      "establishment": {
+        "label": "Vertretung mit Niederlassung in Deutschland (DE)"
+      },
+      "eea": {
+        "label": "Gilt im EWR: EU, Liechtenstein, Island & Norwegen"
+      },
+      "price": {
+        "label": "Pläne ab CHF 149 pro 12 Monate"
+      }
+    },
+    "benefitsSection": {
+      "title": "Was Sie erhalten",
+      "subtitle": "Anbieter ohne Niederlassung in der EU brauchen eine Vertretung im EWR. Wir stellen sie — inklusive offizieller Anlaufstelle und der Prüfung eingehender Anfragen.",
+      "items": {
+        "art27": {
+          "title": "Vertretung nach Art. 27 DSGVO",
+          "description": "Die VGS Datenschutzpartner GmbH mit Sitz in Deutschland ist Ihre erforderliche Datenschutz-Vertretung im Europäischen Wirtschaftsraum."
+        },
+        "contact": {
+          "title": "Offizielle Anlaufstelle im EWR",
+          "description": "Zusätzliche Anlaufstelle für Aufsichtsbehörden und betroffene Personen — nennbar in Datenschutzerklärung, Impressum und Verarbeitungsverzeichnis."
+        },
+        "inquiries": {
+          "title": "Prüfung & Weiterleitung von Anfragen",
+          "description": "Anfragen per Briefpost oder E-Mail werden geprüft und per E-Mail an Sie weitergeleitet — etwa Auskunftsersuchen betroffener Personen."
+        }
+      }
+    },
+    "pricingSection": {
+      "title": "Ein Schutz — drei Pläne",
+      "subtitle": "Alle Pläne bieten dieselbe EU-Vertretung. Der einzige Unterschied: wie viele Anfragen pro Jahr bereits inbegriffen sind.",
+      "includedTitle": "In jedem Plan enthalten",
+      "selectPlan": "Wählen Sie Ihren Plan",
+      "perYear": "pro Jahr",
+      "plans": {
+        "budget": {
+          "tabLabel": "Budget",
+          "showPerYear": false,
+          "note": "/ pro einzelne Anfrage"
+        },
+        "standard": {
+          "tabLabel": "Standard",
+          "showPerYear": true,
+          "note": "danach CHF 79 pro Anfrage"
+        },
+        "premium": {
+          "tabLabel": "Premium",
+          "showPerYear": true,
+          "note": "danach CHF 59 pro Anfrage"
+        }
+      }
+    },
+    "pricePeriod": "/ 12 Monate",
+    "plans": {
+      "budget": {
+        "price": "149"
+      },
+      "standard": {
+        "price": "249"
+      },
+      "premium": {
+        "price": "499"
+      }
+    },
+    "faqNote": "Bei Fragen hilft Ihnen unsere <faq>FAQ zur EU-Datenschutz-Vertretung</faq> weiter.",
+    "features": {
+      "establishment": "EU-Datenschutz-Vertretung mit Niederlassung in Deutschland",
+      "art27": "Einhaltung von Art. 27 DSGVO",
+      "mentionPolicy": "Erwähnung in Datenschutzerklärung und Impressum",
+      "mentionRecords": "Erwähnung im Verarbeitungsverzeichnis",
+      "email": "Erreichbarkeit per E-Mail",
+      "post": "Erreichbarkeit per Briefpost",
+      "newsletter": "Bonus: Newsletter über Aktuelles und Tipps zum Datenschutz",
+      "podcast": "Bonus: «Datenschutz Plaudereien»-Podcast"
+    },
+    "legal": "Alle Preise verstehen sich zuzüglich gesetzlicher Mehrwertsteuer. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms> (AGB). Ohne Kündigung verlängert sich die Datenschutz-Vertretung automatisch um 12 Monate.",
+    "faqSection": {
+      "title": "Häufig gestellte Fragen",
+      "intro": "Hast Du Deine Frage nicht gefunden? Bitte <contact>kontaktiere uns</contact>.",
+      "categoriesNavigation": "FAQ-Kategorien",
+      "categories": {
+        "gdprGeneral": {
+          "label": "Europäische Datenschutz-Grundverordnung (DSGVO) im Allgemeinen"
+        },
+        "gdprSwitzerland": {
+          "label": "Geltung der Datenschutz-Grundverordnung in der Schweiz"
+        },
+        "euRepresentation": {
+          "label": "Datenschutz-Vertretung in der Europäischen Union (EU)"
+        }
+      },
+      "items": {
+        "q1": {
+          "question": "Was ist die europäische Datenschutz-Grundverordnung?",
+          "answer": "Mit ihrer Datenschutz-Grundverordnung, abgekürzt DSGVO, hat die Europäische Union (EU) ihr Datenschutzrecht vereinheitlich und verschärft. Der Fokus der DSGVO liegt auf der Durchsetzung des bisherigen Datenschutzrechts.\n\nDie DSGVO trat am 24. Mai 2016 in Kraft und gilt seit dem 25. Mai 2018 nach einer Übergangsfrist von zwei Jahren. Die DSGVO gilt direkt in allen EU-Mitgliedstaaten und ist auch in den Mitgliedstaaten des Europäischen Wirtschaftsraumes (EWR) einschliesslich Fürstentum Liechtenstein anwendbar.\n\nAusserdem gilt die DSGVO mindestens teilweise für viele Unternehmen und Organisationen in der Schweiz, obwohl die Schweiz kein Mitgliedstaat von EU oder EWR ist. Gemäss dem Marktortprinzip gilt die DSGVO teilweise für die Verarbeitung von personenbezogenen Daten ausserhalb von EU und EWR.\n\nIn der EU wird die DSGVO als Verordnung (EU) 2016/679 bezeichnet."
+        },
+        "q2": {
+          "question": "Was ist der Unterschied zwischen der DSGVO und der GDPR?",
+          "answer": "Die englische Bezeichnung der europäischen Datenschutz-Grundverordnung, abgekürzt DSGVO, lautet General Data Protection Regulation, abgekürzt GDPR. Es gibt – ausser der Sprache – keinen Unterschied zwischen der DSGVO und der GDPR."
+        },
+        "q3": {
+          "question": "Was geschieht, wenn man die DSGVO nicht einhält?",
+          "answer": "Wer die DSGVO verletzt, kann mit Geldbussen von bis zu 20 Millionen Euro oder von bis zu 4 Prozent des weltweiten Umsatzes bestraft werden. Es handelt sich dabei um die Höchststrafen, insbesondere auch mit Blick auf amerikanische Unternehmen wie Google oder Meta. Die Datenschutz-Aufsichtsbehörden können ausserdem unter anderem Informationen anfordern und Untersuchungen durchführen.\n\nAuch Schweizer Unternehmen und Organisationen müssen damit rechnen, bestraft zu werden. Die DSGVO sieht vor, dass Strafen abschreckend, verhältnismässig und wirksam sein müssen. Unabhängig von einer allfälligen Bestrafung können bereits die Kosten, die ein Verfahren aufgrund einer mutmasslichen Verletzung der DSGVO verursacht, schmerzhaft sein, gerade auch für kleine und mittlere Unternehmen (KMU).\n\nAusserdem sehen viele Verträge vor, dass das anwendbare Recht oder ausdrücklich die DSGVO eingehalten werden muss. Ein Beispiel dafür sind Auftragsverarbeitungsverträge, wie sie die DSGVO vorschreibt. Wer die DSGVO nicht einhält, verletzt solche Verträge und muss beispielsweise mit Schadenersatzforderungen der Vertragspartner rechnen.\n\nWeiter werden die Rechte der betroffenen Personen durch die DSGVO gestärkt, das heisst diese können sich auch selbst zur Wehr setzen. So besteht unter anderem die Befürchtung, dass es vermehrt zu Datenschutz-Abmahnungen kommen könnte."
+        },
+        "q4": {
+          "question": "Wieso gilt die DSGVO für viele Unternehmen in der Schweiz?",
+          "answer": "Mit der Datenschutz-Grundverordnung (DSGVO) führt die Europäische Union (EU) im Datenschutzrecht das Marktortprinzip ein:\n\nDie DSGVO gilt für die Verarbeitung von personenbezogenen Daten aller Personen, die sich im Europäischen Wirtschaftsraum (EWR) befinden. Der EWR umfasst die Mitgliedstaaten der EU sowie das Fürstentum Liechtenstein, Island und Norwegen.\n\nUm diese Personen nicht nur im EWR, sondern weltweit zu schützen, gilt die DSGVO grundsätzlich auch, wenn solche Daten in Ländern ausserhalb des EWR – in sogenannten Drittländern – verarbeitet werden (Art. 3 Abs. 2 DSGVO). Die Schweiz ist aus Sicht der EU ein solches Drittland."
+        },
+        "q5": {
+          "question": "Unter welchen Voraussetzungen gilt das Marktortprinzip für Unternehmen in der Schweiz?",
+          "answer": "Unternehmen in der Schweiz, deren Angebot sich an Personen in der EU oder im EWR richtet, müssen die europäische Datenschutz-Grundverordnung (DSGVO) in Bezug auf solche Personen einhalten. Auch kostenlose Angebote wie beispielsweise E-Books, Newsletter und Whitepaper («Freebies») für Personen in der EU und im EWR sind davon ausdrücklich betroffen.\n\nAusserdem gilt die DSGVO für Unternehmen in der Schweiz, die das Verhalten von Personen in der EU oder im EWR beobachten, zum Beispiel durch die Analyse der Aktivitäten von Besucherinnen und Besuchern in einer App oder auf einer Website (Profiling und Tracking). Wer beispielsweise Google Analytics auf einer Schweizer Website einsetzt, kann dadurch der DSGVO unterliegen.\n\nSchweizer Unternehmen und Organisationen, welche der DSGVO unterliegen, benötigen eine EU-Datenschutz-Vertretung. Ob Sie eine Datenschutz-Vertretung in der EU benötigen, können Sie mit unserem Fragebogen herausfinden."
+        },
+        "q6": {
+          "question": "Gibt es Ausnahmen?",
+          "answer": "Schweizer Unternehmen, welche die Datenschutz-Grundverordnung (DSGVO) einhalten müssen, benötigen unter den folgenden drei Voraussetzungen ausnahmsweise keine Datenschutz-Vertretung in der EU:\n\n1. Die Datenverarbeitung erfolgt nur gelegentlich, und\n2. es findet keine umfangreiche Verarbeitung von besonders schützenswerten Daten statt, und\n3. die Datenverarbeitung führt unter Berücksichtigung der Art, der Umstände, des Umfangs und der Zwecke der Verarbeitung voraussichtlich nicht zu einem Risiko für die Rechte und Freiheiten natürlicher Personen.\n\nWir raten davon ab, sich auf diese Ausnahmen zu berufen."
+        },
+        "q7": {
+          "question": "Was sind die Aufgaben einer EU-Datenschutz-Vertretung?",
+          "answer": "Die EU-Datenschutz-Vertretung ist eine zusätzliche Anlaufstelle für Aufsichtsbehörden und betroffene Personen bei sämtlichen Anfragen im Zusammenhang mit der Gewährleistung der Einhaltung der europäischen Datenschutz-Grundverordnung (DSGVO) (Art. 27 Abs. 4 DSGVO).\n\nMan kann sich die EU-Datenschutz-Vertretung auch als «Briefkasten» in der EU vorstellen, welchen Behörden und betroffene Personen im Europäischen Wirtschaftsraum (EWR) nutzen können."
+        },
+        "q8": {
+          "question": "Welche Voraussetzungen muss eine EU-Datenschutz-Vertretung erfüllen?",
+          "answer": "Eine EU-Datenschutz-Vertretung muss eine juristische oder natürliche Person sein, die in einem EU-Mitgliedstaat niedergelassen ist. Die Niederlassung muss sich in einem der EU-Mitgliedstaaten befinden, in denen sich betroffene Personen befinden. Wir gewährleisten, dass Sie unser Angebot online bestellen können, die Bestellung aber schriftlich erfolgt.\n\nEU-Datenschutz-Vertreterin für unsere Kundinnen und Kunden ist unsere Tochtergesellschaft VGS Datenschutzpartner GmbH mit Sitz in Hamburg. Die Datenschutz-Vertretung gilt – ausgehend von Deutschland – für die gesamte EU und für den gesamten EWR einschliesslich Fürstentum Liechtenstein. Wer gemäss dem Marktortprinzip der DSGVO unterliegt, verarbeitet fast immer auch Daten von betroffenen Personen in Deutschland."
+        },
+        "q9": {
+          "question": "In welchem Umfang trägt die Datenschutz-Vertretung in der EU die Verantwortung?",
+          "answer": "Haftung und Verantwortung von Unternehmen in der Schweiz für die Einhaltung der Datenschutz-Grundverordnung (DSGVO) werden durch die Benennung einer Datenschutz-Vertretung in der EU weder ausgeschlossen noch reduziert. Die betreffenden Unternehmen bleiben selbst und vollumfänglich für die Einhaltung der DSGVO verantwortlich, wozu unter anderem die Benennung Datenschutz-Vertretung in der EU zählt (Art. 27 Abs. 5 DSGVO).\n\nDie Datenschutz-Vertretung in der EU kann von den Datenschutz-Aufsichtsbehörden angewiesen werden, alle Informationen bereitzustellen, die für die Erfüllung der Aufgaben der Aufsichtsbehörden erforderlich sind. Sofern die Datenschutz-Vertretung in der EU nicht über die notwendigen Informationen verfügt, muss sie diese beim vertretenen Unternehmen einholen."
+        },
+        "q10": {
+          "question": "Genügt eine EU-Datenschutz-Vertretung pro Konzern oder Unternehmensgruppe?",
+          "answer": "Nein, eine EU-Datenschutz-Vertretung pro Konzern oder Unternehmensgruppe genügt nicht.\n\nGemäss Art. 27 Abs. 1 DSGVO muss jeder einzelne Verantwortliche und jeder einzelne Auftragsverarbeiter im Anwendungsbereich der europäischen Datenschutz-Grundverordnung (DSGVO) eine EU-Datenschutz-Vertretung benennen.\n\nAls einzelne Verantwortliche oder Auftragsverarbeiter gelten grundsätzlich die einzelnen juristischen Personen oder vergleichbare rechtliche Einheiten."
+        },
+        "q11": {
+          "question": "Was geschieht, wenn sich die Aufgaben und Voraussetzungen für die Datenschutz-Vertretung in der EU ändern?",
+          "answer": "Wenn sich die Aufgaben und Voraussetzungen für die EU-Datenschutz-Vertretung in der EU ändern, werden wir unser Angebot entsprechend anpassen."
+        },
+        "q12": {
+          "question": "Mit was für Anfragen ist zu rechnen?",
+          "answer": "Aufsichtsbehörden und betroffene Personen können sich jederzeit an die EU-Datenschutz-Vertretung wenden. Auf diesem Weg können beispielsweise betroffene Personen ihre Rechte auf Auskunft, Datenübertragbarkeit, Löschung und Widerspruch geltend machen. Aufsichtsbehörden können beispielsweise Beschwerden von betroffenen Personen weiterleiten oder Informationen über die Einhaltung der Datenschutz-Grundverordnung (DSGVO) einholen."
+        },
+        "q13": {
+          "question": "Mit wie vielen Anfragen ist zu rechnen?",
+          "answer": "Die Erfahrung zeigt, dass die meisten Verantwortlichen mit wenigen oder gar keinen Anfragen rechnen müssen. Verantwortliche, die für betroffene Personen erreichbar sind, werden normalerweise direkt und nicht über die EU-Datenschutz-Vertretung kontaktiert.\n\nDatenschutz-Aufsichtsbehörden wenden sich normalerweise an die EU-Datenschutz-Vertretung. Solche Anfragen sind aber meist selbst provoziert, sei es durch Meldungen über Datenpannen oder nicht direkt beantwortete Anfragen von betroffenen Personen.\n\nWir leiten grundsätzlich nur Anfragen im Zusammenhang mit der Datenschutz-Grundverordnung (DSGVO) weiter. Offensichtliche E-Mail-Werbung (Spam) beispielsweise wird nicht weitergeleitet."
+        },
+        "q14": {
+          "question": "Wie und wo muss die EU-Datenschutz-Vertretung erwähnt werden?",
+          "answer": "Die EU-Datenschutz-Vertretung muss insbesondere in der jeweiligen Datenschutzerklärung sowie im Verzeichnis der Verarbeitungstätigkeiten (Verarbeitungsverzeichnis) erwähnt werden. Hingegen ist eine Erwähnung im Impressum nicht erforderlich.\n\nUnsere Kundinnen und Kunden finden die benötigen Angaben sowie Muster-Formulierungen für ihre Datenschutzerklärungen in unserer Anleitung für die EU-Datenschutz-Vertretung.\n\nWer unseren Datenschutz-Generator nutzt, erhält bei Anwendbarkeit der europäischen Datenschutz-Grundverordnung (DSGVO) automatisch eine Datenschutzerklärung mit passendem Text für die EU-Datenschutz-Vertretung."
+        },
+        "q15": {
+          "question": "Benötigt die EU-Datenschutz-Vertretung das Verarbeitungsverzeichnis?",
+          "answer": "Die EU-Datenschutz-Vertretung benötigt das Verzeichnis der Verarbeitungstätigkeiten gemäss Art. 30 DSGVO (Verarbeitungsverzeichnis) nicht standardmässig. Verantwortliche müssen aber im Rahmen ihrer datenschutzrechtlichen Pflichten einerseits ein Verarbeitungsverzeichnis führen und andererseits das Verarbeitungsverzeichnis bei Bedarf der EU-Datenschutz-Vertretung zeitnah zur Verfügung stellen können."
+        },
+        "q16": {
+          "question": "Muss eine Telefonnummer für die EU-Datenschutz-Vertretung genannt werden?",
+          "answer": "Nein, Art. 27 DSGVO als Rechtsgrundlage für die EU-Datenschutz-Vertretung verlangt keine Nennung einer Telefonnummer."
+        }
+      }
+    }
+  },
+  "result": {
+    "steps": {
+      "scan": "Scan",
+      "questionnaire": "Fragebogen",
+      "euRep": "EU-Vertreter",
+      "summary": "Zusammenfassung"
+    },
+    "euRepStep": {
+      "title": "Wählen Sie Ihren EU-Vertretungs-Plan.",
+      "description": "Gemäss <art27>Art. 27 DSGVO</art27> fungiert eine EU-Datenschutz-Vertretung als Anlaufstelle in der Europäischen Union für betroffene Personen und Aufsichtsbehörden.",
+      "chooseBudget": "Weiter mit Budget",
+      "chooseStandard": "Weiter mit Standard",
+      "choosePremium": "Weiter mit Premium",
+      "skip": "Überspringen"
+    },
+    "summary": {
+      "euRepSkippedTitle": "EU-Vertretung abgelehnt",
+      "euRepSkippedDetail": "Nicht enthalten · CHF 0.00"
+    },
+    "improvedStep": {
+      "continueToSummary": "Zusammenfassung prüfen"
+    }
+  },
+  "scan": {
+    "title": "Datenschutz-Generator",
+    "subtitle": "Wir scannen Deine Website und erstellen automatisch eine konforme\nDatenschutzerklärung.",
+    "urlLabel": "Website-URL",
+    "urlPlaceholder": "z. B. meine-website.ch",
+    "errorEmpty": "Bitte gib eine URL ein.",
+    "errorInvalid": "Bitte gib eine gültige URL ein.",
+    "scanning": "Scan läuft…",
+    "scanNow": "Jetzt scannen",
+    "analysing": "Analyse — Tracker und Dienste werden erkannt…"
+  },
+  "newsletter": {
+    "title": "Bleib dem Datenschutzrecht voraus.",
+    "bodyLine1": "Erhalte praxisnahe Einblicke zu GDPR, dem Schweizer DSG und Datenschutz-Compliance",
+    "bodyLine2": "direkt in Dein Postfach. Kein Spam, jederzeit abmeldbar.",
+    "placeholder": "Deine E-Mail-Adresse",
+    "subscribe": "Abonnieren",
+    "successTitle": "Du bist angemeldet!",
+    "successBody": "Wir melden uns bald bei Dir.",
+    "privacyPrefix": "Mit der Anmeldung stimmst Du unserer",
+    "privacyLink": "Datenschutzerklärung"
+  },
+  "legal": {
+    "imprint": {
+      "metaTitle": "Impressum — Datenschutzpartner",
+      "metaDescription": "Impressum der Datenschutzpartner AG, Kölliken, Schweiz.",
+      "pageTitle": "Impressum"
+    },
+    "privacy": {
+      "metaTitle": "Datenschutzerklärung — Datenschutzpartner",
+      "metaDescription": "Informationen zur Bearbeitung von Personendaten durch Datenschutzpartner.",
+      "pageTitle": "Datenschutzerklärung"
+    },
+    "terms": {
+      "metaTitle": "AGB — Datenschutzpartner",
+      "metaDescription": "Allgemeine Geschäftsbedingungen für Leistungen von Datenschutzpartner.",
+      "pageTitle": "Allgemeine Geschäftsbedingungen (AGB)"
+    }
+  },
+  "validation": {
+    "required": "Pflichtfeld",
+    "email": "Ungültige E-Mail-Adresse"
   },
   "contacts": {
     "title": "Kontakte",
@@ -27,9 +683,5 @@
       "company": "Firma (optional)",
       "submit": "Erstellen"
     }
-  },
-  "validation": {
-    "required": "Pflichtfeld",
-    "email": "Ungültige E-Mail-Adresse"
   }
 }

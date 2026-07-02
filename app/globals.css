@@ -1,19 +1,11 @@
 @import 'tailwindcss';
 @import '@heroui/styles';
-@import '../styles/tokens.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@font-face {
-  font-family: 'Geometos Neue';
-  src: url('/fonts/geometos-neue.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme inline {
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geometos-neue), var(--font-sans);
 
   /* Brand ramp as Tailwind utilities: bg-key-500, text-key-700, … */
   --color-key-50: var(--key-50);
@@ -32,6 +24,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
   --shadow-card: var(--shadow-card);
 }
 
@@ -44,23 +38,107 @@ body {
 h1,
 h2,
 h3 {
-  font-family: 'Geometos Neue', var(--font-sans);
+  font-family: var(--font-display);
 }
 
-/* Checkbox: explicit border since box-shadow is disabled */
-.checkbox__control {
-  border: 1px solid #d1d5db !important;
-  box-shadow: none !important;
+/* Inline text link — accent color; underline hidden via transparent, revealed on hover.
+   Unlayered + !important so HeroUI/Tailwind utilities cannot reset decoration color.
+   Scoped to <p> and <li> so nav/social/button links are unaffected. */
+p a,
+li a {
+  color: var(--accent) !important;
+  text-decoration-line: underline !important;
+  text-decoration-color: transparent !important;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease;
 }
 
-/* Squircle — CSS fallback */
-.squircle {
-  border-radius: 20px;
+p a:hover,
+li a:hover {
+  color: var(--link-hover) !important;
+  text-decoration-color: var(--link-underline) !important;
 }
 
-@supports (corner-shape: squircle) {
+/* Full-row academy preview links — no accent underline treatment */
+li a.academy-preview-list-row-link,
+li a.academy-preview-list-row-link:hover {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+@layer overrides {
+  /* Hero preview card fades softly at the bottom on every screen size.
+     On desktop it additionally bleeds (clips) into the next section. */
+  .hero-preview-fade {
+    -webkit-mask-image: linear-gradient(to top, transparent 0%, black 30%);
+    mask-image: linear-gradient(to top, transparent 0%, black 30%);
+  }
+
+  @media (min-width: 1024px) {
+    .hero-preview-fade {
+      max-height: 100%;
+      overflow: hidden;
+    }
+  }
+
+  .squircle-sm {
+    border-radius: 12px;
+  }
+
+  @supports (corner-shape: squircle) {
+    .squircle-sm {
+      corner-shape: squircle;
+      border-radius: 18px;
+    }
+  }
+
+  /* Squircle — CSS fallback */
   .squircle {
-    corner-shape: squircle;
-    border-radius: 37px;
+    border-radius: 20px;
+  }
+
+  @supports (corner-shape: squircle) {
+    .squircle {
+      corner-shape: squircle;
+      border-radius: 37px;
+    }
+  }
+
+  .faq-accordion-item {
+    outline: none;
+    transition:
+      background-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .faq-accordion-item--collapsed:hover {
+    background: color-mix(in srgb, var(--border) 45%, var(--background));
+  }
+
+  .faq-accordion-item--collapsed {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+
+  .faq-accordion-item--expanded {
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 12px 64px rgba(0, 0, 0, 0.12);
+  }
+
+  .faq-accordion-item--collapsed:focus-visible {
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 0 0 2px var(--accent);
+  }
+
+  .faq-accordion-item--expanded:focus-visible {
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 12px 64px rgba(0, 0, 0, 0.12),
+      0 0 0 2px var(--accent);
   }
 }

@@ -10,12 +10,22 @@ interface ScanItem {
   color: string;
 }
 
+interface ScanPreviewLabels {
+  scan: string;
+  issues: string;
+  privacyPolicy: string;
+  complete: string;
+  issuesFound: string;
+  notCompliant: string;
+}
+
 interface ScanPreviewCardProps {
   domain?: string;
   items: ScanItem[];
+  labels: ScanPreviewLabels;
 }
 
-export function ScanPreviewCard({ domain = 'mywebsite.ch', items }: ScanPreviewCardProps) {
+export function ScanPreviewCard({ domain = 'mywebsite.ch', items, labels }: ScanPreviewCardProps) {
   return (
     <div
       className="squircle relative w-full max-w-sm overflow-hidden"
@@ -25,7 +35,6 @@ export function ScanPreviewCard({ domain = 'mywebsite.ch', items }: ScanPreviewC
         boxShadow: '0 12px 64px rgba(0,0,0,0.08)',
       }}
     >
-      {/* Header */}
       <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
         <div className="flex items-center justify-center gap-2 px-4 pt-3 pb-3">
           <Lock size={20} weight="fill" className="text-foreground" />
@@ -37,11 +46,11 @@ export function ScanPreviewCard({ domain = 'mywebsite.ch', items }: ScanPreviewC
             style={{ borderRight: '1px solid rgba(0,0,0,0.08)' }}
           >
             <span className="text-muted text-[10px] font-semibold tracking-wide uppercase">
-              Scan
+              {labels.scan}
             </span>
             <div className="flex items-center gap-1" style={{ color: '#16a34a' }}>
               <CheckCircle size={16} weight="fill" />
-              <span className="text-xs font-medium">Complete</span>
+              <span className="text-xs font-medium">{labels.complete}</span>
             </div>
           </div>
           <div
@@ -49,26 +58,25 @@ export function ScanPreviewCard({ domain = 'mywebsite.ch', items }: ScanPreviewC
             style={{ borderRight: '1px solid rgba(0,0,0,0.08)' }}
           >
             <span className="text-muted text-[10px] font-semibold tracking-wide uppercase">
-              Issues
+              {labels.issues}
             </span>
             <div className="flex items-center gap-1" style={{ color: '#d97706' }}>
               <Warning size={16} weight="fill" />
-              <span className="text-xs font-medium">5 found</span>
+              <span className="text-xs font-medium">{labels.issuesFound}</span>
             </div>
           </div>
           <div className="flex flex-col items-center gap-1 px-2 py-3">
             <span className="text-muted text-[10px] font-semibold tracking-wide uppercase">
-              Privacy Policy
+              {labels.privacyPolicy}
             </span>
             <div className="flex items-center gap-1" style={{ color: '#ef4444' }}>
               <WarningCircle size={16} weight="fill" />
-              <span className="text-xs font-medium">Not compliant</span>
+              <span className="text-xs font-medium">{labels.notCompliant}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Items */}
       <div>
         {items.map((item, i) => (
           <div
@@ -87,7 +95,8 @@ export function ScanPreviewCard({ domain = 'mywebsite.ch', items }: ScanPreviewC
               color={
                 item.value.toLowerCase().includes('update')
                   ? 'danger'
-                  : item.value.toLowerCase().includes('detected')
+                  : item.value.toLowerCase().includes('detected') ||
+                      item.value.toLowerCase().includes('erkannt')
                     ? 'warning'
                     : 'success'
               }

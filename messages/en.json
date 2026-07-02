@@ -1,17 +1,673 @@
 {
   "common": {
-    "appName": "mp-frontend",
+    "appName": "Datenschutzpartner",
     "loading": "Loading …",
     "error": "Something went wrong",
     "retry": "Try again",
     "notFound": "Page not found",
-    "backHome": "Back to home",
-    "toggleTheme": "Toggle theme"
+    "backHome": "Home Page",
+    "toggleTheme": "Toggle theme",
+    "language": "Choose language",
+    "switchTo": "Switch to {locale}",
+    "home": "Home",
+    "menu": "Menu",
+    "close": "Close",
+    "logo": "Datenschutzpartner"
   },
-  "home": {
-    "title": "m+p frontend template",
-    "intro": "Clickable prototype with a mocked API. Example feature:",
-    "cta": "Open contacts"
+  "meta": {
+    "defaultTitle": "Datenschutzpartner — Privacy Policy Generator",
+    "defaultDescription": "Scan your website and generate a GDPR-compliant privacy policy in seconds."
+  },
+  "nav": {
+    "services": "Services",
+    "insights": "Insights",
+    "about": "About Us",
+    "contact": "Contact",
+    "company": "Company",
+    "logIn": "Log In"
+  },
+  "services": {
+    "privacyGenerator": {
+      "label": "Privacy Policy Generator",
+      "description": "Create a compliant privacy policy in minutes"
+    },
+    "cookieBanner": {
+      "label": "Cookie Banner Generator",
+      "description": "Generate a compliant cookie consent banner in minutes"
+    },
+    "euRep": {
+      "label": "EU Representative",
+      "description": "Appoint your GDPR Article 27 representative"
+    },
+    "academy": {
+      "label": "Academy",
+      "description": "Learn data protection law with our experts"
+    }
+  },
+  "footer": {
+    "tagline": "Swiss legal expertise for your privacy compliance.",
+    "address": "Datenschutzpartner AG, Hauptstrasse 19, 5742 Kölliken, Switzerland",
+    "copyright": "© {year} Datenschutzpartner AG",
+    "products": "Products",
+    "company": "Company",
+    "legal": "Legal",
+    "privacyGenerator": "Privacy Generator",
+    "euRepresentative": "EU Representative",
+    "academy": "Academy",
+    "insights": "Insights",
+    "aboutUs": "About us",
+    "contact": "Contact",
+    "imprint": "Imprint",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
+  },
+  "landing": {
+    "heroTitleLine1": "Check your website for",
+    "heroTitleHighlight": "privacy risks",
+    "heroSubtitle": "We scan your website and generate a compliant privacy policy automatically.",
+    "trustBusinesses": "2,400+",
+    "trustBusinessesSub": "businesses trust us",
+    "trustSwiss": "Legal expertise from Switzerland",
+    "trustSwissSub": "",
+    "trustCompliant": "GDPR & nFADP",
+    "trustCompliantSub": "compliant",
+    "featureCookieTitle": "Cookie Banner Generator",
+    "featureCookieDescription": "Generate a compliant cookie consent banner for your website in minutes.",
+    "featureEuTitle": "Do you operate in the EU?",
+    "featureEuDescription": "You may be legally required to appoint a representative.",
+    "featureAcademyTitle": "Academy",
+    "featureAcademyDescription": "Learn about privacy, compliance and data protection.",
+    "getStarted": "Get started",
+    "learnMore": "Learn more",
+    "explore": "Explore",
+    "scanPlaceholder": "Enter your website",
+    "scanUrlAria": "Website URL",
+    "scanButton": "Scan",
+    "scanPreviewScan": "Scan",
+    "scanPreviewIssues": "Issues",
+    "scanPreviewPolicy": "Privacy Policy",
+    "scanPreviewComplete": "Complete",
+    "scanPreviewIssuesFound": "5 found",
+    "scanPreviewNotCompliant": "Not compliant",
+    "scanItemTracking": "Tracking technologies",
+    "scanItemTrackingValue": "12 detected",
+    "scanItemCookies": "Cookies in use",
+    "scanItemCookiesValue": "8 detected",
+    "scanItemAnalytics": "Analytics tools",
+    "scanItemAnalyticsValue": "Google Analytics",
+    "scanItemContactForm": "Contact form",
+    "scanItemDetected": "Detected",
+    "scanItemHosting": "Hosting",
+    "scanItemHostingValue": "EU-based",
+    "scanItemCookieBanner": "Cookie banner",
+    "scanItemPayment": "Payment processor",
+    "scanItemPaymentValue": "Stripe",
+    "scanItemGeolocation": "Geolocation",
+    "scanItemMediaCapture": "Media capture",
+    "scanItemNotDetected": "Not detected"
+  },
+  "aboutSection": {
+    "title": "About us.",
+    "body": "With GDPR and the new Swiss Data Protection Act (FADP) in force since September 2023, we help companies, individuals and organisations navigate complex data protection law. We offer flexible, affordable solutions — from our Privacy Generator to our Academy, newsletter and podcast.",
+    "learnMore": "Learn more",
+    "imageAlt": "Datenschutzpartner team"
+  },
+  "about": {
+    "metaTitle": "About Datenschutzpartner — Datenschutzpartner",
+    "metaDescription": "The team and history of Datenschutzpartner AG — Swiss expertise for privacy compliance.",
+    "title": "About Datenschutzpartner",
+    "intro": "<imprint>Datenschutzpartner AG</imprint> was founded in 2015 by Martin Steiger and Andreas Von Gunten as Papiertiger GmbH. Cornelia Diethelm has been involved in the company since 2020.",
+    "teamImageAlt": "The Datenschutzpartner team",
+    "teamAriaLabel": "Team",
+    "corneliaBio": "A specialist in digital ethics who built the <cdr>Centre for Digital Responsibility</cdr>. She is on Datenschutzpartner's executive team for corporate communications and ensures quality control.",
+    "andreasBio": "Owner of <smartkmu>SmartKMU</smartkmu>. He is on Datenschutzpartner's executive team for operations and finance.",
+    "marcBio": "Digital Business & Operations Manager at Datenschutzpartner, handling day-to-day operations. He manages the online presence as well as accounting and client communication.",
+    "martinBio": "Attorney and entrepreneur focused on law in the digital space. He is CEO and co-founder of Datenschutzpartner. Martin Steiger's law firm is <steiger>Steiger Legal AG</steiger>."
+  },
+  "login": {
+    "metaTitle": "Log In — Datenschutzpartner",
+    "metaDescription": "Sign in to your Datenschutzpartner account.",
+    "title": "Log In",
+    "email": "Email",
+    "emailPlaceholder": "jane@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "submit": "Log In",
+    "forgotPassword": "Forgot password?",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "success": "Signed in successfully.",
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "generic": "Sign-in failed. Please try again."
+    }
+  },
+  "forgotPassword": {
+    "metaTitle": "Forgot Password — Datenschutzpartner",
+    "metaDescription": "Request a link to reset your password.",
+    "title": "Forgot password",
+    "description": "Enter your email address and we will send you a link to reset your password.",
+    "email": "Email",
+    "emailPlaceholder": "jane@example.com",
+    "submit": "Send link",
+    "backToLogin": "Log In",
+    "success": "If an account exists for this email, we have sent a reset link."
+  },
+  "contact": {
+    "metaTitle": "Contact — Datenschutzpartner",
+    "metaDescription": "Get in touch with Datenschutzpartner AG.",
+    "title": "Contact",
+    "addressHeading": "Address",
+    "addressLine": "Hauptstrasse 19, 5742 Kölliken, Switzerland",
+    "socialHeading": "Social networks",
+    "note": "Appointments by prior arrangement only. Further details about Datenschutzpartner AG can be found in the <imprint>imprint</imprint>.",
+    "formHeading": "Contact form",
+    "form": {
+      "name": "First and last name",
+      "company": "Company",
+      "email": "Email address",
+      "message": "Message",
+      "namePlaceholder": "Jane Doe",
+      "companyPlaceholder": "Example Ltd",
+      "emailPlaceholder": "jane@example.com",
+      "messagePlaceholder": "Your message to us …",
+      "spamLabel": "Enter the result of the following calculation:",
+      "spamAria": "Spam protection",
+      "privacyNote": "When you contact us, we process your personal data. Read our <privacy>privacy policy</privacy>.",
+      "submit": "Send",
+      "submitting": "Sending…",
+      "successTitle": "Thank you for your message!",
+      "successBody": "We will get back to you as soon as possible.",
+      "errors": {
+        "nameRequired": "Please enter your name.",
+        "emailInvalid": "Please enter a valid email address.",
+        "messageRequired": "Please enter a message.",
+        "spamRequired": "Please solve the calculation.",
+        "spamIncorrect": "The result is incorrect."
+      }
+    }
+  },
+  "insights": {
+    "metaTitle": "Insights — Datenschutzpartner",
+    "metaDescription": "Webinars, News & Questions and podcasts on data protection, Swiss FADP and GDPR from Datenschutzpartner.",
+    "title": "Insights.",
+    "allInsights": "All Insights",
+    "tabs": {
+      "webinars": "Webinars",
+      "newsQuestions": "News & Questions",
+      "podcasts": "Podcasts"
+    },
+    "tabsNavigation": "Insights categories",
+    "backToInsights": "All Insights",
+    "articleMetaTitle": "{title} — Datenschutzpartner",
+    "listenToEpisode": "Listen to the episode",
+    "author": "Author",
+    "presenter": "Presenter",
+    "published": "Published",
+    "liveAt": "Live at",
+    "addToCalendar": "Add to calendar",
+    "authorRoleDefault": "Attorney",
+    "share": "Share",
+    "shareLinkedIn": "Share on LinkedIn",
+    "shareBluesky": "Share on Bluesky",
+    "shareThreads": "Share on Threads",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "linkCopiedTooltip": "Link copied to clipboard!",
+    "previousArticle": "Previous article",
+    "nextArticle": "Next article",
+    "articleNavigation": "Article navigation",
+    "paginationPrevious": "Previous",
+    "paginationNext": "Next",
+    "paginationNavigation": "Page navigation"
+  },
+  "academy": {
+    "metaTitle": "Academy — Datenschutzpartner",
+    "metaDescription": "Datenschutz Academy: live webinars, News & Questions and a knowledge base for implementing Swiss FADP, GDPR and the AI Act.",
+    "title": "Datenschutz Academy.",
+    "archiveTitle": "Academy library",
+    "backToOverview": "Back to Academy overview",
+    "tabs": {
+      "webinars": "Webinars",
+      "newsQuestions": "News & Questions"
+    },
+    "tabsNavigation": "Academy categories",
+    "backToAcademy": "Back to Academy",
+    "pastSessions": {
+      "metaTitle": "Past sessions — Datenschutzpartner Academy",
+      "metaDescription": "Recordings and summaries of past Academy webinars and News & Questions sessions.",
+      "title": "Past sessions",
+      "backToAcademy": "Academy",
+      "tabsNavigation": "Past sessions categories",
+      "yearTabsNavigation": "Past sessions years",
+      "empty": "No past sessions in this category yet.",
+      "bannerMembershipTitle": "Membership",
+      "tabs": {
+        "all": "All Sessions",
+        "webinars": "Webinars",
+        "newsQuestions": "News & Questions"
+      }
+    },
+    "articleMetaTitle": "{title} — Datenschutzpartner Academy",
+    "author": "Author",
+    "presenter": "Presenter",
+    "published": "Published",
+    "liveAt": "Live at",
+    "addToCalendar": "Add to calendar",
+    "authorRoleDefault": "Attorney",
+    "share": "Share",
+    "shareLinkedIn": "Share on LinkedIn",
+    "shareBluesky": "Share on Bluesky",
+    "shareThreads": "Share on Threads",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "linkCopiedTooltip": "Link copied to clipboard!",
+    "previousArticle": "Previous article",
+    "nextArticle": "Next article",
+    "articleNavigation": "Article navigation",
+    "landing": {
+      "heroTitle": "Datenschutz Academy",
+      "heroHeadlineLine1": "Stay compliant.",
+      "heroHeadlineLine2": "Stay ahead of the law.",
+      "heroSubtitle": "One membership for everything you need to implement Swiss FADP, the EU GDPR and the AI Act — live webinars, recordings, ready-to-use checklists and expert answers to your questions.",
+      "heroImageAlt": "Glowing light bulb on a staircase — a symbol of knowledge and learning",
+      "overview": {
+        "title": "Everything data protection, in one place",
+        "intro": "One membership for expert-led live sessions, a growing library of recordings, and ready-to-use tools — built for teams implementing Swiss and European privacy law.",
+        "items": {
+          "compliance": {
+            "title": "Implement the new Swiss FADP with confidence",
+            "description": "In force since 1 September 2023. We also keep you compliant with the EU GDPR, the European AI Act and other applicable law."
+          },
+          "sessions": {
+            "title": "Regular webinars, «News & Questions»",
+            "description": "Join live sessions on current topics and bring your own questions — we keep you informed about the developments that actually matter to you."
+          },
+          "resources": {
+            "title": "Checklists, generators, a full recording library",
+            "description": "Imprint checklist, video-surveillance privacy notice, the employee data-protection declaration generator, plus 100+ recorded events and 50+ hours to catch up anytime."
+          }
+        }
+      },
+      "joinCta": "Become a member",
+      "stats": {
+        "ariaLabel": "Academy at a glance",
+        "webinars": {
+          "value": "10",
+          "label": "live webinars per year"
+        },
+        "events": {
+          "value": "20",
+          "label": "live events you can attend"
+        },
+        "recordings": {
+          "value": "50+",
+          "label": "hours of recordings on demand"
+        },
+        "frameworks": {
+          "value": "3",
+          "label": "frameworks covered · FADP · GDPR · AI Act"
+        }
+      },
+      "previewSectionTitle": "What's happening in the Academy right now",
+      "preview": {
+        "sectionTitle": "What's happening in the Academy right now",
+        "comingUpTitle": "Coming up",
+        "comingUpEmpty": "No upcoming sessions.",
+        "nextLiveBadge": "Next live",
+        "webinarBadge": "Webinar",
+        "newsQuestionsBadge": "N&Q",
+        "newsQuestionsShortBadge": "N&Q",
+        "newsQuestionsCompactMeta": "Bring your open questions · {time}",
+        "webinarCompactMeta": "Live session · {time}",
+        "reserveSeat": "Reserve your seat",
+        "readMore": "Read more",
+        "tba": "TBA",
+        "onDemandTitle": "Past sessions",
+        "viewAllPastSessions": "View all past sessions",
+        "browseLibrary": "Browse the full library"
+      },
+      "upcomingTitle": "Upcoming dates",
+      "membershipTitle": "Membership",
+      "membershipDescription": "Live webinars, News & Questions, recordings and templates — everything for your day-to-day privacy work.",
+      "membershipPriceAmount": "349.00",
+      "membershipPricePeriod": "/ 12 months",
+      "orderCta": "Order",
+      "discoverCta": "Discover",
+      "membershipLegalPrefix": "All prices are subject to statutory VAT. The",
+      "membershipTermsLink": "general terms and conditions",
+      "membershipLegalSuffix": "apply. Membership in the Data Protection Academy is automatically renewed for 12 months unless cancelled.",
+      "features": {
+        "webinarsLive": "Participation in all live webinars (10 per year)",
+        "webinarsRecordings": "Access to all webinar recordings and slide decks",
+        "newsLive": "Participation in «News & Questions» (10 per year)",
+        "newsRecordings": "Access to all «News & Questions» recordings",
+        "legalSessions": "Access to all Legal Sessions recordings",
+        "employeeDeclaration": "Generator for employee data protection declarations",
+        "checklists": "Access to checklists and other documents",
+        "newsletterBonus": "Bonus: data protection newsletter",
+        "podcastBonus": "Bonus: «Datenschutz Plaudereien» podcast"
+      },
+      "faq": {
+        "title": "Frequently Asked Questions",
+        "intro": "Didn't find the answer to your question? Please <contact>contact us</contact>.",
+        "categories": {
+          "offer": {
+            "label": "Offer & events"
+          },
+          "access": {
+            "label": "Content & recordings"
+          },
+          "participation": {
+            "label": "Technology & participation"
+          },
+          "membership": {
+            "label": "Membership & service"
+          }
+        },
+        "items": {
+          "q1": {
+            "question": "What are webinars?",
+            "answer": "Our webinars are online training sessions on current topics in data protection law and sometimes on topics from law in the digital sphere.\n\nWe normally hold the webinars of our Data Protection Academy live. The duration of the webinars varies, also depending on questions from members. Most webinars last between 30 and 60 minutes.\n\nThe webinars are held by Martin Steiger, attorney-at-law and co-founder of Datenschutzpartner, or by another specialist, possibly together with other participants.\n\nAll webinars are recorded. During your membership of the Data Protection Academy, you can access the recordings of all previous events. You can also access slides and other materials.\n\nInformation about individual webinars can be found in the Data Protection Academy dashboard."
+          },
+          "q2": {
+            "question": "What are News & Questions?",
+            "answer": "“News & Questions” is a regular event of our Data Protection Academy. The event consists of the “News” and “Questions” sections.\n\nIn the “News” section, we inform members of the Data Protection Academy about relevant updates in data protection law and related topics.\n\nIn the “Questions” section, members of the Data Protection Academy can ask their own questions and receive helpful answers from a specialist, for example from Martin Steiger, attorney-at-law and co-founder of Datenschutzpartner.\n\nMembers of the Data Protection Academy can not only ask their own questions, but also hear the answers to questions from other members.\n\nWith “News & Questions”, members of the Data Protection Academy can improve their knowledge in three ways: through the news, through answers to their own questions, and through the answers to other members' questions.\n\n“News & Questions” usually lasts around 30 minutes, depending on the number of questions and news items, sometimes a little shorter or longer.\n\nFor “News & Questions”, members of the Data Protection Academy take part in a live webinar together with other members. Questions can be asked live via the Q&A function or in advance using the member form.\n\n“News & Questions” is recorded and published for members of the Data Protection Academy. The publication includes, among other things, the collected questions.\n\nThe recordings and materials for all events can be found in the Data Protection Academy dashboard.\n\n“News & Questions” replaced the former “Legal Sessions” in summer 2025."
+          },
+          "q3": {
+            "question": "How will I find out about new content and dates?",
+            "answer": "Information about content and dates can be found in the Data Protection Academy dashboard. We will also inform you by email about new content and dates."
+          },
+          "q4": {
+            "question": "How do I get access to recordings and other content?",
+            "answer": "You can find all available recordings and other content, such as checklists, in the Data Protection Academy dashboard.\n\nWe also publish most content for members of the Data Protection Academy on our website. To access member content, you must log in."
+          },
+          "q5": {
+            "question": "Can earlier events be accessed?",
+            "answer": "Yes, during an active membership of our Data Protection Academy, all previous events with all available recordings, slides and other materials can be accessed."
+          },
+          "q6": {
+            "question": "How practice-oriented is the content?",
+            "answer": "Our Data Protection Academy is aimed at everyone who has to implement data protection law or wants to stay up to date. We try to make our offering as practice-oriented as possible and focus on implementation in organizations and companies.\n\nMembers of our Data Protection Academy have the opportunity, in particular, to ask their own questions in our “News & Questions”."
+          },
+          "q7": {
+            "question": "Are there any special technical requirements?",
+            "answer": "No, there are no special technical requirements for taking part in our Data Protection Academy.\n\nWe primarily use the video conferencing service Zoom. To participate, a current browser on a Mac or PC, on an iPhone or iPad, or on other current devices is sufficient. However, it is optimal if you use the Zoom app.\n\n(Apart from that, you will of course need a working internet connection and a way to hear the webinar audio.)"
+          },
+          "q8": {
+            "question": "How can I use Zoom without the app?",
+            "answer": "When you open the web link to a Zoom event of the Data Protection Academy in your browser, you will be asked whether you want to open the Zoom app.\n\nIf you cancel or decline, you can click “Join from your browser” (or similar) at the bottom. This allows you to use Zoom in your browser without needing the Zoom app."
+          },
+          "q9": {
+            "question": "Why am I asked for my name and email address before a webinar?",
+            "answer": "We primarily use the video conferencing service Zoom to hold webinars and other events online.\n\nIn some cases, before participating in such Data Protection Academy events, you will be asked for your name and email address.\n\nWe do not need this information. You can therefore enter any details."
+          },
+          "q10": {
+            "question": "How can I access the transcript for recordings?",
+            "answer": "For newer Data Protection Academy events whose recordings are available as video, you can access the transcript of the event in the bottom right of the video window by clicking the icon with paper and a magnifying glass.\n\nYou can search for text in the transcript and jump to the relevant passages. You can also jump forward and backward using the timestamps in the transcript.\n\nThe transcript is generated automatically. The spoken word is therefore authoritative in terms of content."
+          },
+          "q11": {
+            "question": "How can I activate subtitles for recordings?",
+            "answer": "For newer Data Protection Academy events whose recordings are available as video, you can activate the subtitles in the bottom right of the video window by clicking the “CC” icon (or deactivate them if they are active).\n\nThe activated subtitles appear at the bottom of the video window.\n\nThe subtitles are generated automatically. The spoken word is therefore authoritative in terms of content."
+          },
+          "q12": {
+            "question": "Why do you use the informal form of address?",
+            "answer": "We aspire to be your data protection partner. An informal culture fits that very well. We therefore switched from the initial, somewhat distant formal address to the collegial informal form.\n\nYou may of course address us formally if you wish. In that case, we will also address you formally again."
+          },
+          "q13": {
+            "question": "How can I pay for my membership?",
+            "answer": "You can pay for your membership of our Data Protection Academy by credit card or invoice.\n\nYou will receive your invoice as a PDF file by email. The payment term is 10 days. For credit card payments, we use the payment service Stripe."
+          },
+          "q14": {
+            "question": "What happens if an appointment is cancelled?",
+            "answer": "Data Protection Academy appointments that are cancelled, for example due to illness or technical reasons, will be rescheduled where possible."
+          },
+          "q15": {
+            "question": "Does my membership renew automatically?",
+            "answer": "Yes, your membership of our Data Protection Academy renews automatically.\n\nIn particular, we inform you under “My Account” about the term of your membership. You can cancel your membership at any time effective at the end of the current term."
+          }
+        }
+      }
+    }
+  },
+  "euRepPage": {
+    "metaTitle": "EU Data Protection Representative — Datenschutzpartner",
+    "metaDescription": "Data protection representation in the EEA in accordance with Art. 27 GDPR by VGS Datenschutzpartner GmbH, based in Germany.",
+    "eyebrow": "EU Data Protection Representative",
+    "title": "Data protection representation in the European Union",
+    "heroSubtitle": "Not sure whether you need a data protection representative in the European Union (EU)? Our <questionnaire>questionnaire</questionnaire> will help you.",
+    "heroPanelTitle": "VGS Datenschutzpartner GmbH",
+    "heroPanelSubtitle": "Your data protection representative in the EEA, based in Germany",
+    "orderCta": "Order",
+    "stats": {
+      "ariaLabel": "EU representation at a glance",
+      "article27": {
+        "label": "Art. 27 GDPR — compliant EU representation"
+      },
+      "establishment": {
+        "label": "Representative with establishment in Germany (DE)"
+      },
+      "eea": {
+        "label": "Covers the EEA: EU, Liechtenstein, Iceland & Norway"
+      },
+      "price": {
+        "label": "Plans from CHF 149 per 12 months"
+      }
+    },
+    "benefitsSection": {
+      "title": "What you get",
+      "subtitle": "Providers without an establishment in the EU need a representative in the EEA. We provide it — including an official point of contact and review of incoming inquiries.",
+      "items": {
+        "art27": {
+          "title": "Representation under Art. 27 GDPR",
+          "description": "VGS Datenschutzpartner GmbH, based in Germany, is your required data protection representative in the European Economic Area."
+        },
+        "contact": {
+          "title": "Official point of contact in the EEA",
+          "description": "An additional point of contact for supervisory authorities and data subjects — listable in your privacy policy, legal notice and records of processing activities."
+        },
+        "inquiries": {
+          "title": "Review & forwarding of inquiries",
+          "description": "Inquiries by postal mail or email are reviewed and forwarded to you by email — for example data subject access requests."
+        }
+      }
+    },
+    "pricingSection": {
+      "title": "One protection — three plans",
+      "subtitle": "All plans offer the same EU representation. The only difference: how many inquiries per year are already included.",
+      "includedTitle": "Included in every plan",
+      "selectPlan": "Select your plan",
+      "perYear": "per year",
+      "plans": {
+        "budget": {
+          "tabLabel": "Budget",
+          "showPerYear": false,
+          "note": "/ per single inquiry"
+        },
+        "standard": {
+          "tabLabel": "Standard",
+          "showPerYear": true,
+          "note": "then CHF 79 per inquiry"
+        },
+        "premium": {
+          "tabLabel": "Premium",
+          "showPerYear": true,
+          "note": "then CHF 59 per inquiry"
+        }
+      }
+    },
+    "pricePeriod": "/ 12 months",
+    "plans": {
+      "budget": {
+        "price": "149"
+      },
+      "standard": {
+        "price": "249"
+      },
+      "premium": {
+        "price": "499"
+      }
+    },
+    "faqNote": "Do you have questions? Our <faq>FAQ on EU data protection representation</faq> will help you.",
+    "features": {
+      "establishment": "EU data protection representative with an establishment in Germany",
+      "art27": "Compliance with Art. 27 GDPR",
+      "mentionPolicy": "Mention in privacy policy and legal notice",
+      "mentionRecords": "Mention in records of processing activities",
+      "email": "Reachable by email",
+      "post": "Reachable by postal mail",
+      "newsletter": "Bonus: newsletter with data protection news and tips",
+      "podcast": "Bonus: «Datenschutz Plaudereien» podcast"
+    },
+    "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> (GTC) apply. Unless cancelled, the data protection representation is automatically renewed for 12 months.",
+    "faqSection": {
+      "title": "Frequently Asked Questions",
+      "intro": "Didn't find the answer to your question? Please <contact>contact us</contact>.",
+      "categoriesNavigation": "FAQ categories",
+      "categories": {
+        "gdprGeneral": {
+          "label": "European General Data Protection Regulation (GDPR) in general"
+        },
+        "gdprSwitzerland": {
+          "label": "Applicability of the General Data Protection Regulation in Switzerland"
+        },
+        "euRepresentation": {
+          "label": "Data protection representation in the European Union (EU)"
+        }
+      },
+      "items": {
+        "q1": {
+          "question": "What is the European General Data Protection Regulation?",
+          "answer": "With its General Data Protection Regulation, abbreviated GDPR, the European Union (EU) has harmonized and tightened its data protection law. The GDPR focuses on enforcing existing data protection law.\n\nThe GDPR entered into force on 24 May 2016 and has applied since 25 May 2018 after a two-year transition period. The GDPR applies directly in all EU Member States and is also applicable in the member states of the European Economic Area (EEA), including the Principality of Liechtenstein.\n\nIn addition, the GDPR applies at least in part to many companies and organizations in Switzerland, even though Switzerland is not a member state of the EU or the EEA. Under the market location principle, the GDPR applies in part to the processing of personal data outside the EU and EEA.\n\nIn the EU, the GDPR is referred to as Regulation (EU) 2016/679."
+        },
+        "q2": {
+          "question": "What is the difference between the DSGVO and the GDPR?",
+          "answer": "The English name of the European General Data Protection Regulation, abbreviated DSGVO in German, is General Data Protection Regulation, abbreviated GDPR. There is no difference between the DSGVO and the GDPR other than the language."
+        },
+        "q3": {
+          "question": "What happens if you do not comply with the GDPR?",
+          "answer": "Anyone who violates the GDPR may be punished with fines of up to EUR 20 million or up to 4 percent of worldwide turnover. These are the maximum penalties, particularly with regard to American companies such as Google or Meta. The data protection supervisory authorities may also request information and conduct investigations, among other things.\n\nSwiss companies and organizations must also expect to be penalized. The GDPR provides that penalties must be dissuasive, proportionate and effective. Irrespective of any penalty, even the costs caused by proceedings due to an alleged GDPR violation can be painful, especially for small and medium-sized enterprises (SMEs).\n\nIn addition, many contracts provide that applicable law or expressly the GDPR must be complied with. One example is data processing agreements, as required by the GDPR. Anyone who does not comply with the GDPR breaches such contracts and must expect, for example, claims for damages from contractual partners.\n\nFurthermore, the rights of data subjects are strengthened by the GDPR, meaning that they can also defend themselves. There are concerns, among other things, that data protection warning letters may become more common."
+        },
+        "q4": {
+          "question": "Why does the GDPR apply to many companies in Switzerland?",
+          "answer": "With the General Data Protection Regulation (GDPR), the European Union (EU) introduces the market location principle into data protection law:\n\nThe GDPR applies to the processing of personal data of all persons located in the European Economic Area (EEA). The EEA comprises the EU Member States as well as the Principality of Liechtenstein, Iceland and Norway.\n\nTo protect these persons not only in the EEA but worldwide, the GDPR generally also applies when such data is processed in countries outside the EEA, in so-called third countries (Art. 3 para. 2 GDPR). From the EU's perspective, Switzerland is such a third country."
+        },
+        "q5": {
+          "question": "Under what conditions does the market location principle apply to companies in Switzerland?",
+          "answer": "Companies in Switzerland whose offering is directed at persons in the EU or the EEA must comply with the European General Data Protection Regulation (GDPR) with respect to such persons. Free offerings such as e-books, newsletters and white papers (“freebies”) for persons in the EU and EEA are also expressly covered.\n\nIn addition, the GDPR applies to companies in Switzerland that monitor the behavior of persons in the EU or EEA, for example by analyzing the activities of visitors in an app or on a website (profiling and tracking). Anyone who uses Google Analytics on a Swiss website, for example, may thereby be subject to the GDPR.\n\nSwiss companies and organizations that are subject to the GDPR require an EU data protection representative. You can use our questionnaire to find out whether you need a data protection representative in the EU."
+        },
+        "q6": {
+          "question": "Are there exceptions?",
+          "answer": "Swiss companies that must comply with the General Data Protection Regulation (GDPR) exceptionally do not need a data protection representative in the EU if the following three conditions are met:\n\n1. The data processing is only occasional, and\n2. there is no extensive processing of particularly sensitive data, and\n3. taking into account the nature, circumstances, scope and purposes of the processing, the data processing is unlikely to result in a risk to the rights and freedoms of natural persons.\n\nWe advise against relying on these exceptions."
+        },
+        "q7": {
+          "question": "What are the tasks of an EU data protection representative?",
+          "answer": "The EU data protection representative is an additional point of contact for supervisory authorities and data subjects for all inquiries in connection with ensuring compliance with the European General Data Protection Regulation (GDPR) (Art. 27 para. 4 GDPR).\n\nThe EU data protection representative can also be imagined as a “mailbox” in the EU that authorities and data subjects in the European Economic Area (EEA) can use."
+        },
+        "q8": {
+          "question": "What requirements must an EU data protection representative meet?",
+          "answer": "An EU data protection representative must be a legal or natural person established in an EU Member State. The establishment must be located in one of the EU Member States where data subjects are located. We ensure that you can order our offer online, but that the order is made in writing.\n\nThe EU data protection representative for our clients is our subsidiary VGS Datenschutzpartner GmbH, based in Hamburg. The data protection representation applies, starting from Germany, to the entire EU and to the entire EEA, including the Principality of Liechtenstein. Anyone subject to the GDPR under the market location principle almost always also processes data of data subjects in Germany."
+        },
+        "q9": {
+          "question": "To what extent does the data protection representative in the EU bear responsibility?",
+          "answer": "The liability and responsibility of companies in Switzerland for compliance with the General Data Protection Regulation (GDPR) are neither excluded nor reduced by appointing a data protection representative in the EU. The companies concerned remain themselves fully responsible for compliance with the GDPR, which includes, among other things, appointing a data protection representative in the EU (Art. 27 para. 5 GDPR).\n\nThe data protection representative in the EU may be instructed by the data protection supervisory authorities to provide all information required for the performance of the supervisory authorities' tasks. If the data protection representative in the EU does not have the necessary information, it must obtain it from the represented company."
+        },
+        "q10": {
+          "question": "Is one EU data protection representative sufficient per group or corporate group?",
+          "answer": "No, one EU data protection representative per group or corporate group is not sufficient.\n\nAccording to Art. 27 para. 1 GDPR, every individual controller and every individual processor within the scope of the European General Data Protection Regulation (GDPR) must appoint an EU data protection representative.\n\nIn principle, the individual legal entities or comparable legal units are considered individual controllers or processors."
+        },
+        "q11": {
+          "question": "What happens if the tasks and requirements for the data protection representative in the EU change?",
+          "answer": "If the tasks and requirements for the EU data protection representative in the EU change, we will adapt our offering accordingly."
+        },
+        "q12": {
+          "question": "What kinds of inquiries should be expected?",
+          "answer": "Supervisory authorities and data subjects may contact the EU data protection representative at any time. In this way, data subjects may, for example, exercise their rights of access, data portability, erasure and objection. Supervisory authorities may, for example, forward complaints from data subjects or request information about compliance with the General Data Protection Regulation (GDPR)."
+        },
+        "q13": {
+          "question": "How many inquiries should be expected?",
+          "answer": "Experience shows that most controllers have to expect few or no inquiries. Controllers who are reachable for data subjects are normally contacted directly and not via the EU data protection representative.\n\nData protection supervisory authorities normally contact the EU data protection representative. However, such inquiries are usually self-provoked, whether through notifications of data breaches or inquiries from data subjects that were not answered directly.\n\nAs a rule, we only forward inquiries in connection with the General Data Protection Regulation (GDPR). Obvious email advertising (spam), for example, is not forwarded."
+        },
+        "q14": {
+          "question": "How and where must the EU data protection representative be mentioned?",
+          "answer": "The EU data protection representative must be mentioned in particular in the respective privacy policy and in the record of processing activities. However, mention in the legal notice is not required.\n\nOur clients will find the required details and sample wording for their privacy policies in our guide for EU data protection representation.\n\nAnyone using our privacy policy generator automatically receives, where the European General Data Protection Regulation (GDPR) applies, a privacy policy with suitable text for the EU data protection representative."
+        },
+        "q15": {
+          "question": "Does the EU data protection representative need the record of processing activities?",
+          "answer": "The EU data protection representative does not need the record of processing activities pursuant to Art. 30 GDPR as standard. However, as part of their data protection obligations, controllers must keep a record of processing activities and also be able to provide the record of processing activities to the EU data protection representative promptly if needed."
+        },
+        "q16": {
+          "question": "Must a telephone number be provided for the EU data protection representative?",
+          "answer": "No, Art. 27 GDPR as the legal basis for the EU data protection representative does not require a telephone number to be provided."
+        }
+      }
+    }
+  },
+  "result": {
+    "steps": {
+      "scan": "Scan",
+      "questionnaire": "Questionnaire",
+      "euRep": "EU Representative",
+      "summary": "Summary"
+    },
+    "euRepStep": {
+      "title": "Choose your EU Representative plan.",
+      "description": "Under <art27>GDPR Article 27</art27>, an EU Representative acts as your contact point in the European Union for data subjects and supervisory authorities.",
+      "chooseBudget": "Continue with Budget",
+      "chooseStandard": "Continue with Standard",
+      "choosePremium": "Continue with Premium",
+      "skip": "Skip"
+    },
+    "summary": {
+      "euRepSkippedTitle": "EU Representative declined",
+      "euRepSkippedDetail": "Not included · CHF 0.00"
+    },
+    "improvedStep": {
+      "continueToSummary": "Review summary"
+    }
+  },
+  "scan": {
+    "title": "Privacy Policy Generator",
+    "subtitle": "We scan your website and generate a compliant\nprivacy policy automatically.",
+    "urlLabel": "Website URL",
+    "urlPlaceholder": "e.g. mywebsite.com",
+    "errorEmpty": "Please enter a URL.",
+    "errorInvalid": "Please enter a valid URL.",
+    "scanning": "Scanning…",
+    "scanNow": "Scan now",
+    "analysing": "Analysing — detecting trackers and services…"
+  },
+  "newsletter": {
+    "title": "Stay ahead of privacy law.",
+    "bodyLine1": "Get practical insights on GDPR, the Swiss FADP, and data protection compliance",
+    "bodyLine2": "delivered to your inbox. No spam, unsubscribe anytime.",
+    "placeholder": "Your email address",
+    "subscribe": "Subscribe",
+    "successTitle": "You're subscribed!",
+    "successBody": "We'll be in touch soon.",
+    "privacyPrefix": "By subscribing you agree to our",
+    "privacyLink": "Privacy Policy"
+  },
+  "legal": {
+    "imprint": {
+      "metaTitle": "Imprint — Datenschutzpartner",
+      "metaDescription": "Legal notice of Datenschutzpartner AG, Kölliken, Switzerland.",
+      "pageTitle": "Imprint"
+    },
+    "privacy": {
+      "metaTitle": "Privacy Policy — Datenschutzpartner",
+      "metaDescription": "How Datenschutzpartner processes personal data.",
+      "pageTitle": "Privacy Policy"
+    },
+    "terms": {
+      "metaTitle": "Terms of Service — Datenschutzpartner",
+      "metaDescription": "General terms and conditions for Datenschutzpartner services.",
+      "pageTitle": "Terms of Service (GTC)"
+    }
+  },
+  "validation": {
+    "required": "Required",
+    "email": "Invalid email address"
   },
   "contacts": {
     "title": "Contacts",
@@ -27,9 +683,5 @@
       "company": "Company (optional)",
       "submit": "Create"
     }
-  },
-  "validation": {
-    "required": "Required",
-    "email": "Invalid email address"
   }
 }
