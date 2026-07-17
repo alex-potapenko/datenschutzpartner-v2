@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${geistSans.variable} ${geometosNeue.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="bg-background text-foreground flex min-h-full flex-col overflow-x-clip">
+      <body className="bg-background text-foreground flex min-h-dvh flex-col overflow-x-clip">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

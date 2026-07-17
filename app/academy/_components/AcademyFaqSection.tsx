@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { FaqCategorizedSections } from '@/components/shared/FaqCategorizedSections';
 import { FaqSectionFrame } from '@/components/shared/FaqSectionFrame';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import {
   ACADEMY_FAQ_CATEGORY_IDS,
   ACADEMY_FAQ_ITEMS_BY_CATEGORY,
@@ -25,14 +25,9 @@ export async function AcademyFaqSection() {
       title={t('title')}
       intro={t.rich('intro', {
         contact: (chunks) => (
-          <Link
-            href="/contact"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--accent)] hover:text-[var(--link-hover)]"
-          >
+          <NavigationLink href="/contact" chevron="none">
             {chunks}
-          </Link>
+          </NavigationLink>
         ),
       })}
     >

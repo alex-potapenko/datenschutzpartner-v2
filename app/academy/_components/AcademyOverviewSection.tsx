@@ -48,7 +48,7 @@ export async function AcademyOverviewSection() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-3 p-4 sm:p-8">
+      <div className="flex flex-col gap-3 px-4 pt-20 pb-4 sm:px-8 sm:pb-8">
         <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">{t('title')}</h2>
       </div>
 

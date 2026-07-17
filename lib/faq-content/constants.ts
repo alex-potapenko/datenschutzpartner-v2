@@ -45,3 +45,19 @@ export const EU_REP_FAQ_ITEMS_BY_CATEGORY: Record<EuRepFaqCategoryId, readonly s
   gdprSwitzerland: ['q4', 'q5', 'q6'],
   euRepresentation: ['q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q15', 'q16'],
 };
+
+export const GENERATOR_FAQ_CATEGORY_IDS = [
+  'contentAndUse',
+  'usingGenerator',
+  'subscription',
+  'support',
+] as const;
+
+export type GeneratorFaqCategoryId = (typeof GENERATOR_FAQ_CATEGORY_IDS)[number];
+
+export const GENERATOR_FAQ_ITEMS_BY_CATEGORY: Record<GeneratorFaqCategoryId, readonly string[]> = {
+  contentAndUse: ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'],
+  usingGenerator: ['q7', 'q8', 'q9', 'q10'],
+  subscription: ['q11', 'q12', 'q13'],
+  support: ['q14', 'q15', 'q16'],
+};

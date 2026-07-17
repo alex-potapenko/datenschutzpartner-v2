@@ -122,6 +122,42 @@ export type AcademyPreviewListLabels = {
   tba: string;
 };
 
+export function AcademySessionSummary({
+  type,
+  title,
+  meta,
+  webinarLabel,
+  newsQuestionsLabel,
+  showTypeChip = true,
+}: {
+  type: 'webinar' | 'newsQuestions';
+  title: ReactNode;
+  meta?: string;
+  webinarLabel: string;
+  newsQuestionsLabel: string;
+  showTypeChip?: boolean;
+}) {
+  const isWebinar = type === 'webinar';
+
+  return (
+    <div className="flex min-w-0 flex-col items-start gap-1">
+      <div className="text-foreground min-w-0 text-base leading-tight font-medium">{title}</div>
+      {showTypeChip ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {isWebinar ? (
+            <WebinarChip label={webinarLabel} />
+          ) : (
+            <NewsQuestionsChip label={newsQuestionsLabel} />
+          )}
+          {meta ? <p className="text-muted text-sm leading-snug">{meta}</p> : null}
+        </div>
+      ) : meta ? (
+        <p className="text-muted text-sm leading-snug">{meta}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export const ACADEMY_SESSION_LIST_GAP_PX = 16;
 export const ACADEMY_SESSION_ROW_HEIGHT_PX = 56;
 export const ACADEMY_SESSION_LIST_CLASS_NAME = '-m-1 flex flex-col gap-4 overflow-visible p-1';
@@ -153,6 +189,7 @@ export function AcademySessionListItem({
   interactive = true,
   nextLiveLabel,
   listItemClassName,
+  compact = false,
 }: {
   variant: AcademySessionListItemVariant;
   liveAt: string;
@@ -169,10 +206,12 @@ export function AcademySessionListItem({
   interactive?: boolean;
   nextLiveLabel?: string;
   listItemClassName?: string;
+  compact?: boolean;
 }) {
   const isWebinar = type === 'webinar';
   const isNextLive = variant === 'nextLive';
-  const showDateBox = variant !== 'pastSession';
+  const isCompactNextLive = isNextLive && compact;
+  const showDateBox = variant !== 'pastSession' && !isCompactNextLive;
 
   const rowContent = (
     <>
@@ -202,7 +241,9 @@ export function AcademySessionListItem({
           <p className="text-muted text-sm leading-snug">{meta}</p>
         ) : null}
       </div>
-      {interactive && readMoreHref && readMoreLabel ? <PreviewReadMoreIcon /> : null}
+      {interactive && readMoreHref && readMoreLabel && !isCompactNextLive ? (
+        <PreviewReadMoreIcon />
+      ) : null}
     </>
   );
 
@@ -216,16 +257,26 @@ export function AcademySessionListItem({
         className={cn(
           'min-w-0 rounded-xl',
           isNextLive
-            ? 'squircle w-full flex-col items-stretch gap-4 p-4 shadow-[inset_0_0_0_2px_var(--key-500)]'
+            ? cn(
+                'squircle w-full flex-col items-stretch shadow-[inset_0_0_0_2px_var(--key-500)]',
+                compact ? 'gap-3 p-3' : 'gap-4 p-4'
+              )
             : 'items-center gap-4'
         )}
       >
         {isNextLive && nextLiveLabel ? (
-          <p className="font-display text-foreground block text-base leading-none font-semibold">
+          <p
+            className={cn(
+              'font-display text-foreground block leading-none font-semibold',
+              compact ? 'text-sm' : 'text-base'
+            )}
+          >
             {nextLiveLabel}
           </p>
         ) : null}
-        {isNextLive ? (
+        {isCompactNextLive ? (
+          title
+        ) : isNextLive ? (
           <div className="flex w-full min-w-0 items-center gap-4">{rowContent}</div>
         ) : (
           rowContent
@@ -249,12 +300,14 @@ export function NextLiveSessionRow({
   locale,
   labels,
   showTypeChip = true,
+  compact = false,
 }: {
   event: AcademyUpcomingEvent;
   title: string;
   locale: Locale;
   labels: AcademyPreviewListLabels;
   showTypeChip?: boolean;
+  compact?: boolean;
 }) {
   return (
     <AcademySessionListItem
@@ -266,14 +319,23 @@ export function NextLiveSessionRow({
       newsQuestionsLabel={labels.newsQuestionsBadge}
       readMoreHref={upcomingEventHref(event)}
       readMoreLabel={title}
-      coverImage={resolveAcademyEventImage(locale, event)}
-      meta={formatAcademyCompactTime(event.liveAt, locale)}
-      showTypeChip={showTypeChip}
+      coverImage={compact ? undefined : resolveAcademyEventImage(locale, event)}
+      meta={compact ? undefined : formatAcademyCompactTime(event.liveAt, locale)}
+      showTypeChip={compact ? false : showTypeChip}
       nextLiveLabel={labels.nextLiveBadge}
+      compact={compact}
       title={
-        <p className="text-foreground w-full truncate text-base leading-tight font-medium">
-          {title}
-        </p>
+        compact ? (
+          <p className="text-foreground w-full truncate text-sm leading-tight font-medium">
+            {formatAcademyCompactDate(event.liveAt, locale)}
+            <span aria-hidden> · </span>
+            {title}
+          </p>
+        ) : (
+          <p className="text-foreground w-full truncate text-base leading-tight font-medium">
+            {title}
+          </p>
+        )
       }
     />
   );

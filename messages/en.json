@@ -12,7 +12,15 @@
     "home": "Home",
     "menu": "Menu",
     "close": "Close",
-    "logo": "Datenschutzpartner"
+    "logo": "Datenschutzpartner",
+    "faq": "FAQ",
+    "faqShort": "FAQ",
+    "edit": "Edit",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Saved",
+    "delete": "Delete"
   },
   "meta": {
     "defaultTitle": "Datenschutzpartner — Privacy Policy Generator",
@@ -24,7 +32,8 @@
     "about": "About Us",
     "contact": "Contact",
     "company": "Company",
-    "logIn": "Log In"
+    "logIn": "Log In",
+    "myAccount": "My Account"
   },
   "services": {
     "privacyGenerator": {
@@ -64,7 +73,7 @@
   "landing": {
     "heroTitleLine1": "Check your website for",
     "heroTitleHighlight": "privacy risks",
-    "heroSubtitle": "We scan your website and generate a compliant privacy policy automatically.",
+    "heroSubtitle": "We scan your website and generate a legally reviewed privacy policy that fits your situation — automatically and in minutes.",
     "trustBusinesses": "2,400+",
     "trustBusinessesSub": "businesses trust us",
     "trustSwiss": "Legal expertise from Switzerland",
@@ -166,11 +175,18 @@
       "name": "First and last name",
       "company": "Company",
       "email": "Email address",
+      "subject": "Subject",
       "message": "Message",
       "namePlaceholder": "Jane Doe",
       "companyPlaceholder": "Example Ltd",
       "emailPlaceholder": "jane@example.com",
       "messagePlaceholder": "Your message to us …",
+      "subjects": {
+        "general-question": "General question",
+        "privacy-policy-generator": "Privacy policy generator",
+        "eu-representative": "EU representative",
+        "academy": "Datenschutzpartner Academy"
+      },
       "spamLabel": "Enter the result of the following calculation:",
       "spamAria": "Spam protection",
       "privacyNote": "When you contact us, we process your personal data. Read our <privacy>privacy policy</privacy>.",
@@ -233,6 +249,16 @@
     },
     "tabsNavigation": "Academy categories",
     "backToAcademy": "Back to Academy",
+    "membershipPromo": {
+      "titleAll": "Watch these sessions — and 100+ more",
+      "titleWebinars": "Watch this webinar — and 100+ more",
+      "titleNewsQuestions": "Watch this News & Questions session — and 100+ more",
+      "descriptionLead": "Get a Datenschutz Academy membership and get everything you need to implement Swiss FADP, the EU GDPR and the AI Act in practice.",
+      "descriptionBody": "It includes a growing library of 100+ past events and 50+ hours on demand, and a seat at every live webinar and every News & Questions session where you can ask your own questions.",
+      "cta": "Get membership",
+      "loginPrompt": "Already a member?",
+      "loginLink": "Log in"
+    },
     "pastSessions": {
       "metaTitle": "Past sessions — Datenschutzpartner Academy",
       "metaDescription": "Recordings and summaries of past Academy webinars and News & Questions sessions.",
@@ -269,7 +295,8 @@
       "heroTitle": "Datenschutz Academy",
       "heroHeadlineLine1": "Stay compliant.",
       "heroHeadlineLine2": "Stay ahead of the law.",
-      "heroSubtitle": "One membership for everything you need to implement Swiss FADP, the EU GDPR and the AI Act — live webinars, recordings, ready-to-use checklists and expert answers to your questions.",
+      "heroIntro": "The Datenschutz Academy is your practical learning platform for data protection and AI compliance.",
+      "heroSubtitle": "Learn how to implement the Swiss FADP, the EU GDPR and the AI Act with confidence through live webinars, expert Q&A sessions, recordings and ready-to-use templates.",
       "heroImageAlt": "Glowing light bulb on a staircase — a symbol of knowledge and learning",
       "overview": {
         "title": "Everything data protection, in one place",
@@ -289,7 +316,8 @@
           }
         }
       },
-      "joinCta": "Become a member",
+      "joinCta": "Get membership",
+      "seeMaterialsCta": "See materials",
       "stats": {
         "ariaLabel": "Academy at a glance",
         "webinars": {
@@ -312,9 +340,9 @@
       "previewSectionTitle": "What's happening in the Academy right now",
       "preview": {
         "sectionTitle": "What's happening in the Academy right now",
-        "comingUpTitle": "Coming up",
+        "comingUpTitle": "Upcoming",
         "comingUpEmpty": "No upcoming sessions.",
-        "nextLiveBadge": "Next live",
+        "nextLiveBadge": "Coming up",
         "webinarBadge": "Webinar",
         "newsQuestionsBadge": "N&Q",
         "newsQuestionsShortBadge": "N&Q",
@@ -328,7 +356,7 @@
         "browseLibrary": "Browse the full library"
       },
       "upcomingTitle": "Upcoming dates",
-      "membershipTitle": "Membership",
+      "membershipTitle": "Get membership",
       "membershipDescription": "Live webinars, News & Questions, recordings and templates — everything for your day-to-day privacy work.",
       "membershipPriceAmount": "349.00",
       "membershipPricePeriod": "/ 12 months",
@@ -345,24 +373,24 @@
         "legalSessions": "Access to all Legal Sessions recordings",
         "employeeDeclaration": "Generator for employee data protection declarations",
         "checklists": "Access to checklists and other documents",
-        "newsletterBonus": "Bonus: data protection newsletter",
-        "podcastBonus": "Bonus: «Datenschutz Plaudereien» podcast"
+        "newsletterBonus": "Data protection newsletter",
+        "podcastBonus": "«Datenschutz Plaudereien» podcast"
       },
       "faq": {
         "title": "Frequently Asked Questions",
         "intro": "Didn't find the answer to your question? Please <contact>contact us</contact>.",
         "categories": {
           "offer": {
-            "label": "Offer & events"
+            "label": "About Academy"
           },
           "access": {
-            "label": "Content & recordings"
+            "label": "Content"
           },
           "participation": {
-            "label": "Technology & participation"
+            "label": "Participation"
           },
           "membership": {
-            "label": "Membership & service"
+            "label": "Membership"
           }
         },
         "items": {
@@ -435,7 +463,9 @@
     "metaDescription": "Data protection representation in the EEA in accordance with Art. 27 GDPR by VGS Datenschutzpartner GmbH, based in Germany.",
     "eyebrow": "EU Data Protection Representative",
     "title": "Data protection representation in the European Union",
-    "heroSubtitle": "Not sure whether you need a data protection representative in the European Union (EU)? Our <questionnaire>questionnaire</questionnaire> will help you.",
+    "heroIntro": "Many companies, organizations and other controllers outside the European Economic Area (EEA) must implement the General Data Protection Regulation (GDPR). Among other things, this requires appointing an EU data protection representative in accordance with <article27>Article 27 of the GDPR</article27>.",
+    "heroQuestionnaireLead": "Check our questionnaire to find out whether you must appoint such an EU data protection representative under the GDPR.",
+    "questionnaireCta": "Check Questionnaire",
     "heroPanelTitle": "VGS Datenschutzpartner GmbH",
     "heroPanelSubtitle": "Your data protection representative in the EEA, based in Germany",
     "orderCta": "Order",
@@ -478,6 +508,8 @@
       "includedTitle": "Included in every plan",
       "selectPlan": "Select your plan",
       "perYear": "per year",
+      "includedLabel": "included inquiries",
+      "furtherInquiriesLabel": "per extra inquiry",
       "plans": {
         "budget": {
           "tabLabel": "Budget",
@@ -487,12 +519,14 @@
         "standard": {
           "tabLabel": "Standard",
           "showPerYear": true,
-          "note": "then CHF 79 per inquiry"
+          "includedCount": "1",
+          "furtherAmount": "79"
         },
         "premium": {
           "tabLabel": "Premium",
           "showPerYear": true,
-          "note": "then CHF 59 per inquiry"
+          "includedCount": "5",
+          "furtherAmount": "59"
         }
       }
     },
@@ -526,13 +560,13 @@
       "categoriesNavigation": "FAQ categories",
       "categories": {
         "gdprGeneral": {
-          "label": "European General Data Protection Regulation (GDPR) in general"
+          "label": "GDPR in general"
         },
         "gdprSwitzerland": {
-          "label": "Applicability of the General Data Protection Regulation in Switzerland"
+          "label": "Applicability in Switzerland"
         },
         "euRepresentation": {
-          "label": "Data protection representation in the European Union (EU)"
+          "label": "Data protection representation in the EU"
         }
       },
       "items": {
@@ -603,6 +637,55 @@
       }
     }
   },
+  "euRepQuestionnaire": {
+    "metaTitle": "Questionnaire — EU data protection representative",
+    "metaDescription": "Use our questionnaire to find out whether you must appoint an EU data protection representative under Art. 27 GDPR.",
+    "title": "EU data protection representation questionnaire",
+    "intro": "Answer the following questions one at a time. Based on your answers, we will show whether you are likely required to appoint an EU data protection representative.",
+    "yes": "Yes",
+    "no": "No",
+    "questions": {
+      "q1": {
+        "heading": "GDPR in general",
+        "title": "Is your seat or residence outside the European Economic Area (EEA), for example in Switzerland?",
+        "description": "Companies also include sole proprietors and entrepreneurs. Organizations also include cooperatives, foundations and associations. Private individuals who do not run a business may also fall under the GDPR. The European Economic Area (EEA) comprises all EU member states as well as the Principality of Liechtenstein, Iceland and Norway."
+      },
+      "q2": {
+        "heading": "Applicability in Switzerland",
+        "title": "Is your offering also directed at persons in Germany, the Principality of Liechtenstein or other EEA countries, including free offerings?",
+        "description": "Offering means all services and goods. It does not matter whether an offering is paid or free. The offering may include, for example, free e-books, newsletters or white papers for recipients in Germany and elsewhere in the EEA. Intent is sufficient — actual success of the offering is not decisive. Indicators include shipping to persons in the EEA, advertising aimed at persons in the EEA, use of EEA-related top-level domains (TLDs) such as .at, .de, .eu or .li, mention of customers in the EEA, or use of EEA-related languages and currencies."
+      },
+      "q3": {
+        "heading": "Representation in EU",
+        "title": "Do you monitor the behavior of people in Germany, the Principality of Liechtenstein and other EEA countries, for example by tracking app users or website visitors?",
+        "description": "Monitoring includes, among other things, tracking app users or website visitors from the EEA to trace internet activity, determine personal preferences or predict possible behavior. Examples include tracking for personalized advertising with Google Ads or reach measurement with Google Analytics. The use of cookies, fingerprinting or geolocation as well as conducting surveys may also constitute behavioral monitoring."
+      }
+    },
+    "outcomes": {
+      "eeaResident": {
+        "heading": "EU representative not needed",
+        "body": "We assume that you do not need to appoint an EU data protection representative under the General Data Protection Regulation (GDPR) because your seat or residence is in the European Economic Area (EEA)."
+      },
+      "repRequired": {
+        "heading": "EU representative needed",
+        "body": "We assume that you must appoint an EU data protection representative under the General Data Protection Regulation (GDPR).",
+        "offerLink": "Our offering",
+        "disclaimer": "Note: exceptionally, no EU data protection representative is required for processing of personal data that occurs only occasionally, does not involve large-scale processing of special categories of data, and, taking into account the nature, circumstances, scope and purposes of the processing, is not likely to result in a risk to the rights and freedoms of natural persons. We advise against relying on this exception."
+      },
+      "repNotRequired": {
+        "heading": "EU representative likely not needed",
+        "body": "You are probably not required to appoint an EU data protection representative under the General Data Protection Regulation (GDPR). You may still use our offering — for example because business partners and customers in the EEA require GDPR compliance or because you want to be on the safe side.",
+        "offerLink": "Our offering",
+        "advisory": "If you are uncertain, for example about whether you monitor the behavior of persons in the EEA after all, we will gladly connect you with a specialist for advice."
+      },
+      "newsletterLead": "With our newsletter we inform you at least once a month about news and data protection tips:"
+    },
+    "contactCta": "Contact us",
+    "back": "Back",
+    "restart": "Start questionnaire again",
+    "topBarBack": "Back",
+    "backToEuRep": "EU representative"
+  },
   "result": {
     "steps": {
       "scan": "Scan",
@@ -626,16 +709,191 @@
       "continueToSummary": "Review summary"
     }
   },
+  "generatorPage": {
+    "metaTitle": "Privacy Policy Generator — Datenschutzpartner",
+    "metaDescription": "Create a legally reviewed privacy policy for Switzerland — covering the Swiss FADP and EU GDPR, with 300+ third-party services built in.",
+    "eyebrow": "Privacy Policy Generator",
+    "title": "A compliant privacy policy — in minutes.",
+    "heroIntro": "Create a legally reviewed privacy policy that fits your situation in Switzerland — covering the new Swiss <fadp>FADP</fadp> and the EU <gdpr>GDPR</gdpr>, with 300+ third-party services already built in.",
+    "heroImageAlt": "Privacy policy generator preview",
+    "orderCta": "Start",
+    "faqNote": "Do you have questions? Our <faq>FAQ on the privacy policy generator</faq> will help you.",
+    "stats": {
+      "ariaLabel": "Privacy policy generator at a glance",
+      "legallyReviewed": {
+        "title": "Legally reviewed",
+        "description": "meets current legal requirements"
+      },
+      "frameworks": {
+        "title": "FADP & GDPR",
+        "description": "Swiss & EU law in one policy"
+      },
+      "flexibleUse": {
+        "title": "Flexible use",
+        "description": "update as often as you like"
+      },
+      "longTerm": {
+        "title": "Long-term security",
+        "description": "use your policy indefinitely"
+      }
+    },
+    "benefitsSection": {
+      "title": "Everything you need for a compliant policy",
+      "subtitle": "Data protection is essential for companies and individuals alike. Our privacy policy generator helps you create a policy that fits your website — reviewed by legal experts and kept up to date.",
+      "items": {
+        "legallyReviewed": {
+          "title": "Legally reviewed",
+          "description": "You can trust that your privacy policy complies with current legal requirements."
+        },
+        "comprehensive": {
+          "title": "Comprehensive",
+          "description": "Over 300 third-party services covered, accounting for the new Swiss FADP as well as the EU GDPR."
+        },
+        "flexibleUse": {
+          "title": "Flexible use",
+          "description": "With your subscription, update, supplement or recreate your privacy policy at any time, as often as you like."
+        },
+        "longTerm": {
+          "title": "Long-term security",
+          "description": "The generator is continuously updated and improved — and you can use your created policy indefinitely, even after your subscription expires."
+        }
+      }
+    },
+    "pricingSection": {
+      "selectPlan": "Select your plan",
+      "includedTitle": "Included in every plan",
+      "plans": {
+        "single": {
+          "tabLabel": "1 site"
+        },
+        "team": {
+          "tabLabel": "3 sites"
+        },
+        "agency": {
+          "tabLabel": "5 sites"
+        }
+      }
+    },
+    "plans": {
+      "single": {
+        "price": "89.00"
+      },
+      "team": {
+        "price": "199.00"
+      },
+      "agency": {
+        "price": "279.00"
+      }
+    },
+    "features": {
+      "services": "300+ services considered (analytics, infrastructure, e-commerce, newsletters, social media, advertising, etc.)",
+      "gdpr": "General Data Protection Regulation (GDPR, EU / EEA)",
+      "questions": "Targeted questions and helpful tips in the generator",
+      "html": "Privacy policies as HTML source code",
+      "fadp": "New Data Protection Act (FADP, Switzerland)",
+      "adjustments": "Adjustments and additions included",
+      "hosting": "Hosting of the privacy policies",
+      "pdf": "Privacy policies as PDF files"
+    },
+    "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> apply. Unless cancelled, the subscription is automatically renewed for 12 months. A single website is one domain with all its subdomains. <faq>FAQ on the privacy policy generator</faq> · Agency packages at attractive prices for web agencies."
+  },
   "scan": {
     "title": "Privacy Policy Generator",
-    "subtitle": "We scan your website and generate a compliant\nprivacy policy automatically.",
-    "urlLabel": "Website URL",
+    "subtitle": "We scan your website and generate a compliant privacy policy automatically. <faq>Read our FAQ</faq>",
     "urlPlaceholder": "e.g. mywebsite.com",
     "errorEmpty": "Please enter a URL.",
     "errorInvalid": "Please enter a valid URL.",
     "scanning": "Scanning…",
     "scanNow": "Scan now",
     "analysing": "Analysing — detecting trackers and services…"
+  },
+  "generatorFaq": {
+    "metaTitle": "FAQ — Privacy Policy Generator — Datenschutzpartner",
+    "metaDescription": "Frequently asked questions about the privacy policy generator, subscriptions, and support.",
+    "title": "FAQ on the privacy policy generator",
+    "introLead": "Our privacy policy generator helps you create a privacy policy tailored to your website. The answers below explain how generated policies may be used and how the generator works.",
+    "introSupport": "If your question is not listed here, please contact our <support>support team</support>.",
+    "back": "Back",
+    "categories": {
+      "contentAndUse": {
+        "label": "Content and use of generated privacy policies"
+      },
+      "usingGenerator": {
+        "label": "Using the privacy policy generator"
+      },
+      "subscription": {
+        "label": "Subscription and payment"
+      },
+      "support": {
+        "label": "Advice and support"
+      }
+    },
+    "items": {
+      "q1": {
+        "question": "May I publish the generated privacy policy on my website?",
+        "answer": "Yes. The generated privacy policy is intended to be published on your website and linked from your cookie banner, footer, or legal notice where appropriate."
+      },
+      "q2": {
+        "question": "Do I need to adapt the privacy policy?",
+        "answer": "You should review the generated text carefully and adjust it where your actual processing activities differ from the questionnaire answers or scan results."
+      },
+      "q3": {
+        "question": "Does the privacy policy also cover social media profiles?",
+        "answer": "The generator focuses on your website. Separate privacy information may be required for social media pages or third-party platforms."
+      },
+      "q4": {
+        "question": "What happens when my website changes?",
+        "answer": "If you add new tools, trackers, or data processing activities, you should update your privacy policy accordingly and regenerate or revise it."
+      },
+      "q5": {
+        "question": "Can I use the privacy policy in multiple languages?",
+        "answer": "You can create and maintain separate language versions. Make sure each version accurately reflects the same processing activities."
+      },
+      "q6": {
+        "question": "Who is responsible for the content of the privacy policy?",
+        "answer": "You remain responsible as the controller. The generator provides a draft based on your inputs; it does not replace legal advice."
+      },
+      "q7": {
+        "question": "How does the website scan work?",
+        "answer": "We analyse publicly accessible elements of your website to detect common tools, embeds, trackers, and services that should be reflected in your privacy policy."
+      },
+      "q8": {
+        "question": "What data is processed during the scan?",
+        "answer": "The scan uses the URL you provide and analyses publicly available website content. No visitor data from your website is collected for the scan itself."
+      },
+      "q9": {
+        "question": "Do I have to answer questions that do not apply to me?",
+        "answer": "Answer the questionnaire as accurately as possible. If a topic does not apply, select the option that best reflects your situation so the draft stays correct."
+      },
+      "q10": {
+        "question": "Can I use the generator more than once?",
+        "answer": "Yes. You can run a new scan and generate an updated privacy policy whenever your website or processing activities change."
+      },
+      "q11": {
+        "question": "How much does the privacy policy generator cost?",
+        "answer": "Pricing depends on the selected plan and any add-ons such as EU representation. The current prices are shown before checkout."
+      },
+      "q12": {
+        "question": "How can I pay?",
+        "answer": "Payment is handled securely during checkout. Available payment methods are shown on the order page."
+      },
+      "q13": {
+        "question": "Can I cancel my subscription?",
+        "answer": "Subscription terms and cancellation options depend on your plan. Please refer to our terms of service or contact support for details."
+      },
+      "q14": {
+        "question": "Will I receive help if I have questions?",
+        "answer": "Yes. Our support team can help with questions about using the generator and your generated documents."
+      },
+      "q15": {
+        "question": "Does Datenschutzpartner provide legal advice?",
+        "answer": "The generator produces a draft based on your inputs. Individual legal advice is available separately where needed."
+      },
+      "q16": {
+        "question": "How do I contact support?",
+        "answer": "Use our contact form or reach out via the support options listed on the website. We aim to respond as quickly as possible."
+      }
+    }
   },
   "newsletter": {
     "title": "Stay ahead of privacy law.",
@@ -665,9 +923,405 @@
       "pageTitle": "Terms of Service (GTC)"
     }
   },
+  "account": {
+    "metaTitle": "My Account — Datenschutzpartner",
+    "metaDescription": "Manage your membership, Academy content, documents, billing and account details.",
+    "title": "My Account",
+    "loading": "Loading your account …",
+    "error": "We couldn't load this section.",
+    "retry": "Try again",
+    "membershipStatus": {
+      "active": "Academy member",
+      "processing": "Processing",
+      "cancelled": "Cancelled",
+      "none": "No membership"
+    },
+    "status": {
+      "active": "Active",
+      "processing": "Processing",
+      "updateAvailable": "Update Available",
+      "cancelled": "Cancelled",
+      "upToDate": "Up to Date"
+    },
+    "nav": {
+      "dashboard": "Overview",
+      "generator": "Privacy Policy Generator",
+      "academy": "Datenschutz Academy",
+      "euRep": "EU Representative",
+      "accountDetails": "Account details",
+      "logout": "Log out",
+      "openMenu": "Open account menu"
+    },
+    "dashboard": {
+      "title": "Overview",
+      "loading": "Loading dashboard …",
+      "productsAriaLabel": "Your services",
+      "greeting": {
+        "morning": "Good morning, {name}. Here is where your services stand today.",
+        "afternoon": "Good day, {name}. Here is where your services stand today.",
+        "evening": "Good evening, {name}. Here is where your services stand today."
+      },
+      "products": {
+        "privacyGenerator": {
+          "title": "Privacy Policies",
+          "updatesBadge": "{count} to update"
+        },
+        "academy": {
+          "title": "Datenschutz Academy",
+          "active": "Active",
+          "membershipTitle": "Membership",
+          "daysLeft": "days left",
+          "comingUpTitle": "Coming up",
+          "renewsOn": "Renews on {date}",
+          "getMembership": "Get membership"
+        },
+        "euRep": {
+          "title": "EU Representative",
+          "inquiriesTitle": "Inquiries Available",
+          "inquiriesRemainingLabel": "{count, plural, one {inquiry available} other {inquiries available}}",
+          "inquiriesUsedOfTotal": "{used} of {total} used",
+          "subscriptionTitle": "Subscription",
+          "subscriptionPerYear": "/ year",
+          "renewsOn": "Renews on {date}",
+          "furtherInquiryNote": "per extra inquiry",
+          "addInquiry": "Add inquiry",
+          "discover": "Discover EU Representative"
+        }
+      },
+      "attention": {
+        "title": "Policies requiring updates",
+        "empty": "No policies require an update right now.",
+        "updateAvailableSince": "Update available since {date}",
+        "update": "Update"
+      },
+      "recentPayments": {
+        "title": "Recent payments",
+        "allInvoices": "All invoices",
+        "colInvoice": "Invoice",
+        "colService": "Service",
+        "colDate": "Date",
+        "colAmount": "Amount",
+        "downloadPdf": "PDF",
+        "downloadStarted": "Invoice download started.",
+        "services": {
+          "policy": "Policy Generator",
+          "academy": "Academy",
+          "euRep": "EU Representative"
+        }
+      },
+      "renewals": {
+        "title": "Upcoming renewals",
+        "totalNext12Months": "Total next 12 months",
+        "cardExpires": "Expires {month}/{year}"
+      },
+      "paymentMethods": {
+        "title": "Payment methods",
+        "manage": "Manage",
+        "usedBy": {
+          "academyAndPolicy": "Academy + Policy Generator",
+          "euRep": "EU Representative"
+        }
+      },
+      "questions": {
+        "title": "Questions",
+        "body": "Our team answers within one business day.",
+        "contactUs": "Contact us"
+      },
+      "footer": {
+        "exportData": "Export my data"
+      }
+    },
+    "generator": {
+      "title": "Privacy Policy Generator",
+      "tabsAriaLabel": "Privacy Policy Generator sections",
+      "tabs": {
+        "policies": "Policies",
+        "payments": "Payments"
+      }
+    },
+    "academy": {
+      "title": "Datenschutz Academy",
+      "tabsAriaLabel": "Datenschutz Academy sections",
+      "tabs": {
+        "sessions": "Sessions",
+        "membership": "Membership"
+      },
+      "upcomingTitle": "Upcoming",
+      "nextLive": "Coming up",
+      "recordingsTitle": "Past",
+      "fullLibrary": "Full library",
+      "timeFilterLabel": "Filter by time",
+      "typeFilterLabel": "Filter by session type",
+      "typeAll": "All sessions",
+      "typeWebinar": "Webinars",
+      "typeNewsQuestions": "News & Questions",
+      "emptyUpcoming": "No upcoming sessions scheduled.",
+      "emptyRecordings": "No recordings available yet.",
+      "searchLabel": "Search sessions",
+      "searchPlaceholder": "Search sessions…",
+      "emptySearch": "No sessions match your search.",
+      "join": "Join",
+      "watch": "Watch"
+    },
+    "euRep": {
+      "title": "EU Representative",
+      "tabsAriaLabel": "EU Representative sections",
+      "tabs": {
+        "inquiries": "Inquiries",
+        "subscription": "Subscription"
+      },
+      "inquiries": {
+        "comingSoonTitle": "Inquiry tracking is coming soon",
+        "comingSoonBody": "Inquiries forwarded on your behalf as EU representative will appear here. This area is still under construction."
+      }
+    },
+    "documents": {
+      "title": "Documents",
+      "colName": "Document",
+      "colCreated": "Created",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "retrieve": "Retrieve",
+      "update": "Update",
+      "create": "New Policy",
+      "empty": "You haven't generated any documents yet.",
+      "emptyCta": "Create your first document",
+      "statusFilterLabel": "Filter by status",
+      "statusAll": "All policies",
+      "statusUpToDate": "Up to Date",
+      "statusUpdateAvailable": "Update Available",
+      "searchLabel": "Search policies",
+      "searchPlaceholder": "Search policies…",
+      "emptySearch": "No policies match your search.",
+      "emptyFiltered": "No policies match this filter.",
+      "listTitle": "Generated Policies",
+      "countTitle": "Generated Policies",
+      "countUnit": "{count, plural, one {policy} other {policies}}",
+      "countUpToDate": "{count} up to date",
+      "countUpdateAvailable": "{count} to update"
+    },
+    "academyMembership": {
+      "planTitle": "Annual membership",
+      "paidOn": "Paid on {date}",
+      "perYear": "/ year",
+      "vatNote": "incl. 8.1% VAT ({amount})",
+      "sectionPayment": "Payment",
+      "sectionRenewal": "Automatic renewal",
+      "renewalReminder": "We will remind you by email 30 days before renewal.",
+      "readMore": "Read more",
+      "downloadInvoice": "Download invoice",
+      "invoiceDownloadStarted": "Invoice download started.",
+      "includesTitle": "What your membership includes",
+      "groups": {
+        "live": "Live sessions",
+        "recordings": "Recordings library",
+        "tools": "Tools & documents",
+        "bonus": "Bonus content"
+      },
+      "billingHistory": "Billing history",
+      "colInvoice": "Invoice",
+      "colAmount": "Amount",
+      "colActions": "Actions",
+      "cancelTitle": "Cancel membership",
+      "cancelBody": "Cancelling takes effect at the end of your paid term ({date}). You keep full access until then, and no further payments will be charged. No reason or notice period required.",
+      "cancelCta": "Cancel membership",
+      "keepSubscription": "Keep",
+      "cancelConfirm": "Cancel Subscription",
+      "paymentMethodEyebrow": "Payment method",
+      "renewalPaymentNote": "This card will be used for renewal on {date}.",
+      "cardExpires": "Expires {month}/{year}",
+      "paymentMethodLabel": "Payment method",
+      "change": "Change",
+      "billingDetailsEyebrow": "Billing details",
+      "edit": "Edit",
+      "questionsTitle": "Questions?",
+      "questionsBody": "If you have any questions on your membership, our team will answer within one business day.",
+      "contactUs": "Contact us"
+    },
+    "generatorPlan": {
+      "title": "Sites Available",
+      "remainingLabel": "{count, plural, one {site available} other {sites available}}",
+      "usedOfTotal": "{used} of {total} used",
+      "buyMore": "Buy more sites",
+      "billingHistory": "Billing history",
+      "colInvoice": "Invoice",
+      "colDate": "Date",
+      "colSites": "Sites",
+      "colAmount": "Amount",
+      "colActions": "Actions",
+      "vatNote": "incl. 8.1% VAT ({amount})",
+      "billingDetailsEyebrow": "Billing details",
+      "change": "Change",
+      "questionsTitle": "Questions?",
+      "questionsBody": "If you have any questions on your plan, our team will answer within one business day.",
+      "contactUs": "Contact us",
+      "paymentsEmpty": "No payments yet.",
+      "downloadInvoice": "Download invoice",
+      "invoiceDownloadStarted": "Invoice download started."
+    },
+    "billingSelection": {
+      "paymentTitle": "Choose payment method",
+      "addressTitle": "Choose billing address",
+      "paymentEmpty": "No saved payment methods yet.",
+      "addressEmpty": "No saved billing addresses yet.",
+      "cardExpires": "Expires {month}/{year}",
+      "manageLink": "Manage payment details",
+      "confirm": "Use selected",
+      "saved": "Billing details updated."
+    },
+    "subscriptionPanel": {
+      "detailTitle": "Subscription detail",
+      "startDate": "Start date",
+      "lastOrder": "Last order",
+      "nextPayment": "Next payment",
+      "paymentMethod": "Payment method",
+      "changePaymentMethod": "Change",
+      "editBillingAddress": "Edit",
+      "cancel": "Cancel subscription",
+      "cancelConfirmTitle": "Cancel subscription?",
+      "cancelConfirmBody": "Your membership stays active until the end of the current period. Are you sure?",
+      "cancelConfirm": "Cancel subscription",
+      "keep": "Keep subscription",
+      "cancelled": "Subscription cancelled.",
+      "totalsTitle": "Totals",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "total": "Total",
+      "relatedOrders": "Related orders",
+      "billingAddress": "Billing address",
+      "empty": "You have no active subscription for this product.",
+      "planTermsTitle": "Plan includes",
+      "includedInquiries": "Included inquiries",
+      "includedInquiriesValue": "{count, plural, one {# inquiry / year} other {# inquiries / year}}",
+      "extraInquiryPrice": "Extra inquiries",
+      "orderKindSubscription": "Annual subscription",
+      "orderKindExtraInquiry": "Extra inquiry (beyond plan)"
+    },
+    "orders": {
+      "title": "Orders",
+      "colNumber": "Order",
+      "colDate": "Date",
+      "colReference": "Type",
+      "colSites": "Sites",
+      "colStatus": "Status",
+      "colTotal": "Total",
+      "colActions": "Actions",
+      "downloadInvoice": "Download invoice",
+      "invoiceDownloadStarted": "Invoice download started.",
+      "empty": "You have no orders yet.",
+      "siteCount": "{count, plural, one {# site} other {# sites}}",
+      "orderKindSubscription": "Annual subscription",
+      "orderKindExtraInquiry": "Extra inquiry",
+      "referenceEmpty": "—"
+    },
+    "accountDetails": {
+      "title": "Account details",
+      "tabsAriaLabel": "Account details sections",
+      "tabs": {
+        "profile": "Profile",
+        "paymentDetails": "Payment Details"
+      },
+      "profileTitle": "Profile",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "displayName": "Display name",
+      "email": "Email",
+      "password": "Password",
+      "editProfile": "Edit profile",
+      "editProfileTitle": "Edit profile",
+      "changePassword": "Change password",
+      "drawerCancel": "Cancel",
+      "drawerSave": "Save",
+      "dialogCancel": "Cancel",
+      "dialogSave": "Save",
+      "profileSaved": "Profile updated.",
+      "passwordTitle": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "savePassword": "Change password",
+      "passwordSaved": "Password changed.",
+      "passwordError": "Current password is incorrect.",
+      "aboutEyebrow": "About your account",
+      "aboutIntro": "Manage the personal details linked to your member area login:",
+      "aboutPersonalDetails": "Personal details",
+      "aboutPassword": "Password & security",
+      "questionsTitle": "Questions?",
+      "questionsBody": "If you need help with your account, our team will answer within one business day.",
+      "contactUs": "Contact us"
+    },
+    "paymentDetails": {
+      "paymentMethodsTitle": "Payment methods",
+      "addPaymentMethod": "New Method",
+      "paymentMethodsEmpty": "No saved payment methods yet. Add a card to use it for any of your subscriptions.",
+      "editPaymentMethod": "Edit payment method",
+      "deletePaymentMethod": "Delete payment method",
+      "cardExpires": "Expires {month}/{year}",
+      "addressesTitle": "Billing addresses",
+      "addAddress": "New Address",
+      "addressesEmpty": "No saved billing addresses yet. Add one to use it for any of your subscriptions.",
+      "editAddress": "Edit address",
+      "deleteAddress": "Delete address",
+      "aboutEyebrow": "About payment details",
+      "aboutIntro": "Cards and billing addresses you save here can be assigned separately to each subscription:",
+      "questionsTitle": "Questions?",
+      "questionsBody": "If you have any questions about billing, our team will answer within one business day.",
+      "contactUs": "Contact us",
+      "addAddressTitle": "Add billing address",
+      "editAddressTitle": "Edit billing address",
+      "addressLabelField": "Label (optional)",
+      "addressLabelPlaceholder": "e.g. Head office",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "company": "Company (optional)",
+      "line1": "Street address",
+      "line2": "Address line 2 (optional)",
+      "postalCode": "Postal code",
+      "city": "City",
+      "country": "Country",
+      "vatId": "VAT ID (optional)",
+      "drawerCancel": "Cancel",
+      "drawerSave": "Save",
+      "addressCreated": "Billing address added.",
+      "addressUpdated": "Billing address updated.",
+      "addressDeleted": "Billing address deleted.",
+      "addPaymentMethodTitle": "Add payment method",
+      "editPaymentMethodTitle": "Edit payment method",
+      "cardholderName": "Name on card",
+      "cardNumber": "Card number",
+      "cardNumberSegment": "Card number, part {part} of 4",
+      "cardCvv": "CVV",
+      "cardExpMonth": "Expiry month",
+      "cardExpYear": "Expiry year",
+      "paymentMethodCreated": "Payment method added.",
+      "paymentMethodUpdated": "Payment method updated.",
+      "paymentMethodDeleted": "Payment method deleted.",
+      "deleteAddressTitle": "Delete address?",
+      "deleteAddressBody": "This billing address will be removed. Subscriptions using it keep their last billed details until you assign a new address.",
+      "deleteAddressConfirm": "Delete address",
+      "deletePaymentMethodTitle": "Delete payment method?",
+      "deletePaymentMethodBody": "This card will be removed. Subscriptions using it keep their last billed details until you assign a new card.",
+      "deletePaymentMethodConfirm": "Delete payment method"
+    },
+    "logout": {
+      "confirmTitle": "Log out?",
+      "confirmBody": "You'll need to sign in again to access your account.",
+      "confirm": "Log out",
+      "cancel": "Stay signed in"
+    },
+    "nonMember": {
+      "title": "Become an Academy member",
+      "body": "Unlock live sessions, recordings and templates with an Academy membership.",
+      "cta": "View membership"
+    }
+  },
   "validation": {
     "required": "Required",
-    "email": "Invalid email address"
+    "email": "Invalid email address",
+    "passwordMin": "Password must be at least 8 characters",
+    "passwordMatch": "Passwords do not match",
+    "cardNumber": "Enter a valid card number",
+    "cvv": "Enter a valid security code"
   },
   "contacts": {
     "title": "Contacts",

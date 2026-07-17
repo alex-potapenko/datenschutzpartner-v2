@@ -35,11 +35,14 @@
   --foreground: #171717;
   --muted: #737373;
   --success: #16a34a;
-  --success-soft: color-mix(in srgb, var(--success) 14%, var(--background));
+  --success-50: #f0fdf4;
+  --success-soft: var(--success-50);
   --success-soft-foreground: var(--success);
   --warning: #d97706;
   --feature-purple: #7c3aed;
   --feature-red: #dc2626;
+  --feature-blue: #2563eb;
+  --feature-yellow: #ca8a04;
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.12);
 }
 

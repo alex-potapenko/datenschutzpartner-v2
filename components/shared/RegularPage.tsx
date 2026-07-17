@@ -11,9 +11,15 @@ interface RegularPageProps {
   /** Highlights the matching item in the top navigation. */
   activePath?: string;
   /** Fallback destination when there is no browser history (e.g. direct entry). */
-  backLink?: { href: string; label: string };
+  backLink?: { href: string; label: string; preferHref?: boolean };
   /** When false, the logo is hidden in the TopBar (e.g. on insight article pages). */
   showLogo?: boolean;
+  /** When true, the TopBar shows only the back link. */
+  minimal?: boolean;
+  /** Account area: wordmark reads "My Account", no site nav or auth button. */
+  topBarVariant?: 'default' | 'account';
+  /** When false, the site footer is omitted (e.g. focused flows like questionnaires). */
+  showFooter?: boolean;
   /**
    * When true the content area has no padding — useful when the page needs to render
    * full-bleed column layouts (e.g. a two-column contact layout with an inner border-r).
@@ -32,19 +38,28 @@ export function RegularPage({
   activePath,
   backLink,
   showLogo,
+  minimal,
+  topBarVariant,
+  showFooter = true,
   noPadding = false,
   children,
 }: RegularPageProps) {
   const contentClass = noPadding
-    ? ''
-    : `px-4 py-12 sm:px-8 sm:py-16 ${!header && !media ? 'pt-20' : ''}`;
+    ? 'flex flex-1 flex-col'
+    : `flex flex-1 flex-col px-4 py-12 sm:px-8 sm:py-16 ${!header && !media ? 'pt-20' : ''}`;
 
   return (
-    <>
-      <TopBar activePath={activePath} backLink={backLink} showLogo={showLogo} />
-      <main className="border-border border-b">
-        <Container>
-          <div className="border-border border-r border-l">
+    <div className="flex flex-1 flex-col">
+      <TopBar
+        activePath={activePath}
+        backLink={backLink}
+        showLogo={showLogo}
+        minimal={minimal}
+        variant={topBarVariant}
+      />
+      <main className="border-border flex flex-1 flex-col border-b">
+        <Container className="flex flex-1 flex-col">
+          <div className="border-border flex flex-1 flex-col border-r border-l">
             {media}
             {header && (
               <>
@@ -62,11 +77,11 @@ export function RegularPage({
                 />
               </>
             )}
-            {noPadding ? children : <div className={contentClass}>{children}</div>}
+            <div className={contentClass}>{children}</div>
           </div>
         </Container>
       </main>
-      <Footer />
-    </>
+      {showFooter ? <Footer /> : null}
+    </div>
   );
 }

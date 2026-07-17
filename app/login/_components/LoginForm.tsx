@@ -1,37 +1,23 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { z } from 'zod';
+import type { FieldErrors } from 'react-hook-form';
 import { ApiError } from '@/api/client';
 import { useLogin, type LoginInput } from '@/api/auth';
-import { Button, CaretRight, Eye, EyeSlash, Input } from '@/components/ui';
-import { z } from 'zod';
+import { setAuthToken } from '@/lib/auth-session';
+import { storeLoginCredential } from '@/lib/store-login-credential';
+import { showDangerToast } from '@/components/shared/dangerToast';
+import { NavigationLink } from '@/components/shared/NavigationLink';
+import { Button, Eye, EyeSlash, Input, InputGroup, Label } from '@/components/ui';
 
-function Field({
-  id,
-  label,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-foreground text-sm font-medium">
-        {label}
-      </label>
-      {children}
-      {error && <p className="text-danger mt-0.5 text-xs">{error}</p>}
-    </div>
-  );
+function firstValidationMessage(errors: FieldErrors<LoginInput>): string | undefined {
+  return errors.email?.message ?? errors.password?.message;
 }
 
 export function LoginForm() {
@@ -39,6 +25,7 @@ export function LoginForm() {
   const t = useTranslations('login');
   const tv = useTranslations('validation');
   const [showPassword, setShowPassword] = useState(false);
+  const [authFailed, setAuthFailed] = useState(false);
   const login = useLogin();
 
   const schema = useMemo(
@@ -54,22 +41,49 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setError,
-  } = useForm<LoginInput>({ resolver: zodResolver(schema) });
+  } = useForm<LoginInput>({
+    resolver: zodResolver(schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+  });
+
+  const emailInvalid = Boolean(errors.email) || authFailed;
+  const passwordInvalid = Boolean(errors.password) || authFailed;
+
+  const clearAuthFailed = () => {
+    if (authFailed) {
+      setAuthFailed(false);
+    }
+  };
+
+  const emailField = register('email', { onChange: clearAuthFailed });
+  const passwordField = register('password', { onChange: clearAuthFailed });
+
+  function onInvalid(fieldErrors: FieldErrors<LoginInput>) {
+    const message = firstValidationMessage(fieldErrors);
+    if (message) {
+      showDangerToast(message);
+    }
+  }
 
   async function onSubmit(values: LoginInput) {
+    setAuthFailed(false);
+
     try {
-      await login.mutateAsync(values);
+      const result = await login.mutateAsync(values);
+      setAuthToken(result.token);
+      await storeLoginCredential(values.email, values.password);
       toast.success(t('success'));
       startTransition(() => {
-        router.push('/');
+        router.push('/account');
       });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        setError('root', { message: t('errors.invalidCredentials') });
+        setAuthFailed(true);
+        showDangerToast(t('errors.invalidCredentials'));
         return;
       }
-      setError('root', { message: t('errors.generic') });
+      showDangerToast(t('errors.generic'));
     }
   }
 
@@ -79,62 +93,66 @@ export function LoginForm() {
         {t('title')}
       </h1>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-        <Field id="email" label={t('email')} error={errors.email?.message}>
+      <form
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        method="post"
+        action="/login"
+        autoComplete="on"
+        noValidate
+        className="flex flex-col gap-5"
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email" isInvalid={emailInvalid}>
+            {t('email')}
+          </Label>
           <Input
             id="email"
             variant="secondary"
             type="email"
-            autoComplete="email"
+            inputMode="email"
+            autoComplete="username"
+            spellCheck={false}
             placeholder={t('emailPlaceholder')}
-            aria-invalid={!!errors.email}
+            aria-invalid={emailInvalid}
             fullWidth
-            {...register('email')}
+            {...emailField}
           />
-        </Field>
-
-        <Field id="password" label={t('password')} error={errors.password?.message}>
-          <div className="relative">
-            <Input
-              id="password"
-              variant="secondary"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder={t('passwordPlaceholder')}
-              aria-invalid={!!errors.password}
-              fullWidth
-              className="pr-12"
-              {...register('password')}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setShowPassword((visible) => !visible);
-              }}
-              aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-              aria-pressed={showPassword}
-              className="text-muted hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 transition-colors"
-            >
-              {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-        </Field>
-
-        <div className="flex justify-end">
-          <Link
-            href="/login/forgot-password"
-            className="inline-flex w-fit items-center gap-1 text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-            style={{ color: 'var(--accent)' }}
-          >
-            {t('forgotPassword')} <CaretRight size={16} />
-          </Link>
         </div>
 
-        {errors.root?.message && (
-          <p className="text-danger text-sm" role="alert">
-            {errors.root.message}
-          </p>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="password" isInvalid={passwordInvalid}>
+            {t('password')}
+          </Label>
+          <InputGroup variant="secondary" fullWidth data-invalid={passwordInvalid || undefined}>
+            <InputGroup.Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              spellCheck={false}
+              placeholder={t('passwordPlaceholder')}
+              aria-invalid={passwordInvalid}
+              className="pr-2"
+              {...passwordField}
+            />
+            <InputGroup.Suffix className="pe-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPassword((visible) => !visible);
+                }}
+                aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                aria-pressed={showPassword}
+                className="text-muted hover:text-foreground rounded-md p-1 transition-colors"
+              >
+                {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+              </button>
+            </InputGroup.Suffix>
+          </InputGroup>
+        </div>
+
+        <div className="flex justify-end">
+          <NavigationLink href="/login/forgot-password">{t('forgotPassword')}</NavigationLink>
+        </div>
 
         <Button type="submit" variant="primary" size="lg" fullWidth isDisabled={isSubmitting}>
           {t('submit')}

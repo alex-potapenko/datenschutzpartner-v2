@@ -18,9 +18,8 @@ export {
   type RawInsightArticle,
 } from './types';
 
-function slugFromImage(image: string): string {
-  const match = image.match(/seed\/([^/]+)/);
-  return match?.[1] ?? 'article';
+function slugFromImage(): string {
+  return 'article';
 }
 
 function liveScheduleForTab(tab: InsightsTab): Record<string, string> | undefined {
@@ -35,7 +34,7 @@ function liveScheduleForTab(tab: InsightsTab): Record<string, string> | undefine
 
 function normalizeArticle(raw: RawInsightArticle, tab: InsightsTab): InsightArticle {
   const { slug: rawSlug, ...rest } = raw;
-  const slug = rawSlug ?? slugFromImage(raw.image);
+  const slug = rawSlug ?? slugFromImage();
   const liveAt = liveScheduleForTab(tab)?.[slug];
 
   return {

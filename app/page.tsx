@@ -1,21 +1,22 @@
 import {
-  Lock,
   Crosshair,
   Cookie,
   ChartBar,
   EnvelopeSimple,
   Cloud,
-  Users,
-  ShieldCheck,
   GlobeHemisphereEast,
   GraduationCap,
   Bell,
   CreditCard,
   MapPin,
   Camera,
+  Lock,
+  ShieldCheck,
+  Users,
 } from '@/components/ui';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { TopBar } from '@/components/shared/TopBar';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import { Footer } from '@/components/shared/Footer';
 import { ScanForm } from '@/components/shared/ScanForm';
 import { Container } from '@/components/shared/Container';
@@ -98,10 +99,10 @@ export default async function LandingPage() {
   };
 
   return (
-    <>
+    <div className="flex flex-1 flex-col">
       <TopBar />
 
-      <main>
+      <main className="flex flex-1 flex-col">
         <section className="border-border bg-background border-b">
           <Container>
             <div className="border-border grid items-start border-r border-l lg:grid-cols-2">
@@ -123,9 +124,12 @@ export default async function LandingPage() {
                     </span>
                     .
                   </h1>
-                  <p className="text-foreground max-w-md text-base leading-relaxed sm:text-lg">
-                    {t('heroSubtitle')}
-                  </p>
+                  <div className="text-foreground flex max-w-md flex-col gap-4 text-base leading-relaxed sm:text-lg">
+                    <p>{t('heroSubtitle')}</p>
+                    <NavigationLink href="/scan" chevronWeight="bold" className="font-medium">
+                      {t('learnMore')}
+                    </NavigationLink>
+                  </div>
                 </div>
 
                 <div className="relative z-10 px-4 sm:px-8 lg:-mx-9 lg:px-0 lg:pl-2">
@@ -192,6 +196,6 @@ export default async function LandingPage() {
 
       <NewsletterSection />
       <Footer />
-    </>
+    </div>
   );
 }

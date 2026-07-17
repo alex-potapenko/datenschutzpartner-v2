@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { CaretRight } from '@/components/ui';
 import { Container } from './Container';
+import { NavigationLink } from './NavigationLink';
 
 export async function AboutSection() {
   const t = await getTranslations('aboutSection');
@@ -16,13 +15,7 @@ export async function AboutSection() {
             </h2>
             <p className="text-foreground text-base leading-relaxed">{t('body')}</p>
             <div>
-              <Link
-                href="/about"
-                className="inline-flex shrink-0 items-center gap-1 text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-                style={{ color: 'var(--accent)' }}
-              >
-                {t('learnMore')} <CaretRight size={16} />
-              </Link>
+              <NavigationLink href="/about">{t('learnMore')}</NavigationLink>
             </div>
           </div>
 

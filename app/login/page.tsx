@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { CaretLeft } from '@/components/ui';
 import { Logo } from '@/components/shared/Logo';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import { LoginForm } from './_components/LoginForm';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -25,17 +25,12 @@ export default async function LoginPage() {
           aria-label={tc('home')}
           className="mb-8 self-center text-[var(--accent)] transition-opacity hover:opacity-80"
         >
-          <Logo height={28} />
+          <Logo inverse={false} />
         </Link>
         <LoginForm />
-        <Link
-          href="/"
-          className="inline-flex w-fit items-center gap-1 self-center text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-          style={{ color: 'var(--accent)' }}
-        >
-          <CaretLeft size={16} aria-hidden />
+        <NavigationLink href="/" chevron="left" className="self-center">
           {tc('backHome')}
-        </Link>
+        </NavigationLink>
       </div>
     </main>
   );

@@ -82,13 +82,21 @@ export function EuRepBenefitsPanel({
     tabLabel: tp(`plans.${id}.tabLabel`),
     showPerYear: tp.raw(`plans.${id}.showPerYear`) === true,
     note: tp.has(`plans.${id}.note`) ? tp(`plans.${id}.note`) : undefined,
+    inquiryAllowance: tp.has(`plans.${id}.includedCount`)
+      ? {
+          includedCount: tp(`plans.${id}.includedCount`),
+          includedLabel: tp('includedLabel'),
+          furtherAmount: tp(`plans.${id}.furtherAmount`),
+          furtherLabel: tp('furtherInquiriesLabel'),
+        }
+      : undefined,
     price: t(`plans.${id}.price`),
   }));
 
   return (
     <section id={onChoose ? undefined : 'plans'} className={onChoose ? undefined : 'scroll-mt-24'}>
       <div className="grid grid-cols-1 items-stretch lg:grid-cols-2">
-        <div className="flex h-full flex-col">
+        <div id="what-you-get" className="flex h-full scroll-mt-24 flex-col">
           <div className="flex flex-col gap-3 p-4 sm:p-8">
             <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
               {tb('title')}

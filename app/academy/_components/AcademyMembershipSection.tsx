@@ -1,18 +1,15 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { CaretRight, CheckCircle } from '@/components/ui';
+import { CaretRight } from '@/components/ui';
+import { AcademyMembershipIncludesList } from '@/components/shared/AcademyMembershipIncludesList';
 import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 import { PriceBlock } from '@/components/shared/PriceBlock';
-import { ACADEMY_MEMBERSHIP_FEATURE_KEYS } from '@/lib/academy-content/events';
 
 export async function AcademyMembershipCard() {
   const t = await getTranslations('academy.landing');
 
   return (
-    <div
-      id="membership"
-      className="border-border relative flex min-h-full scroll-mt-8 items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:border-l lg:px-16 lg:py-12"
-    >
+    <div className="border-border relative flex min-h-full items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:border-l lg:px-16 lg:py-12">
       <HeroGlowOrbs />
 
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-4">
@@ -29,20 +26,7 @@ export async function AcademyMembershipCard() {
               {t('membershipTitle')}
             </h2>
 
-            <ul className="flex flex-col gap-2.5">
-              {ACADEMY_MEMBERSHIP_FEATURE_KEYS.map((key) => (
-                <li key={key} className="text-foreground flex items-start gap-2.5 text-sm">
-                  <CheckCircle
-                    size={16}
-                    weight="fill"
-                    className="mt-0.5 shrink-0"
-                    style={{ color: '#22c55e' }}
-                    aria-hidden
-                  />
-                  {t(`features.${key}`)}
-                </li>
-              ))}
-            </ul>
+            <AcademyMembershipIncludesList featureLabel={(key) => t(`features.${key}`)} />
 
             <div className="flex flex-col gap-6">
               <div className="border-border border-t pt-6">

@@ -58,7 +58,7 @@ function AcademyPanelContent() {
           <Tabs.List aria-label={t('tabsNavigation')} className="!w-auto max-w-full !border-b-0">
             {ACADEMY_TAB_IDS.map((tab) => (
               <Tabs.Tab key={tab} id={tab} className="!h-auto !w-auto shrink-0 pb-4">
-                <span className="font-display inline-flex items-center gap-2">
+                <span className="inline-flex items-center gap-2 text-base font-medium">
                   {TAB_ICONS[tab]}
                   {t(`tabs.${tab}`)}
                 </span>

@@ -1,9 +1,12 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { EuRepBenefitsPanel } from '@/app/eu-rep/_components/EuRepBenefitsPanel';
+import { EuRepHeroContent } from '@/app/eu-rep/_components/EuRepHeroContent';
 import { EuRepStatsRowPanel } from '@/app/eu-rep/_components/EuRepStatsRowPanel';
-import { StepHeader } from '../ui/StepHeader';
+import { buildResultReturnTo } from '@/app/result/wizard-state';
 import { StepFooter } from '../ui/StepFooter';
 import { Container } from '@/components/shared/Container';
 
@@ -15,24 +18,21 @@ interface EuRepStepProps {
 
 export function EuRepStep({ onSelect, onSkip, onBack }: EuRepStepProps) {
   const t = useTranslations('result.euRepStep');
+  const searchParams = useSearchParams();
+  const questionnaireReturnTo = useMemo(
+    () => buildResultReturnTo(searchParams, 'eu-rep'),
+    [searchParams]
+  );
 
   return (
     <>
-      <StepHeader
-        title={t('title')}
-        description={t.rich('description', {
-          art27: (chunks) => (
-            <a
-              href="https://gdpr-info.eu/art-27-gdpr/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline"
-            >
-              {chunks}
-            </a>
-          ),
-        })}
-      />
+      <div className="border-border border-b">
+        <Container>
+          <div className="border-border border-r border-l">
+            <EuRepHeroContent showImage={false} questionnaireReturnTo={questionnaireReturnTo} />
+          </div>
+        </Container>
+      </div>
 
       <div className="flex flex-1 flex-col">
         <Container>

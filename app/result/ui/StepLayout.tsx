@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -19,6 +20,7 @@ import { X, Check } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import { Logo } from '@/components/shared/Logo';
+import { buildResultReturnTo, type WizardStep } from '@/app/result/wizard-state';
 
 interface StepDef {
   id: string;
@@ -28,7 +30,6 @@ interface StepDef {
 interface StepLayoutProps {
   step: string;
   domain: string;
-  includeEuRep?: boolean;
   children: ReactNode;
   canGoBack?: boolean;
   onBack?: () => void;
@@ -36,20 +37,16 @@ interface StepLayoutProps {
   visitedSteps?: Set<string>;
 }
 
-export function StepLayout({
-  step,
-  domain,
-  includeEuRep,
-  children,
-  onStepClick,
-  visitedSteps,
-}: StepLayoutProps) {
+export function StepLayout({ step, domain, children, onStepClick, visitedSteps }: StepLayoutProps) {
   const t = useTranslations('result.steps');
+  const tCommon = useTranslations('common');
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const steps: StepDef[] = [
     { id: 'scan', label: t('scan') },
     { id: 'improved', label: t('questionnaire') },
-    ...(includeEuRep ? [{ id: 'eu-rep', label: t('euRep') }] : []),
+    { id: 'eu-rep', label: t('euRep') },
     { id: 'summary', label: t('summary') },
   ];
 
@@ -62,16 +59,28 @@ export function StepLayout({
   const modal = useOverlayState();
 
   return (
-    <div className="bg-background flex min-h-screen flex-col">
+    <div className="bg-background flex min-h-dvh flex-1 flex-col">
       {/* Top bar */}
       <div className="shrink-0 text-white" style={{ background: 'var(--accent)' }}>
         <Container>
           <div className="flex items-stretch border-r border-l border-white/20">
-            <div className="flex w-1/2 items-center px-4 py-4 sm:px-8 sm:py-5">
-              <Logo height={22} />
+            <div className="flex w-1/2 min-w-0 items-center px-4 py-4 sm:px-8 sm:py-5">
+              <Logo markClassName="size-[22px]" />
             </div>
             <div className="flex w-1/2 items-center justify-end gap-2 px-4 py-4 sm:gap-3 sm:px-8 sm:py-5">
               <LocaleSwitcher />
+              <Button
+                variant="outline"
+                size="md"
+                className="gap-2 border-white/20 text-white hover:bg-white/10"
+                onPress={() => {
+                  const returnTo = buildResultReturnTo(searchParams, step as WizardStep);
+                  router.push(`/scan/faq?returnTo=${encodeURIComponent(returnTo)}`);
+                }}
+              >
+                <span className="hidden sm:inline">{tCommon('faq')}</span>
+                <span className="sm:hidden">{tCommon('faqShort')}</span>
+              </Button>
               <Button
                 variant="outline"
                 size="md"

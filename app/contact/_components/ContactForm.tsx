@@ -2,25 +2,18 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
-import { Button, Input, TextArea } from '@/components/ui';
-
-function makeSpamChallenge() {
-  const a = Math.floor(Math.random() * 9) + 1;
-  const b = Math.floor(Math.random() * 9) + 1;
-  return { a, b, answer: a + b };
-}
-
-type FormValues = {
-  name: string;
-  company?: string;
-  email: string;
-  message: string;
-  spam: string;
-};
+import {
+  CONTACT_SUBJECTS,
+  contactSubjectSchema,
+  useCreateContactMessage,
+  type ContactSpamChallenge,
+  type ContactSubject,
+} from '@/api/contact-messages';
+import { Button, Input, ListBox, Select, TextArea } from '@/components/ui';
 
 function Field({
   id,
@@ -36,7 +29,7 @@ function Field({
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={id} className="text-foreground text-sm font-medium">
+        <label id={`${id}-label`} htmlFor={id} className="text-foreground text-sm font-medium">
           {label}
         </label>
       )}
@@ -46,10 +39,27 @@ function Field({
   );
 }
 
-export function ContactForm() {
+interface ContactFormProps {
+  defaultSubject?: ContactSubject;
+  spamChallenge: ContactSpamChallenge;
+}
+
+type FormValues = {
+  name: string;
+  company?: string;
+  email: string;
+  subject: ContactSubject;
+  message: string;
+  spam: string;
+};
+
+export function ContactForm({
+  defaultSubject = 'general-question',
+  spamChallenge,
+}: ContactFormProps) {
   const t = useTranslations('contact.form');
   const [sent, setSent] = useState(false);
-  const challenge = useMemo(() => makeSpamChallenge(), []);
+  const createMessage = useCreateContactMessage();
 
   const schema = useMemo(
     () =>
@@ -57,28 +67,37 @@ export function ContactForm() {
         name: z.string().min(1, t('errors.nameRequired')),
         company: z.string().optional(),
         email: z.email(t('errors.emailInvalid')),
+        subject: contactSubjectSchema,
         message: z.string().min(1, t('errors.messageRequired')),
         spam: z
           .string()
           .min(1, t('errors.spamRequired'))
-          .refine((v) => parseInt(v, 10) === challenge.answer, t('errors.spamIncorrect')),
+          .refine((v) => parseInt(v, 10) === spamChallenge.answer, t('errors.spamIncorrect')),
       }),
-    [challenge.answer, t]
+    [spamChallenge.answer, t]
   );
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      subject: defaultSubject,
+    },
+  });
 
-  async function onSubmit() {
-    await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        setSent(true);
-        resolve();
-      }, 800);
+  async function onSubmit(values: FormValues) {
+    await createMessage.mutateAsync({
+      name: values.name,
+      company: values.company,
+      email: values.email,
+      subject: values.subject,
+      message: values.message,
     });
+    setSent(true);
   }
 
   if (sent) {
@@ -129,6 +148,44 @@ export function ContactForm() {
         />
       </Field>
 
+      <Field id="subject" label={t('subject')} error={errors.subject?.message}>
+        <Controller
+          name="subject"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onChange={(key) => {
+                if (typeof key === 'string') {
+                  field.onChange(key);
+                }
+              }}
+              variant="secondary"
+              fullWidth
+              aria-labelledby="subject-label"
+            >
+              <Select.Trigger id="subject" aria-invalid={!!errors.subject}>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {CONTACT_SUBJECTS.map((subjectId) => (
+                    <ListBox.Item
+                      key={subjectId}
+                      id={subjectId}
+                      textValue={t(`subjects.${subjectId}`)}
+                    >
+                      {t(`subjects.${subjectId}`)}
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+          )}
+        />
+      </Field>
+
       <Field id="message" label={t('message')} error={errors.message?.message}>
         <TextArea
           id="message"
@@ -146,7 +203,7 @@ export function ContactForm() {
           <p className="text-foreground">
             {t('spamLabel')}{' '}
             <strong className="text-foreground">
-              {challenge.a} + {challenge.b}
+              {spamChallenge.a} + {spamChallenge.b}
             </strong>
           </p>
           <Input
@@ -173,10 +230,10 @@ export function ContactForm() {
         <Button
           type="submit"
           variant="primary"
-          isDisabled={isSubmitting}
+          isDisabled={isSubmitting || createMessage.isPending}
           style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
         >
-          {isSubmitting ? t('submitting') : t('submit')}
+          {isSubmitting || createMessage.isPending ? t('submitting') : t('submit')}
         </Button>
       </div>
     </form>

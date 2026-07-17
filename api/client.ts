@@ -1,4 +1,5 @@
 import { env } from '@/env';
+import { getAuthToken } from '@/lib/auth-session';
 
 export class ApiError extends Error {
   constructor(
@@ -22,6 +23,11 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  const token = getAuthToken();
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const res = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, { ...init, headers });

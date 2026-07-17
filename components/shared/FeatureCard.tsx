@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { type ReactNode } from 'react';
-import { CaretRight } from '@/components/ui';
+import { NavigationLink } from './NavigationLink';
 
 interface FeatureCardProps {
   icon: ReactNode;
@@ -34,12 +34,12 @@ export function FeatureCard({
         </h3>
         <p className="text-foreground text-base leading-relaxed">{description}</p>
       </div>
-      <span
-        className="inline-flex w-fit items-center gap-1 text-base font-normal transition-colors group-hover:text-[var(--link-hover)]"
-        style={{ color: 'var(--accent)' }}
+      <NavigationLink
+        as="span"
+        className="group-hover:text-[var(--link-hover)] group-hover:decoration-[var(--link-underline)]"
       >
-        {linkLabel} <CaretRight size={16} />
-      </span>
+        {linkLabel}
+      </NavigationLink>
     </Link>
   );
 }

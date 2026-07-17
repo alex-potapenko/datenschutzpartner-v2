@@ -6,7 +6,7 @@ import { AcademyPreviewSection } from './AcademyPreviewSection';
 export function AcademyLanding() {
   return (
     <>
-      <section className="border-border border-b">
+      <section id="membership" className="border-border scroll-mt-24 border-b">
         <div className="grid grid-cols-1 items-stretch lg:grid-cols-2">
           <AcademyOverviewSection />
           <AcademyMembershipCard />

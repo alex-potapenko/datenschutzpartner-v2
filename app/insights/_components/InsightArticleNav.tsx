@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { CaretLeft, CaretRight } from '@/components/ui';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import type { InsightArticle } from '@/lib/insights-content';
 
 type InsightArticleNavProps = {
   previous?: InsightArticle;
   next?: InsightArticle;
 };
+
+const NAV_LINK_CLASS =
+  'group-hover:text-[var(--link-hover)] group-hover:decoration-[var(--link-underline)]';
 
 function NavCard({
   article,
@@ -24,17 +27,15 @@ function NavCard({
   return (
     <Link
       href={`/insights/${article.slug}`}
+      aria-label={`${label}: ${article.title}`}
       className={[
         'group flex flex-col gap-2 p-4 transition-shadow hover:shadow-[var(--shadow-card)] sm:p-8',
-        isNext ? 'sm:items-end sm:text-right' : '',
         className ?? '',
       ].join(' ')}
     >
-      <span className="text-muted flex items-center gap-2 text-xs">
-        {!isNext && <CaretLeft size={14} weight="bold" aria-hidden />}
+      <NavigationLink as="span" chevron={isNext ? 'right' : 'left'} className={NAV_LINK_CLASS}>
         {label}
-        {isNext && <CaretRight size={14} weight="bold" aria-hidden />}
-      </span>
+      </NavigationLink>
       <h3 className="text-foreground text-lg leading-snug font-semibold transition-colors group-hover:text-[var(--accent)]">
         {article.title}
       </h3>

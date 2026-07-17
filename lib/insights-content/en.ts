@@ -1,8 +1,9 @@
 import type { RawInsightArticle } from './types';
 import { PODCAST_ARTICLES_EN } from './podcasts';
+import { insightCoverImage } from './images';
 
 function img(slug: string) {
-  return `https://picsum.photos/seed/${slug}/800/500`;
+  return insightCoverImage(slug);
 }
 
 export const INSIGHTS_CONTENT: Record<

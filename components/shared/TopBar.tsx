@@ -13,8 +13,10 @@ import {
   GraduationCap,
   List,
   SignIn,
+  UserCircle,
   X,
 } from '@/components/ui';
+import { useSession } from '@/api/auth';
 import {
   Button,
   DropdownRoot,
@@ -187,15 +189,31 @@ function TopBarNav({
 interface TopBarProps {
   activePath?: string;
   /** Fallback destination when there is no browser history (e.g. direct entry). */
-  backLink?: { href: string; label: string };
+  backLink?: { href: string; label: string; preferHref?: boolean };
   showLogo?: boolean;
+  /** When true, only the back link is shown — no logo, nav, locale switcher, or actions. */
+  minimal?: boolean;
+  /** Account area: wordmark reads "My Account", no site nav or auth button. */
+  variant?: 'default' | 'account';
 }
 
-export function TopBar({ activePath, backLink, showLogo = true }: TopBarProps) {
+export function TopBar({
+  activePath,
+  backLink,
+  showLogo = true,
+  minimal = false,
+  variant = 'default',
+}: TopBarProps) {
   const router = useRouter();
   const t = useTranslations('nav');
   const ts = useTranslations('services');
   const tc = useTranslations('common');
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email);
+  const isAccount = variant === 'account';
+  const authHref = isAuthenticated ? '/account' : '/login';
+  const authLabel = isAuthenticated ? t('myAccount') : t('logIn');
+  const AuthIcon = isAuthenticated ? UserCircle : SignIn;
   const [hidden, setHidden] = useState(false);
   const mobileMenu = useOverlayState();
 
@@ -237,208 +255,277 @@ export function TopBar({ activePath, backLink, showLogo = true }: TopBarProps) {
       }}
     >
       <Container>
-        <div className="grid grid-cols-[1fr_auto] items-center border-r border-l border-white/20 px-4 py-5 sm:px-8 lg:grid-cols-[1fr_auto_1fr] lg:px-8">
-          <div className="flex min-w-0 items-center gap-4 justify-self-start">
-            {backLink && (
-              <HistoryBackLink
-                fallbackHref={backLink.href}
-                label={backLink.label}
-                className="font-display inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-white/75 transition-colors hover:text-white"
-              >
-                <CaretLeft size={14} weight="bold" />
-                <span className="hidden sm:inline">{backLink.label}</span>
-              </HistoryBackLink>
-            )}
-            {showLogo && (
-              <Link href="/" aria-label={tc('home')} className="shrink-0 text-white">
-                <Logo height={28} />
+        {minimal ? (
+          <div className="flex items-center border-r border-l border-white/20 px-4 py-5 sm:px-8 lg:px-8">
+            <div className="flex items-center gap-4">
+              <Link href="/" aria-label={tc('home')} className="flex min-w-0 shrink items-center">
+                <Logo showText={false} />
               </Link>
-            )}
+              {backLink ? (
+                <Button
+                  variant="outline"
+                  size="md"
+                  className={`${barOutlineButtonClass} gap-2`}
+                  aria-label={backLink.label}
+                  onPress={() => {
+                    if (!backLink.preferHref && window.history.length > 1) {
+                      router.back();
+                      return;
+                    }
+
+                    router.push(backLink.href);
+                  }}
+                >
+                  <CaretLeft size={16} weight="bold" />
+                  {backLink.label}
+                </Button>
+              ) : null}
+            </div>
           </div>
+        ) : isAccount ? (
+          <div className="flex items-stretch border-r border-l border-white/20">
+            <div className="flex shrink-0 items-center border-r border-white/20 px-4 py-5 sm:px-8 lg:w-[280px]">
+              {showLogo ? (
+                <Link href="/" aria-label={tc('home')} className="flex min-w-0 shrink items-center">
+                  <Logo />
+                </Link>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-5 sm:px-8">
+              <span className="font-display text-sm font-medium tracking-tight text-white lowercase">
+                {t('myAccount')}
+              </span>
+              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                <LocaleSwitcher className="shrink-0" />
+                <Button
+                  variant="outline"
+                  size="md"
+                  className={`${barOutlineButtonClass} gap-2`}
+                  aria-label={tc('close')}
+                  onPress={() => {
+                    if (window.history.length > 1) {
+                      router.back();
+                      return;
+                    }
 
-          <TopBarNav
-            activePath={activePath}
-            className="hidden items-center gap-5 justify-self-center lg:flex"
-          />
+                    router.push('/');
+                  }}
+                >
+                  <X size={16} weight="bold" />
+                  {tc('close')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-[1fr_auto] items-center border-r border-l border-white/20 px-4 py-5 sm:px-8 lg:grid-cols-[1fr_auto_1fr] lg:px-8">
+            <div className="flex min-w-0 items-center gap-4 justify-self-start">
+              {backLink && (
+                <HistoryBackLink
+                  fallbackHref={backLink.href}
+                  label={backLink.label}
+                  className="font-display inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-white/75 transition-colors hover:text-white"
+                >
+                  <CaretLeft size={14} weight="bold" />
+                  <span className="hidden sm:inline">{backLink.label}</span>
+                </HistoryBackLink>
+              )}
+              {showLogo && (
+                <Link href="/" aria-label={tc('home')} className="flex min-w-0 shrink items-center">
+                  <Logo />
+                </Link>
+              )}
+            </div>
 
-          <div className="col-start-2 flex min-w-0 shrink-0 items-center gap-2 justify-self-end sm:gap-3 lg:col-start-3">
             <TopBarNav
               activePath={activePath}
-              className="hidden min-w-0 items-center gap-5 overflow-x-auto min-[840px]:flex lg:hidden"
-              pagesMode="responsive"
+              className="hidden items-center gap-5 justify-self-center lg:flex"
             />
-            <div
-              aria-hidden
-              className="hidden h-5 w-px shrink-0 bg-white/20 min-[840px]:block lg:hidden"
-            />
-            <LocaleSwitcher className="hidden shrink-0 sm:inline-flex" />
-            <Button
-              variant="outline"
-              size="md"
-              className={`${barOutlineButtonClass} hidden gap-2 sm:inline-flex`}
-              onPress={() => {
-                startTransition(() => {
-                  router.push('/login');
-                });
-              }}
-            >
-              <SignIn size={16} weight="bold" />
-              {t('logIn')}
-            </Button>
-            <Button
-              variant="outline"
-              size="md"
-              isIconOnly
-              aria-label={tc('menu')}
-              className={`${barOutlineButtonClass} hidden max-[479px]:inline-flex min-[840px]:hidden lg:hidden`}
-              onPress={() => {
-                mobileMenu.open();
-              }}
-            >
-              <List size={16} weight="bold" />
-            </Button>
-            <Button
-              variant="outline"
-              size="md"
-              className={`${barOutlineButtonClass} hidden gap-2 min-[480px]:inline-flex min-[840px]:hidden lg:hidden`}
-              onPress={() => {
-                mobileMenu.open();
-              }}
-            >
-              <List size={16} weight="bold" />
-              {tc('menu')}
-            </Button>
+
+            <div className="col-start-2 flex min-w-0 shrink-0 items-center gap-2 justify-self-end sm:gap-3 lg:col-start-3">
+              <TopBarNav
+                activePath={activePath}
+                className="hidden min-w-0 items-center gap-5 overflow-x-auto min-[840px]:flex lg:hidden"
+                pagesMode="responsive"
+              />
+              <div
+                aria-hidden
+                className="hidden h-5 w-px shrink-0 bg-white/20 min-[840px]:block lg:hidden"
+              />
+              <LocaleSwitcher className="hidden shrink-0 sm:inline-flex" />
+              <Button
+                variant="outline"
+                size="md"
+                className={`${barOutlineButtonClass} hidden gap-2 sm:inline-flex`}
+                onPress={() => {
+                  startTransition(() => {
+                    router.push(authHref);
+                  });
+                }}
+              >
+                <AuthIcon size={16} weight="bold" />
+                {authLabel}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                isIconOnly
+                aria-label={tc('menu')}
+                className={`${barOutlineButtonClass} hidden max-[479px]:inline-flex min-[840px]:hidden lg:hidden`}
+                onPress={() => {
+                  mobileMenu.open();
+                }}
+              >
+                <List size={16} weight="bold" />
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                className={`${barOutlineButtonClass} hidden gap-2 min-[480px]:inline-flex min-[840px]:hidden lg:hidden`}
+                onPress={() => {
+                  mobileMenu.open();
+                }}
+              >
+                <List size={16} weight="bold" />
+                {tc('menu')}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </Container>
 
-      <DrawerRoot state={mobileMenu}>
-        <DrawerBackdrop isDismissable>
-          <DrawerContent placement="right" className="max-[839px]:!justify-stretch">
-            <DrawerDialog className="bg-background text-foreground flex h-full flex-col gap-0 overflow-hidden p-0 shadow-none max-[839px]:w-full max-[839px]:max-w-full">
-              <DrawerHeader
-                className="shrink-0 gap-0 border-0 p-0 text-white"
-                style={{ backgroundColor: 'var(--accent)' }}
-              >
-                <Container>
-                  <div className="grid grid-cols-[1fr_auto] items-center border-r border-l border-white/20 px-4 py-5 sm:px-8">
-                    <Link
-                      href="/"
-                      aria-label={tc('home')}
-                      className="shrink-0 text-white"
-                      onClick={() => {
-                        mobileMenu.close();
-                      }}
-                    >
-                      <Logo height={28} />
-                    </Link>
-
-                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                      <Button
-                        variant="outline"
-                        size="md"
-                        isIconOnly
-                        aria-label={tc('close')}
-                        className={barOutlineButtonClass}
-                        onPress={() => {
+      {!minimal && !isAccount ? (
+        <DrawerRoot state={mobileMenu}>
+          <DrawerBackdrop isDismissable>
+            <DrawerContent placement="right" className="max-[839px]:!justify-stretch">
+              <DrawerDialog className="bg-background text-foreground flex h-full flex-col gap-0 overflow-hidden p-0 shadow-none max-[839px]:w-full max-[839px]:max-w-full">
+                <DrawerHeader
+                  className="shrink-0 gap-0 border-0 p-0 text-white"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  <Container>
+                    <div className="grid grid-cols-[1fr_auto] items-center border-r border-l border-white/20 px-4 py-5 sm:px-8">
+                      <Link
+                        href="/"
+                        aria-label={tc('home')}
+                        className="flex min-w-0 shrink items-center"
+                        onClick={() => {
                           mobileMenu.close();
                         }}
                       >
-                        <X size={16} weight="bold" />
-                      </Button>
-                    </div>
-                  </div>
-                </Container>
-                <div aria-hidden className="h-px w-full bg-white/20" />
-              </DrawerHeader>
+                        <Logo />
+                      </Link>
 
-              <DrawerBody className="bg-background !m-0 !mt-0 flex min-h-0 flex-1 flex-col !p-0">
-                <Container className="flex min-h-0 flex-1 flex-col">
-                  <div className="border-border flex min-h-0 flex-1 flex-col overflow-y-auto border-r border-l">
-                    <div className="flex flex-col gap-4 py-4">
-                      <p className="font-display text-foreground px-4 text-sm font-medium">
-                        {t('services')}
-                      </p>
-                      {SERVICE_IDS.map(({ id, key, icon }) => (
-                        <Link
-                          key={id}
-                          href={id}
-                          onClick={() => {
+                      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                        <Button
+                          variant="outline"
+                          size="md"
+                          isIconOnly
+                          aria-label={tc('close')}
+                          className={barOutlineButtonClass}
+                          onPress={() => {
                             mobileMenu.close();
                           }}
-                          className={`hover:bg-surface flex items-center justify-between gap-3 ${drawerMenuItemClass}`}
                         >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div
-                              className="flex size-9 shrink-0 items-center justify-center rounded-full"
-                              style={{ background: 'rgba(47,84,134,0.08)', color: 'var(--accent)' }}
-                            >
-                              {icon}
-                            </div>
-                            <div>
-                              <p className="text-foreground text-sm font-semibold">
-                                {ts(`${key}.label`)}
-                              </p>
-                              <p className="text-muted mt-0.5 text-xs">
-                                {ts(`${key}.description`)}
-                              </p>
-                            </div>
-                          </div>
-                          <CaretRight size={14} className="shrink-0" />
-                        </Link>
-                      ))}
+                          <X size={16} weight="bold" />
+                        </Button>
+                      </div>
                     </div>
+                  </Container>
+                  <div aria-hidden className="h-px w-full bg-white/20" />
+                </DrawerHeader>
 
-                    <div className="border-border flex flex-col border-t">
-                      {NAV_LINKS.map(({ key, href }) => {
-                        const isActive = activePath === href;
-                        return (
+                <DrawerBody className="bg-background !m-0 !mt-0 flex min-h-0 flex-1 flex-col !p-0">
+                  <Container className="flex min-h-0 flex-1 flex-col">
+                    <div className="border-border flex min-h-0 flex-1 flex-col overflow-y-auto border-r border-l">
+                      <div className="flex flex-col gap-4 py-4">
+                        <p className="font-display text-foreground px-4 text-sm font-medium">
+                          {t('services')}
+                        </p>
+                        {SERVICE_IDS.map(({ id, key, icon }) => (
                           <Link
-                            key={key}
-                            href={href}
+                            key={id}
+                            href={id}
                             onClick={() => {
                               mobileMenu.close();
                             }}
-                            className={[
-                              'font-display border-border flex items-center justify-between border-b p-4 text-sm font-medium transition-colors',
-                              isActive ? 'text-foreground' : 'text-accent hover:bg-surface',
-                            ].join(' ')}
+                            className={`hover:bg-surface flex items-center justify-between gap-3 ${drawerMenuItemClass}`}
                           >
-                            <span>{t(key)}</span>
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full"
+                                style={{
+                                  background: 'rgba(47,84,134,0.08)',
+                                  color: 'var(--accent)',
+                                }}
+                              >
+                                {icon}
+                              </div>
+                              <div>
+                                <p className="text-foreground text-sm font-semibold">
+                                  {ts(`${key}.label`)}
+                                </p>
+                                <p className="text-muted mt-0.5 text-xs">
+                                  {ts(`${key}.description`)}
+                                </p>
+                              </div>
+                            </div>
                             <CaretRight size={14} className="shrink-0" />
                           </Link>
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      <div className="border-border flex flex-col border-t">
+                        {NAV_LINKS.map(({ key, href }) => {
+                          const isActive = activePath === href;
+                          return (
+                            <Link
+                              key={key}
+                              href={href}
+                              onClick={() => {
+                                mobileMenu.close();
+                              }}
+                              className={[
+                                'font-display border-border flex items-center justify-between border-b p-4 text-sm font-medium transition-colors',
+                                isActive ? 'text-foreground' : 'text-accent hover:bg-surface',
+                              ].join(' ')}
+                            >
+                              <span>{t(key)}</span>
+                              <CaretRight size={14} className="shrink-0" />
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </Container>
+                  </Container>
 
-                <div aria-hidden className="bg-border h-px w-full shrink-0" />
+                  <div aria-hidden className="bg-border h-px w-full shrink-0" />
 
-                <Container className="shrink-0">
-                  <div className="border-border flex items-center justify-between gap-2 border-r border-l px-4 py-5 sm:gap-3 sm:px-8">
-                    <LocaleSwitcher className="text-foreground/75 hover:bg-surface hover:text-foreground shrink-0" />
-                    <Button
-                      variant="outline"
-                      size="md"
-                      className="gap-2"
-                      onPress={() => {
-                        mobileMenu.close();
-                        startTransition(() => {
-                          router.push('/login');
-                        });
-                      }}
-                    >
-                      <SignIn size={16} weight="bold" />
-                      {t('logIn')}
-                    </Button>
-                  </div>
-                </Container>
-              </DrawerBody>
-            </DrawerDialog>
-          </DrawerContent>
-        </DrawerBackdrop>
-      </DrawerRoot>
+                  <Container className="shrink-0">
+                    <div className="border-border flex items-center justify-between gap-2 border-r border-l px-4 py-5 sm:gap-3 sm:px-8">
+                      <LocaleSwitcher className="text-foreground/75 hover:bg-surface hover:text-foreground shrink-0" />
+                      <Button
+                        variant="outline"
+                        size="md"
+                        className="gap-2"
+                        onPress={() => {
+                          mobileMenu.close();
+                          startTransition(() => {
+                            router.push(authHref);
+                          });
+                        }}
+                      >
+                        <AuthIcon size={16} weight="bold" />
+                        {authLabel}
+                      </Button>
+                    </div>
+                  </Container>
+                </DrawerBody>
+              </DrawerDialog>
+            </DrawerContent>
+          </DrawerBackdrop>
+        </DrawerRoot>
+      ) : null}
     </header>
   );
 }

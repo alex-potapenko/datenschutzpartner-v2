@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { LegalMarkdown } from '@/components/shared/LegalMarkdown';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import { RegularPage } from '@/components/shared/RegularPage';
 import { InsightArticleHero } from '../_components/InsightArticleHero';
+import { InsightArticleMembershipBanner } from '../_components/InsightArticleMembershipBanner';
 import { InsightArticleMetaBar } from '../_components/InsightArticleMetaBar';
 import { InsightArticleNav } from '../_components/InsightArticleNav';
 import { PodigeePlayer } from '../_components/PodigeePlayer';
@@ -78,19 +80,14 @@ export default async function InsightArticlePage({ params }: PageProps) {
         <div className={INSIGHT_ARTICLE_CONTENT_CLASS}>
           {article.externalUrl && !article.podigeeEmbedUrl && (
             <p className="mb-8">
-              <a
-                href={article.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-                style={{ color: 'var(--accent)' }}
-              >
-                {t('listenToEpisode')}
-              </a>
+              <NavigationLink href={article.externalUrl}>{t('listenToEpisode')}</NavigationLink>
             </p>
           )}
           <LegalMarkdown source={body} />
           {article.podigeeEmbedUrl && <PodigeePlayer configurationUrl={article.podigeeEmbedUrl} />}
+          {(article.tab === 'webinars' || article.tab === 'newsQuestions') && (
+            <InsightArticleMembershipBanner tab={article.tab} />
+          )}
         </div>
       </div>
       <InsightArticleNav previous={previous} next={next} />

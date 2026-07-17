@@ -12,7 +12,15 @@
     "home": "Startseite",
     "menu": "Menü",
     "close": "Schliessen",
-    "logo": "Datenschutzpartner"
+    "logo": "Datenschutzpartner",
+    "faq": "FAQ",
+    "faqShort": "FAQ",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "saved": "Gespeichert",
+    "delete": "Löschen"
   },
   "meta": {
     "defaultTitle": "Datenschutzpartner — Datenschutz-Generator",
@@ -24,7 +32,8 @@
     "about": "Über uns",
     "contact": "Kontakt",
     "company": "Unternehmen",
-    "logIn": "Anmelden"
+    "logIn": "Anmelden",
+    "myAccount": "Mein Konto"
   },
   "services": {
     "privacyGenerator": {
@@ -64,7 +73,7 @@
   "landing": {
     "heroTitleLine1": "Prüfe Deine Website",
     "heroTitleHighlight": "auf Datenschutzrisiken",
-    "heroSubtitle": "Wir scannen Deine Website und erstellen automatisch eine konforme Datenschutzerklärung.",
+    "heroSubtitle": "Wir scannen Deine Website und erstellen automatisch eine rechtlich geprüfte Datenschutzerklärung, die zu Deiner Situation passt — in Minuten.",
     "trustBusinesses": "2'400+",
     "trustBusinessesSub": "Unternehmen vertrauen uns",
     "trustSwiss": "Rechtsexpertise aus der Schweiz",
@@ -166,11 +175,18 @@
       "name": "Vorname und Name",
       "company": "Firma",
       "email": "E-Mail-Adresse",
+      "subject": "Betreff",
       "message": "Mitteilung",
       "namePlaceholder": "Maria Muster",
       "companyPlaceholder": "Muster AG",
       "emailPlaceholder": "maria@muster.ch",
       "messagePlaceholder": "Deine Nachricht an uns …",
+      "subjects": {
+        "general-question": "Allgemeine Frage",
+        "privacy-policy-generator": "Datenschutz-Generator",
+        "eu-representative": "EU-Vertreter",
+        "academy": "Datenschutzpartner Academy"
+      },
       "spamLabel": "Trage das Ergebnis folgender Rechnung ein:",
       "spamAria": "Spamschutz",
       "privacyNote": "Wenn Du mit uns Kontakt aufnimmst, bearbeiten wir Deine Personendaten. Lies unsere <privacy>Datenschutzerklärung</privacy>.",
@@ -233,6 +249,16 @@
     },
     "tabsNavigation": "Academy-Kategorien",
     "backToAcademy": "Zur Academy",
+    "membershipPromo": {
+      "titleAll": "Diese Sessions ansehen — und 100+ weitere",
+      "titleWebinars": "Dieses Webinar ansehen — und 100+ weitere",
+      "titleNewsQuestions": "Diese News & Questions-Session ansehen — und 100+ weitere",
+      "descriptionLead": "Hol Dir eine Datenschutz-Academy-Mitgliedschaft und erhalte alles, was Du brauchst, um Schweizer DSG, EU-DSGVO und AI Act in der Praxis umzusetzen.",
+      "descriptionBody": "Dazu gehören ein wachsendes Archiv mit 100+ vergangenen Veranstaltungen und 50+ Stunden on demand sowie ein Platz bei jedem Live-Webinar und jeder «News & Questions»-Session, an der Du Deine eigenen Fragen stellen kannst.",
+      "cta": "Mitgliedschaft holen",
+      "loginPrompt": "Bereits Mitglied?",
+      "loginLink": "Anmelden"
+    },
     "pastSessions": {
       "metaTitle": "Vergangene Sessions — Datenschutzpartner Academy",
       "metaDescription": "Aufzeichnungen und Zusammenfassungen vergangener Academy-Webinare und News & Questions.",
@@ -269,7 +295,8 @@
       "heroTitle": "Datenschutz-Academy",
       "heroHeadlineLine1": "Bleib compliant.",
       "heroHeadlineLine2": "Bleib dem Recht voraus.",
-      "heroSubtitle": "Eine Mitgliedschaft für alles, was Du brauchst, um Schweizer DSG, EU-DSGVO und AI Act umzusetzen — Live-Webinare, Aufzeichnungen, einsatzfertige Checklisten und Expertenantworten auf Deine Fragen.",
+      "heroIntro": "Die Datenschutz Academy ist Deine praxisnahe Lernplattform für Datenschutz und KI-Compliance.",
+      "heroSubtitle": "Lerne, wie Du Schweizer DSG, EU-DSGVO und AI Act sicher umsetzt — mit Live-Webinaren, «News & Questions»-Sessions, Aufzeichnungen und einsatzfertigen Vorlagen.",
       "heroImageAlt": "Leuchtende Glühbirne auf einer Treppe — Symbol für Wissen und Weiterbildung",
       "overview": {
         "title": "Alles rund um Datenschutz an einem Ort",
@@ -289,7 +316,8 @@
           }
         }
       },
-      "joinCta": "Jetzt Mitglied werden",
+      "joinCta": "Mitgliedschaft holen",
+      "seeMaterialsCta": "Materialien ansehen",
       "stats": {
         "ariaLabel": "Academy in Zahlen",
         "webinars": {
@@ -312,9 +340,9 @@
       "previewSectionTitle": "Das passiert gerade in der Academy",
       "preview": {
         "sectionTitle": "Das passiert gerade in der Academy",
-        "comingUpTitle": "Demnächst",
+        "comingUpTitle": "Bevorstehend",
         "comingUpEmpty": "Keine kommenden Sessions.",
-        "nextLiveBadge": "Nächste Live-Session",
+        "nextLiveBadge": "Demnächst",
         "webinarBadge": "Webinar",
         "newsQuestionsBadge": "N&Q",
         "newsQuestionsShortBadge": "N&Q",
@@ -328,7 +356,7 @@
         "browseLibrary": "Gesamtes Archiv ansehen"
       },
       "upcomingTitle": "Nächste Termine",
-      "membershipTitle": "Mitgliedschaft",
+      "membershipTitle": "Mitgliedschaft holen",
       "membershipDescription": "Live-Webinare, News & Questions, Aufzeichnungen und Vorlagen — alles für Deinen Datenschutz-Alltag.",
       "membershipPriceAmount": "349.00",
       "membershipPricePeriod": "/ 12 Monate",
@@ -345,24 +373,24 @@
         "legalSessions": "Zugriff auf alle Aufzeichnungen von Legal Sessions",
         "employeeDeclaration": "Generator für Mitarbeiter-Datenschutzerklärungen",
         "checklists": "Zugriff auf Checklisten und sonstige Unterlagen",
-        "newsletterBonus": "Bonus: Newsletter um Datenschutz",
-        "podcastBonus": "Bonus: «Datenschutz Plaudereien»-Podcast"
+        "newsletterBonus": "Newsletter um Datenschutz",
+        "podcastBonus": "«Datenschutz Plaudereien»-Podcast"
       },
       "faq": {
         "title": "Häufig gestellte Fragen",
         "intro": "Hast Du Deine Frage nicht gefunden? Bitte <contact>kontaktiere uns</contact>.",
         "categories": {
           "offer": {
-            "label": "Angebot & Veranstaltungen"
+            "label": "Zur Academy"
           },
           "access": {
-            "label": "Inhalte & Aufzeichnungen"
+            "label": "Inhalte"
           },
           "participation": {
-            "label": "Technik & Teilnahme"
+            "label": "Teilnahme"
           },
           "membership": {
-            "label": "Mitgliedschaft & Service"
+            "label": "Mitgliedschaft"
           }
         },
         "items": {
@@ -435,7 +463,9 @@
     "metaDescription": "Datenschutz-Vertretung im EWR gemäss Art. 27 DSGVO durch die VGS Datenschutzpartner GmbH mit Sitz in Deutschland.",
     "eyebrow": "EU-Datenschutz-Vertretung",
     "title": "Datenschutz-Vertretung in der Europäischen Union",
-    "heroSubtitle": "Sind Sie nicht sicher, ob Sie eine Datenschutz-Vertretung in der Europäischen Union (EU) benötigen? Unser <questionnaire>Fragebogen</questionnaire> hilft Ihnen weiter!",
+    "heroIntro": "Viele Unternehmen, Organisationen und sonstige Verantwortliche ausserhalb des Europäischen Wirtschaftsraumes (EWR) müssen die Datenschutz-Grundverordnung (DSGVO) umsetzen. In der Folge muss unter anderem eine EU-Datenschutz-Vertretung gemäss <article27>Artikel 27 der DSGVO</article27> benannt werden.",
+    "heroQuestionnaireLead": "Mit unserem Fragebogen können Sie herausfinden, ob Sie aufgrund der DSGVO eine solche EU-Datenschutz-Vertretung benennen müssen.",
+    "questionnaireCta": "Zum Fragebogen",
     "heroPanelTitle": "VGS Datenschutzpartner GmbH",
     "heroPanelSubtitle": "Ihre Datenschutz-Vertretung im EWR mit Sitz in Deutschland",
     "orderCta": "Bestellen",
@@ -478,6 +508,8 @@
       "includedTitle": "In jedem Plan enthalten",
       "selectPlan": "Wählen Sie Ihren Plan",
       "perYear": "pro Jahr",
+      "includedLabel": "Anfragen inbegriffen",
+      "furtherInquiriesLabel": "pro zusätzliche Anfrage",
       "plans": {
         "budget": {
           "tabLabel": "Budget",
@@ -487,12 +519,14 @@
         "standard": {
           "tabLabel": "Standard",
           "showPerYear": true,
-          "note": "danach CHF 79 pro Anfrage"
+          "includedCount": "1",
+          "furtherAmount": "79"
         },
         "premium": {
           "tabLabel": "Premium",
           "showPerYear": true,
-          "note": "danach CHF 59 pro Anfrage"
+          "includedCount": "5",
+          "furtherAmount": "59"
         }
       }
     },
@@ -603,6 +637,55 @@
       }
     }
   },
+  "euRepQuestionnaire": {
+    "metaTitle": "Fragebogen — EU-Datenschutz-Vertretung",
+    "metaDescription": "Prüfen Sie mit unserem Fragebogen, ob Sie eine EU-Datenschutz-Vertretung gemäss Art. 27 DSGVO benennen müssen.",
+    "title": "Fragebogen zur EU-Datenschutz-Vertretung",
+    "intro": "Beantworten Sie die folgenden Fragen nacheinander. Anhand Ihrer Antworten zeigen wir Ihnen, ob Sie voraussichtlich eine EU-Datenschutz-Vertretung benennen müssen.",
+    "yes": "Ja",
+    "no": "Nein",
+    "questions": {
+      "q1": {
+        "heading": "DSGVO allgemein",
+        "title": "Haben Sie Ihren Sitz oder Wohnsitz ausserhalb des Europäischen Wirtschaftsraumes (EWR), zum Beispiel in der Schweiz?",
+        "description": "Unternehmen umfassen auch einzelne Selbständige und Unternehmerinnen. Organisationen umfassen auch Genossenschaften, Stiftungen und Vereine. Auch Privatpersonen, die kein Unternehmen betreiben, können unter die DSGVO fallen. Der Europäische Wirtschaftsraum (EWR) umfasst alle EU-Mitgliedstaaten sowie das Fürstentum Liechtenstein, Island und Norwegen."
+      },
+      "q2": {
+        "heading": "Anwendbarkeit in der Schweiz",
+        "title": "Richtet sich Ihr Angebot auch an Personen in Deutschland, im Fürstentum Liechtenstein oder in anderen Staaten im EWR, allenfalls auch kostenlos?",
+        "description": "Angebot meint sämtliche Dienstleistungen und Waren. Es spielt keine Rolle, ob ein Angebot kostenpflichtig oder kostenlos erfolgt. Das Angebot kann zum Beispiel kostenlose E-Books, Newsletter oder Whitepaper für Empfänger in Deutschland und anderswo im EWR umfassen. Die Absicht genügt, das heisst, es kommt nicht auf den Angebotserfolg an. Indizien sind beispielsweise der Versand an Personen im EWR, Werbung mit Ausrichtung auf Personen im EWR, die Nutzung von EWR-bezogenen Top-Level-Domains (TLD) wie .at, .de, .eu oder .li, die Erwähnung von Kundschaft im EWR oder die Verwendung von EWR-bezogenen Sprachen sowie Währungen."
+      },
+      "q3": {
+        "heading": "Vertretung in der EU",
+        "title": "Beobachten Sie das Verhalten von Personen in Deutschland, im Fürstentum Liechtenstein und in anderen Staaten im EWR, zum Beispiel durch das Tracking von App-Nutzern oder Website-Besuchern?",
+        "description": "Als Beobachtung gilt unter anderem das Tracking von App-Nutzern oder Website-Besuchern aus dem EWR, um Internet-Aktivitäten nachvollziehen zu können, persönliche Vorlieben zu ermitteln oder mögliches Verhalten vorherzusagen. Beispiele dafür sind das Tracking für personalisierte Werbung mit Google Ads oder für entsprechende Reichweitenmessung mit Google Analytics. Auch die Verwendung von Cookies, Fingerprinting oder Geolokalisierung sowie die Durchführung von Umfragen kann eine Verhaltensbeobachtung darstellen."
+      }
+    },
+    "outcomes": {
+      "eeaResident": {
+        "heading": "EU-Vertretung nicht erforderlich",
+        "body": "Wir gehen davon aus, dass Sie keine EU-Datenschutz-Vertretung aufgrund der Datenschutz-Grundverordnung (DSGVO) benennen müssen, da Sie Ihren Sitz oder Wohnsitz im Europäischen Wirtschaftsraum (EWR) haben."
+      },
+      "repRequired": {
+        "heading": "EU-Vertretung erforderlich",
+        "body": "Wir gehen davon aus, dass Sie aufgrund der Datenschutz-Grundverordnung (DSGVO) eine EU-Datenschutz-Vertretung benennen müssen.",
+        "offerLink": "Unser Angebot",
+        "disclaimer": "Hinweis: Ausnahmsweise wird keine EU-Datenschutz-Vertretung benötigt für eine Verarbeitung von personenbezogenen Daten, die nur gelegentlich erfolgt, keine umfangreiche Verarbeitung von besonders schützenswerten Daten betrifft, und unter Berücksichtigung der Art, der Umstände, des Umfangs und der Zwecke der Verarbeitung voraussichtlich nicht zu einem Risiko für die Rechte und Freiheiten natürlicher Personen führt. Wir raten davon ab, sich auf diese Ausnahme zu berufen."
+      },
+      "repNotRequired": {
+        "heading": "EU-Vertretung voraussichtlich nicht erforderlich",
+        "body": "Sie benötigen voraussichtlich keine EU-Datenschutz-Vertretung aufgrund der Datenschutz-Grundverordnung (DSGVO). Sie können unser Angebot selbstverständlich trotzdem nutzen – zum Beispiel, weil Geschäftspartner und Kunden im EWR die Einhaltung der DSGVO fordern oder weil Sie auf Nummer sicher gehen möchten.",
+        "offerLink": "Unser Angebot",
+        "advisory": "Bei Unsicherheiten, zum Beispiel zur Frage, ob Sie nicht doch das Verhalten von Personen im EWR beobachten, vermitteln wir Ihnen gerne die Beratung durch eine Fachperson."
+      },
+      "newsletterLead": "Mit unserem Newsletter informieren wir Sie mindestens einmal im Monat über Aktuelles und Tipps zum Datenschutz:"
+    },
+    "contactCta": "Kontakt aufnehmen",
+    "back": "Zurück",
+    "restart": "Fragebogen neu starten",
+    "topBarBack": "Back",
+    "backToEuRep": "EU-Vertreter"
+  },
   "result": {
     "steps": {
       "scan": "Scan",
@@ -626,16 +709,191 @@
       "continueToSummary": "Zusammenfassung prüfen"
     }
   },
+  "generatorPage": {
+    "metaTitle": "Datenschutz-Generator — Datenschutzpartner",
+    "metaDescription": "Erstelle eine rechtlich geprüfte Datenschutzerklärung für die Schweiz — mit neuem DSG (FADP), EU-DSGVO und über 300 Drittanbietern.",
+    "eyebrow": "Datenschutz-Generator",
+    "title": "Eine konforme Datenschutzerklärung — in Minuten.",
+    "heroIntro": "Erstelle eine rechtlich geprüfte Datenschutzerklärung, die zu Deiner Situation in der Schweiz passt — mit neuem Schweizer <fadp>DSG</fadp> und EU-<gdpr>DSGVO</gdpr>, inklusive über 300 Drittanbietern.",
+    "heroImageAlt": "Vorschau Datenschutz-Generator",
+    "orderCta": "Start",
+    "faqNote": "Noch Fragen? Unsere <faq>FAQ zum Datenschutz-Generator</faq> hilft weiter.",
+    "stats": {
+      "ariaLabel": "Datenschutz-Generator auf einen Blick",
+      "legallyReviewed": {
+        "title": "Rechtlich geprüft",
+        "description": "erfüllt aktuelle gesetzliche Anforderungen"
+      },
+      "frameworks": {
+        "title": "DSG & DSGVO",
+        "description": "Schweizer & EU-Recht in einer Erklärung"
+      },
+      "flexibleUse": {
+        "title": "Flexible Nutzung",
+        "description": "so oft aktualisieren wie Du möchtest"
+      },
+      "longTerm": {
+        "title": "Langfristige Sicherheit",
+        "description": "Erklärung unbegrenzt nutzbar"
+      }
+    },
+    "benefitsSection": {
+      "title": "Alles für eine konforme Datenschutzerklärung",
+      "subtitle": "Datenschutz ist für Unternehmen und Privatpersonen gleichermassen wichtig. Unser Generator hilft Dir, eine passende Datenschutzerklärung zu erstellen — rechtlich geprüft und laufend aktualisiert.",
+      "items": {
+        "legallyReviewed": {
+          "title": "Rechtlich geprüft",
+          "description": "Du kannst darauf vertrauen, dass Deine Datenschutzerklärung den aktuellen gesetzlichen Anforderungen entspricht."
+        },
+        "comprehensive": {
+          "title": "Umfassend",
+          "description": "Über 300 Drittanbieter abgedeckt — mit neuem Schweizer DSG und EU-DSGVO."
+        },
+        "flexibleUse": {
+          "title": "Flexible Nutzung",
+          "description": "Mit Deinem Abo kannst Du Deine Datenschutzerklärung jederzeit aktualisieren, ergänzen oder neu erstellen — so oft Du möchtest."
+        },
+        "longTerm": {
+          "title": "Langfristige Sicherheit",
+          "description": "Der Generator wird laufend verbessert — und Du kannst Deine erstellte Erklärung unbegrenzt nutzen, auch nach Ablauf des Abos."
+        }
+      }
+    },
+    "pricingSection": {
+      "selectPlan": "Plan wählen",
+      "includedTitle": "In jedem Plan enthalten",
+      "plans": {
+        "single": {
+          "tabLabel": "1 Site"
+        },
+        "team": {
+          "tabLabel": "3 Sites"
+        },
+        "agency": {
+          "tabLabel": "5 Sites"
+        }
+      }
+    },
+    "plans": {
+      "single": {
+        "price": "89.00"
+      },
+      "team": {
+        "price": "199.00"
+      },
+      "agency": {
+        "price": "279.00"
+      }
+    },
+    "features": {
+      "services": "300+ Dienste berücksichtigt (Analytics, Infrastruktur, E-Commerce, Newsletter, Social Media, Werbung u. a.)",
+      "gdpr": "Datenschutz-Grundverordnung (DSGVO, EU / EWR)",
+      "questions": "Gezielte Fragen und hilfreiche Tipps im Generator",
+      "html": "Datenschutzerklärungen als HTML-Quellcode",
+      "fadp": "Neues Datenschutzgesetz (DSG, Schweiz)",
+      "adjustments": "Anpassungen und Ergänzungen inklusive",
+      "hosting": "Hosting der Datenschutzerklärungen",
+      "pdf": "Datenschutzerklärungen als PDF"
+    },
+    "legal": "Alle Preise verstehen sich zzgl. gesetzlicher MwSt. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms>. Sofern nicht gekündigt, verlängert sich das Abo automatisch um 12 Monate. Eine Website ist eine Domain mit allen Subdomains. <faq>FAQ zum Datenschutz-Generator</faq> · Agentur-Pakete zu attraktiven Preisen für Webagenturen."
+  },
   "scan": {
     "title": "Datenschutz-Generator",
-    "subtitle": "Wir scannen Deine Website und erstellen automatisch eine konforme\nDatenschutzerklärung.",
-    "urlLabel": "Website-URL",
+    "subtitle": "Wir scannen Deine Website und erstellen automatisch eine konforme Datenschutzerklärung. <faq>FAQ lesen</faq>",
     "urlPlaceholder": "z. B. meine-website.ch",
     "errorEmpty": "Bitte gib eine URL ein.",
     "errorInvalid": "Bitte gib eine gültige URL ein.",
     "scanning": "Scan läuft…",
     "scanNow": "Jetzt scannen",
     "analysing": "Analyse — Tracker und Dienste werden erkannt…"
+  },
+  "generatorFaq": {
+    "metaTitle": "FAQ — Datenschutz-Generator — Datenschutzpartner",
+    "metaDescription": "Häufig gestellte Fragen zum Datenschutz-Generator, zu Abonnement und Unterstützung.",
+    "title": "FAQ zum Datenschutz-Generator für Datenschutzerklärungen",
+    "introLead": "Unser Datenschutz-Generator hilft Dir, eine auf Deine Website zugeschnittene Datenschutzerklärung zu erstellen. Die Antworten unten erklären, wie erstellte Datenschutzerklärungen verwendet werden dürfen und wie der Generator funktioniert.",
+    "introSupport": "Wenn Deine Frage hier nicht beantwortet wird, wende Dich bitte an unseren <support>Support</support>.",
+    "back": "Zurück",
+    "categories": {
+      "contentAndUse": {
+        "label": "Inhalt und Verwendung von erstellten Datenschutzerklärungen"
+      },
+      "usingGenerator": {
+        "label": "Nutzung des Datenschutz-Generators"
+      },
+      "subscription": {
+        "label": "Abonnement und Bezahlung"
+      },
+      "support": {
+        "label": "Beratung und Unterstützung"
+      }
+    },
+    "items": {
+      "q1": {
+        "question": "Darf ich die erstellte Datenschutzerklärung auf meiner Website veröffentlichen?",
+        "answer": "Ja. Die erstellte Datenschutzerklärung ist dafür gedacht, auf Deiner Website veröffentlicht und — wo sinnvoll — vom Cookie-Banner, Footer oder Impressum aus verlinkt zu werden."
+      },
+      "q2": {
+        "question": "Muss ich die Datenschutzerklärung anpassen?",
+        "answer": "Du solltest den erstellten Text sorgfältig prüfen und anpassen, wenn Deine tatsächlichen Verarbeitungstätigkeiten von den Antworten im Fragebogen oder den Scan-Ergebnissen abweichen."
+      },
+      "q3": {
+        "question": "Gilt die Datenschutzerklärung auch für Social-Media-Profile?",
+        "answer": "Der Generator fokussiert auf Deine Website. Für Social-Media-Auftritte oder Drittplattformen kann eine separate Datenschutzerklärung erforderlich sein."
+      },
+      "q4": {
+        "question": "Was passiert, wenn sich meine Website ändert?",
+        "answer": "Wenn Du neue Tools, Tracker oder Verarbeitungstätigkeiten hinzufügst, solltest Du Deine Datenschutzerklärung entsprechend aktualisieren und neu erstellen oder anpassen."
+      },
+      "q5": {
+        "question": "Kann ich die Datenschutzerklärung in mehreren Sprachen nutzen?",
+        "answer": "Du kannst separate Sprachversionen erstellen und pflegen. Jede Version sollte dieselben Verarbeitungstätigkeiten korrekt wiedergeben."
+      },
+      "q6": {
+        "question": "Wer ist für den Inhalt der Datenschutzerklärung verantwortlich?",
+        "answer": "Du bleibst als Verantwortlicher verantwortlich. Der Generator erstellt einen Entwurf auf Basis Deiner Angaben und ersetzt keine individuelle Rechtsberatung."
+      },
+      "q7": {
+        "question": "Wie funktioniert der Website-Scan?",
+        "answer": "Wir analysieren öffentlich zugängliche Elemente Deiner Website, um gängige Tools, Einbindungen, Tracker und Dienste zu erkennen, die in Deiner Datenschutzerklärung erwähnt werden sollten."
+      },
+      "q8": {
+        "question": "Welche Daten werden beim Scan verarbeitet?",
+        "answer": "Der Scan verwendet die von Dir angegebene URL und analysiert öffentlich verfügbare Website-Inhalte. Besucherdaten Deiner Website werden für den Scan selbst nicht erhoben."
+      },
+      "q9": {
+        "question": "Muss ich Fragen beantworten, die nicht zutreffen?",
+        "answer": "Beantworte den Fragebogen so genau wie möglich. Wenn ein Thema nicht zutrifft, wähle die Option, die Deine Situation am besten beschreibt."
+      },
+      "q10": {
+        "question": "Kann ich den Generator mehrfach nutzen?",
+        "answer": "Ja. Du kannst jederzeit einen neuen Scan durchführen und eine aktualisierte Datenschutzerklärung erstellen, wenn sich Deine Website oder Verarbeitungstätigkeiten ändern."
+      },
+      "q11": {
+        "question": "Was kostet der Datenschutz-Generator?",
+        "answer": "Die Kosten hängen vom gewählten Plan und optionalen Zusatzleistungen wie der EU-Vertretung ab. Die aktuellen Preise werden vor dem Checkout angezeigt."
+      },
+      "q12": {
+        "question": "Wie kann ich bezahlen?",
+        "answer": "Die Bezahlung erfolgt sicher im Checkout. Die verfügbaren Zahlungsmethoden werden auf der Bestellseite angezeigt."
+      },
+      "q13": {
+        "question": "Kann ich mein Abonnement kündigen?",
+        "answer": "Kündigungsmöglichkeiten hängen von Deinem Plan ab. Details findest Du in unseren AGB oder beim Support."
+      },
+      "q14": {
+        "question": "Erhalte ich Unterstützung bei Fragen?",
+        "answer": "Ja. Unser Support hilft Dir bei Fragen zur Nutzung des Generators und zu Deinen erstellten Dokumenten."
+      },
+      "q15": {
+        "question": "Bietet Datenschutzpartner Rechtsberatung an?",
+        "answer": "Der Generator erstellt einen Entwurf auf Basis Deiner Angaben. Individuelle Rechtsberatung ist bei Bedarf separat verfügbar."
+      },
+      "q16": {
+        "question": "Wie erreiche ich den Support?",
+        "answer": "Nutze unser Kontaktformular oder die Support-Optionen auf der Website. Wir antworten so schnell wie möglich."
+      }
+    }
   },
   "newsletter": {
     "title": "Bleib dem Datenschutzrecht voraus.",
@@ -665,9 +923,405 @@
       "pageTitle": "Allgemeine Geschäftsbedingungen (AGB)"
     }
   },
+  "account": {
+    "metaTitle": "Mein Konto — Datenschutzpartner",
+    "metaDescription": "Verwalte Deine Mitgliedschaft, Academy-Inhalte, Dokumente, Abrechnung und Kontodaten.",
+    "title": "Mein Konto",
+    "loading": "Konto wird geladen …",
+    "error": "Dieser Bereich konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "membershipStatus": {
+      "active": "Academy-Mitglied",
+      "processing": "In Bearbeitung",
+      "cancelled": "Gekündigt",
+      "none": "Keine Mitgliedschaft"
+    },
+    "status": {
+      "active": "Aktiv",
+      "processing": "In Bearbeitung",
+      "updateAvailable": "Update verfügbar",
+      "cancelled": "Gekündigt",
+      "upToDate": "Aktuell"
+    },
+    "nav": {
+      "dashboard": "Übersicht",
+      "generator": "Datenschutzerklärungs-Generator",
+      "academy": "Datenschutz Academy",
+      "euRep": "EU-Vertretung",
+      "accountDetails": "Kontodaten",
+      "logout": "Abmelden",
+      "openMenu": "Kontomenü öffnen"
+    },
+    "dashboard": {
+      "title": "Übersicht",
+      "loading": "Dashboard wird geladen …",
+      "productsAriaLabel": "Deine Services",
+      "greeting": {
+        "morning": "Guten Morgen, {name}. So stehen Deine Services heute.",
+        "afternoon": "Guten Tag, {name}. So stehen Deine Services heute.",
+        "evening": "Guten Abend, {name}. So stehen Deine Services heute."
+      },
+      "products": {
+        "privacyGenerator": {
+          "title": "Datenschutzerklärungen",
+          "updatesBadge": "{count} zu aktualisieren"
+        },
+        "academy": {
+          "title": "Datenschutz Academy",
+          "active": "Aktiv",
+          "membershipTitle": "Mitgliedschaft",
+          "daysLeft": "Tage übrig",
+          "comingUpTitle": "Demnächst",
+          "renewsOn": "Verlängerung am {date}",
+          "getMembership": "Mitgliedschaft holen"
+        },
+        "euRep": {
+          "title": "EU-Vertretung",
+          "inquiriesTitle": "Anfragen verfügbar",
+          "inquiriesRemainingLabel": "{count, plural, one {Anfrage verfügbar} other {Anfragen verfügbar}}",
+          "inquiriesUsedOfTotal": "{used} von {total} genutzt",
+          "subscriptionTitle": "Abonnement",
+          "subscriptionPerYear": "/ Jahr",
+          "renewsOn": "Verlängerung am {date}",
+          "furtherInquiryNote": "je weitere Anfrage",
+          "addInquiry": "Anfrage hinzufügen",
+          "discover": "EU-Vertretung entdecken"
+        }
+      },
+      "attention": {
+        "title": "Richtlinien mit ausstehendem Update",
+        "empty": "Derzeit sind keine Updates erforderlich.",
+        "updateAvailableSince": "Update verfügbar seit {date}",
+        "update": "Aktualisieren"
+      },
+      "recentPayments": {
+        "title": "Letzte Zahlungen",
+        "allInvoices": "Alle Rechnungen",
+        "colInvoice": "Rechnung",
+        "colService": "Service",
+        "colDate": "Datum",
+        "colAmount": "Betrag",
+        "downloadPdf": "PDF",
+        "downloadStarted": "Rechnungs-Download gestartet.",
+        "services": {
+          "policy": "Generator",
+          "academy": "Academy",
+          "euRep": "EU-Vertretung"
+        }
+      },
+      "renewals": {
+        "title": "Anstehende Verlängerungen",
+        "totalNext12Months": "Total nächste 12 Monate",
+        "cardExpires": "Gültig bis {month}/{year}"
+      },
+      "paymentMethods": {
+        "title": "Zahlungsmethoden",
+        "manage": "Verwalten",
+        "usedBy": {
+          "academyAndPolicy": "Academy + Generator",
+          "euRep": "EU-Vertretung"
+        }
+      },
+      "questions": {
+        "title": "Fragen",
+        "body": "Unser Team antwortet innerhalb eines Werktags.",
+        "contactUs": "Kontakt aufnehmen"
+      },
+      "footer": {
+        "exportData": "Meine Daten exportieren"
+      }
+    },
+    "generator": {
+      "title": "Datenschutzerklärungs-Generator",
+      "tabsAriaLabel": "Bereiche des Datenschutzerklärungs-Generators",
+      "tabs": {
+        "policies": "Richtlinien",
+        "payments": "Zahlungen"
+      }
+    },
+    "academy": {
+      "title": "Datenschutz Academy",
+      "tabsAriaLabel": "Bereiche der Datenschutz Academy",
+      "tabs": {
+        "sessions": "Sessions",
+        "membership": "Mitgliedschaft"
+      },
+      "upcomingTitle": "Kommend",
+      "nextLive": "Demnächst",
+      "recordingsTitle": "Vergangen",
+      "fullLibrary": "Zur Bibliothek",
+      "timeFilterLabel": "Nach Zeitraum filtern",
+      "typeFilterLabel": "Nach Session-Typ filtern",
+      "typeAll": "Alle Sessions",
+      "typeWebinar": "Webinare",
+      "typeNewsQuestions": "News & Questions",
+      "emptyUpcoming": "Keine bevorstehenden Sessions geplant.",
+      "emptyRecordings": "Noch keine Aufzeichnungen verfügbar.",
+      "searchLabel": "Sessions durchsuchen",
+      "searchPlaceholder": "Sessions durchsuchen …",
+      "emptySearch": "Keine Sessions entsprechen Deiner Suche.",
+      "join": "Teilnehmen",
+      "watch": "Ansehen"
+    },
+    "euRep": {
+      "title": "EU-Vertretung",
+      "tabsAriaLabel": "Bereiche der EU-Vertretung",
+      "tabs": {
+        "inquiries": "Anfragen",
+        "subscription": "Abonnement"
+      },
+      "inquiries": {
+        "comingSoonTitle": "Die Anfragenübersicht folgt in Kürze",
+        "comingSoonBody": "Anfragen, die wir als Deine EU-Vertretung weiterleiten, erscheinen hier. Dieser Bereich befindet sich noch im Aufbau."
+      }
+    },
+    "documents": {
+      "title": "Dokumente",
+      "colName": "Dokument",
+      "colCreated": "Erstellt",
+      "colStatus": "Status",
+      "colActions": "Aktionen",
+      "retrieve": "Abrufen",
+      "update": "Aktualisieren",
+      "create": "Neue Richtlinie",
+      "empty": "Du hast noch keine Dokumente erstellt.",
+      "emptyCta": "Erstes Dokument erstellen",
+      "statusFilterLabel": "Nach Status filtern",
+      "statusAll": "Alle Richtlinien",
+      "statusUpToDate": "Aktuell",
+      "statusUpdateAvailable": "Update verfügbar",
+      "searchLabel": "Richtlinien durchsuchen",
+      "searchPlaceholder": "Richtlinien durchsuchen …",
+      "emptySearch": "Keine Richtlinien entsprechen Deiner Suche.",
+      "emptyFiltered": "Keine Richtlinien entsprechen diesem Filter.",
+      "listTitle": "Erstellte Richtlinien",
+      "countTitle": "Erstellte Richtlinien",
+      "countUnit": "{count, plural, one {Richtlinie} other {Richtlinien}}",
+      "countUpToDate": "{count} aktuell",
+      "countUpdateAvailable": "{count} zu aktualisieren"
+    },
+    "academyMembership": {
+      "planTitle": "Jahresmitgliedschaft",
+      "paidOn": "Bezahlt am {date}",
+      "perYear": "/ Jahr",
+      "vatNote": "inkl. 8.1% MwSt. ({amount})",
+      "sectionPayment": "Zahlung",
+      "sectionRenewal": "Automatische Verlängerung",
+      "renewalReminder": "Wir erinnern Dich 30 Tage vor der Verlängerung per E-Mail.",
+      "readMore": "Mehr erfahren",
+      "downloadInvoice": "Rechnung herunterladen",
+      "invoiceDownloadStarted": "Rechnungs-Download gestartet.",
+      "includesTitle": "Das beinhaltet Deine Mitgliedschaft",
+      "groups": {
+        "live": "Live-Sessions",
+        "recordings": "Aufzeichnungen",
+        "tools": "Tools & Dokumente",
+        "bonus": "Bonus-Inhalte"
+      },
+      "billingHistory": "Rechnungsverlauf",
+      "colInvoice": "Rechnung",
+      "colAmount": "Betrag",
+      "colActions": "Aktionen",
+      "cancelTitle": "Mitgliedschaft kündigen",
+      "cancelBody": "Die Kündigung wird zum Ende der bezahlten Periode wirksam ({date}). Bis dahin behältst Du vollen Zugriff, weitere Zahlungen fallen nicht an. Kein Grund und keine Frist erforderlich.",
+      "cancelCta": "Mitgliedschaft kündigen",
+      "keepSubscription": "Behalten",
+      "cancelConfirm": "Mitgliedschaft kündigen",
+      "paymentMethodEyebrow": "Zahlungsmethode",
+      "renewalPaymentNote": "Diese Karte wird für die Verlängerung am {date} verwendet.",
+      "cardExpires": "Gültig bis {month}/{year}",
+      "paymentMethodLabel": "Zahlungsmethode",
+      "change": "Ändern",
+      "billingDetailsEyebrow": "Rechnungsdetails",
+      "edit": "Bearbeiten",
+      "questionsTitle": "Fragen?",
+      "questionsBody": "Bei Fragen zu Deiner Mitgliedschaft antwortet unser Team innerhalb eines Werktags.",
+      "contactUs": "Kontakt aufnehmen"
+    },
+    "generatorPlan": {
+      "title": "Websites verfügbar",
+      "remainingLabel": "{count, plural, one {Website verfügbar} other {Websites verfügbar}}",
+      "usedOfTotal": "{used} von {total} verwendet",
+      "buyMore": "Weitere Websites kaufen",
+      "billingHistory": "Zahlungsverlauf",
+      "colInvoice": "Rechnung",
+      "colDate": "Datum",
+      "colSites": "Websites",
+      "colAmount": "Betrag",
+      "colActions": "Aktionen",
+      "vatNote": "inkl. 8.1% MwSt. ({amount})",
+      "billingDetailsEyebrow": "Rechnungsdaten",
+      "change": "Ändern",
+      "questionsTitle": "Fragen?",
+      "questionsBody": "Bei Fragen zu Deinem Plan antwortet unser Team innerhalb eines Werktags.",
+      "contactUs": "Kontakt aufnehmen",
+      "paymentsEmpty": "Noch keine Zahlungen.",
+      "downloadInvoice": "Rechnung herunterladen",
+      "invoiceDownloadStarted": "Rechnungs-Download gestartet."
+    },
+    "billingSelection": {
+      "paymentTitle": "Zahlungsmethode wählen",
+      "addressTitle": "Rechnungsadresse wählen",
+      "paymentEmpty": "Noch keine gespeicherten Zahlungsmethoden.",
+      "addressEmpty": "Noch keine gespeicherten Rechnungsadressen.",
+      "cardExpires": "Gültig bis {month}/{year}",
+      "manageLink": "Zahlungsdaten verwalten",
+      "confirm": "Auswahl übernehmen",
+      "saved": "Zahlungsdaten aktualisiert."
+    },
+    "subscriptionPanel": {
+      "detailTitle": "Abo-Details",
+      "startDate": "Startdatum",
+      "lastOrder": "Letzte Bestellung",
+      "nextPayment": "Nächste Zahlung",
+      "paymentMethod": "Zahlungsmethode",
+      "changePaymentMethod": "Ändern",
+      "editBillingAddress": "Bearbeiten",
+      "cancel": "Abo kündigen",
+      "cancelConfirmTitle": "Abo kündigen?",
+      "cancelConfirmBody": "Deine Mitgliedschaft bleibt bis zum Ende der laufenden Periode aktiv. Bist Du sicher?",
+      "cancelConfirm": "Abo kündigen",
+      "keep": "Abo behalten",
+      "cancelled": "Abo gekündigt.",
+      "totalsTitle": "Beträge",
+      "subtotal": "Zwischensumme",
+      "discount": "Rabatt",
+      "total": "Total",
+      "relatedOrders": "Zugehörige Bestellungen",
+      "billingAddress": "Rechnungsadresse",
+      "empty": "Du hast für dieses Produkt kein aktives Abonnement.",
+      "planTermsTitle": "Im Plan enthalten",
+      "includedInquiries": "Enthaltene Anfragen",
+      "includedInquiriesValue": "{count, plural, one {# Anfrage / Jahr} other {# Anfragen / Jahr}}",
+      "extraInquiryPrice": "Zusätzliche Anfragen",
+      "orderKindSubscription": "Jahresabo",
+      "orderKindExtraInquiry": "Zusätzliche Anfrage (ausserhalb des Plans)"
+    },
+    "orders": {
+      "title": "Bestellungen",
+      "colNumber": "Bestellung",
+      "colDate": "Datum",
+      "colReference": "Art",
+      "colSites": "Websites",
+      "colStatus": "Status",
+      "colTotal": "Total",
+      "colActions": "Aktionen",
+      "downloadInvoice": "Rechnung herunterladen",
+      "invoiceDownloadStarted": "Rechnungs-Download gestartet.",
+      "empty": "Du hast noch keine Bestellungen.",
+      "siteCount": "{count, plural, one {# Website} other {# Websites}}",
+      "orderKindSubscription": "Jahresabo",
+      "orderKindExtraInquiry": "Zusätzliche Anfrage",
+      "referenceEmpty": "—"
+    },
+    "accountDetails": {
+      "title": "Kontodaten",
+      "tabsAriaLabel": "Kontodaten-Bereiche",
+      "tabs": {
+        "profile": "Profil",
+        "paymentDetails": "Zahlungsdaten"
+      },
+      "profileTitle": "Profil",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "displayName": "Anzeigename",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "editProfile": "Profil bearbeiten",
+      "editProfileTitle": "Profil bearbeiten",
+      "changePassword": "Passwort ändern",
+      "drawerCancel": "Abbrechen",
+      "drawerSave": "Speichern",
+      "dialogCancel": "Abbrechen",
+      "dialogSave": "Speichern",
+      "profileSaved": "Profil aktualisiert.",
+      "passwordTitle": "Passwort ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Neues Passwort bestätigen",
+      "savePassword": "Passwort ändern",
+      "passwordSaved": "Passwort geändert.",
+      "passwordError": "Das aktuelle Passwort ist nicht korrekt.",
+      "aboutEyebrow": "Über Dein Konto",
+      "aboutIntro": "Verwalte die persönlichen Daten, die mit Deinem Login im Mitgliederbereich verknüpft sind:",
+      "aboutPersonalDetails": "Persönliche Daten",
+      "aboutPassword": "Passwort & Sicherheit",
+      "questionsTitle": "Fragen?",
+      "questionsBody": "Wenn Du Hilfe zu Deinem Konto brauchst, antwortet unser Team innerhalb eines Werktags.",
+      "contactUs": "Kontakt"
+    },
+    "paymentDetails": {
+      "paymentMethodsTitle": "Zahlungsmethoden",
+      "addPaymentMethod": "Neue Methode",
+      "paymentMethodsEmpty": "Noch keine gespeicherten Zahlungsmethoden. Füge eine Karte hinzu, um sie für Deine Abonnements zu nutzen.",
+      "editPaymentMethod": "Zahlungsmethode bearbeiten",
+      "deletePaymentMethod": "Zahlungsmethode löschen",
+      "cardExpires": "Gültig bis {month}/{year}",
+      "addressesTitle": "Rechnungsadressen",
+      "addAddress": "Neue Adresse",
+      "addressesEmpty": "Noch keine gespeicherten Rechnungsadressen. Füge eine hinzu, um sie für Deine Abonnements zu nutzen.",
+      "editAddress": "Adresse bearbeiten",
+      "deleteAddress": "Adresse löschen",
+      "aboutEyebrow": "Über Zahlungsdaten",
+      "aboutIntro": "Karten und Rechnungsadressen, die Du hier speicherst, können separat jedem Abonnement zugewiesen werden:",
+      "questionsTitle": "Fragen?",
+      "questionsBody": "Bei Fragen zur Abrechnung antwortet unser Team innerhalb eines Werktags.",
+      "contactUs": "Kontakt aufnehmen",
+      "addAddressTitle": "Rechnungsadresse hinzufügen",
+      "editAddressTitle": "Rechnungsadresse bearbeiten",
+      "addressLabelField": "Bezeichnung (optional)",
+      "addressLabelPlaceholder": "z. B. Hauptsitz",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "company": "Firma (optional)",
+      "line1": "Strasse und Hausnummer",
+      "line2": "Adresszeile 2 (optional)",
+      "postalCode": "PLZ",
+      "city": "Ort",
+      "country": "Land",
+      "vatId": "MWST-Nummer (optional)",
+      "drawerCancel": "Abbrechen",
+      "drawerSave": "Speichern",
+      "addressCreated": "Rechnungsadresse hinzugefügt.",
+      "addressUpdated": "Rechnungsadresse aktualisiert.",
+      "addressDeleted": "Rechnungsadresse gelöscht.",
+      "addPaymentMethodTitle": "Zahlungsmethode hinzufügen",
+      "editPaymentMethodTitle": "Zahlungsmethode bearbeiten",
+      "cardholderName": "Name auf der Karte",
+      "cardNumber": "Kartennummer",
+      "cardNumberSegment": "Kartennummer, Teil {part} von 4",
+      "cardCvv": "CVV",
+      "cardExpMonth": "Ablaufmonat",
+      "cardExpYear": "Ablaufjahr",
+      "paymentMethodCreated": "Zahlungsmethode hinzugefügt.",
+      "paymentMethodUpdated": "Zahlungsmethode aktualisiert.",
+      "paymentMethodDeleted": "Zahlungsmethode gelöscht.",
+      "deleteAddressTitle": "Adresse löschen?",
+      "deleteAddressBody": "Diese Rechnungsadresse wird entfernt. Abonnements, die sie verwenden, behalten ihre zuletzt abgerechneten Angaben, bis Du eine neue Adresse zuweist.",
+      "deleteAddressConfirm": "Adresse löschen",
+      "deletePaymentMethodTitle": "Zahlungsmethode löschen?",
+      "deletePaymentMethodBody": "Diese Karte wird entfernt. Abonnements, die sie verwenden, behalten ihre zuletzt abgerechneten Angaben, bis Du eine neue Karte zuweist.",
+      "deletePaymentMethodConfirm": "Zahlungsmethode löschen"
+    },
+    "logout": {
+      "confirmTitle": "Abmelden?",
+      "confirmBody": "Du musst Dich erneut anmelden, um auf Dein Konto zuzugreifen.",
+      "confirm": "Abmelden",
+      "cancel": "Angemeldet bleiben"
+    },
+    "nonMember": {
+      "title": "Werde Academy-Mitglied",
+      "body": "Schalte Live-Sessions, Aufzeichnungen und Vorlagen mit einer Academy-Mitgliedschaft frei.",
+      "cta": "Mitgliedschaft ansehen"
+    }
+  },
   "validation": {
     "required": "Pflichtfeld",
-    "email": "Ungültige E-Mail-Adresse"
+    "email": "Ungültige E-Mail-Adresse",
+    "passwordMin": "Das Passwort muss mindestens 8 Zeichen lang sein",
+    "passwordMatch": "Die Passwörter stimmen nicht überein",
+    "cardNumber": "Gültige Kartennummer eingeben",
+    "cvv": "Gültigen Sicherheitscode eingeben"
   },
   "contacts": {
     "title": "Kontakte",

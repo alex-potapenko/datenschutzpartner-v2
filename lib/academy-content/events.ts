@@ -317,3 +317,25 @@ export const ACADEMY_MEMBERSHIP_FEATURE_KEYS = [
 ] as const;
 
 export type AcademyMembershipFeatureKey = (typeof ACADEMY_MEMBERSHIP_FEATURE_KEYS)[number];
+
+export const ACADEMY_MEMBERSHIP_FEATURE_GROUP_IDS = [
+  'live',
+  'recordings',
+  'tools',
+  'bonus',
+] as const;
+
+export type AcademyMembershipFeatureGroupId = (typeof ACADEMY_MEMBERSHIP_FEATURE_GROUP_IDS)[number];
+
+export const ACADEMY_MEMBERSHIP_FEATURE_GROUPS: ReadonlyArray<{
+  id: AcademyMembershipFeatureGroupId;
+  features: ReadonlyArray<AcademyMembershipFeatureKey>;
+}> = [
+  { id: 'live', features: ['webinarsLive', 'newsLive'] },
+  {
+    id: 'recordings',
+    features: ['webinarsRecordings', 'newsRecordings', 'legalSessions'],
+  },
+  { id: 'tools', features: ['employeeDeclaration', 'checklists'] },
+  { id: 'bonus', features: ['newsletterBonus', 'podcastBonus'] },
+];

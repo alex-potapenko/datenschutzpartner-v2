@@ -18,7 +18,6 @@ export type { ImprovedFormData };
 
 interface ImprovedStepProps {
   domain: string;
-  includeEuRep?: boolean;
   onSubmit: (data: ImprovedFormData) => void;
   onBack?: () => void;
 }
@@ -86,8 +85,7 @@ function QField({
   );
 }
 
-export function ImprovedStep({ domain, includeEuRep, onSubmit, onBack }: ImprovedStepProps) {
-  const t = useTranslations('result.improvedStep');
+export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
   const tEuRep = useTranslations('services.euRep');
   const companyGuess = domain.replace(/^www\./, '').split('.')[0] ?? domain;
   const companyName = companyGuess.charAt(0).toUpperCase() + companyGuess.slice(1);
@@ -436,7 +434,7 @@ export function ImprovedStep({ domain, includeEuRep, onSubmit, onBack }: Improve
         onContinue={() => {
           onSubmit(form);
         }}
-        ctaLabel={includeEuRep ? tEuRep('label') : t('continueToSummary')}
+        ctaLabel={tEuRep('label')}
       />
     </>
   );

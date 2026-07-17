@@ -1,12 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { useForgotPassword, type ForgotPasswordInput } from '@/api/auth';
-import { Button, CaretLeft, Input } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import { z } from 'zod';
 
 function Field({
@@ -63,14 +63,9 @@ export function ForgotPasswordForm() {
           {t('title')}
         </h1>
         <p className="text-foreground mb-6 text-center leading-relaxed">{t('success')}</p>
-        <Link
-          href="/login"
-          className="inline-flex w-fit items-center gap-1 self-center text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-          style={{ color: 'var(--accent)' }}
-        >
-          <CaretLeft size={16} aria-hidden />
+        <NavigationLink href="/login" chevron="left" className="self-center">
           {t('backToLogin')}
-        </Link>
+        </NavigationLink>
       </>
     );
   }
@@ -104,14 +99,9 @@ export function ForgotPasswordForm() {
       </form>
 
       <div className="mt-6 text-center">
-        <Link
-          href="/login"
-          className="inline-flex w-fit items-center gap-1 text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-          style={{ color: 'var(--accent)' }}
-        >
-          <CaretLeft size={16} aria-hidden />
+        <NavigationLink href="/login" chevron="left">
           {t('backToLogin')}
-        </Link>
+        </NavigationLink>
       </div>
     </>
   );

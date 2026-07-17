@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { LinkedinLogo, ThreadsLogo, InstagramLogo, Butterfly } from '@/components/ui';
+import { Button, LinkedinLogo, ThreadsLogo, InstagramLogo, Butterfly } from '@/components/ui';
 import { Container } from './Container';
 import { Logo } from './Logo';
 
@@ -75,7 +75,7 @@ export function Footer() {
                 className="block w-full"
                 style={{ color: 'var(--accent)' }}
               >
-                <Logo fullWidth />
+                <Logo inverse={false} />
               </Link>
 
               <div className="text-foreground flex flex-col gap-1 text-sm">
@@ -88,15 +88,18 @@ export function Footer() {
 
               <div className="flex items-center gap-2">
                 {SOCIAL_LINKS.map(({ label, href, icon }) => (
-                  <Link
+                  <Button
                     key={label}
-                    href={href}
-                    target="_blank"
+                    variant="outline"
+                    isIconOnly
+                    size="lg"
                     aria-label={label}
-                    className="border-border text-muted hover:border-foreground/30 hover:text-foreground flex size-12 items-center justify-center rounded-xl border transition-colors"
+                    onPress={() => {
+                      window.open(href, '_blank', 'noopener,noreferrer');
+                    }}
                   >
                     {icon}
-                  </Link>
+                  </Button>
                 ))}
               </div>
 
@@ -107,7 +110,7 @@ export function Footer() {
 
             <div className="border-border grid grid-cols-3 gap-8 border-b p-4 pt-20 sm:p-8 lg:border-b-0">
               {FOOTER_SECTIONS.map(({ headingKey, links }) => (
-                <div key={headingKey} className="flex flex-col gap-4">
+                <div key={headingKey} className="flex flex-col gap-4 pt-1">
                   <h3 className="text-muted text-sm font-medium">{t(headingKey)}</h3>
                   <ul className="flex flex-col gap-2.5">
                     {links.map(({ key, href }) => {

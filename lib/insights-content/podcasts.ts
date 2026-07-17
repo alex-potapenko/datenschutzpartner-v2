@@ -1,7 +1,8 @@
 import type { RawInsightArticle } from './types';
+import { insightCoverImage } from './images';
 
 function podcastImage(slug: string) {
-  return `https://picsum.photos/seed/${slug}/800/500`;
+  return insightCoverImage(slug);
 }
 
 const PODCAST_BASE = 'https://podcast.datenschutzpartner.ch/episodes';

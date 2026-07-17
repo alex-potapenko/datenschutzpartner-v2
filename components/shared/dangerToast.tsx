@@ -1,0 +1,16 @@
+import { toast } from 'sonner';
+import { Alert } from '@/components/ui';
+
+export function showDangerToast(message: string) {
+  toast.custom(
+    () => (
+      <Alert status="danger" role="alert" className="w-full max-w-sm shadow-lg">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Description>{message}</Alert.Description>
+        </Alert.Content>
+      </Alert>
+    ),
+    { duration: 5000 }
+  );
+}

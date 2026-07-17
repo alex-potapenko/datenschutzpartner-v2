@@ -29,7 +29,6 @@ import {
 interface SummaryStepProps {
   domain: string;
   formData: ImprovedFormData;
-  includeEuRep?: boolean;
   euRepPlan?: 'budget' | 'standard' | 'premium';
   euRepSkipped?: boolean;
   onPreview: () => void;
@@ -104,7 +103,6 @@ function formatAddress(formData: ImprovedFormData) {
 export function SummaryStep({
   domain,
   formData,
-  includeEuRep,
   euRepPlan,
   euRepSkipped,
   onPreview,
@@ -139,18 +137,16 @@ export function SummaryStep({
                 <KV label="Domain" value={formData.domain || domain} icon={<Globe size={14} />} />
                 <KV label="GDPR applicable" value={gdprApplies ? 'Yes' : 'No'} />
                 <KV label="Compliance" value="GDPR / Swiss nFADP" />
-                {includeEuRep ? (
-                  <KV
-                    label="EU Representative"
-                    value={
-                      selectedPlan
-                        ? `${selectedPlan.name} plan`
-                        : euRepSkipped
-                          ? 'Declined'
-                          : 'Pending'
-                    }
-                  />
-                ) : null}
+                <KV
+                  label="EU Representative"
+                  value={
+                    selectedPlan
+                      ? `${selectedPlan.name} plan`
+                      : euRepSkipped
+                        ? 'Declined'
+                        : 'Pending'
+                  }
+                />
               </div>
             </Row>
           </CategoryRow>
@@ -294,7 +290,7 @@ export function SummaryStep({
             </Row>
           </CategoryRow>
 
-          {includeEuRep && (selectedPlan || euRepSkipped) ? (
+          {selectedPlan || euRepSkipped ? (
             <CategoryRow label="EU Representative">
               <Row>
                 {selectedPlan ? (

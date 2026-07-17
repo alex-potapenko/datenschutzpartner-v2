@@ -1,8 +1,8 @@
 'use client';
 
 import { useLayoutEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { CaretRight, Clock, Play, Tabs } from '@/components/ui';
+import { Clock, Play, Tabs, cn } from '@/components/ui';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import type { Locale } from '@/i18n/config';
 import {
   academySessionMatchesTab,
@@ -52,9 +52,12 @@ type AcademyPreviewGridContentProps = {
   compact: AcademyUpcomingEvent[];
   pastSessions: AcademyOnDemandItem[];
   pastSessionsMinWhenComingUpEmpty: number;
+  /** Cap rows in the Coming up column (e.g. member area shows 2 instead of full preview). */
+  maxComingUpItems?: number;
+  contentClassName?: string;
 };
 
-function AcademyPreviewGridContent({
+export function AcademyPreviewGridContent({
   locale,
   labels,
   tab,
@@ -62,6 +65,8 @@ function AcademyPreviewGridContent({
   compact,
   pastSessions,
   pastSessionsMinWhenComingUpEmpty,
+  maxComingUpItems,
+  contentClassName,
 }: AcademyPreviewGridContentProps) {
   const comingUpRef = useRef<HTMLDivElement>(null);
   const pastListWrapperRef = useRef<HTMLDivElement>(null);
@@ -72,8 +77,15 @@ function AcademyPreviewGridContent({
     ? resolveAcademyEventTitle(locale, visibleFeatured)
     : undefined;
   const visibleCompact = filterAcademyUpcomingEvents(compact, tab);
+  const showFeatured = Boolean(visibleFeatured && featuredTitle);
+  const compactLimit =
+    maxComingUpItems === undefined
+      ? visibleCompact.length
+      : Math.max(0, maxComingUpItems - (showFeatured ? 1 : 0));
+  const limitedCompact = visibleCompact.slice(0, compactLimit);
+  const hasComingUp = showFeatured || limitedCompact.length > 0;
+
   const filteredPastSessions = filterAcademyPastSessions(pastSessions, tab);
-  const hasComingUp = Boolean((visibleFeatured && featuredTitle) || visibleCompact.length > 0);
 
   const [hasOverflow, setHasOverflow] = useState(
     !hasComingUp && filteredPastSessions.length > pastSessionsMinWhenComingUpEmpty
@@ -131,7 +143,12 @@ function AcademyPreviewGridContent({
   }, [filteredPastSessions.length, hasComingUp, pastSessionsMinWhenComingUpEmpty]);
 
   return (
-    <div className="grid grid-cols-1 items-start lg:grid-cols-2 lg:items-stretch">
+    <div
+      className={cn(
+        'grid grid-cols-1 items-start lg:grid-cols-2 lg:items-stretch',
+        contentClassName
+      )}
+    >
       <div className="border-border flex flex-col gap-8 border-b p-4 sm:p-8 lg:border-r lg:border-b-0">
         <div className="flex items-center gap-2">
           <Play size={22} weight="fill" style={{ color: 'var(--accent)' }} aria-hidden />
@@ -141,7 +158,7 @@ function AcademyPreviewGridContent({
         <div ref={comingUpRef} className="mt-0">
           {hasComingUp ? (
             <AcademySessionList>
-              {visibleFeatured && featuredTitle ? (
+              {showFeatured && visibleFeatured && featuredTitle ? (
                 <NextLiveSessionRow
                   event={visibleFeatured}
                   title={featuredTitle}
@@ -150,14 +167,14 @@ function AcademyPreviewGridContent({
                   showTypeChip={tab === 'all'}
                 />
               ) : null}
-              {visibleCompact.map((event) => (
+              {limitedCompact.map((event) => (
                 <UpcomingCompactRow
                   key={`${event.type}-${event.liveAt}`}
                   event={event}
                   locale={locale}
                   labels={labels}
                   showTypeChip={tab === 'all'}
-                  listItemClassName={visibleFeatured && featuredTitle ? 'px-4' : undefined}
+                  listItemClassName={showFeatured && featuredTitle ? 'px-4' : undefined}
                 />
               ))}
             </AcademySessionList>
@@ -190,13 +207,7 @@ function AcademyPreviewGridContent({
           </div>
 
           {hasOverflow ? (
-            <Link
-              href={pastSessionsHref}
-              className="inline-flex w-fit items-center gap-1 text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-              style={{ color: 'var(--accent)' }}
-            >
-              {labels.viewAllPastSessions} <CaretRight size={16} aria-hidden />
-            </Link>
+            <NavigationLink href={pastSessionsHref}>{labels.viewAllPastSessions}</NavigationLink>
           ) : null}
         </div>
       </div>
@@ -215,8 +226,8 @@ export function AcademyPreviewGrid({
   const [activeTab, setActiveTab] = useState<AcademyPastSessionTab>('all');
 
   return (
-    <section>
-      <div className="px-4 pt-16 pb-6 sm:px-8 sm:pt-24 sm:pb-8 lg:pt-36">
+    <section id="materials" className="scroll-mt-24">
+      <div className="px-4 pt-20 pb-6 sm:px-8 sm:pb-8">
         <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
           {labels.sectionTitle}
         </h2>

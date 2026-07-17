@@ -89,6 +89,15 @@ function parseMarkdown(source: string): Block[] {
   return blocks;
 }
 
+function slugifyHeading(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const pattern =
     /(\*\*[^*]+\*\*|_[^_]+_|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s)]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
@@ -227,14 +236,22 @@ export function LegalMarkdown({
 
           if (block.level === 2) {
             return (
-              <h2 key={key} className="text-foreground mt-4 text-xl font-semibold">
+              <h2
+                key={key}
+                id={slugifyHeading(block.text)}
+                className="text-foreground mt-4 scroll-mt-24 text-xl font-semibold"
+              >
                 {renderInline(block.text, key)}
               </h2>
             );
           }
 
           return (
-            <h3 key={key} className="text-foreground mt-2 text-lg font-semibold">
+            <h3
+              key={key}
+              id={slugifyHeading(block.text)}
+              className="text-foreground mt-2 scroll-mt-24 text-lg font-semibold"
+            >
               {renderInline(block.text, key)}
             </h3>
           );

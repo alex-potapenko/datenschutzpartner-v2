@@ -17,18 +17,16 @@ export function FaqSectionFrame({ title, intro, children, className }: FaqSectio
       <div className="px-4 py-10 sm:px-8 sm:py-16 lg:py-20">
         <h2
           id="faq-section-title"
-          className="font-display text-foreground mx-auto max-w-3xl text-center text-xl font-semibold sm:text-2xl"
+          className="font-display text-foreground mx-auto mb-10 max-w-3xl text-center text-xl font-semibold sm:text-2xl lg:mb-12"
         >
           {title}
         </h2>
+        {children}
         {intro ? (
-          <p className="text-foreground mx-auto mt-4 mb-10 max-w-3xl text-center text-base leading-relaxed lg:mb-12">
+          <p className="text-foreground mx-auto mt-10 max-w-3xl text-center text-base leading-relaxed lg:mt-12">
             {intro}
           </p>
-        ) : (
-          <div className="mb-10 lg:mb-12" aria-hidden />
-        )}
-        {children}
+        ) : null}
       </div>
     </section>
   );

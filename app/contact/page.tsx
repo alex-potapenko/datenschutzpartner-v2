@@ -11,6 +11,7 @@ import {
   Butterfly,
 } from '@/components/ui';
 import { ContactForm } from './_components/ContactForm';
+import { createContactSpamChallenge, parseContactSubject } from '@/api/contact-messages';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('contact');
@@ -44,8 +45,15 @@ const SOCIAL_LINKS = [
   },
 ];
 
-export default async function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ subject?: string }>;
+}) {
   const t = await getTranslations('contact');
+  const { subject } = await searchParams;
+  const defaultSubject = parseContactSubject(subject);
+  const spamChallenge = createContactSpamChallenge();
 
   return (
     <RegularPage
@@ -53,7 +61,7 @@ export default async function ContactPage() {
       header={<h1 className="text-foreground text-2xl font-bold sm:text-3xl">{t('title')}</h1>}
       noPadding
     >
-      <div className="grid lg:grid-cols-2">
+      <div className="grid flex-1 lg:grid-cols-2">
         <div className="border-border flex flex-col gap-8 border-b p-4 pt-10 sm:p-8 lg:border-r lg:border-b-0">
           <div className="flex flex-col gap-3">
             <h2 className="text-foreground text-xl font-semibold">{t('addressHeading')}</h2>
@@ -109,7 +117,7 @@ export default async function ContactPage() {
 
         <div className="flex flex-col gap-6 p-4 pt-10 sm:p-8">
           <h2 className="text-foreground text-xl font-semibold">{t('formHeading')}</h2>
-          <ContactForm />
+          <ContactForm defaultSubject={defaultSubject} spamChallenge={spamChallenge} />
         </div>
       </div>
     </RegularPage>

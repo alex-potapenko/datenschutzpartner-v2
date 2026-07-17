@@ -17,10 +17,18 @@ import {
   CopyIcon as Copy,
   ShareNetworkIcon as ShareNetwork,
   SignInIcon as SignIn,
+  SignOutIcon as SignOut,
   XIcon as X,
   ListIcon as List,
   ListChecksIcon as ListChecks,
   GridFourIcon as GridFour,
+  HouseIcon as House,
+  PencilSimpleIcon as PencilSimple,
+  ArrowsClockwiseIcon as ArrowsClockwise,
+  ReceiptIcon as Receipt,
+  TrashIcon as Trash,
+  DotsThreeIcon as DotsThree,
+  IdentificationCardIcon as IdentificationCard,
   PlayCircleIcon as PlayCircle,
   PlayIcon as Play,
   ClockIcon as Clock,
@@ -51,6 +59,7 @@ import {
   MailboxIcon as Mailbox,
   MicrophoneStageIcon as MicrophoneStage,
   NewspaperIcon as Newspaper,
+  QuestionIcon as Question,
 
   // Media / Social
   CameraIcon as Camera,
@@ -76,6 +85,7 @@ import {
 
   // Status
   CheckCircleIcon as CheckCircle,
+  InfoIcon as Info,
   CrownIcon as Crown,
   LightningIcon as Lightning,
   SparkleIcon as Sparkle,
@@ -99,10 +109,18 @@ export {
   Copy,
   ShareNetwork,
   SignIn,
+  SignOut,
   X,
   List,
   ListChecks,
   GridFour,
+  House,
+  PencilSimple,
+  ArrowsClockwise,
+  Receipt,
+  Trash,
+  DotsThree,
+  IdentificationCard,
   PlayCircle,
   Play,
   Clock,
@@ -133,6 +151,7 @@ export {
   Mailbox,
   MicrophoneStage,
   Newspaper,
+  Question,
 
   // Media / Social
   Camera,
@@ -158,6 +177,7 @@ export {
 
   // Status
   CheckCircle,
+  Info,
   Crown,
   Lightning,
   Sparkle,

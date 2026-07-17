@@ -1,12 +1,12 @@
 'use client';
 
 import { Suspense, type ReactNode } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { CaretRight, GraduationCap, MicrophoneStage, Newspaper, Tabs } from '@/components/ui';
+import { GraduationCap, MicrophoneStage, Newspaper, Tabs } from '@/components/ui';
 import { ArticlesGrid } from './ArticlesGrid';
 import { InsightsPagination } from './InsightsPagination';
+import { NavigationLink } from './NavigationLink';
 import {
   getInsightsContent,
   getInsightsPageArticles,
@@ -76,15 +76,7 @@ function InsightsPanelContent({
       <div className={['flex flex-col gap-8 px-4 sm:px-8', headerClassName].join(' ')}>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <HeadingTag className={titleClassName}>{t('title')}</HeadingTag>
-          {showAllLink && (
-            <Link
-              href="/insights"
-              className="inline-flex shrink-0 items-center gap-1 text-base font-normal transition-colors hover:text-[var(--link-hover)]"
-              style={{ color: 'var(--accent)' }}
-            >
-              {t('allInsights')} <CaretRight size={16} />
-            </Link>
-          )}
+          {showAllLink && <NavigationLink href="/insights">{t('allInsights')}</NavigationLink>}
         </div>
       </div>
 
@@ -98,7 +90,7 @@ function InsightsPanelContent({
           <Tabs.List aria-label={t('tabsNavigation')} className="!w-auto max-w-full !border-b-0">
             {INSIGHTS_TAB_IDS.map((tab) => (
               <Tabs.Tab key={tab} id={tab} className="!h-auto !w-auto shrink-0 pb-4">
-                <span className="font-display inline-flex items-center gap-2 text-sm whitespace-nowrap sm:text-base">
+                <span className="inline-flex items-center gap-2 text-base font-medium whitespace-nowrap">
                   {TAB_ICONS[tab]}
                   {t(`tabs.${tab}`)}
                 </span>
