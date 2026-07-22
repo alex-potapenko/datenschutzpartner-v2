@@ -724,6 +724,9 @@
       "title": "Your privacy policy is ready.",
       "description": "Generated based on your website scan and the details you provided.",
       "continueToCheckout": "Continue to checkout",
+      "regeneratePolicy": "Update policy",
+      "updateSuccess": "Your policy has been updated.",
+      "updateFailed": "The policy could not be updated. Please try again.",
       "categories": {
         "overview": "Overview",
         "scanCoverage": "Scan coverage",
@@ -841,7 +844,16 @@
           "other": "Other"
         }
       },
-      "continueToSummary": "Review summary"
+      "continueToSummary": "Review summary",
+      "uidLookup": {
+        "label": "Company UID lookup",
+        "fieldHint": "Optional — search by UID or company name to fill in the address automatically.",
+        "placeholder": "CHE-123.456.789 or company name",
+        "hint": "Swiss commercial register (UID) lookup for companies based in Switzerland.",
+        "searching": "Searching registry…",
+        "resultsLabel": "Matching companies",
+        "empty": "No matching companies found."
+      }
     },
     "checkout": {
       "title": "Review & checkout",
@@ -1507,6 +1519,21 @@
     "versionsAriaLabel": "Policy versions by year",
     "archivedNote": "You're viewing an archived version. The latest year is the one live on your site.",
     "effectiveFrom": "Effective from",
+    "implementation": {
+      "title": "How to publish this policy on your website",
+      "body": "Your policy is hosted by Datenschutzpartner and kept legally up to date automatically. Add it to your site using the hosted URL or the embed code below.",
+      "steps": {
+        "hosted": "Copy the hosted URL and link to it from your website footer or legal page.",
+        "link": "Alternatively, paste the iframe embed code into the page where the policy should appear.",
+        "embed": "Save and publish your site — legal updates will appear automatically without further action."
+      },
+      "hostedUrlLabel": "Hosted policy URL",
+      "embedCodeLabel": "Embed code",
+      "copyUrl": "Copy URL",
+      "copyEmbed": "Copy embed code",
+      "copied": "Copied to clipboard.",
+      "copyFailed": "Could not copy. Please copy manually."
+    },
     "sections": {
       "controller": {
         "title": "Data controller",

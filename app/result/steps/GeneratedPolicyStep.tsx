@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui';
 import { PolicyDocument, PolicyDocumentHeader } from '@/components/shared/PolicyDocument';
+import { PolicyImplementationGuide } from '@/components/shared/PolicyImplementationGuide';
 import { PolicyDetailPageShell } from '@/components/shared/PolicyDetailLayout';
 import type { GeneratedDocument } from '@/api/documents';
 
@@ -24,7 +25,9 @@ export function GeneratedPolicyStep({ document }: GeneratedPolicyStepProps) {
       backLabel={tDocuments('backToList')}
       header={<PolicyDocumentHeader document={document} />}
     >
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <PolicyImplementationGuide document={document} />
+
         <PolicyDocument
           document={document}
           embedInPage

@@ -9,6 +9,7 @@ import {
   resolveDocumentSite,
   type GeneratedDocument,
 } from '@/api/documents';
+import { buildPolicyUpdateUrl } from '@/app/result/wizard-state';
 import { FileText, Plus, Button, SearchField, Table } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { PriceBlock } from '@/components/shared/PriceBlock';
@@ -101,9 +102,17 @@ function DocumentTable({
             <Table.Cell>{formatDate(doc.createdDate)}</Table.Cell>
             <Table.Cell>{formatDate(doc.updatedDate)}</Table.Cell>
             <Table.Cell className="text-right">
-              <NavigationLink href={`/account/policies/${doc.id}`} size="sm" chevron="right">
-                {t('open')}
-              </NavigationLink>
+              <div className="flex items-center justify-end gap-3">
+                <NavigationLink
+                  href={buildPolicyUpdateUrl(doc.id, resolveDocumentSite(doc))}
+                  size="sm"
+                >
+                  {t('update')}
+                </NavigationLink>
+                <NavigationLink href={`/account/policies/${doc.id}`} size="sm" chevron="right">
+                  {t('open')}
+                </NavigationLink>
+              </div>
             </Table.Cell>
           </Table.Row>
         ))}

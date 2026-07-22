@@ -9,6 +9,7 @@ import { GENERATOR_PLAN_PRICES, GENERATOR_PLAN_SITE_COUNTS } from '@/api/checkou
 import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
 import { normalizeGeneratedDocument } from '@/api/documents';
 import type { EuRepInquiry } from '@/api/eu-rep-inquiries';
+import type { UidCompany } from '@/api/uid-registry';
 import { createCollection } from './db';
 
 function tokenFromRequest(request: Request): string | null {
@@ -480,6 +481,49 @@ const documents = createCollection<GeneratedDocument>(
   4
 );
 
+const UID_COMPANIES: UidCompany[] = [
+  {
+    uid: 'CHE-123.456.789',
+    name: 'Baumgartner Digital AG',
+    street: 'Bahnhofstrasse 12',
+    postalCode: '8001',
+    city: 'Zürich',
+    country: 'Schweiz',
+  },
+  {
+    uid: 'CHE-109.876.543',
+    name: 'Sutter Web GmbH',
+    street: 'Industriestrasse 4',
+    postalCode: '8600',
+    city: 'Dübendorf',
+    country: 'Schweiz',
+  },
+  {
+    uid: 'CHE-456.789.012',
+    name: 'Alpenblick Hotel AG',
+    street: 'Dorfstrasse 18',
+    postalCode: '3818',
+    city: 'Grindelwald',
+    country: 'Schweiz',
+  },
+  {
+    uid: 'CHE-321.654.987',
+    name: 'Müller Consulting GmbH',
+    street: 'Seestrasse 22',
+    postalCode: '6004',
+    city: 'Luzern',
+    country: 'Schweiz',
+  },
+  {
+    uid: 'CHE-987.654.321',
+    name: 'Kreativ Studio GmbH',
+    street: 'Marktgasse 7',
+    postalCode: '3011',
+    city: 'Bern',
+    country: 'Schweiz',
+  },
+];
+
 export const handlers = [
   http.get('/api/contacts', () => HttpResponse.json(contacts.all())),
 
@@ -674,6 +718,38 @@ export const handlers = [
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
     return HttpResponse.json(normalizeGeneratedDocument(document));
+  }),
+
+  http.post('/api/documents/:id/regenerate', ({ params }) => {
+    const id = String(params.id);
+    const existing = documents.all().find((row) => row.id === id);
+    if (!existing) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const updated = documents.update(id, {
+      updatedDate: today,
+    });
+
+    return HttpResponse.json(normalizeGeneratedDocument(updated ?? existing));
+  }),
+
+  http.get('/api/uid-registry/search', ({ request }) => {
+    const url = new URL(request.url);
+    const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    if (query.length < 2) {
+      return HttpResponse.json([]);
+    }
+
+    const results = UID_COMPANIES.filter((company) => {
+      const haystack = [company.uid, company.name, company.city, company.street, company.postalCode]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    }).slice(0, 8);
+
+    return HttpResponse.json(results);
   }),
 
   http.get('/api/generator/plan', ({ request }) =>

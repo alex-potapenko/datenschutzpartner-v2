@@ -32,6 +32,8 @@ interface SummaryStepProps {
   euRep: EuRepState;
   onPreview: () => void;
   onBack?: () => void;
+  isUpdateMode?: boolean;
+  isSubmitting?: boolean;
 }
 
 function CategoryRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -82,7 +84,15 @@ function buildScanCoverage() {
   }));
 }
 
-export function SummaryStep({ domain, formData, euRep, onPreview, onBack }: SummaryStepProps) {
+export function SummaryStep({
+  domain,
+  formData,
+  euRep,
+  onPreview,
+  onBack,
+  isUpdateMode = false,
+  isSubmitting = false,
+}: SummaryStepProps) {
   const t = useTranslations('result.summary');
   const tImproved = useTranslations('result.improvedStep.options');
 
@@ -345,7 +355,12 @@ export function SummaryStep({ domain, formData, euRep, onPreview, onBack }: Summ
         </div>
       </Container>
 
-      <StepFooter onBack={onBack} onContinue={onPreview} ctaLabel={t('continueToCheckout')} />
+      <StepFooter
+        onBack={onBack}
+        onContinue={onPreview}
+        ctaLabel={isUpdateMode ? t('regeneratePolicy') : t('continueToCheckout')}
+        ctaDisabled={isSubmitting}
+      />
     </>
   );
 }

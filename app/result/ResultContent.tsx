@@ -16,6 +16,7 @@ import {
   buildVisitedSteps,
   emptyEuRepState,
   isEuRepApplicable,
+  isQuestionnaireOnlyMode,
   isWizardStep,
   readWizardState,
   resolveWizardStep,
@@ -25,6 +26,9 @@ import {
   type WizardProgress,
   type WizardStep,
 } from './wizard-state';
+import { useRegenerateDocument } from '@/api/documents';
+import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 type Step = WizardStep;
 
@@ -45,11 +49,15 @@ function buildFallbackPolicy(domain: string, id: string): GeneratedDocument {
 }
 
 function createInitialState(params: URLSearchParams) {
+  const questionnaireOnly = isQuestionnaireOnlyMode(params);
+  const updateDocumentId = params.get('documentId') ?? undefined;
   const stepFromUrl = params.get('step');
   const progress: WizardProgress = {
-    scanDone: false,
+    scanDone: questionnaireOnly,
     formData: undefined,
     euRep: emptyEuRepState(),
+    questionnaireOnly,
+    updateDocumentId,
   };
   const step = resolveWizardStep(isWizardStep(stepFromUrl) ? stepFromUrl : null, progress);
 
@@ -71,6 +79,8 @@ function syncVisitedSteps(
 export default function ResultContent() {
   const params = useSearchParams();
   const router = useRouter();
+  const tSummary = useTranslations('result.summary');
+  const regenerateDocument = useRegenerateDocument();
   const rawUrl = params.get('url') ?? 'https://mywebsite.ch';
 
   const domain: string = (() => {
@@ -95,8 +105,18 @@ export default function ResultContent() {
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(initialState.visitedSteps);
   const [phase, setPhase] = useState<CheckoutPhase>('wizard');
   const [checkoutDocument, setCheckoutDocument] = useState<GeneratedDocument | undefined>();
+  const [questionnaireOnly, setQuestionnaireOnly] = useState(
+    initialState.questionnaireOnly ?? false
+  );
+  const [updateDocumentId, setUpdateDocumentId] = useState(initialState.updateDocumentId);
 
-  const progress: WizardProgress = { scanDone, formData, euRep };
+  const progress: WizardProgress = {
+    scanDone,
+    formData,
+    euRep,
+    questionnaireOnly,
+    updateDocumentId,
+  };
 
   const didHydrate = useRef(false);
 
@@ -108,14 +128,18 @@ export default function ResultContent() {
     const stepParam = params.get('step');
     const requestedStep = isWizardStep(stepParam) ? stepParam : null;
     const restored = readWizardState(stepParam);
+    const urlQuestionnaireOnly = isQuestionnaireOnlyMode(params);
+    const urlUpdateDocumentId = params.get('documentId') ?? undefined;
 
     /* eslint-disable react-hooks/set-state-in-effect */
     if (restored) {
       setStep(restored.step);
       if (restored.formData !== undefined) setFormData(restored.formData);
-      setScanDone(restored.scanDone);
+      setScanDone(urlQuestionnaireOnly ? true : restored.scanDone);
       setEuRep(restored.euRep);
       setVisitedSteps(new Set(restored.visitedSteps));
+      setQuestionnaireOnly(urlQuestionnaireOnly || Boolean(restored.questionnaireOnly));
+      setUpdateDocumentId(urlUpdateDocumentId ?? restored.updateDocumentId);
 
       if (restored.checkoutPhase === 'payment' || restored.checkoutPhase === 'ready') {
         setPhase(restored.checkoutPhase);
@@ -173,11 +197,24 @@ export default function ResultContent() {
       scanDone,
       formData,
       euRep,
+      questionnaireOnly,
+      updateDocumentId,
       visitedSteps: [...visitedSteps] as WizardStep[],
       checkoutPhase: phase === 'wizard' ? undefined : phase,
       checkoutDocumentId: checkoutDocument?.id,
     });
-  }, [hydrated, step, scanDone, formData, euRep, visitedSteps, phase, checkoutDocument?.id]);
+  }, [
+    hydrated,
+    step,
+    scanDone,
+    formData,
+    euRep,
+    questionnaireOnly,
+    updateDocumentId,
+    visitedSteps,
+    phase,
+    checkoutDocument?.id,
+  ]);
 
   function syncStepInUrl(next: Step) {
     const nextParams = new URLSearchParams(params.toString());
@@ -214,11 +251,37 @@ export default function ResultContent() {
   }
 
   function handleBack() {
-    if (step === 'improved') goToStep('scan');
-    else if (step === 'eu-rep') goToStep('improved');
+    if (step === 'improved') {
+      if (questionnaireOnly) {
+        router.push(
+          updateDocumentId ? `/account/policies/${updateDocumentId}` : '/account?section=generator'
+        );
+        return;
+      }
+      goToStep('scan');
+      return;
+    }
+    if (step === 'eu-rep') goToStep('improved');
     else if (step === 'summary') {
       goToStep(isEuRepApplicable(formData) ? 'eu-rep' : 'improved');
     }
+  }
+
+  function handleSummaryContinue() {
+    if (questionnaireOnly && updateDocumentId) {
+      regenerateDocument.mutate(updateDocumentId, {
+        onSuccess: () => {
+          toast.success(tSummary('updateSuccess'));
+          router.push(`/account/policies/${updateDocumentId}`);
+        },
+        onError: () => {
+          toast.error(tSummary('updateFailed'));
+        },
+      });
+      return;
+    }
+
+    setPhase('payment');
   }
 
   function handleStepClick(stepId: string) {
@@ -226,7 +289,7 @@ export default function ResultContent() {
     goToStep(stepId);
   }
 
-  const canGoBack = step !== 'scan';
+  const canGoBack = questionnaireOnly ? true : step !== 'scan';
   const visibleStepIds = wizardStepOrder(progress);
 
   // Post-configuration checkout: payment → generated policy (full policy detail page).
@@ -303,9 +366,9 @@ export default function ResultContent() {
               domain={domain}
               formData={formData}
               euRep={euRep}
-              onPreview={() => {
-                setPhase('payment');
-              }}
+              isUpdateMode={questionnaireOnly}
+              isSubmitting={regenerateDocument.isPending}
+              onPreview={handleSummaryContinue}
               onBack={handleBack}
             />
           )}

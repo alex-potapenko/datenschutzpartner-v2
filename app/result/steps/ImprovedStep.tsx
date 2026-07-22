@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
 import { improvedFormSchema, getVisibleEuRepQuestionFields } from '@/api/generator';
 import { TextInput, RadioGroup, CheckboxField } from '../ui/FormSection';
+import { UidCompanyLookup } from '../ui/UidCompanyLookup';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
 import { Container } from '@/components/shared/Container';
@@ -22,6 +23,7 @@ interface ImprovedStepProps {
   domain: string;
   onSubmit: (data: ImprovedFormData) => void;
   onBack?: () => void;
+  initialData?: Partial<ImprovedFormData>;
 }
 
 function Reveal({ show, children }: { show: boolean; children: React.ReactNode }) {
@@ -74,7 +76,7 @@ function QField({
   );
 }
 
-export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
+export function ImprovedStep({ domain, onSubmit, onBack, initialData }: ImprovedStepProps) {
   const t = useTranslations('result.improvedStep');
   const tEuRepQ = useTranslations('euRepQuestionnaire');
   const tValidation = useTranslations('validation');
@@ -82,31 +84,35 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
   const companyGuess = domain.replace(/^www\./, '').split('.')[0] ?? domain;
   const companyName = companyGuess.charAt(0).toUpperCase() + companyGuess.slice(1);
 
-  const [form, setForm] = useState<ImprovedFormData>({
-    companyName,
-    domain,
-    email: `info@${domain}`,
-    street: '',
-    postalCode: '',
-    city: '',
-    country: '',
-    generatesRevenue: '',
-    revenueTypes: [],
-    processesSpecialData: '',
-    specialDataCategories: [],
-    basedInSwitzerland: '',
-    processesEUData: '',
-    systematically: '',
-    offersToEU: '',
-    monitorsEUBehaviour: '',
-    hasEUEstablishment: '',
-    transfersToThirdCountry: '',
-    usesDataForMarketing: '',
-    usesProfiling: '',
-    hasEmployeePrivacyNotice: '',
-    employeePrivacyUrl: '',
-    listSupervisoryAuthority: '',
-    supervisoryAuthority: '',
+  const [form, setForm] = useState<ImprovedFormData>(() => {
+    const { domain: initialDomain, ...restInitial } = initialData ?? {};
+    return {
+      companyName,
+      email: `info@${domain}`,
+      street: '',
+      postalCode: '',
+      city: '',
+      country: '',
+      generatesRevenue: '',
+      revenueTypes: [],
+      processesSpecialData: '',
+      specialDataCategories: [],
+      basedInSwitzerland: '',
+      processesEUData: '',
+      systematically: '',
+      offersToEU: '',
+      monitorsEUBehaviour: '',
+      hasEUEstablishment: '',
+      transfersToThirdCountry: '',
+      usesDataForMarketing: '',
+      usesProfiling: '',
+      hasEmployeePrivacyNotice: '',
+      employeePrivacyUrl: '',
+      listSupervisoryAuthority: '',
+      supervisoryAuthority: '',
+      ...restInitial,
+      domain: initialDomain ?? domain,
+    };
   });
 
   const euRepVisible = getVisibleEuRepQuestionFields(form);
@@ -183,6 +189,20 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
       <Container>
         <div className="border-border flex flex-col border-r border-l">
           <CategoryRow label={t('categories.controllerIdentity')}>
+            <QField label={t('uidLookup.label')} hint={t('uidLookup.fieldHint')}>
+              <UidCompanyLookup
+                onSelect={(company) => {
+                  setForm((current) => ({
+                    ...current,
+                    companyName: company.name,
+                    street: company.street,
+                    postalCode: company.postalCode,
+                    city: company.city,
+                    country: company.country,
+                  }));
+                }}
+              />
+            </QField>
             <QField label={t('fields.companyName')}>
               <TextInput
                 value={form.companyName}

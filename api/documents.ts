@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { request } from './client';
 
@@ -120,5 +120,17 @@ export function useGeneratorPlan() {
   return useQuery({
     queryKey: documentKeys.plan,
     queryFn: () => request<GeneratorPlan | null>('/generator/plan'),
+  });
+}
+
+export function useRegenerateDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<GeneratedDocument>(`/documents/${id}/regenerate`, { method: 'POST' }),
+    onSuccess: (document) => {
+      void queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: documentKeys.detail(document.id) });
+    },
   });
 }

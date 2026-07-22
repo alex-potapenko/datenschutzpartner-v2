@@ -724,6 +724,9 @@
       "title": "Deine Datenschutzerklärung ist bereit.",
       "description": "Erstellt auf Basis Deines Website-Scans und den Angaben, die Du gemacht hast.",
       "continueToCheckout": "Weiter zur Kasse",
+      "regeneratePolicy": "Richtlinie aktualisieren",
+      "updateSuccess": "Ihre Richtlinie wurde aktualisiert.",
+      "updateFailed": "Die Richtlinie konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
       "categories": {
         "overview": "Übersicht",
         "scanCoverage": "Scan-Abdeckung",
@@ -841,7 +844,16 @@
           "other": "Andere"
         }
       },
-      "continueToSummary": "Zusammenfassung prüfen"
+      "continueToSummary": "Zusammenfassung prüfen",
+      "uidLookup": {
+        "label": "UID-Suche",
+        "fieldHint": "Optional — suchen Sie nach UID oder Firmennamen, um die Adresse automatisch auszufüllen.",
+        "placeholder": "CHE-123.456.789 oder Firmenname",
+        "hint": "Abfrage des Schweizer Handelsregisters (UID) für in der Schweiz ansässige Unternehmen.",
+        "searching": "Register wird durchsucht…",
+        "resultsLabel": "Passende Unternehmen",
+        "empty": "Keine passenden Unternehmen gefunden."
+      }
     },
     "checkout": {
       "title": "Prüfen & bezahlen",
@@ -1507,6 +1519,21 @@
     "versionsAriaLabel": "Richtlinienversionen nach Jahr",
     "archivedNote": "Du siehst eine archivierte Version. Die neueste Jahresversion ist auf deiner Website live.",
     "effectiveFrom": "Gültig ab",
+    "implementation": {
+      "title": "So veröffentlichen Sie diese Richtlinie auf Ihrer Website",
+      "body": "Ihre Richtlinie wird von Datenschutzpartner gehostet und automatisch rechtlich aktuell gehalten. Fügen Sie sie mit der gehosteten URL oder dem Einbettungscode auf Ihrer Website ein.",
+      "steps": {
+        "hosted": "Kopieren Sie die gehostete URL und verlinken Sie sie im Footer oder auf Ihrer Rechtsseite.",
+        "link": "Alternativ fügen Sie den iframe-Einbettungscode auf der Seite ein, auf der die Richtlinie erscheinen soll.",
+        "embed": "Speichern und veröffentlichen Sie Ihre Website — rechtliche Updates erscheinen automatisch ohne weiteren Aufwand."
+      },
+      "hostedUrlLabel": "Gehostete Richtlinien-URL",
+      "embedCodeLabel": "Einbettungscode",
+      "copyUrl": "URL kopieren",
+      "copyEmbed": "Code kopieren",
+      "copied": "In die Zwischenablage kopiert.",
+      "copyFailed": "Kopieren fehlgeschlagen. Bitte manuell kopieren."
+    },
     "sections": {
       "controller": {
         "title": "Verantwortlicher",

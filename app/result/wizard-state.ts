@@ -23,6 +23,9 @@ export type WizardProgress = {
   scanDone: boolean;
   formData?: ImprovedFormData;
   euRep: EuRepState;
+  /** Re-run the questionnaire only — skips scan (policy update flow). */
+  questionnaireOnly?: boolean;
+  updateDocumentId?: string;
 };
 
 export type WizardPersistedState = WizardProgress & {
@@ -31,6 +34,10 @@ export type WizardPersistedState = WizardProgress & {
   checkoutPhase?: 'payment' | 'ready';
   checkoutDocumentId?: string;
 };
+
+export function isQuestionnaireOnlyMode(params: URLSearchParams): boolean {
+  return params.get('mode') === 'update';
+}
 
 const WIZARD_STORAGE_KEY = 'datenschutzpartner-result-wizard';
 
@@ -66,14 +73,14 @@ export function isEuRepRequired(formData?: ImprovedFormData): boolean {
 
 /** The ordered steps for the current run — `eu-rep` is conditional. */
 export function wizardStepOrder(progress: WizardProgress): WizardStep[] {
-  const steps: WizardStep[] = ['scan', 'improved'];
+  const steps: WizardStep[] = progress.questionnaireOnly ? ['improved'] : ['scan', 'improved'];
   if (isEuRepApplicable(progress.formData)) steps.push('eu-rep');
   steps.push('summary');
   return steps;
 }
 
 export function maxAccessibleStep(progress: WizardProgress): WizardStep {
-  if (!progress.scanDone) return 'scan';
+  if (!progress.questionnaireOnly && !progress.scanDone) return 'scan';
   if (!progress.formData) return 'improved';
   if (isEuRepApplicable(progress.formData) && !progress.euRep.done) return 'eu-rep';
   return 'summary';
@@ -124,6 +131,8 @@ export function readWizardState(stepFromUrl?: string | null): WizardPersistedSta
       scanDone: Boolean(parsed.scanDone),
       formData: parsed.formData,
       euRep: migrateEuRep(parsed.euRep),
+      questionnaireOnly: Boolean(parsed.questionnaireOnly),
+      updateDocumentId: parsed.updateDocumentId,
     };
 
     const stepParam = stepFromUrl ?? null;
@@ -153,5 +162,15 @@ export function writeWizardState(state: WizardPersistedState) {
 export function buildResultReturnTo(searchParams: URLSearchParams, step: WizardStep) {
   const params = new URLSearchParams(searchParams.toString());
   params.set('step', step);
+  return `/result?${params.toString()}`;
+}
+
+export function buildPolicyUpdateUrl(documentId: string, site: string): string {
+  const params = new URLSearchParams({
+    url: site.startsWith('http') ? site : `https://${site}`,
+    mode: 'update',
+    documentId,
+    step: 'improved',
+  });
   return `/result?${params.toString()}`;
 }

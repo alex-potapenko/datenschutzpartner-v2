@@ -6,10 +6,13 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useSession } from '@/api/auth';
 import { useDocument } from '@/api/documents';
-import { Spinner } from '@/components/ui';
+import { Button, Spinner } from '@/components/ui';
 import { PolicyDocument, PolicyDocumentHeader } from '@/components/shared/PolicyDocument';
+import { PolicyImplementationGuide } from '@/components/shared/PolicyImplementationGuide';
 import { PolicyDetailPageShell } from '@/components/shared/PolicyDetailLayout';
+import { buildPolicyUpdateUrl } from '@/app/result/wizard-state';
 import { DataState } from '@/app/account/_components/account-ui';
+import { resolveDocumentSite } from '@/api/documents';
 
 export function PolicyDetailApp({ documentId }: { documentId: string }) {
   const t = useTranslations('account.documents');
@@ -49,13 +52,29 @@ export function PolicyDetailApp({ documentId }: { documentId: string }) {
         onRetry={() => void document.refetch()}
       >
         {document.data ? (
-          <PolicyDocument
-            document={document.data}
-            embedInPage
-            onExport={() => {
-              toast.success(t('exportStarted'));
-            }}
-          />
+          <div className="flex flex-col gap-10 pb-10">
+            <div className="flex justify-end px-4 sm:px-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  router.push(
+                    buildPolicyUpdateUrl(document.data.id, resolveDocumentSite(document.data))
+                  );
+                }}
+              >
+                {t('update')}
+              </Button>
+            </div>
+            <PolicyImplementationGuide document={document.data} />
+            <PolicyDocument
+              document={document.data}
+              embedInPage
+              onExport={() => {
+                toast.success(t('exportStarted'));
+              }}
+            />
+          </div>
         ) : null}
       </DataState>
     </PolicyDetailPageShell>
