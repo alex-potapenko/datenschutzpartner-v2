@@ -1271,9 +1271,20 @@
         "subscription": "Subscription"
       },
       "inquiries": {
+        "allowanceTitle": "Inquiries Available",
+        "countTitle": "Forwarded Inquiries",
+        "countNote": "Handled on your behalf by our EU representative",
+        "furtherInquiryNote": "per extra inquiry",
+        "listTitle": "Inquiries",
+        "addInquiry": "Add inquiry",
+        "searchLabel": "Search inquiries",
+        "searchPlaceholder": "Search inquiries…",
+        "emptySearch": "No inquiries match your search.",
+        "emptyCta": "Forward your first inquiry",
         "tableLabel": "EU Representation inquiries",
         "colDate": "Date",
         "colSubject": "Subject",
+        "colReference": "Reference",
         "colStatus": "Status",
         "empty": "No inquiries have been forwarded on your behalf yet.",
         "status": {

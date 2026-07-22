@@ -1271,9 +1271,20 @@
         "subscription": "Abonnement"
       },
       "inquiries": {
+        "allowanceTitle": "Anfragen verfügbar",
+        "countTitle": "Weitergeleitete Anfragen",
+        "countNote": "In Deinem Namen durch unsere EU-Vertretung bearbeitet",
+        "furtherInquiryNote": "je weitere Anfrage",
+        "listTitle": "Anfragen",
+        "addInquiry": "Anfrage hinzufügen",
+        "searchLabel": "Anfragen suchen",
+        "searchPlaceholder": "Anfragen suchen…",
+        "emptySearch": "Keine Anfragen entsprechen Deiner Suche.",
+        "emptyCta": "Erste Anfrage weiterleiten",
         "tableLabel": "EU-Vertretung Anfragen",
         "colDate": "Datum",
         "colSubject": "Betreff",
+        "colReference": "Referenz",
         "colStatus": "Status",
         "empty": "Es wurden noch keine Anfragen in Deinem Namen weitergeleitet.",
         "status": {

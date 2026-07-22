@@ -87,7 +87,8 @@ This assumption is not spelled out in the client PDFs; it matches the product mo
   `useEuRepInquiries` → `GET /eu-rep/inquiries` returns `{ id, date, subject, status,
 reference? }[]` with `status` in `forwarded` | `answered` | `closed`. Gated on the
   member token in MSW (empty for demo). The **EU Representation → Inquiries** tab
-  (`EuRepSection`) renders these as a table with `StatusPill` tones.
+  (`InquiriesSection`) mirrors the Privacy Policy Generator list layout: allowance
+  summary cards, search, and a table with `StatusPill` tones.
 - `api/checkout.ts` — Payrexx checkout sessions and post-payment side effects.
   `useCreateCheckoutSession` → `POST /checkout/sessions` returns `{ id, redirectUrl,
 amount, siteCount }`. The POC simulates Payrexx by calling
