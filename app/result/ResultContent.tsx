@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepLayout } from './ui/StepLayout';
@@ -8,25 +8,48 @@ import { ScanStep } from './steps/ScanStep';
 import { ImprovedStep, type ImprovedFormData } from './steps/ImprovedStep';
 import { EuRepStep } from './steps/EuRepStep';
 import { SummaryStep } from './steps/SummaryStep';
+import { PaymentStep } from './steps/PaymentStep';
+import { GeneratedPolicyStep } from './steps/GeneratedPolicyStep';
+import type { GeneratedDocument } from '@/api/documents';
+import type { CheckoutCompleteResult } from '@/api/checkout';
 import {
   buildVisitedSteps,
+  emptyEuRepState,
+  isEuRepApplicable,
   isWizardStep,
   readWizardState,
   resolveWizardStep,
+  wizardStepOrder,
   writeWizardState,
+  type EuRepState,
   type WizardProgress,
   type WizardStep,
 } from './wizard-state';
 
 type Step = WizardStep;
 
+/** Post-configuration checkout flow, layered on top of the config wizard. */
+type CheckoutPhase = 'wizard' | 'payment' | 'ready';
+
+function buildFallbackPolicy(domain: string, id: string): GeneratedDocument {
+  const today = new Date().toISOString().slice(0, 10);
+  const year = Number(today.slice(0, 4));
+  return {
+    id,
+    name: 'Privacy Policy',
+    site: domain,
+    createdDate: today,
+    updatedDate: today,
+    versions: [{ year, current: true, effectiveDate: today, changeSummary: 'initial' }],
+  };
+}
+
 function createInitialState(params: URLSearchParams) {
   const stepFromUrl = params.get('step');
   const progress: WizardProgress = {
     scanDone: false,
     formData: undefined,
-    euRepPlan: undefined,
-    euRepSkipped: false,
+    euRep: emptyEuRepState(),
   };
   const step = resolveWizardStep(isWizardStep(stepFromUrl) ? stepFromUrl : null, progress);
 
@@ -68,32 +91,41 @@ export default function ResultContent() {
   const [step, setStep] = useState<Step>(initialState.step);
   const [formData, setFormData] = useState<ImprovedFormData | undefined>(initialState.formData);
   const [scanDone, setScanDone] = useState(initialState.scanDone);
-  const [euRepPlan, setEuRepPlan] = useState<'budget' | 'standard' | 'premium' | undefined>(
-    initialState.euRepPlan
-  );
-  const [euRepSkipped, setEuRepSkipped] = useState(initialState.euRepSkipped);
+  const [euRep, setEuRep] = useState<EuRepState>(initialState.euRep);
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(initialState.visitedSteps);
+  const [phase, setPhase] = useState<CheckoutPhase>('wizard');
+  const [checkoutDocument, setCheckoutDocument] = useState<GeneratedDocument | undefined>();
 
-  const progress: WizardProgress = { scanDone, formData, euRepPlan, euRepSkipped };
+  const progress: WizardProgress = { scanDone, formData, euRep };
 
+  const didHydrate = useRef(false);
+
+  // Mount-only hydration from sessionStorage (survives full page reloads / deep links).
   useEffect(() => {
-    const restored = readWizardState(params.get('step'));
+    if (didHydrate.current) return;
+    didHydrate.current = true;
+
     const stepParam = params.get('step');
     const requestedStep = isWizardStep(stepParam) ? stepParam : null;
+    const restored = readWizardState(stepParam);
 
     /* eslint-disable react-hooks/set-state-in-effect */
     if (restored) {
       setStep(restored.step);
       if (restored.formData !== undefined) setFormData(restored.formData);
       setScanDone(restored.scanDone);
-      setEuRepPlan(restored.euRepPlan);
-      setEuRepSkipped(restored.euRepSkipped);
+      setEuRep(restored.euRep);
       setVisitedSteps(new Set(restored.visitedSteps));
 
+      if (restored.checkoutPhase === 'payment' || restored.checkoutPhase === 'ready') {
+        setPhase(restored.checkoutPhase);
+      }
+      if (restored.checkoutDocumentId) {
+        setCheckoutDocument(buildFallbackPolicy(domain, restored.checkoutDocumentId));
+      }
+
       if (requestedStep && restored.step !== requestedStep) {
-        const nextParams = new URLSearchParams(params.toString());
-        nextParams.set('step', restored.step);
-        router.replace(`/result?${nextParams.toString()}`, { scroll: false });
+        syncStepInUrl(restored.step);
       }
     } else {
       const resolvedStep = resolveWizardStep(requestedStep, progress);
@@ -101,9 +133,7 @@ export default function ResultContent() {
       syncVisitedSteps(progress, resolvedStep, setVisitedSteps);
 
       if (requestedStep && resolvedStep !== requestedStep) {
-        const nextParams = new URLSearchParams(params.toString());
-        nextParams.set('step', resolvedStep);
-        router.replace(`/result?${nextParams.toString()}`, { scroll: false });
+        syncStepInUrl(resolvedStep);
       }
     }
 
@@ -113,6 +143,28 @@ export default function ResultContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
+  // Reconcile the step from the URL against the *in-memory* progress (handles
+  // browser back/forward and deep links). Reads live state, never storage, so
+  // it cannot clamp back to a stale value mid-navigation.
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const stepParam = params.get('step');
+    const requestedStep = isWizardStep(stepParam) ? stepParam : null;
+    const resolvedStep = resolveWizardStep(requestedStep, progress);
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (resolvedStep !== step) {
+      setStep(resolvedStep);
+      syncVisitedSteps(progress, resolvedStep, setVisitedSteps);
+    }
+    if (requestedStep && requestedStep !== resolvedStep) {
+      syncStepInUrl(resolvedStep);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, params]);
+
   useEffect(() => {
     if (!hydrated) return;
 
@@ -120,11 +172,12 @@ export default function ResultContent() {
       step,
       scanDone,
       formData,
-      euRepPlan,
-      euRepSkipped,
+      euRep,
       visitedSteps: [...visitedSteps] as WizardStep[],
+      checkoutPhase: phase === 'wizard' ? undefined : phase,
+      checkoutDocumentId: checkoutDocument?.id,
     });
-  }, [hydrated, step, scanDone, formData, euRepPlan, euRepSkipped, visitedSteps]);
+  }, [hydrated, step, scanDone, formData, euRep, visitedSteps, phase, checkoutDocument?.id]);
 
   function syncStepInUrl(next: Step) {
     const nextParams = new URLSearchParams(params.toString());
@@ -132,46 +185,40 @@ export default function ResultContent() {
     router.replace(`/result?${nextParams.toString()}`, { scroll: false });
   }
 
-  function goToStep(next: Step) {
-    const resolvedStep = resolveWizardStep(next, progress);
-    syncVisitedSteps(progress, resolvedStep, setVisitedSteps);
+  function advance(next: Step, nextProgress: WizardProgress) {
+    const resolvedStep = resolveWizardStep(next, nextProgress);
+    syncVisitedSteps(nextProgress, resolvedStep, setVisitedSteps);
     setStep(resolvedStep);
     syncStepInUrl(resolvedStep);
+  }
+
+  function goToStep(next: Step) {
+    advance(next, progress);
+  }
+
+  function handleScanContinue() {
+    setScanDone(true);
+    advance('improved', { ...progress, scanDone: true });
   }
 
   function handleImprovedSubmit(data: ImprovedFormData) {
     setFormData(data);
     const nextProgress = { ...progress, formData: data };
-    const resolvedStep = resolveWizardStep('eu-rep', nextProgress);
-    syncVisitedSteps(nextProgress, resolvedStep, setVisitedSteps);
-    setStep(resolvedStep);
-    syncStepInUrl(resolvedStep);
+    const target: Step = isEuRepApplicable(data) ? 'eu-rep' : 'summary';
+    advance(target, nextProgress);
   }
 
-  function handleEuRepSelect(plan: 'budget' | 'standard' | 'premium') {
-    setEuRepPlan(plan);
-    setEuRepSkipped(false);
-    const nextProgress = { ...progress, euRepPlan: plan, euRepSkipped: false };
-    const resolvedStep = resolveWizardStep('summary', nextProgress);
-    syncVisitedSteps(nextProgress, resolvedStep, setVisitedSteps);
-    setStep(resolvedStep);
-    syncStepInUrl(resolvedStep);
-  }
-
-  function handleEuRepSkip() {
-    setEuRepPlan(undefined);
-    setEuRepSkipped(true);
-    const nextProgress = { ...progress, euRepPlan: undefined, euRepSkipped: true };
-    const resolvedStep = resolveWizardStep('summary', nextProgress);
-    syncVisitedSteps(nextProgress, resolvedStep, setVisitedSteps);
-    setStep(resolvedStep);
-    syncStepInUrl(resolvedStep);
+  function handleEuRepComplete(next: EuRepState) {
+    setEuRep(next);
+    advance('summary', { ...progress, euRep: next });
   }
 
   function handleBack() {
     if (step === 'improved') goToStep('scan');
     else if (step === 'eu-rep') goToStep('improved');
-    else if (step === 'summary') goToStep('eu-rep');
+    else if (step === 'summary') {
+      goToStep(isEuRepApplicable(formData) ? 'eu-rep' : 'improved');
+    }
   }
 
   function handleStepClick(stepId: string) {
@@ -180,6 +227,45 @@ export default function ResultContent() {
   }
 
   const canGoBack = step !== 'scan';
+  const visibleStepIds = wizardStepOrder(progress);
+
+  // Post-configuration checkout: payment → generated policy (full policy detail page).
+  if (phase === 'ready' && checkoutDocument && formData) {
+    return <GeneratedPolicyStep document={checkoutDocument} />;
+  }
+
+  if (phase !== 'wizard' && formData) {
+    return (
+      <StepLayout step={step} domain={domain} showSteps={false}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={phase}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="flex flex-1 flex-col"
+          >
+            {phase === 'payment' && (
+              <PaymentStep
+                domain={domain}
+                formData={formData}
+                euRep={euRep}
+                onPaid={(result: CheckoutCompleteResult) => {
+                  const document = result.document ?? buildFallbackPolicy(domain, result.orderId);
+                  setCheckoutDocument(document);
+                  setPhase('ready');
+                }}
+                onBack={() => {
+                  setPhase('wizard');
+                }}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </StepLayout>
+    );
+  }
 
   return (
     <StepLayout
@@ -189,6 +275,7 @@ export default function ResultContent() {
       onBack={handleBack}
       onStepClick={handleStepClick}
       visitedSteps={visitedSteps}
+      visibleStepIds={visibleStepIds}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -200,35 +287,25 @@ export default function ResultContent() {
           className="flex flex-1 flex-col"
         >
           {step === 'scan' && (
-            <ScanStep
-              domain={domain}
-              skipLoading={scanDone}
-              onContinue={() => {
-                setScanDone(true);
-                const nextProgress = { ...progress, scanDone: true };
-                const resolvedStep = resolveWizardStep('improved', nextProgress);
-                syncVisitedSteps(nextProgress, resolvedStep, setVisitedSteps);
-                setStep(resolvedStep);
-                syncStepInUrl(resolvedStep);
-              }}
-            />
+            <ScanStep domain={domain} skipLoading={scanDone} onContinue={handleScanContinue} />
           )}
 
           {step === 'improved' && (
             <ImprovedStep domain={domain} onSubmit={handleImprovedSubmit} onBack={handleBack} />
           )}
 
-          {step === 'eu-rep' && (
-            <EuRepStep onSelect={handleEuRepSelect} onSkip={handleEuRepSkip} onBack={handleBack} />
+          {step === 'eu-rep' && formData && (
+            <EuRepStep formData={formData} onComplete={handleEuRepComplete} onBack={handleBack} />
           )}
 
           {step === 'summary' && formData && (
             <SummaryStep
               domain={domain}
               formData={formData}
-              euRepPlan={euRepPlan}
-              euRepSkipped={euRepSkipped}
-              onPreview={() => {}}
+              euRep={euRep}
+              onPreview={() => {
+                setPhase('payment');
+              }}
               onBack={handleBack}
             />
           )}

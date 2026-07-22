@@ -16,8 +16,6 @@ export interface ImprovedFormData {
   offersToEU: string;
   monitorsEUBehaviour: string;
   hasEUEstablishment: string;
-  hasEURepresentative: string;
-  euRepresentativeAddress: string;
   transfersToThirdCountry: string;
   usesDataForMarketing: string;
   usesProfiling: string;
@@ -77,6 +75,8 @@ export function formatOptionLabel(value: string) {
 export function formatOptionLabels(values: string[]) {
   return values.map(formatOptionLabel).join(', ');
 }
+
+export { getVisibleEuRepQuestionFields } from '@/api/generator';
 
 export const EU_REP_PLANS = {
   budget: {

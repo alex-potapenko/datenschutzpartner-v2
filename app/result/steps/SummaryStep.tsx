@@ -10,7 +10,6 @@ import {
   CurrencyDollar,
   Database,
   ArrowsLeftRight,
-  ChartBar,
   UsersThree,
   Gavel,
 } from '@/components/ui';
@@ -21,16 +20,16 @@ import { SCAN_GROUP_DEFINITIONS } from '../content/scan-groups';
 import {
   type ImprovedFormData,
   EU_REP_PLANS,
-  formatYesNo,
-  formatYesNoUnknown,
-  formatOptionLabel,
+  REVENUE_TYPE_OPTIONS,
+  SPECIAL_DATA_OPTIONS,
+  SUPERVISORY_AUTHORITY_OPTIONS,
 } from '../content/improved-form';
+import { isEuRepApplicable, isEuRepRequired, type EuRepState } from '../wizard-state';
 
 interface SummaryStepProps {
   domain: string;
   formData: ImprovedFormData;
-  euRepPlan?: 'budget' | 'standard' | 'premium';
-  euRepSkipped?: boolean;
+  euRep: EuRepState;
   onPreview: () => void;
   onBack?: () => void;
 }
@@ -39,9 +38,7 @@ function CategoryRow({ label, children }: { label: string; children: React.React
   return (
     <div className="border-border grid grid-cols-1 border-b last:border-b-0 lg:grid-cols-2">
       <div className="border-border border-b p-4 sm:p-8 lg:border-r lg:border-b-0">
-        <h2 className="text-lg leading-snug font-semibold" style={{ color: '#525252' }}>
-          {label}
-        </h2>
+        <h2 className="text-muted text-lg leading-snug font-semibold">{label}</h2>
       </div>
       <div className="divide-border flex flex-col divide-y">{children}</div>
     </div>
@@ -85,73 +82,106 @@ function buildScanCoverage() {
   }));
 }
 
-function formatCountry(formData: ImprovedFormData) {
-  if (formData.basedInSwitzerland === 'yes') return 'Switzerland';
-  return formData.country || '—';
-}
+export function SummaryStep({ domain, formData, euRep, onPreview, onBack }: SummaryStepProps) {
+  const t = useTranslations('result.summary');
+  const tImproved = useTranslations('result.improvedStep.options');
 
-function formatAddress(formData: ImprovedFormData) {
-  const parts = [
-    formData.street,
-    formData.postalCode,
-    formData.city,
-    formatCountry(formData),
-  ].filter((part) => part && part !== '—');
-  return parts.length > 0 ? parts.join(', ') : '—';
-}
-
-export function SummaryStep({
-  domain,
-  formData,
-  euRepPlan,
-  euRepSkipped,
-  onPreview,
-  onBack,
-}: SummaryStepProps) {
-  const tSummary = useTranslations('result.summary');
   const scanCoverage = buildScanCoverage();
   const companyName = formData.companyName || domain;
-  const gdprApplies =
-    formData.offersToEU === 'yes' ||
-    formData.processesEUData === 'yes' ||
-    formData.monitorsEUBehaviour === 'yes';
+  const euRepApplicable = isEuRepApplicable(formData);
+  const euRepRequired = isEuRepRequired(formData);
+  const gdprApplies = euRepRequired;
+
+  function formatYesNo(value: string) {
+    if (value === 'yes') return t('values.yes');
+    if (value === 'no') return t('values.no');
+    return '—';
+  }
+
+  function formatYesNoUnknown(value: string) {
+    if (value === 'yes') return t('values.yes');
+    if (value === 'no') return t('values.no');
+    if (value === 'dontknow') return t('values.unknown');
+    return '—';
+  }
+
+  function formatOptionLabel(value: string) {
+    if (REVENUE_TYPE_OPTIONS.some((option) => option.value === value)) {
+      return tImproved(`revenueTypes.${value}`);
+    }
+    if (SPECIAL_DATA_OPTIONS.some((option) => option.value === value)) {
+      return tImproved(`specialDataCategories.${value}`);
+    }
+    if (SUPERVISORY_AUTHORITY_OPTIONS.some((option) => option.value === value)) {
+      return tImproved(`supervisoryAuthority.${value}`);
+    }
+    return value;
+  }
+
+  function formatCountry() {
+    if (formData.basedInSwitzerland === 'yes') return t('values.switzerland');
+    return formData.country || '—';
+  }
+
+  function formatAddress() {
+    const parts = [formData.street, formData.postalCode, formData.city, formatCountry()].filter(
+      (part) => part && part !== '—'
+    );
+    return parts.length > 0 ? parts.join(', ') : '—';
+  }
+
+  function euRepSummary(): { label: string; detail?: string } {
+    if (euRep.plan) {
+      const plan = EU_REP_PLANS[euRep.plan];
+      return {
+        label: t('values.planLabel', { name: plan.name }),
+        detail: t('values.planMonths', { inquiry: plan.inquiry, price: plan.price }),
+      };
+    }
+    if (euRep.declined) {
+      return {
+        label: euRepRequired ? t('values.requiredNotAdded') : t('values.declined'),
+        detail: t('values.noEuRepAdded'),
+      };
+    }
+    return { label: t('values.pending') };
+  }
+
   const authority =
     formData.listSupervisoryAuthority === 'yes'
       ? formatOptionLabel(formData.supervisoryAuthority)
-      : 'Not listed';
-  const selectedPlan = euRepPlan ? EU_REP_PLANS[euRepPlan] : null;
+      : t('values.notListed');
+  const euRepInfo = euRepSummary();
 
   return (
     <>
-      <StepHeader
-        title="Your privacy policy is ready."
-        description="Generated based on your website scan and the details you provided."
-      />
+      <StepHeader title={t('title')} description={t('description')} />
 
       <Container>
         <div className="border-border flex flex-col border-r border-l">
-          <CategoryRow label="Overview">
+          <CategoryRow label={t('categories.overview')}>
             <Row>
               <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <KV label="Policy type" value="Enhanced" />
-                <KV label="Domain" value={formData.domain || domain} icon={<Globe size={14} />} />
-                <KV label="GDPR applicable" value={gdprApplies ? 'Yes' : 'No'} />
-                <KV label="Compliance" value="GDPR / Swiss nFADP" />
+                <KV label={t('fields.policyType')} value={t('values.policyTypeEnhanced')} />
                 <KV
-                  label="EU Representative"
-                  value={
-                    selectedPlan
-                      ? `${selectedPlan.name} plan`
-                      : euRepSkipped
-                        ? 'Declined'
-                        : 'Pending'
-                  }
+                  label={t('fields.domain')}
+                  value={formData.domain || domain}
+                  icon={<Globe size={14} />}
+                />
+                <KV
+                  label={t('fields.gdprApplicable')}
+                  value={gdprApplies ? t('values.yes') : t('values.no')}
+                />
+                <KV label={t('fields.compliance')} value={t('values.complianceFramework')} />
+                <KV
+                  label={t('fields.euRepresentative')}
+                  value={euRepApplicable ? euRepInfo.label : t('values.notRequired')}
                 />
               </div>
             </Row>
           </CategoryRow>
 
-          <CategoryRow label="Scan coverage">
+          <CategoryRow label={t('categories.scanCoverage')}>
             {scanCoverage.map((item) => (
               <Row key={item.label}>
                 <div className="flex items-start gap-3">
@@ -170,48 +200,58 @@ export function SummaryStep({
             ))}
           </CategoryRow>
 
-          <CategoryRow label="Company">
+          <CategoryRow label={t('categories.company')}>
             <Row>
               <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <KV label="Company name" value={companyName} icon={<Buildings size={14} />} />
                 <KV
-                  label="Contact email"
+                  label={t('fields.companyName')}
+                  value={companyName}
+                  icon={<Buildings size={14} />}
+                />
+                <KV
+                  label={t('fields.contactEmail')}
                   value={formData.email || '—'}
                   icon={<EnvelopeSimple size={14} />}
                 />
-                <KV label="Address" value={formatAddress(formData)} icon={<MapPin size={14} />} />
-                <KV label="Based in Switzerland" value={formatYesNo(formData.basedInSwitzerland)} />
+                <KV
+                  label={t('fields.address')}
+                  value={formatAddress()}
+                  icon={<MapPin size={14} />}
+                />
+                <KV
+                  label={t('fields.basedInSwitzerland')}
+                  value={formatYesNo(formData.basedInSwitzerland)}
+                />
               </div>
             </Row>
           </CategoryRow>
 
-          <CategoryRow label="Business">
+          <CategoryRow label={t('categories.business')}>
             <Row>
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                   <KV
-                    label="Generates revenue"
+                    label={t('fields.generatesRevenue')}
                     value={formatYesNo(formData.generatesRevenue)}
                     icon={<CurrencyDollar size={14} />}
                   />
                   <KV
-                    label="Uses data for marketing"
+                    label={t('fields.usesDataForMarketing')}
                     value={formatYesNo(formData.usesDataForMarketing)}
                   />
                   <KV
-                    label="Uses profiling"
+                    label={t('fields.usesProfiling')}
                     value={formatYesNo(formData.usesProfiling)}
-                    icon={<ChartBar size={14} />}
                   />
                   <KV
-                    label="Employee privacy notice"
+                    label={t('fields.employeePrivacyNotice')}
                     value={formatYesNo(formData.hasEmployeePrivacyNotice)}
                     icon={<UsersThree size={14} />}
                   />
                 </div>
                 {formData.generatesRevenue === 'yes' && formData.revenueTypes.length > 0 ? (
                   <div className="flex flex-col gap-2">
-                    <p className="text-muted text-xs">Revenue types</p>
+                    <p className="text-muted text-xs">{t('fields.revenueTypes')}</p>
                     <div className="flex flex-wrap gap-2">
                       {formData.revenueTypes.map((type) => (
                         <Tag key={type}>{formatOptionLabel(type)}</Tag>
@@ -220,23 +260,23 @@ export function SummaryStep({
                   </div>
                 ) : null}
                 {formData.hasEmployeePrivacyNotice === 'yes' && formData.employeePrivacyUrl ? (
-                  <KV label="Employee privacy notice URL" value={formData.employeePrivacyUrl} />
+                  <KV label={t('fields.employeePrivacyUrl')} value={formData.employeePrivacyUrl} />
                 ) : null}
               </div>
             </Row>
           </CategoryRow>
 
-          <CategoryRow label="Data processing">
+          <CategoryRow label={t('categories.dataProcessing')}>
             <Row>
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                   <KV
-                    label="Processes special data"
+                    label={t('fields.processesSpecialData')}
                     value={formatYesNo(formData.processesSpecialData)}
                     icon={<Database size={14} />}
                   />
                   <KV
-                    label="Third-country transfers"
+                    label={t('fields.thirdCountryTransfers')}
                     value={formatYesNoUnknown(formData.transfersToThirdCountry)}
                     icon={<ArrowsLeftRight size={14} />}
                   />
@@ -244,7 +284,7 @@ export function SummaryStep({
                 {formData.processesSpecialData === 'yes' &&
                 formData.specialDataCategories.length > 0 ? (
                   <div className="flex flex-col gap-2">
-                    <p className="text-muted text-xs">Special data categories</p>
+                    <p className="text-muted text-xs">{t('fields.specialDataCategories')}</p>
                     <div className="flex flex-wrap gap-2">
                       {formData.specialDataCategories.map((type) => (
                         <Tag key={type}>{formatOptionLabel(type)}</Tag>
@@ -256,67 +296,56 @@ export function SummaryStep({
             </Row>
           </CategoryRow>
 
-          <CategoryRow label="Compliance">
+          <CategoryRow label={t('categories.compliance')}>
             <Row>
               <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                 <KV
-                  label="Processes EU/EEA data"
+                  label={t('fields.processesEuData')}
                   value={formatYesNoUnknown(formData.processesEUData)}
                 />
                 {formData.processesEUData === 'yes' ? (
                   <KV
-                    label="Systematic processing"
+                    label={t('fields.systematicProcessing')}
                     value={formatYesNoUnknown(formData.systematically)}
                   />
                 ) : null}
-                <KV label="Targets EU/EEA users" value={formatYesNoUnknown(formData.offersToEU)} />
                 <KV
-                  label="Monitors EU behaviour"
+                  label={t('fields.targetsEuUsers')}
+                  value={formatYesNoUnknown(formData.offersToEU)}
+                />
+                <KV
+                  label={t('fields.monitorsEuBehaviour')}
                   value={formatYesNoUnknown(formData.monitorsEUBehaviour)}
                 />
-                <KV label="EU establishment" value={formatYesNo(formData.hasEUEstablishment)} />
                 <KV
-                  label="Existing EU representative"
-                  value={formatYesNo(formData.hasEURepresentative)}
+                  label={t('fields.euEstablishment')}
+                  value={formatYesNo(formData.hasEUEstablishment)}
                 />
-                {formData.hasEURepresentative === 'yes' ? (
-                  <KV
-                    label="EU representative address"
-                    value={formData.euRepresentativeAddress || '—'}
-                  />
-                ) : null}
-                <KV label="Supervisory authority" value={authority} icon={<Gavel size={14} />} />
+                <KV
+                  label={t('fields.supervisoryAuthority')}
+                  value={authority}
+                  icon={<Gavel size={14} />}
+                />
               </div>
             </Row>
           </CategoryRow>
 
-          {selectedPlan || euRepSkipped ? (
-            <CategoryRow label="EU Representative">
+          {euRepApplicable ? (
+            <CategoryRow label={t('categories.euRep')}>
               <Row>
-                {selectedPlan ? (
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-foreground text-base font-medium">
-                      {selectedPlan.name} plan
-                    </p>
-                    <p className="text-muted text-sm">
-                      {selectedPlan.inquiry} · {selectedPlan.price} / 12 months
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-foreground text-base font-medium">
-                      {tSummary('euRepSkippedTitle')}
-                    </p>
-                    <p className="text-muted text-sm">{tSummary('euRepSkippedDetail')}</p>
-                  </div>
-                )}
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-foreground text-base font-medium">{euRepInfo.label}</p>
+                  {euRepInfo.detail ? (
+                    <p className="text-muted text-sm">{euRepInfo.detail}</p>
+                  ) : null}
+                </div>
               </Row>
             </CategoryRow>
           ) : null}
         </div>
       </Container>
 
-      <StepFooter onBack={onBack} onContinue={onPreview} ctaLabel="Preview privacy policy" />
+      <StepFooter onBack={onBack} onContinue={onPreview} ctaLabel={t('continueToCheckout')} />
     </>
   );
 }

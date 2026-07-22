@@ -20,7 +20,10 @@
     "save": "Save",
     "cancel": "Cancel",
     "saved": "Saved",
-    "delete": "Delete"
+    "delete": "Delete",
+    "back": "Back",
+    "continue": "Continue",
+    "skip": "Skip"
   },
   "meta": {
     "defaultTitle": "Datenschutzpartner — Privacy Policy Generator",
@@ -45,7 +48,7 @@
       "description": "Generate a compliant cookie consent banner in minutes"
     },
     "euRep": {
-      "label": "EU Representative",
+      "label": "EU Representation",
       "description": "Appoint your GDPR Article 27 representative"
     },
     "academy": {
@@ -61,7 +64,7 @@
     "company": "Company",
     "legal": "Legal",
     "privacyGenerator": "Privacy Generator",
-    "euRepresentative": "EU Representative",
+    "euRepresentative": "EU Representation",
     "academy": "Academy",
     "insights": "Insights",
     "aboutUs": "About us",
@@ -184,7 +187,7 @@
       "subjects": {
         "general-question": "General question",
         "privacy-policy-generator": "Privacy policy generator",
-        "eu-representative": "EU representative",
+        "eu-representative": "EU Representation",
         "academy": "Datenschutzpartner Academy"
       },
       "spamLabel": "Enter the result of the following calculation:",
@@ -459,9 +462,9 @@
     }
   },
   "euRepPage": {
-    "metaTitle": "EU Data Protection Representative — Datenschutzpartner",
+    "metaTitle": "EU Data Protection Representation — Datenschutzpartner",
     "metaDescription": "Data protection representation in the EEA in accordance with Art. 27 GDPR by VGS Datenschutzpartner GmbH, based in Germany.",
-    "eyebrow": "EU Data Protection Representative",
+    "eyebrow": "EU Data Protection Representation",
     "title": "Data protection representation in the European Union",
     "heroIntro": "Many companies, organizations and other controllers outside the European Economic Area (EEA) must implement the General Data Protection Regulation (GDPR). Among other things, this requires appointing an EU data protection representative in accordance with <article27>Article 27 of the GDPR</article27>.",
     "heroQuestionnaireLead": "Check our questionnaire to find out whether you must appoint such an EU data protection representative under the GDPR.",
@@ -475,7 +478,7 @@
         "label": "Art. 27 GDPR — compliant EU representation"
       },
       "establishment": {
-        "label": "Representative with establishment in Germany (DE)"
+        "label": "Representation with establishment in Germany (DE)"
       },
       "eea": {
         "label": "Covers the EEA: EU, Liechtenstein, Iceland & Norway"
@@ -544,7 +547,7 @@
     },
     "faqNote": "Do you have questions? Our <faq>FAQ on EU data protection representation</faq> will help you.",
     "features": {
-      "establishment": "EU data protection representative with an establishment in Germany",
+      "establishment": "EU data protection representation with an establishment in Germany",
       "art27": "Compliance with Art. 27 GDPR",
       "mentionPolicy": "Mention in privacy policy and legal notice",
       "mentionRecords": "Mention in records of processing activities",
@@ -638,12 +641,13 @@
     }
   },
   "euRepQuestionnaire": {
-    "metaTitle": "Questionnaire — EU data protection representative",
+    "metaTitle": "Questionnaire — EU Data Protection Representation",
     "metaDescription": "Use our questionnaire to find out whether you must appoint an EU data protection representative under Art. 27 GDPR.",
     "title": "EU data protection representation questionnaire",
     "intro": "Answer the following questions one at a time. Based on your answers, we will show whether you are likely required to appoint an EU data protection representative.",
     "yes": "Yes",
     "no": "No",
+    "dontknow": "Unknown",
     "questions": {
       "q1": {
         "heading": "GDPR in general",
@@ -663,17 +667,17 @@
     },
     "outcomes": {
       "eeaResident": {
-        "heading": "EU representative not needed",
+        "heading": "EU Representation not needed",
         "body": "We assume that you do not need to appoint an EU data protection representative under the General Data Protection Regulation (GDPR) because your seat or residence is in the European Economic Area (EEA)."
       },
       "repRequired": {
-        "heading": "EU representative needed",
+        "heading": "EU Representation needed",
         "body": "We assume that you must appoint an EU data protection representative under the General Data Protection Regulation (GDPR).",
         "offerLink": "Our offering",
         "disclaimer": "Note: exceptionally, no EU data protection representative is required for processing of personal data that occurs only occasionally, does not involve large-scale processing of special categories of data, and, taking into account the nature, circumstances, scope and purposes of the processing, is not likely to result in a risk to the rights and freedoms of natural persons. We advise against relying on this exception."
       },
       "repNotRequired": {
-        "heading": "EU representative likely not needed",
+        "heading": "EU Representation likely not needed",
         "body": "You are probably not required to appoint an EU data protection representative under the General Data Protection Regulation (GDPR). You may still use our offering — for example because business partners and customers in the EEA require GDPR compliance or because you want to be on the safe side.",
         "offerLink": "Our offering",
         "advisory": "If you are uncertain, for example about whether you monitor the behavior of persons in the EEA after all, we will gladly connect you with a specialist for advice."
@@ -684,29 +688,178 @@
     "back": "Back",
     "restart": "Start questionnaire again",
     "topBarBack": "Back",
-    "backToEuRep": "EU representative"
+    "backToEuRep": "EU Representation"
   },
   "result": {
     "steps": {
       "scan": "Scan",
       "questionnaire": "Questionnaire",
-      "euRep": "EU Representative",
+      "euRep": "EU Representation",
       "summary": "Summary"
     },
     "euRepStep": {
-      "title": "Choose your EU Representative plan.",
-      "description": "Under <art27>GDPR Article 27</art27>, an EU Representative acts as your contact point in the European Union for data subjects and supervisory authorities.",
-      "chooseBudget": "Continue with Budget",
-      "chooseStandard": "Continue with Standard",
-      "choosePremium": "Continue with Premium",
-      "skip": "Skip"
+      "title": "EU data protection representation",
+      "requiredIntro": "Based on your <answers>answers</answers>, we assume that you must appoint an EU data protection representative under the GDPR.",
+      "requiredDisclaimer": "Note: Exceptionally, no representative is required for processing that occurs only occasionally, does not involve large-scale processing of special categories of data, and is unlikely to result in a risk to the rights and freedoms of natural persons. We advise against relying on this exception.",
+      "optionalIntro": "Based on your <answers>answers</answers>, you likely do not need an EU data protection representative under the GDPR. You can still use our offer — for example because business partners and customers in the EEA require GDPR compliance, or because you want to be on the safe side.",
+      "answersLink": "answers",
+      "answersDialogTitle": "Your answers",
+      "answersDialogDone": "Done",
+      "chooseBudget": "Add Budget",
+      "chooseStandard": "Add Standard",
+      "choosePremium": "Add Premium",
+      "skip": "Skip & continue",
+      "skipConfirmTitle": "Skip required EU representation?",
+      "skipConfirmBody": "Based on your answers, an EU data protection representative is likely required under the GDPR. Are you sure you want to continue without adding representation?",
+      "skipConfirmProceed": "Skip anyway",
+      "skipConfirmCancel": "Go back"
+    },
+    "cancelModal": {
+      "title": "Cancel generation?",
+      "body": "Your progress will be lost. Are you sure you want to leave?",
+      "quit": "Quit",
+      "proceed": "Proceed working"
     },
     "summary": {
-      "euRepSkippedTitle": "EU Representative declined",
+      "title": "Your privacy policy is ready.",
+      "description": "Generated based on your website scan and the details you provided.",
+      "continueToCheckout": "Continue to checkout",
+      "categories": {
+        "overview": "Overview",
+        "scanCoverage": "Scan coverage",
+        "company": "Company",
+        "business": "Business",
+        "dataProcessing": "Data processing",
+        "compliance": "Compliance",
+        "euRep": "EU Representation"
+      },
+      "fields": {
+        "policyType": "Policy type",
+        "domain": "Domain",
+        "gdprApplicable": "GDPR applicable",
+        "compliance": "Compliance",
+        "euRepresentative": "EU Representation",
+        "companyName": "Company name",
+        "contactEmail": "Contact email",
+        "address": "Address",
+        "basedInSwitzerland": "Based in Switzerland",
+        "generatesRevenue": "Generates revenue",
+        "usesDataForMarketing": "Uses data for marketing",
+        "usesProfiling": "Uses profiling",
+        "employeePrivacyNotice": "Employee privacy notice",
+        "revenueTypes": "Revenue types",
+        "employeePrivacyUrl": "Employee privacy notice URL",
+        "processesSpecialData": "Processes special data",
+        "thirdCountryTransfers": "Third-country transfers",
+        "specialDataCategories": "Special data categories",
+        "processesEuData": "Processes EU/EEA data",
+        "systematicProcessing": "Systematic processing",
+        "targetsEuUsers": "Targets EU/EEA users",
+        "monitorsEuBehaviour": "Monitors EU behaviour",
+        "euEstablishment": "EU establishment",
+        "supervisoryAuthority": "Supervisory authority"
+      },
+      "values": {
+        "policyTypeEnhanced": "Enhanced",
+        "complianceFramework": "GDPR / Swiss nFADP",
+        "yes": "Yes",
+        "no": "No",
+        "unknown": "Unknown",
+        "notListed": "Not listed",
+        "notRequired": "Not required",
+        "switzerland": "Switzerland",
+        "pending": "Pending",
+        "requiredNotAdded": "Required — not added",
+        "declined": "Declined",
+        "noEuRepAdded": "No EU representation added",
+        "planMonths": "{inquiry} · {price} / 12 months",
+        "planLabel": "{name} plan"
+      },
+      "euRepSkippedTitle": "EU Representation declined",
       "euRepSkippedDetail": "Not included · CHF 0.00"
     },
     "improvedStep": {
+      "title": "Complete your privacy policy.",
+      "continue": "Continue",
+      "validationError": "Please complete all required fields.",
+      "categories": {
+        "controllerIdentity": "Controller Identity",
+        "businessModel": "Business Model and Special Data",
+        "jurisdiction": "Jurisdiction and GDPR",
+        "dataUsage": "Data Usage and Compliance"
+      },
+      "fields": {
+        "companyName": "Who is responsible for processing personal data?",
+        "domain": "Under which domain is the website accessible?",
+        "email": "Email address",
+        "postalAddress": "Postal address",
+        "generatesRevenue": "Is the website used to generate direct revenue?",
+        "revenueTypes": "How does the website generate direct revenue?",
+        "processesSpecialData": "Are special categories of personal data processed?",
+        "specialDataCategories": "Which special categories?",
+        "processesEUData": "Does the company process personal data from the EU/EEA?",
+        "systematically": "Does this happen systematically?",
+        "hasEUEstablishment": "Does the company have an establishment in the EU/EEA?",
+        "transfersToThirdCountry": "Is personal data transferred to a third country outside the EU/EEA?",
+        "usesDataForMarketing": "Is personal data used for direct marketing?",
+        "usesProfiling": "Is profiling or automated decision-making carried out?",
+        "hasEmployeePrivacyNotice": "Is there a separate privacy notice for employees?",
+        "employeePrivacyUrl": "URL of employee privacy notice",
+        "listSupervisoryAuthority": "Should supervisory authority contact details be listed?",
+        "supervisoryAuthority": "Which supervisory authority?"
+      },
+      "placeholders": {
+        "companyName": "Company or person name",
+        "domain": "mywebsite.ch",
+        "email": "info@mywebsite.ch",
+        "street": "Street and number",
+        "postalCode": "Postal code",
+        "city": "City",
+        "country": "Country",
+        "employeePrivacyUrl": "https://yourcompany.com/employee-privacy"
+      },
+      "options": {
+        "revenueTypes": {
+          "memberships": "Memberships / subscriptions",
+          "products": "Sale of products / services",
+          "advertising": "Advertising",
+          "other": "Other"
+        },
+        "specialDataCategories": {
+          "health": "Health data",
+          "religion": "Religious / philosophical beliefs",
+          "politics": "Political opinions",
+          "union": "Trade union membership",
+          "genetic": "Genetic data",
+          "biometric": "Biometric data",
+          "sexuality": "Data about sex life / sexual orientation"
+        },
+        "supervisoryAuthority": {
+          "edob": "EDÖB (Switzerland)",
+          "bfdi": "BfDI (Germany)",
+          "dsb": "DSB (Austria)",
+          "other": "Other"
+        }
+      },
       "continueToSummary": "Review summary"
+    },
+    "checkout": {
+      "title": "Review & checkout",
+      "description": "Confirm your subscription. Your privacy policy is generated and published the moment your payment is confirmed.",
+      "selectPlan": "Select your plan",
+      "totalDue": "Total due today",
+      "renewalNote": "Renews yearly · cancel anytime",
+      "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
+      "legalReviewNote": "Reviewed by Swiss data protection lawyers.",
+      "redirecting": "Redirecting to Payrexx…",
+      "processing": "Processing payment…",
+      "paymentConfirmed": "Payment confirmed.",
+      "paymentFailed": "Payment could not be completed. Please try again.",
+      "payCta": "Pay {total} & publish"
+    },
+    "generatedPolicy": {
+      "successBody": "Payment confirmed. Your policy is hosted on our servers and will be kept legally up to date automatically — you'll find it any time in your account.",
+      "goToAccount": "Go to my account"
     }
   },
   "generatorPage": {
@@ -947,7 +1100,7 @@
       "dashboard": "Overview",
       "generator": "Privacy Policy Generator",
       "academy": "Datenschutz Academy",
-      "euRep": "EU Representative",
+      "euRep": "EU Representation",
       "accountDetails": "Account details",
       "logout": "Log out",
       "openMenu": "Open account menu"
@@ -964,7 +1117,9 @@
       "products": {
         "privacyGenerator": {
           "title": "Privacy Policies",
-          "updatesBadge": "{count} to update"
+          "updatesBadge": "{count} to update",
+          "subscriptionTitle": "Subscription",
+          "subscriptionPerYear": "/ year"
         },
         "academy": {
           "title": "Datenschutz Academy",
@@ -976,16 +1131,17 @@
           "getMembership": "Get membership"
         },
         "euRep": {
-          "title": "EU Representative",
+          "title": "EU Representation",
           "inquiriesTitle": "Inquiries Available",
           "inquiriesRemainingLabel": "{count, plural, one {inquiry available} other {inquiries available}}",
           "inquiriesUsedOfTotal": "{used} of {total} used",
           "subscriptionTitle": "Subscription",
           "subscriptionPerYear": "/ year",
+          "subscriptionPerYearForPlan": "/ year for {plan} plan",
           "renewsOn": "Renews on {date}",
           "furtherInquiryNote": "per extra inquiry",
           "addInquiry": "Add inquiry",
-          "discover": "Discover EU Representative"
+          "discover": "Discover EU Representation"
         }
       },
       "attention": {
@@ -1006,21 +1162,12 @@
         "services": {
           "policy": "Policy Generator",
           "academy": "Academy",
-          "euRep": "EU Representative"
+          "euRep": "EU Representation"
         }
       },
       "renewals": {
         "title": "Upcoming renewals",
-        "totalNext12Months": "Total next 12 months",
-        "cardExpires": "Expires {month}/{year}"
-      },
-      "paymentMethods": {
-        "title": "Payment methods",
-        "manage": "Manage",
-        "usedBy": {
-          "academyAndPolicy": "Academy + Policy Generator",
-          "euRep": "EU Representative"
-        }
+        "totalNext12Months": "Total next 12 months"
       },
       "questions": {
         "title": "Questions",
@@ -1036,14 +1183,36 @@
       "tabsAriaLabel": "Privacy Policy Generator sections",
       "tabs": {
         "policies": "Policies",
-        "payments": "Payments"
+        "subscription": "Subscription"
       }
+    },
+    "generatorCheckout": {
+      "metaTitle": "Buy more sites — Privacy Policy Generator",
+      "title": "Buy more sites",
+      "description": "Add websites to your yearly subscription. Your renewal date resets to 12 months from today.",
+      "backToGenerator": "Back to Privacy Policy Generator",
+      "currentAllowance": "Current allowance",
+      "allowanceNote": "Sites available in your subscription",
+      "selectPlan": "Choose a package",
+      "renewalResetNote": "After payment your subscription renews for another 12 months and the new sites are added to your allowance.",
+      "summary": "Order summary",
+      "lineItem": "{count, plural, one {# site} other {# sites}}",
+      "lineItemDetail": "Annual hosting & legal updates",
+      "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
+      "legalReviewNote": "Reviewed by Swiss data protection lawyers.",
+      "redirecting": "Redirecting to Payrexx…",
+      "processing": "Processing payment…",
+      "failed": "Payment could not be completed. Please try again.",
+      "success": "Added {sites, plural, one {# site} other {# sites}}. Your allowance is now {allowance}.",
+      "cancel": "Cancel",
+      "payCta": "Pay CHF {total}"
     },
     "academy": {
       "title": "Datenschutz Academy",
       "tabsAriaLabel": "Datenschutz Academy sections",
       "tabs": {
         "sessions": "Sessions",
+        "resources": "Documents",
         "membership": "Membership"
       },
       "upcomingTitle": "Upcoming",
@@ -1061,27 +1230,60 @@
       "searchPlaceholder": "Search sessions…",
       "emptySearch": "No sessions match your search.",
       "join": "Join",
-      "watch": "Watch"
+      "watch": "Watch",
+      "resources": {
+        "title": "Documents & checklists",
+        "view": "View",
+        "openGenerator": "Open generator",
+        "items": {
+          "impressumChecklist": {
+            "title": "Checklist: Imprint requirements for websites",
+            "description": "Key answers on what must appear in your website imprint."
+          },
+          "videoNoticeSign": {
+            "title": "Video surveillance: sample notice sign",
+            "description": "Free template to meet the duty to inform under Swiss law."
+          },
+          "employeeDeclaration": {
+            "title": "Employee data protection declarations",
+            "description": "Generate declarations for your team with the privacy policy generator."
+          }
+        }
+      }
     },
     "euRep": {
-      "title": "EU Representative",
-      "tabsAriaLabel": "EU Representative sections",
+      "title": "EU Representation",
+      "tabsAriaLabel": "EU Representation sections",
       "tabs": {
         "inquiries": "Inquiries",
         "subscription": "Subscription"
       },
       "inquiries": {
-        "comingSoonTitle": "Inquiry tracking is coming soon",
-        "comingSoonBody": "Inquiries forwarded on your behalf as EU representative will appear here. This area is still under construction."
+        "tableLabel": "EU Representation inquiries",
+        "colDate": "Date",
+        "colSubject": "Subject",
+        "colStatus": "Status",
+        "empty": "No inquiries have been forwarded on your behalf yet.",
+        "status": {
+          "forwarded": "Forwarded",
+          "answered": "Answered",
+          "closed": "Closed"
+        }
       }
     },
     "documents": {
       "title": "Documents",
       "colName": "Document",
+      "colSite": "Site",
       "colCreated": "Created",
+      "colUpdated": "Updated",
       "colStatus": "Status",
       "colActions": "Actions",
       "retrieve": "Retrieve",
+      "open": "Open",
+      "detailTitle": "Privacy policy",
+      "backToList": "Back to policies",
+      "exportStarted": "Export started. Your HTML download will begin shortly.",
       "update": "Update",
       "create": "New Policy",
       "empty": "You haven't generated any documents yet.",
@@ -1098,45 +1300,50 @@
       "countTitle": "Generated Policies",
       "countUnit": "{count, plural, one {policy} other {policies}}",
       "countUpToDate": "{count} up to date",
-      "countUpdateAvailable": "{count} to update"
+      "countUpdateAvailable": "{count} to update",
+      "countAutoUpdated": "Kept up to date automatically"
     },
-    "academyMembership": {
-      "planTitle": "Annual membership",
-      "paidOn": "Paid on {date}",
-      "perYear": "/ year",
-      "vatNote": "incl. 8.1% VAT ({amount})",
+    "membershipPanel": {
       "sectionPayment": "Payment",
       "sectionRenewal": "Automatic renewal",
       "renewalReminder": "We will remind you by email 30 days before renewal.",
       "readMore": "Read more",
       "downloadInvoice": "Download invoice",
       "invoiceDownloadStarted": "Invoice download started.",
-      "includesTitle": "What your membership includes",
-      "groups": {
-        "live": "Live sessions",
-        "recordings": "Recordings library",
-        "tools": "Tools & documents",
-        "bonus": "Bonus content"
-      },
       "billingHistory": "Billing history",
       "colInvoice": "Invoice",
+      "colDate": "Date",
       "colAmount": "Amount",
-      "colActions": "Actions",
-      "cancelTitle": "Cancel membership",
-      "cancelBody": "Cancelling takes effect at the end of your paid term ({date}). You keep full access until then, and no further payments will be charged. No reason or notice period required.",
-      "cancelCta": "Cancel membership",
-      "keepSubscription": "Keep",
-      "cancelConfirm": "Cancel Subscription",
-      "paymentMethodEyebrow": "Payment method",
-      "renewalPaymentNote": "This card will be used for renewal on {date}.",
-      "cardExpires": "Expires {month}/{year}",
-      "paymentMethodLabel": "Payment method",
+      "colPdf": "PDF",
+      "paidOn": "Paid on {date}",
       "change": "Change",
       "billingDetailsEyebrow": "Billing details",
-      "edit": "Edit",
       "questionsTitle": "Questions?",
-      "questionsBody": "If you have any questions on your membership, our team will answer within one business day.",
-      "contactUs": "Contact us"
+      "contactUs": "Contact us",
+      "cancelTitle": "Cancel subscription",
+      "cancelBody": "Cancelling takes effect at the end of your paid term ({date}). You keep full access until then, and no further payments will be charged. No reason or notice period required.",
+      "cancelCta": "Cancel subscription",
+      "cancelConfirm": "Cancel subscription",
+      "keepSubscription": "Keep",
+      "cancelled": "Subscription cancelled.",
+      "empty": "You have no active subscription for this product.",
+      "products": {
+        "academy": {
+          "planTitle": "Annual membership",
+          "pricePeriod": "/ 12 months",
+          "questionsBody": "If you have any questions on your membership, our team will answer within one business day."
+        },
+        "euRep": {
+          "planTitle": "Annual subscription",
+          "pricePeriod": "/ 12 months",
+          "questionsBody": "If you have any questions on your EU representation, our team will answer within one business day."
+        },
+        "policy": {
+          "planTitle": "Annual subscription",
+          "pricePeriod": "/ 12 months",
+          "questionsBody": "If you have any questions on your plan, our team will answer within one business day."
+        }
+      }
     },
     "generatorPlan": {
       "title": "Sites Available",
@@ -1160,42 +1367,20 @@
       "invoiceDownloadStarted": "Invoice download started."
     },
     "billingSelection": {
-      "paymentTitle": "Choose payment method",
       "addressTitle": "Choose billing address",
-      "paymentEmpty": "No saved payment methods yet.",
       "addressEmpty": "No saved billing addresses yet.",
-      "cardExpires": "Expires {month}/{year}",
       "manageLink": "Manage payment details",
       "confirm": "Use selected",
       "saved": "Billing details updated."
     },
-    "subscriptionPanel": {
-      "detailTitle": "Subscription detail",
-      "startDate": "Start date",
-      "lastOrder": "Last order",
-      "nextPayment": "Next payment",
-      "paymentMethod": "Payment method",
-      "changePaymentMethod": "Change",
-      "editBillingAddress": "Edit",
-      "cancel": "Cancel subscription",
-      "cancelConfirmTitle": "Cancel subscription?",
-      "cancelConfirmBody": "Your membership stays active until the end of the current period. Are you sure?",
-      "cancelConfirm": "Cancel subscription",
-      "keep": "Keep subscription",
-      "cancelled": "Subscription cancelled.",
-      "totalsTitle": "Totals",
-      "subtotal": "Subtotal",
-      "discount": "Discount",
-      "total": "Total",
-      "relatedOrders": "Related orders",
-      "billingAddress": "Billing address",
-      "empty": "You have no active subscription for this product.",
-      "planTermsTitle": "Plan includes",
-      "includedInquiries": "Included inquiries",
-      "includedInquiriesValue": "{count, plural, one {# inquiry / year} other {# inquiries / year}}",
-      "extraInquiryPrice": "Extra inquiries",
-      "orderKindSubscription": "Annual subscription",
-      "orderKindExtraInquiry": "Extra inquiry (beyond plan)"
+    "payrexx": {
+      "eyebrow": "Payment",
+      "title": "Payment method",
+      "body": "Payments are handled securely by Payrexx. You'll be redirected to Payrexx to update the card used for renewals.",
+      "manage": "Manage payment via Payrexx",
+      "manageShort": "Manage",
+      "renewalNote": "Renews automatically on {date}.",
+      "redirecting": "Opening Payrexx…"
     },
     "orders": {
       "title": "Orders",
@@ -1251,19 +1436,13 @@
       "contactUs": "Contact us"
     },
     "paymentDetails": {
-      "paymentMethodsTitle": "Payment methods",
-      "addPaymentMethod": "New Method",
-      "paymentMethodsEmpty": "No saved payment methods yet. Add a card to use it for any of your subscriptions.",
-      "editPaymentMethod": "Edit payment method",
-      "deletePaymentMethod": "Delete payment method",
-      "cardExpires": "Expires {month}/{year}",
       "addressesTitle": "Billing addresses",
       "addAddress": "New Address",
       "addressesEmpty": "No saved billing addresses yet. Add one to use it for any of your subscriptions.",
       "editAddress": "Edit address",
       "deleteAddress": "Delete address",
       "aboutEyebrow": "About payment details",
-      "aboutIntro": "Cards and billing addresses you save here can be assigned separately to each subscription:",
+      "aboutIntro": "Billing addresses you save here can be assigned separately to each subscription:",
       "questionsTitle": "Questions?",
       "questionsBody": "If you have any questions about billing, our team will answer within one business day.",
       "contactUs": "Contact us",
@@ -1285,23 +1464,9 @@
       "addressCreated": "Billing address added.",
       "addressUpdated": "Billing address updated.",
       "addressDeleted": "Billing address deleted.",
-      "addPaymentMethodTitle": "Add payment method",
-      "editPaymentMethodTitle": "Edit payment method",
-      "cardholderName": "Name on card",
-      "cardNumber": "Card number",
-      "cardNumberSegment": "Card number, part {part} of 4",
-      "cardCvv": "CVV",
-      "cardExpMonth": "Expiry month",
-      "cardExpYear": "Expiry year",
-      "paymentMethodCreated": "Payment method added.",
-      "paymentMethodUpdated": "Payment method updated.",
-      "paymentMethodDeleted": "Payment method deleted.",
       "deleteAddressTitle": "Delete address?",
       "deleteAddressBody": "This billing address will be removed. Subscriptions using it keep their last billed details until you assign a new address.",
-      "deleteAddressConfirm": "Delete address",
-      "deletePaymentMethodTitle": "Delete payment method?",
-      "deletePaymentMethodBody": "This card will be removed. Subscriptions using it keep their last billed details until you assign a new card.",
-      "deletePaymentMethodConfirm": "Delete payment method"
+      "deleteAddressConfirm": "Delete address"
     },
     "logout": {
       "confirmTitle": "Log out?",
@@ -1319,9 +1484,7 @@
     "required": "Required",
     "email": "Invalid email address",
     "passwordMin": "Password must be at least 8 characters",
-    "passwordMatch": "Passwords do not match",
-    "cardNumber": "Enter a valid card number",
-    "cvv": "Enter a valid security code"
+    "passwordMatch": "Passwords do not match"
   },
   "contacts": {
     "title": "Contacts",
@@ -1336,6 +1499,51 @@
       "email": "Email",
       "company": "Company (optional)",
       "submit": "Create"
+    }
+  },
+  "policyDocument": {
+    "exportHtml": "Export HTML",
+    "sidebarVersion": "Version",
+    "versionsAriaLabel": "Policy versions by year",
+    "archivedNote": "You're viewing an archived version. The latest year is the one live on your site.",
+    "effectiveFrom": "Effective from",
+    "sections": {
+      "controller": {
+        "title": "Data controller",
+        "body": "This privacy policy explains how personal data is processed in connection with {site}. The controller is responsible for the processing described below and for ensuring it complies with the GDPR and the Swiss Federal Act on Data Protection (nFADP)."
+      },
+      "dataWeProcess": {
+        "title": "Data we process",
+        "body": "We process personal data that you provide directly (for example when contacting us or using a form) as well as data collected automatically when you visit {site}, such as IP address, device and browser information, and usage data."
+      },
+      "legalBases": {
+        "title": "Legal bases",
+        "body": "We process personal data on the basis of your consent, for the performance of a contract, to comply with legal obligations, and on the basis of our legitimate interests in operating and securing {site}."
+      },
+      "cookies": {
+        "title": "Cookies and tracking",
+        "body": "We use cookies and similar technologies to operate {site}, remember your preferences, and analyse usage. Non-essential cookies are only set with your consent, which you can withdraw at any time via the cookie settings."
+      },
+      "transfers": {
+        "title": "International transfers",
+        "body": "Where personal data is transferred outside Switzerland or the EEA, we rely on appropriate safeguards such as the EU Standard Contractual Clauses and, where applicable, additional protective measures."
+      },
+      "rights": {
+        "title": "Your rights",
+        "body": "Subject to the applicable law, you have the following rights regarding your personal data:",
+        "items": {
+          "0": "Access to the personal data we hold about you",
+          "1": "Rectification of inaccurate or incomplete data",
+          "2": "Erasure of your data in certain circumstances",
+          "3": "Restriction of processing and the right to object",
+          "4": "Data portability where technically feasible",
+          "5": "Lodging a complaint with the competent supervisory authority"
+        }
+      },
+      "contact": {
+        "title": "Contact",
+        "body": "To exercise your rights or ask any question about this privacy policy, please contact the controller using the contact details published on {site}."
+      }
     }
   }
 }

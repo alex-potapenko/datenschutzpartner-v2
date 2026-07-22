@@ -110,6 +110,19 @@ export function RadioGroup({ options, value, onChange }: RadioGroupProps) {
   );
 }
 
+interface AnswerPillProps {
+  label: string;
+}
+
+/** Read-only pill matching the selected state of {@link RadioGroup}. */
+export function AnswerPill({ label }: AnswerPillProps) {
+  return (
+    <span className="font-display border-key-500 bg-key-100 text-foreground inline-flex w-fit items-center rounded-full border-2 px-4 py-2 text-base font-normal">
+      {label}
+    </span>
+  );
+}
+
 interface CheckboxFieldProps {
   label: string;
   checked: boolean;

@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepFooter } from '../ui/StepFooter';
 import {
-  CheckCircle,
-  Warning,
-  XCircle,
   ChatCircle,
   UsersThree,
   MapPin,
@@ -25,9 +22,6 @@ import {
   UserCircle,
   Crosshair,
   Storefront,
-  Wrench,
-  Eye,
-  FileText,
 } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 
@@ -37,7 +31,6 @@ import {
   logoUrl,
   type ScanIconKey,
   type ScanItemStatus,
-  type ScanItemTier,
 } from '../content/scan-groups';
 
 interface ScanItem {
@@ -47,7 +40,6 @@ interface ScanItem {
   description: string;
   status: ScanItemStatus;
   value?: string;
-  tier?: ScanItemTier;
 }
 
 interface ScanGroup {
@@ -85,35 +77,10 @@ const SCAN_GROUPS: ScanGroup[] = SCAN_GROUP_DEFINITIONS.map((group) => ({
     description: item.description,
     status: item.status,
     value: item.value,
-    tier: item.tier,
   })),
 }));
 
 const TOTAL_ITEMS = SCAN_ITEM_COUNT;
-
-const STATUS_CONFIG: Record<
-  ScanItemStatus,
-  { icon: React.ReactNode; label: string; color: string; bg: string }
-> = {
-  detected: {
-    icon: <CheckCircle size={14} weight="fill" />,
-    label: 'Detected',
-    color: '#16a34a',
-    bg: 'rgba(22,163,74,0.08)',
-  },
-  'not-detected': {
-    icon: <XCircle size={14} weight="fill" />,
-    label: 'Not found',
-    color: '#9ca3af',
-    bg: 'rgba(0,0,0,0.05)',
-  },
-  warning: {
-    icon: <Warning size={14} weight="fill" />,
-    label: 'Needs attention',
-    color: '#d97706',
-    bg: 'rgba(217,119,6,0.08)',
-  },
-};
 
 interface ScanStepProps {
   domain: string;
@@ -212,17 +179,20 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
 
   useEffect(() => {
     if (skipLoading) return;
+
     let count = 0;
-    const interval = setInterval(
+
+    const interval = window.setInterval(
       () => {
         count++;
         setScannedCount(count);
-        if (count >= TOTAL_ITEMS) clearInterval(interval);
+        if (count >= TOTAL_ITEMS) window.clearInterval(interval);
       },
-      Math.round(12000 / TOTAL_ITEMS)
+      Math.max(1, Math.round(12000 / TOTAL_ITEMS))
     );
+
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
     };
   }, [skipLoading]);
 
@@ -246,9 +216,9 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
 
   return (
     <>
-      <div className="border-border border-b">
-        <Container>
-          <div className="border-border flex flex-col gap-3 border-r border-l px-4 pt-10 pb-8 sm:px-8 sm:pt-16 sm:pb-10">
+      <Container>
+        <div className="border-border flex flex-col border-r border-l">
+          <div className="border-border flex flex-col gap-3 border-b px-4 pt-10 pb-8 sm:px-8 sm:pt-16 sm:pb-10">
             <div className="flex items-center gap-3">
               <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
                 {isComplete ? 'Scan complete.' : `Scanning ${domain}...`}
@@ -261,71 +231,11 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
               </p>
             )}
           </div>
-        </Container>
-      </div>
 
-      {isComplete && (
-        <div className="border-border border-b">
-          <Container>
-            <div className="border-border grid grid-cols-1 border-r border-l sm:grid-cols-3">
-              {(() => {
-                const allItems = SCAN_GROUPS.flatMap((g) => g.items).filter(
-                  (i) => i.status !== 'not-detected'
-                );
-                const active = allItems.filter((i) => i.tier === 'active').length;
-                const privacy = allItems.filter((i) => i.tier === 'privacy').length;
-                const legal = allItems.filter((i) => i.tier === 'legal').length;
-
-                const stats = [
-                  {
-                    label: 'Standard tools',
-                    description: 'Infrastructure, CDN, fonts and other low-risk embeds',
-                    count: active,
-                    icon: <Wrench size={32} weight="fill" className="text-blue-500" />,
-                  },
-                  {
-                    label: 'Privacy-sensitive',
-                    description: 'Tracking pixels, advertising, analytics and cookies',
-                    count: privacy,
-                    icon: <Eye size={32} weight="fill" className="text-amber-500" />,
-                  },
-                  {
-                    label: 'Require GDPR disclosure',
-                    description: 'CRM, forms, payments and user accounts processing personal data',
-                    count: legal,
-                    icon: <FileText size={32} weight="fill" className="text-red-500" />,
-                  },
-                ];
-
-                return stats.map((s, i) => (
-                  <div
-                    key={s.label}
-                    className={`border-border flex flex-col gap-3 p-4 sm:p-8 ${i < stats.length - 1 ? 'max-sm:border-b sm:border-r' : ''}`}
-                  >
-                    <div className="flex items-center gap-1">
-                      {s.icon}
-                      <span className="text-foreground text-4xl leading-none font-medium tabular-nums">
-                        {s.count}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-foreground text-base font-medium">{s.label}</p>
-                      <p className="text-muted text-sm leading-relaxed">{s.description}</p>
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-          </Container>
-        </div>
-      )}
-
-      <Container>
-        <div className="border-border flex flex-col border-r border-l">
           {visibleGroups.map(({ group, visibleItems }, visibleIndex) => (
             <div key={group.label} className="flex flex-col">
               <div
-                className={`grid grid-cols-1 lg:grid-cols-2 ${visibleIndex < visibleGroups.length - 1 || isComplete ? 'border-border border-b' : ''}`}
+                className={`grid grid-cols-1 lg:grid-cols-2 ${visibleIndex < visibleGroups.length - 1 ? 'border-border border-b' : ''}`}
               >
                 <div className="border-border flex flex-col gap-5 border-b p-4 sm:gap-8 sm:p-8 lg:border-r lg:border-b-0">
                   <h2 className="text-lg leading-snug font-semibold" style={{ color: '#525252' }}>
@@ -336,9 +246,7 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
                 <div className="divide-border flex flex-col divide-y">
                   <AnimatePresence initial={false}>
                     {visibleItems.map(({ item, globalIndex }) => {
-                      const isDone = scannedCount > globalIndex;
                       const isScanning = scannedCount === globalIndex;
-                      const s = STATUS_CONFIG[item.status];
 
                       return (
                         <motion.div
@@ -346,7 +254,7 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.28, ease: 'easeOut' }}
-                          className="flex items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8"
+                          className="flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-8"
                         >
                           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                             {item.logo ? (
@@ -406,19 +314,11 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
                             </div>
                           </div>
 
-                          <div className="shrink-0">
-                            {isDone ? (
-                              <div
-                                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
-                                style={{ background: s.bg, color: s.color }}
-                              >
-                                {s.icon}
-                                <span>{item.value ?? s.label}</span>
-                              </div>
-                            ) : (
+                          {isScanning ? (
+                            <div className="ml-auto shrink-0">
                               <Spinner size={16} />
-                            )}
-                          </div>
+                            </div>
+                          ) : null}
                         </motion.div>
                       );
                     })}

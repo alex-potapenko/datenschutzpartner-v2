@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
+import { improvedFormSchema, getVisibleEuRepQuestionFields } from '@/api/generator';
 import { TextInput, RadioGroup, CheckboxField } from '../ui/FormSection';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
@@ -21,17 +23,6 @@ interface ImprovedStepProps {
   onSubmit: (data: ImprovedFormData) => void;
   onBack?: () => void;
 }
-
-const YES_NO = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-];
-
-const YES_NO_DONTKNOW = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-  { value: 'dontknow', label: 'Unknown' },
-];
 
 function Reveal({ show, children }: { show: boolean; children: React.ReactNode }) {
   return (
@@ -56,9 +47,7 @@ function CategoryRow({ label, children }: { label: string; children: React.React
   return (
     <div className="border-border grid grid-cols-1 border-b last:border-b-0 lg:grid-cols-2">
       <div className="border-border border-b p-4 sm:p-8 lg:border-r lg:border-b-0">
-        <h2 className="text-lg leading-snug font-semibold" style={{ color: '#525252' }}>
-          {label}
-        </h2>
+        <h2 className="text-muted text-lg leading-snug font-semibold">{label}</h2>
       </div>
       <div className="divide-border flex flex-col divide-y">{children}</div>
     </div>
@@ -86,7 +75,10 @@ function QField({
 }
 
 export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
-  const tEuRep = useTranslations('services.euRep');
+  const t = useTranslations('result.improvedStep');
+  const tEuRepQ = useTranslations('euRepQuestionnaire');
+  const tValidation = useTranslations('validation');
+
   const companyGuess = domain.replace(/^www\./, '').split('.')[0] ?? domain;
   const companyName = companyGuess.charAt(0).toUpperCase() + companyGuess.slice(1);
 
@@ -108,8 +100,6 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
     offersToEU: '',
     monitorsEUBehaviour: '',
     hasEUEstablishment: '',
-    hasEURepresentative: '',
-    euRepresentativeAddress: '',
     transfersToThirdCountry: '',
     usesDataForMarketing: '',
     usesProfiling: '',
@@ -119,8 +109,48 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
     supervisoryAuthority: '',
   });
 
+  const euRepVisible = getVisibleEuRepQuestionFields(form);
+
+  const yesNo = [
+    { value: 'yes', label: tEuRepQ('yes') },
+    { value: 'no', label: tEuRepQ('no') },
+  ];
+
+  const yesNoDontKnow = [
+    { value: 'yes', label: tEuRepQ('yes') },
+    { value: 'no', label: tEuRepQ('no') },
+    { value: 'dontknow', label: tEuRepQ('dontknow') },
+  ];
+
   function set<K extends keyof ImprovedFormData>(key: K, value: ImprovedFormData[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+
+      if (key === 'basedInSwitzerland') {
+        next.offersToEU = '';
+        next.monitorsEUBehaviour = '';
+      }
+      if (key === 'offersToEU') {
+        next.monitorsEUBehaviour = '';
+      }
+      if (key === 'generatesRevenue' && value !== 'yes') {
+        next.revenueTypes = [];
+      }
+      if (key === 'processesSpecialData' && value !== 'yes') {
+        next.specialDataCategories = [];
+      }
+      if (key === 'processesEUData' && value !== 'yes') {
+        next.systematically = '';
+      }
+      if (key === 'hasEmployeePrivacyNotice' && value !== 'yes') {
+        next.employeePrivacyUrl = '';
+      }
+      if (key === 'listSupervisoryAuthority' && value !== 'yes') {
+        next.supervisoryAuthority = '';
+      }
+
+      return next;
+    });
   }
 
   function toggle(key: 'revenueTypes' | 'specialDataCategories', value: string) {
@@ -132,49 +162,63 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
     }));
   }
 
+  function handleSubmit() {
+    const result = improvedFormSchema.safeParse(form);
+    if (!result.success) {
+      const firstIssue = result.error.issues[0];
+      const messageKey = firstIssue?.message;
+      toast.error(
+        messageKey && messageKey.startsWith('validation.')
+          ? tValidation(messageKey.replace('validation.', '') as 'required' | 'email')
+          : t('validationError')
+      );
+      return;
+    }
+    onSubmit(result.data);
+  }
+
   return (
     <>
-      <StepHeader title="Complete your privacy policy." />
+      <StepHeader title={t('title')} />
       <Container>
         <div className="border-border flex flex-col border-r border-l">
-          {/* Controller Identity */}
-          <CategoryRow label="Controller Identity">
-            <QField label="Who is responsible for processing personal data?">
+          <CategoryRow label={t('categories.controllerIdentity')}>
+            <QField label={t('fields.companyName')}>
               <TextInput
                 value={form.companyName}
                 onChange={(e) => {
                   set('companyName', e.target.value);
                 }}
-                placeholder="Company or person name"
+                placeholder={t('placeholders.companyName')}
               />
             </QField>
-            <QField label="Under which domain is the website accessible?">
+            <QField label={t('fields.domain')}>
               <TextInput
                 value={form.domain}
                 onChange={(e) => {
                   set('domain', e.target.value);
                 }}
-                placeholder="mywebsite.ch"
+                placeholder={t('placeholders.domain')}
               />
             </QField>
-            <QField label="Email address">
+            <QField label={t('fields.email')}>
               <TextInput
                 type="email"
                 value={form.email}
                 onChange={(e) => {
                   set('email', e.target.value);
                 }}
-                placeholder="info@mywebsite.ch"
+                placeholder={t('placeholders.email')}
               />
             </QField>
-            <QField label="Postal address">
+            <QField label={t('fields.postalAddress')}>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <TextInput
                   value={form.street}
                   onChange={(e) => {
                     set('street', e.target.value);
                   }}
-                  placeholder="Street and number"
+                  placeholder={t('placeholders.street')}
                   className="sm:flex-[2]"
                 />
                 <TextInput
@@ -182,7 +226,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                   onChange={(e) => {
                     set('postalCode', e.target.value);
                   }}
-                  placeholder="Postal code"
+                  placeholder={t('placeholders.postalCode')}
                   className="sm:flex-1"
                 />
                 <TextInput
@@ -190,7 +234,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                   onChange={(e) => {
                     set('city', e.target.value);
                   }}
-                  placeholder="City"
+                  placeholder={t('placeholders.city')}
                   className="sm:flex-1"
                 />
               </div>
@@ -199,17 +243,16 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                 onChange={(e) => {
                   set('country', e.target.value);
                 }}
-                placeholder="Country"
+                placeholder={t('placeholders.country')}
               />
             </QField>
           </CategoryRow>
 
-          {/* Business Model and Special Data */}
-          <CategoryRow label="Business Model and Special Data">
-            <QField label="Is the website used to generate direct revenue?">
+          <CategoryRow label={t('categories.businessModel')}>
+            <QField label={t('fields.generatesRevenue')}>
               <RadioGroup
                 name="generatesRevenue"
-                options={YES_NO}
+                options={yesNo}
                 value={form.generatesRevenue}
                 onChange={(v) => {
                   set('generatesRevenue', v);
@@ -217,12 +260,12 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               />
             </QField>
             <Reveal show={form.generatesRevenue === 'yes'}>
-              <QField label="How does the website generate direct revenue?">
+              <QField label={t('fields.revenueTypes')}>
                 <div className="flex flex-col gap-2">
                   {REVENUE_TYPE_OPTIONS.map((opt) => (
                     <CheckboxField
                       key={opt.value}
-                      label={opt.label}
+                      label={t(`options.revenueTypes.${opt.value}`)}
                       checked={form.revenueTypes.includes(opt.value)}
                       onChange={() => {
                         toggle('revenueTypes', opt.value);
@@ -232,10 +275,10 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                 </div>
               </QField>
             </Reveal>
-            <QField label="Are special categories of personal data processed?">
+            <QField label={t('fields.processesSpecialData')}>
               <RadioGroup
                 name="processesSpecialData"
-                options={YES_NO}
+                options={yesNo}
                 value={form.processesSpecialData}
                 onChange={(v) => {
                   set('processesSpecialData', v);
@@ -243,12 +286,12 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               />
             </QField>
             <Reveal show={form.processesSpecialData === 'yes'}>
-              <QField label="Which special categories?">
+              <QField label={t('fields.specialDataCategories')}>
                 <div className="flex flex-col gap-2">
                   {SPECIAL_DATA_OPTIONS.map((opt) => (
                     <CheckboxField
                       key={opt.value}
-                      label={opt.label}
+                      label={t(`options.specialDataCategories.${opt.value}`)}
                       checked={form.specialDataCategories.includes(opt.value)}
                       onChange={() => {
                         toggle('specialDataCategories', opt.value);
@@ -260,25 +303,54 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
             </Reveal>
           </CategoryRow>
 
-          {/* Jurisdiction and GDPR */}
-          <CategoryRow label="Jurisdiction and GDPR">
+          <CategoryRow label={t('categories.jurisdiction')}>
             <QField
-              label="Is the operator a company based in Switzerland?"
-              hint="Determines DSG vs. GDPR path"
+              label={tEuRepQ('questions.q1.title')}
+              hint={tEuRepQ('questions.q1.description')}
             >
               <RadioGroup
                 name="basedInSwitzerland"
-                options={YES_NO}
+                options={yesNo}
                 value={form.basedInSwitzerland}
                 onChange={(v) => {
                   set('basedInSwitzerland', v);
                 }}
               />
             </QField>
-            <QField label="Does the company process personal data from the EU/EEA?">
+            {euRepVisible.offersToEU ? (
+              <QField
+                label={tEuRepQ('questions.q2.title')}
+                hint={tEuRepQ('questions.q2.description')}
+              >
+                <RadioGroup
+                  name="offersToEU"
+                  options={yesNoDontKnow}
+                  value={form.offersToEU}
+                  onChange={(v) => {
+                    set('offersToEU', v);
+                  }}
+                />
+              </QField>
+            ) : null}
+            {euRepVisible.monitorsEUBehaviour ? (
+              <QField
+                label={tEuRepQ('questions.q3.title')}
+                hint={tEuRepQ('questions.q3.description')}
+              >
+                <RadioGroup
+                  name="monitorsEUBehaviour"
+                  options={yesNoDontKnow}
+                  value={form.monitorsEUBehaviour}
+                  onChange={(v) => {
+                    set('monitorsEUBehaviour', v);
+                  }}
+                />
+              </QField>
+            ) : null}
+            <QField label={t('fields.processesEUData')}>
               <RadioGroup
                 name="processesEUData"
-                options={YES_NO_DONTKNOW}
+                options={yesNoDontKnow}
                 value={form.processesEUData}
                 onChange={(v) => {
                   set('processesEUData', v);
@@ -286,10 +358,10 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               />
             </QField>
             <Reveal show={form.processesEUData === 'yes'}>
-              <QField label="Does this happen systematically?">
+              <QField label={t('fields.systematically')}>
                 <RadioGroup
                   name="systematically"
-                  options={YES_NO_DONTKNOW}
+                  options={yesNoDontKnow}
                   value={form.systematically}
                   onChange={(v) => {
                     set('systematically', v);
@@ -297,61 +369,20 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
                 />
               </QField>
             </Reveal>
-            <QField label="Does the company offer goods/services to people in the EU/EEA?">
-              <RadioGroup
-                name="offersToEU"
-                options={YES_NO_DONTKNOW}
-                value={form.offersToEU}
-                onChange={(v) => {
-                  set('offersToEU', v);
-                }}
-              />
-            </QField>
-            <QField label="Does the company monitor the behaviour of people in the EU/EEA?">
-              <RadioGroup
-                name="monitorsEUBehaviour"
-                options={YES_NO_DONTKNOW}
-                value={form.monitorsEUBehaviour}
-                onChange={(v) => {
-                  set('monitorsEUBehaviour', v);
-                }}
-              />
-            </QField>
-            <QField label="Does the company have an establishment in the EU/EEA?">
+            <QField label={t('fields.hasEUEstablishment')}>
               <RadioGroup
                 name="hasEUEstablishment"
-                options={YES_NO}
+                options={yesNo}
                 value={form.hasEUEstablishment}
                 onChange={(v) => {
                   set('hasEUEstablishment', v);
                 }}
               />
             </QField>
-            <QField label="Does the company have an EU data protection representative?">
-              <RadioGroup
-                name="hasEURepresentative"
-                options={YES_NO}
-                value={form.hasEURepresentative}
-                onChange={(v) => {
-                  set('hasEURepresentative', v);
-                }}
-              />
-            </QField>
-            <Reveal show={form.hasEURepresentative === 'yes'}>
-              <QField label="Address of the EU representative">
-                <TextInput
-                  value={form.euRepresentativeAddress}
-                  onChange={(e) => {
-                    set('euRepresentativeAddress', e.target.value);
-                  }}
-                  placeholder="Name, street, city, country"
-                />
-              </QField>
-            </Reveal>
-            <QField label="Is personal data transferred to a third country outside the EU/EEA?">
+            <QField label={t('fields.transfersToThirdCountry')}>
               <RadioGroup
                 name="transfersToThirdCountry"
-                options={YES_NO_DONTKNOW}
+                options={yesNoDontKnow}
                 value={form.transfersToThirdCountry}
                 onChange={(v) => {
                   set('transfersToThirdCountry', v);
@@ -360,32 +391,31 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
             </QField>
           </CategoryRow>
 
-          {/* Data Usage and Compliance */}
-          <CategoryRow label="Data Usage and Compliance">
-            <QField label="Is personal data used for direct marketing?">
+          <CategoryRow label={t('categories.dataUsage')}>
+            <QField label={t('fields.usesDataForMarketing')}>
               <RadioGroup
                 name="usesDataForMarketing"
-                options={YES_NO}
+                options={yesNo}
                 value={form.usesDataForMarketing}
                 onChange={(v) => {
                   set('usesDataForMarketing', v);
                 }}
               />
             </QField>
-            <QField label="Is profiling or automated decision-making carried out?">
+            <QField label={t('fields.usesProfiling')}>
               <RadioGroup
                 name="usesProfiling"
-                options={YES_NO}
+                options={yesNo}
                 value={form.usesProfiling}
                 onChange={(v) => {
                   set('usesProfiling', v);
                 }}
               />
             </QField>
-            <QField label="Is there a separate privacy notice for employees?">
+            <QField label={t('fields.hasEmployeePrivacyNotice')}>
               <RadioGroup
                 name="hasEmployeePrivacyNotice"
-                options={YES_NO}
+                options={yesNo}
                 value={form.hasEmployeePrivacyNotice}
                 onChange={(v) => {
                   set('hasEmployeePrivacyNotice', v);
@@ -393,20 +423,20 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               />
             </QField>
             <Reveal show={form.hasEmployeePrivacyNotice === 'yes'}>
-              <QField label="URL of employee privacy notice">
+              <QField label={t('fields.employeePrivacyUrl')}>
                 <TextInput
                   value={form.employeePrivacyUrl}
                   onChange={(e) => {
                     set('employeePrivacyUrl', e.target.value);
                   }}
-                  placeholder="https://yourcompany.com/employee-privacy"
+                  placeholder={t('placeholders.employeePrivacyUrl')}
                 />
               </QField>
             </Reveal>
-            <QField label="Should supervisory authority contact details be listed?">
+            <QField label={t('fields.listSupervisoryAuthority')}>
               <RadioGroup
                 name="listSupervisoryAuthority"
-                options={YES_NO}
+                options={yesNo}
                 value={form.listSupervisoryAuthority}
                 onChange={(v) => {
                   set('listSupervisoryAuthority', v);
@@ -414,10 +444,13 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
               />
             </QField>
             <Reveal show={form.listSupervisoryAuthority === 'yes'}>
-              <QField label="Which supervisory authority?">
+              <QField label={t('fields.supervisoryAuthority')}>
                 <RadioGroup
                   name="supervisoryAuthority"
-                  options={[...SUPERVISORY_AUTHORITY_OPTIONS]}
+                  options={SUPERVISORY_AUTHORITY_OPTIONS.map((opt) => ({
+                    value: opt.value,
+                    label: t(`options.supervisoryAuthority.${opt.value}`),
+                  }))}
                   value={form.supervisoryAuthority}
                   onChange={(v) => {
                     set('supervisoryAuthority', v);
@@ -429,13 +462,7 @@ export function ImprovedStep({ domain, onSubmit, onBack }: ImprovedStepProps) {
         </div>
       </Container>
 
-      <StepFooter
-        onBack={onBack}
-        onContinue={() => {
-          onSubmit(form);
-        }}
-        ctaLabel={tEuRep('label')}
-      />
+      <StepFooter onBack={onBack} onContinue={handleSubmit} ctaLabel={t('continue')} />
     </>
   );
 }

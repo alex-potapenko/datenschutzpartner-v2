@@ -293,11 +293,11 @@ export function InvoiceDownloadButton({ label, onPress }: { label: string; onPre
       variant="outline"
       size="sm"
       isIconOnly
-      className="rounded-full"
+      className="size-8 rounded-full"
       aria-label={label}
       onPress={onPress}
     >
-      <FileText size={14} aria-hidden />
+      <FileText size={12} aria-hidden />
     </Button>
   );
 }

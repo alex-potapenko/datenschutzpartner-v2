@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button, CaretLeft, CaretRight } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 
@@ -7,7 +9,7 @@ interface StepFooterProps {
   onBack?: () => void;
   onContinue?: () => void;
   onSkip?: () => void;
-  ctaLabel?: string;
+  ctaLabel?: ReactNode;
   skipLabel?: string;
   ctaDisabled?: boolean;
 }
@@ -16,10 +18,12 @@ export function StepFooter({
   onBack,
   onContinue,
   onSkip,
-  ctaLabel = 'Continue',
-  skipLabel = 'Skip',
+  ctaLabel,
+  skipLabel,
   ctaDisabled,
 }: StepFooterProps) {
+  const t = useTranslations('common');
+
   return (
     <div className="border-border bg-background sticky bottom-0 z-10 border-t">
       <Container>
@@ -32,7 +36,7 @@ export function StepFooter({
               onPress={onBack}
             >
               <CaretLeft size={16} weight="bold" />
-              <span className="hidden sm:inline">Back</span>
+              <span className="hidden sm:inline">{t('back')}</span>
             </Button>
           ) : (
             <div />
@@ -45,7 +49,7 @@ export function StepFooter({
                 className="h-11 shrink-0 rounded-full sm:h-14"
                 onPress={onSkip}
               >
-                {skipLabel}
+                {skipLabel ?? t('skip')}
               </Button>
             ) : null}
             {onContinue ? (
@@ -56,7 +60,7 @@ export function StepFooter({
                 onPress={onContinue}
                 isDisabled={ctaDisabled}
               >
-                <span className="truncate">{ctaLabel}</span>
+                <span className="truncate">{ctaLabel ?? t('continue')}</span>
                 <CaretRight size={16} weight="bold" className="shrink-0" />
               </Button>
             ) : null}

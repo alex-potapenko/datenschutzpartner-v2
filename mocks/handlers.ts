@@ -3,18 +3,12 @@ import type { Contact, ContactCreate } from '@/api/contacts';
 import type { ContactMessage, ContactMessageCreate } from '@/api/contact-messages';
 import type { ForgotPasswordInput, LoginInput, Session } from '@/api/auth';
 import type { Address, AddressInput, AddressUpdate, AccountSnapshot, Profile } from '@/api/account';
-import type {
-  MembershipRow,
-  Order,
-  PaymentMethod,
-  PaymentMethodCreateInput,
-  PaymentMethodFromPayrexxInput,
-  PaymentMethodUpdateInput,
-  Subscription,
-  SubscriptionBillingUpdate,
-} from '@/api/billing';
-import { detectCardBrand, normalizeCardNumber } from '@/api/billing';
-import type { GeneratedDocument } from '@/api/documents';
+import type { MembershipRow, Order, Subscription, SubscriptionBillingUpdate } from '@/api/billing';
+import type { CheckoutSessionCreate, EuRepCheckoutPlanId, GeneratorPlanId } from '@/api/checkout';
+import { GENERATOR_PLAN_PRICES, GENERATOR_PLAN_SITE_COUNTS } from '@/api/checkout';
+import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
+import { normalizeGeneratedDocument } from '@/api/documents';
+import type { EuRepInquiry } from '@/api/eu-rep-inquiries';
 import { createCollection } from './db';
 
 function tokenFromRequest(request: Request): string | null {
@@ -103,8 +97,6 @@ const subscriptions = createCollection<Subscription>(
       startDate: '2026-01-15',
       lastOrderDate: '2026-01-15',
       nextPaymentDate: '2027-01-15',
-      paymentMethod: 'Visa •••• 4242',
-      paymentMethodId: '1',
       billingAddressId: '1',
       totals: {
         product: 'Jahresmitgliedschaft',
@@ -124,8 +116,6 @@ const subscriptions = createCollection<Subscription>(
       startDate: '2026-04-02',
       lastOrderDate: '2026-04-02',
       nextPaymentDate: '2027-04-02',
-      paymentMethod: 'Mastercard •••• 5555',
-      paymentMethodId: '2',
       billingAddressId: '2',
       totals: {
         product: 'EU-Vertretung Standard (12 Monate)',
@@ -136,16 +126,203 @@ const subscriptions = createCollection<Subscription>(
       },
       relatedOrderIds: ['3'],
     },
+    {
+      id: '3',
+      productType: 'policy',
+      product: 'Privacy Policy Generator',
+      planId: 'policy',
+      status: 'active',
+      startDate: '2026-01-15',
+      lastOrderDate: '2026-07-01',
+      nextPaymentDate: '2027-07-01',
+      billingAddressId: '1',
+      totals: {
+        product: 'Privacy Policy Generator — 8 Sites (12 Monate)',
+        subtotal: 712,
+        discount: 0,
+        total: 712,
+        currency: 'CHF',
+      },
+      relatedOrderIds: ['2', '19'],
+    },
   ],
   4
 );
 
 /**
- * Privacy Policy Generator is a consumable allowance, not a subscription: the
- * member buys a number of websites and each generated policy uses one. "Used"
- * is derived from the generated-document inventory in the member UI.
+ * Privacy Policy Generator is a yearly subscription that also grants a site
+ * allowance. Mock narrative: Lucas bought 5 sites on 2026-01-15, generated all
+ * five policies, then bought 3 more on 2026-07-01 — allowance is now 8 and
+ * renewal reset to 2027-07-01 (see docs/data-layer.md). "Used" is derived from
+ * the generated-document inventory (5 of 8).
  */
-const generatorPlan = { siteAllowance: 12 };
+const generatorPlans = createCollection<{ id: string; siteAllowance: number }>(
+  'generator-plan',
+  [{ id: '1', siteAllowance: 8 }],
+  5
+);
+
+const euRepInquiries = createCollection<EuRepInquiry>(
+  'eu-rep-inquiries',
+  [
+    {
+      id: '1',
+      date: '2026-06-18',
+      subject: 'Data subject access request — mueller-consulting.ch',
+      status: 'forwarded',
+      reference: 'DSAR-2026-0412',
+    },
+    {
+      id: '2',
+      date: '2026-05-02',
+      subject: 'Erasure request from French supervisory authority',
+      status: 'answered',
+      reference: 'CNIL-8821',
+    },
+    {
+      id: '3',
+      date: '2026-03-21',
+      subject: 'Cookie consent complaint — kreativ-studio.ch',
+      status: 'closed',
+    },
+    {
+      id: '4',
+      date: '2026-07-08',
+      subject: 'Right to object — marketing newsletter',
+      status: 'forwarded',
+    },
+  ],
+  5
+);
+
+const EU_REP_CHECKOUT_PRICES: Record<EuRepCheckoutPlanId, number> = {
+  budget: 149,
+  standard: 249,
+  premium: 499,
+};
+
+type CheckoutSessionRecord = {
+  id: string;
+  status: 'pending' | 'completed';
+  kind: CheckoutSessionCreate['kind'];
+  planId: GeneratorPlanId;
+  siteCount: number;
+  amount: number;
+  currency: 'CHF';
+  domain?: string;
+  policyName?: string;
+  euRepPlanId?: EuRepCheckoutPlanId;
+  orderId?: string;
+  documentId?: string;
+};
+
+const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 1);
+
+function readSiteAllowance(): number {
+  return generatorPlans.all()[0]?.siteAllowance ?? 0;
+}
+
+function addSiteAllowance(count: number): number {
+  const row = generatorPlans.all()[0];
+  if (!row) {
+    generatorPlans.create({ siteAllowance: count });
+    return count;
+  }
+  const next = row.siteAllowance + count;
+  generatorPlans.update(row.id, { siteAllowance: next });
+  return next;
+}
+
+function addOneYear(isoDate: string): string {
+  const date = new Date(isoDate);
+  date.setFullYear(date.getFullYear() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function nextOrderNumber(): string {
+  const year = new Date().getFullYear();
+  const seq = orders.all().length + 1200;
+  return `DSP-${year}-${seq}`;
+}
+
+function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | undefined {
+  const session = checkoutSessions.all().find((row) => row.id === sessionId);
+  if (!session || session.status === 'completed') {
+    return undefined;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const siteAllowance = addSiteAllowance(session.siteCount);
+  const nextPaymentDate = addOneYear(today);
+
+  const generatorAmount = GENERATOR_PLAN_PRICES[session.planId];
+  const policyOrder = orders.create({
+    productType: 'policy',
+    number: nextOrderNumber(),
+    date: today,
+    status: 'active',
+    total: generatorAmount,
+    currency: session.currency,
+    siteCount: session.siteCount,
+  });
+
+  const policySub = subscriptions.all().find((row) => row.productType === 'policy');
+  if (policySub) {
+    subscriptions.update(policySub.id, {
+      lastOrderDate: today,
+      nextPaymentDate,
+      totals: {
+        ...policySub.totals,
+        product: `Privacy Policy Generator — ${siteAllowance} Sites (12 Monate)`,
+        subtotal: policySub.totals.subtotal + generatorAmount,
+        total: policySub.totals.total + generatorAmount,
+      },
+      relatedOrderIds: [...policySub.relatedOrderIds, policyOrder.id],
+    });
+  }
+
+  let documentId: string | undefined;
+  if (session.domain) {
+    const created = documents.create({
+      name: session.policyName ?? 'Privacy Policy',
+      site: session.domain.replace(/^www\./, ''),
+      createdDate: today,
+      updatedDate: today,
+      versions: buildPolicyVersions(today),
+    });
+    documentId = created.id;
+  }
+
+  if (session.euRepPlanId) {
+    const euAmount = EU_REP_CHECKOUT_PRICES[session.euRepPlanId];
+    const euOrder = orders.create({
+      productType: 'euRep',
+      number: nextOrderNumber(),
+      date: today,
+      status: 'active',
+      total: euAmount,
+      currency: 'CHF',
+      orderKind: 'subscription',
+    });
+
+    const euSub = subscriptions.all().find((row) => row.productType === 'euRep');
+    if (euSub) {
+      subscriptions.update(euSub.id, {
+        lastOrderDate: today,
+        nextPaymentDate,
+        relatedOrderIds: [...euSub.relatedOrderIds, euOrder.id],
+      });
+    }
+  }
+
+  const completed = checkoutSessions.update(sessionId, {
+    status: 'completed',
+    orderId: policyOrder.id,
+    documentId,
+  });
+
+  return completed;
+}
 
 const memberships = createCollection<MembershipRow>('billing-memberships', [
   {
@@ -184,10 +361,20 @@ const orders = createCollection<Order>(
     {
       id: '2',
       productType: 'policy',
-      number: 'DSP-2026-1042',
-      date: '2026-02-03',
+      number: 'DSP-2026-1005',
+      date: '2026-01-15',
       status: 'active',
-      total: 199,
+      total: 445,
+      currency: 'CHF',
+      siteCount: 5,
+    },
+    {
+      id: '19',
+      productType: 'policy',
+      number: 'DSP-2026-1188',
+      date: '2026-07-01',
+      status: 'active',
+      total: 267,
       currency: 'CHF',
       siteCount: 3,
     },
@@ -200,96 +387,6 @@ const orders = createCollection<Order>(
       total: 249,
       currency: 'CHF',
       orderKind: 'subscription',
-    },
-    {
-      id: '7',
-      productType: 'policy',
-      number: 'DSP-2025-0917',
-      date: '2025-11-20',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '8',
-      productType: 'policy',
-      number: 'DSP-2026-1015',
-      date: '2026-05-20',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '9',
-      productType: 'policy',
-      number: 'DSP-2025-1208',
-      date: '2025-12-08',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '10',
-      productType: 'policy',
-      number: 'DSP-2025-1120',
-      date: '2025-12-08',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '11',
-      productType: 'policy',
-      number: 'DSP-2025-1022',
-      date: '2025-10-22',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '12',
-      productType: 'policy',
-      number: 'DSP-2025-0914',
-      date: '2025-09-14',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '13',
-      productType: 'policy',
-      number: 'DSP-2025-0830',
-      date: '2025-08-30',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '14',
-      productType: 'policy',
-      number: 'DSP-2025-0831',
-      date: '2025-08-30',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-    },
-    {
-      id: '15',
-      productType: 'policy',
-      number: 'DSP-2025-0718',
-      date: '2025-07-18',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
     },
     {
       id: '17',
@@ -315,135 +412,73 @@ const orders = createCollection<Order>(
   2
 );
 
+/** Latest legal year the hosted policies have been maintained through. */
+const CURRENT_POLICY_YEAR = 2026;
+
+/**
+ * Derive the yearly revision history for a hosted policy. One revision per year
+ * from the year it was first generated up to the current maintained year; the
+ * newest is the live (`current`) revision.
+ */
+function buildPolicyVersions(createdDate: string): PolicyVersion[] {
+  const createdYear = Number(createdDate.slice(0, 4));
+  const versions: PolicyVersion[] = [];
+  for (let year = CURRENT_POLICY_YEAR; year >= createdYear; year -= 1) {
+    versions.push({
+      year,
+      current: year === CURRENT_POLICY_YEAR,
+      effectiveDate: year === createdYear ? createdDate : `${year}-01-15`,
+      changeSummary: year === createdYear ? 'initial' : 'annualReview',
+    });
+  }
+  return versions;
+}
+
 const documents = createCollection<GeneratedDocument>(
   'generated-documents',
-  [
-    {
-      id: '1',
-      name: 'Datenschutzerklärung — sutter-web.ch',
-      createdDate: '2026-02-03',
-      status: 'upToDate',
-    },
-    {
-      id: '2',
-      name: 'Cookie-Richtlinie — sutter-web.ch',
-      siteUrl: 'www.sutter-web.ch/cookie-policy',
-      createdDate: '2025-11-20',
-      updateAvailableSince: '2026-06-01',
-      status: 'updateAvailable',
-    },
-    {
-      id: '3',
-      name: 'Privacy Policy — alpenblick-hotel.ch',
-      createdDate: '2026-01-15',
-      status: 'upToDate',
-    },
-    {
-      id: '4',
-      name: 'Datenschutzerklärung — mueller-consulting.ch',
-      createdDate: '2025-12-08',
-      status: 'upToDate',
-    },
-    {
-      id: '5',
-      name: 'Cookie Policy — mueller-consulting.ch',
-      siteUrl: 'www.mueller-consulting.ch/cookie-policy',
-      createdDate: '2025-12-08',
-      updateAvailableSince: '2026-05-15',
-      status: 'updateAvailable',
-    },
-    {
-      id: '6',
-      name: 'Datenschutzerklärung — kreativ-studio.ch',
-      createdDate: '2025-10-22',
-      status: 'upToDate',
-    },
-    {
-      id: '7',
-      name: 'Privacy Policy — techstart-ag.ch',
-      createdDate: '2025-09-14',
-      status: 'upToDate',
-    },
-    {
-      id: '8',
-      name: 'Datenschutzerklärung — bäckerei-meier.ch',
-      siteUrl: 'www.baeckerei-meier.ch/privacy',
-      createdDate: '2025-08-30',
-      updateAvailableSince: '2026-04-20',
-      status: 'updateAvailable',
-    },
-    {
-      id: '9',
-      name: 'Cookie-Richtlinie — bäckerei-meier.ch',
-      createdDate: '2025-08-30',
-      status: 'upToDate',
-    },
-    {
-      id: '10',
-      name: 'Datenschutzerklärung — finanzpartner.ch',
-      createdDate: '2025-07-18',
-      status: 'upToDate',
-    },
-  ],
-  3
-);
-
-const paymentMethods = createCollection<PaymentMethod>(
-  'billing-payment-methods',
-  [
-    {
-      id: '1',
-      type: 'card',
-      label: 'Visa •••• 4242',
-      cardholderName: 'Lucas Baumgartner',
-      brand: 'visa',
-      last4: '4242',
-      expMonth: 9,
-      expYear: 2027,
-      provider: 'payrexx',
-      externalId: 'payrexx-mock-1',
-    },
-    {
-      id: '2',
-      type: 'card',
-      label: 'Mastercard •••• 5555',
-      cardholderName: 'Lucas Baumgartner',
-      brand: 'mastercard',
-      last4: '5555',
-      expMonth: 3,
-      expYear: 2028,
-      provider: 'payrexx',
-      externalId: 'payrexx-mock-2',
-    },
-  ],
+  (
+    [
+      {
+        id: '1',
+        name: 'Datenschutzerklärung',
+        site: 'sutter-web.ch',
+        createdDate: '2026-01-20',
+        updatedDate: '2026-06-15',
+      },
+      {
+        id: '2',
+        name: 'Cookie-Richtlinie',
+        site: 'sutter-web.ch',
+        siteUrl: 'www.sutter-web.ch/cookie-policy',
+        createdDate: '2026-01-22',
+        updatedDate: '2026-01-22',
+      },
+      {
+        id: '3',
+        name: 'Privacy Policy',
+        site: 'alpenblick-hotel.ch',
+        createdDate: '2026-02-03',
+        updatedDate: '2026-05-20',
+      },
+      {
+        id: '4',
+        name: 'Datenschutzerklärung',
+        site: 'mueller-consulting.ch',
+        createdDate: '2026-03-10',
+        updatedDate: '2026-03-10',
+      },
+      {
+        id: '5',
+        name: 'Cookie Policy',
+        site: 'kreativ-studio.ch',
+        siteUrl: 'www.kreativ-studio.ch/cookie-policy',
+        createdDate: '2026-04-15',
+        updatedDate: '2026-07-01',
+      },
+    ] satisfies GeneratedDocument[]
+  ).map((doc) => ({ ...doc, versions: buildPolicyVersions(doc.createdDate) })),
   4
 );
-
-function paymentMethodLabel(method: Pick<PaymentMethod, 'brand' | 'last4'>) {
-  if (!method.brand || !method.last4) return 'Card';
-  const brand = method.brand.charAt(0).toUpperCase() + method.brand.slice(1);
-  return `${brand} •••• ${method.last4}`;
-}
-
-function createPaymentMethodFromCardInput(
-  input: PaymentMethodCreateInput
-): Omit<PaymentMethod, 'id'> {
-  const digits = normalizeCardNumber(input.cardNumber);
-  const last4 = digits.slice(-4);
-  const brand = detectCardBrand(digits) ?? 'visa';
-
-  return {
-    type: 'card',
-    label: paymentMethodLabel({ brand, last4 }),
-    cardholderName: input.cardholderName,
-    brand,
-    last4,
-    expMonth: input.expMonth,
-    expYear: input.expYear,
-    provider: 'payrexx',
-    externalId: `payrexx-mock-${last4}`,
-  };
-}
 
 export const handlers = [
   http.get('/api/contacts', () => HttpResponse.json(contacts.all())),
@@ -628,62 +663,109 @@ export const handlers = [
     HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? orders.all() : [])
   ),
 
-  http.get('/api/billing/payment-methods', () => HttpResponse.json(paymentMethods.all())),
+  http.get('/api/documents', () =>
+    HttpResponse.json(documents.all().map((row) => normalizeGeneratedDocument(row)))
+  ),
 
-  http.post('/api/billing/payment-methods', async ({ request }) => {
-    const input = (await request.json()) as PaymentMethodCreateInput;
-    const created = paymentMethods.create(createPaymentMethodFromCardInput(input));
-    return HttpResponse.json(created, { status: 201 });
+  http.get('/api/documents/:id', ({ params }) => {
+    const id = String(params.id);
+    const document = documents.all().find((row) => row.id === id);
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+    return HttpResponse.json(normalizeGeneratedDocument(document));
   }),
 
-  http.post('/api/billing/payment-methods/payrexx-session', () =>
+  http.get('/api/generator/plan', ({ request }) =>
     HttpResponse.json(
-      {
-        sessionId: `payrexx-session-${crypto.randomUUID()}`,
-        checkoutUrl: 'https://www.payrexx.com/en/home/',
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-      },
-      { status: 201 }
+      isMemberToken(tokenFromRequest(request)) ? { siteAllowance: readSiteAllowance() } : null
     )
   ),
 
-  http.post('/api/billing/payment-methods/from-payrexx', async ({ request }) => {
-    const input = (await request.json()) as PaymentMethodFromPayrexxInput;
-    const created = paymentMethods.create({
-      type: 'card',
-      label: 'Visa •••• 4242',
-      cardholderName: 'Lucas Baumgartner',
-      brand: 'visa',
-      last4: '4242',
-      expMonth: 12,
-      expYear: new Date().getFullYear() + 2,
-      provider: 'payrexx',
-      externalId: input.payrexxToken,
+  http.get('/api/eu-rep/inquiries', ({ request }) =>
+    HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? euRepInquiries.all() : [])
+  ),
+
+  http.post('/api/checkout/sessions', async ({ request }) => {
+    const input = (await request.json()) as CheckoutSessionCreate;
+    const siteCount = GENERATOR_PLAN_SITE_COUNTS[input.planId];
+    let amount = GENERATOR_PLAN_PRICES[input.planId];
+    if (input.euRepPlanId) {
+      amount += EU_REP_CHECKOUT_PRICES[input.euRepPlanId];
+    }
+
+    const session = checkoutSessions.create({
+      status: 'pending',
+      kind: input.kind,
+      planId: input.planId,
+      siteCount,
+      amount,
+      currency: 'CHF',
+      domain: input.domain,
+      policyName: input.policyName,
+      euRepPlanId: input.euRepPlanId,
     });
-    return HttpResponse.json(created, { status: 201 });
+
+    return HttpResponse.json(
+      {
+        id: session.id,
+        redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
+        amount: session.amount,
+        currency: session.currency,
+        siteCount: session.siteCount,
+      },
+      { status: 201 }
+    );
   }),
 
-  http.put('/api/billing/payment-methods/:id', async ({ params, request }) => {
-    const input = (await request.json()) as PaymentMethodUpdateInput;
-    const updated = paymentMethods.update(String(params.id), {
-      cardholderName: input.cardholderName,
-      expMonth: input.expMonth,
-      expYear: input.expYear,
+  http.post('/api/checkout/sessions/:id/complete', ({ params }) => {
+    const completed = completeCheckoutSession(String(params.id));
+    if (!completed) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const policySub = subscriptions.all().find((row) => row.productType === 'policy');
+    const document = completed.documentId
+      ? documents.all().find((row) => row.id === completed.documentId)
+      : undefined;
+
+    return HttpResponse.json({
+      sessionId: completed.id,
+      orderId: completed.orderId,
+      document: document ? normalizeGeneratedDocument(document) : undefined,
+      siteAllowance: readSiteAllowance(),
+      nextPaymentDate: policySub?.nextPaymentDate ?? null,
     });
-    if (!updated) {
+  }),
+
+  http.get('/api/checkout/payrexx-portal', () =>
+    HttpResponse.json({
+      url: 'https://checkout.payrexx.com/portal/mock-datenschutzpartner',
+    })
+  ),
+
+  http.get('/api/billing/orders/:id/invoice', ({ params }) => {
+    const order = orders.all().find((row) => row.id === String(params.id));
+    if (!order) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+    return HttpResponse.json({
+      url: `/api/billing/orders/${order.id}/invoice.pdf`,
+      filename: `${order.number}.pdf`,
+    });
+  }),
+
+  http.get('/api/billing/orders/:id/invoice.pdf', ({ params }) => {
+    const order = orders.all().find((row) => row.id === String(params.id));
+    if (!order) {
       return new HttpResponse(null, { status: 404 });
     }
-    return HttpResponse.json(updated);
+    const body = `Mock invoice ${order.number} — ${order.total} ${order.currency}`;
+    return new HttpResponse(body, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${order.number}.pdf"`,
+      },
+    });
   }),
-
-  http.delete('/api/billing/payment-methods/:id', ({ params }) => {
-    const removed = paymentMethods.remove(String(params.id));
-    return new HttpResponse(null, { status: removed ? 204 : 404 });
-  }),
-
-  http.get('/api/documents', () => HttpResponse.json(documents.all())),
-
-  http.get('/api/generator/plan', ({ request }) =>
-    HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? generatorPlan : null)
-  ),
 ];

@@ -15,6 +15,9 @@ export const ACADEMY_UPCOMING_PREVIEW: AcademyUpcomingEvent[] = [
 export const ACADEMY_PREVIEW_WEBINARS_LIMIT = 3;
 export const ACADEMY_PREVIEW_NEWS_LIMIT = 3;
 
+/** Max upcoming compact rows in the account Academy sessions tab (featured next live is separate). */
+export const ACCOUNT_UPCOMING_LIMIT = 3;
+
 /** Minimum past sessions shown when Coming up is empty. */
 export const ACADEMY_PAST_SESSIONS_MIN_WHEN_COMING_UP_EMPTY = 10;
 

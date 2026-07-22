@@ -1,16 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   useCancelSubscription,
   useOrders,
-  usePaymentMethods,
   useSubscriptions,
-  type PaymentMethod,
+  type BillingProductType,
   type Subscription,
 } from '@/api/billing';
+import { downloadOrderInvoice } from '@/api/checkout';
 import { useAddresses } from '@/api/account';
 import {
   ArrowsClockwise,
@@ -22,11 +21,9 @@ import {
   Table,
   useOverlayState,
 } from '@/components/ui';
-import { AcademyMembershipIncludesList } from '@/components/shared/AcademyMembershipIncludesList';
-import { BillingSelectionDialog, type BillingSelectionKind } from '../BillingSelectionDialog';
+import { BillingSelectionDialog } from '../BillingSelectionDialog';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
-import { PaymentCardBrandMark } from '@/components/shared/PaymentCardBrandMark';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
 import {
   AccountSection,
@@ -42,82 +39,39 @@ import {
 /** Anchor for AGB §5 Vertragslaufzeit — must match `LegalMarkdown` heading ids in `terms.de.md`. */
 const TERMS_CONTRACT_DURATION_SECTION_ID = '5-vertragslaufzeit';
 
+const CONTACT_SUBJECT: Record<BillingProductType, string> = {
+  academy: 'academy',
+  euRep: 'eu-rep',
+  policy: 'generator',
+};
+
+async function handleInvoiceDownload(orderId: string, onStarted: () => void) {
+  try {
+    await downloadOrderInvoice(orderId);
+    onStarted();
+  } catch {
+    toast.error('Download failed');
+  }
+}
+
 function endOfTermDate(nextPaymentDate: string): string {
   const date = new Date(nextPaymentDate);
   date.setDate(date.getDate() - 1);
   return date.toISOString();
 }
 
-function formatCardBrand(brand: string) {
-  return brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase();
-}
-
-function NextPaymentPanel({
-  subscription,
-  paymentMethod,
-  onChangePayment,
-}: {
-  subscription: Subscription;
-  paymentMethod?: PaymentMethod;
-  onChangePayment: () => void;
-}) {
-  const t = useTranslations('account.academyMembership');
-  const formatDate = useDateFormatter();
-
-  return (
-    <AccountSection
-      size="small"
-      title={t('paymentMethodEyebrow')}
-      icon={<CreditCard size={14} weight="fill" className="shrink-0" aria-hidden />}
-      action={
-        <NavigationLink onPress={onChangePayment} size="sm" chevron="none" className="shrink-0">
-          {t('change')}
-        </NavigationLink>
-      }
-    >
-      <div className="flex flex-col gap-3">
-        {paymentMethod?.type === 'card' && paymentMethod.brand && paymentMethod.last4 ? (
-          <div className="flex min-w-0 items-center gap-3">
-            <PaymentCardBrandMark brand={paymentMethod.brand} />
-            <div className="min-w-0">
-              <p className="text-foreground text-sm font-semibold">
-                {formatCardBrand(paymentMethod.brand)} •••• {paymentMethod.last4}
-              </p>
-              {paymentMethod.expMonth != null && paymentMethod.expYear != null ? (
-                <p className="text-muted text-xs">
-                  {t('cardExpires', {
-                    month: String(paymentMethod.expMonth).padStart(2, '0'),
-                    year: String(paymentMethod.expYear),
-                  })}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          // eslint-disable-next-line @typescript-eslint/no-deprecated -- legacy fallback when no linked payment method resolves
-          <p className="text-foreground text-sm font-semibold">{subscription.paymentMethod}</p>
-        )}
-        {subscription.nextPaymentDate ? (
-          <p className="text-muted text-sm leading-relaxed">
-            {t('renewalPaymentNote', { date: formatDate(subscription.nextPaymentDate) })}
-          </p>
-        ) : null}
-      </div>
-    </AccountSection>
-  );
-}
-
 function CurrentPlanPanel({
   subscription,
-  paymentMethod,
+  planTitle,
+  pricePeriod,
   onCancel,
 }: {
   subscription: Subscription;
-  paymentMethod?: PaymentMethod;
+  planTitle: string;
+  pricePeriod: string;
   onCancel?: () => void;
 }) {
-  const t = useTranslations('account.academyMembership');
-  const tAcademy = useTranslations('academy.landing');
+  const t = useTranslations('account.membershipPanel');
   const ts = useTranslations('account.status');
   const formatDate = useDateFormatter();
 
@@ -126,7 +80,7 @@ function CurrentPlanPanel({
 
   return (
     <AccountSection
-      title={t('planTitle')}
+      title={planTitle}
       titleAside={
         <StatusPill tone={statusTone(subscription.status)}>{ts(subscription.status)}</StatusPill>
       }
@@ -152,7 +106,7 @@ function CurrentPlanPanel({
               currency={currency}
               amount={total.toFixed(2)}
               animatedAmount={total}
-              notes={[tAcademy('membershipPricePeriod')]}
+              notes={[pricePeriod]}
               size="sm"
             />
             <p className="text-muted text-sm">
@@ -160,14 +114,6 @@ function CurrentPlanPanel({
                 date: formatDate(subscription.lastOrderDate ?? subscription.startDate),
               })}
             </p>
-            {paymentMethod?.type === 'card' && paymentMethod.brand && paymentMethod.last4 ? (
-              <div className="flex items-center gap-3">
-                <PaymentCardBrandMark brand={paymentMethod.brand} />
-                <p className="text-foreground text-sm font-semibold">
-                  {formatCardBrand(paymentMethod.brand)} •••• {paymentMethod.last4}
-                </p>
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -214,7 +160,12 @@ function CurrentPlanPanel({
           size="md"
           className="gap-2"
           onPress={() => {
-            toast.success(t('invoiceDownloadStarted'));
+            const latestOrderId = subscription.relatedOrderIds.at(-1);
+            if (latestOrderId) {
+              void handleInvoiceDownload(latestOrderId, () => {
+                toast.success(t('invoiceDownloadStarted'));
+              });
+            }
           }}
         >
           <FileText size={18} aria-hidden />
@@ -230,35 +181,48 @@ function CurrentPlanPanel({
   );
 }
 
-export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: () => void }) {
-  const t = useTranslations('account.academyMembership');
+/**
+ * Billing detail for a single product's yearly subscription — shared across the
+ * Academy "Membership", EU Rep "Subscription" and Privacy Generator
+ * "Subscription" tabs. All three are the same underlying billing record; only
+ * the plan title, price period and the "what's included" block differ by
+ * product.
+ */
+export function MembershipPanel({
+  productType,
+  onManagePayment,
+}: {
+  productType: BillingProductType;
+  onManagePayment: () => void;
+}) {
+  const t = useTranslations('account.membershipPanel');
   const tFooter = useTranslations('footer');
-  const tPanel = useTranslations('account.subscriptionPanel');
   const tOrders = useTranslations('account.orders');
-  const tFeatures = useTranslations('academy.landing.features');
+  const tGeneratorPlan = useTranslations('account.generatorPlan');
   const subscriptions = useSubscriptions();
   const orders = useOrders();
-  const paymentMethods = usePaymentMethods();
   const addresses = useAddresses();
   const cancel = useCancelSubscription();
   const confirm = useOverlayState();
   const billingSelection = useOverlayState();
-  const [billingSelectionKind, setBillingSelectionKind] =
-    useState<BillingSelectionKind>('paymentMethod');
   const formatDate = useDateFormatter();
 
-  const subscription = subscriptions.data?.find((row) => row.productType === 'academy');
+  const subscription = subscriptions.data?.find((row) => row.productType === productType);
   const billing = subscription?.billingAddressId
     ? addresses.data?.find((address) => address.id === subscription.billingAddressId)
     : addresses.data?.find((address) => address.type === 'billing');
-  const linkedPaymentMethod = subscription?.paymentMethodId
-    ? paymentMethods.data?.find((method) => method.id === subscription.paymentMethodId)
-    : undefined;
 
   const billingHistory =
-    subscription && orders.data
+    subscription && orders.data && productType !== 'policy'
       ? orders.data
           .filter((order) => subscription.relatedOrderIds.includes(order.id))
+          .sort((a, b) => b.date.localeCompare(a.date))
+      : [];
+
+  const policyBillingHistory =
+    productType === 'policy' && orders.data
+      ? orders.data
+          .filter((order) => order.productType === 'policy')
           .sort((a, b) => b.date.localeCompare(a.date))
       : [];
 
@@ -266,7 +230,7 @@ export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: (
     if (!subscription) return;
     cancel.mutate(subscription.id, {
       onSuccess: () => {
-        toast.success(tPanel('cancelled'));
+        toast.success(t('cancelled'));
         confirm.close();
       },
     });
@@ -279,50 +243,94 @@ export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: (
         isError={subscriptions.isError}
         onRetry={() => void subscriptions.refetch()}
       >
-        {subscriptions.data && !subscription ? <EmptyState message={tPanel('empty')} /> : null}
+        {subscriptions.data && !subscription ? <EmptyState message={t('empty')} /> : null}
 
         {subscription ? (
           <div className="divide-border flex flex-col divide-y lg:flex-row lg:divide-x lg:divide-y-0">
             <div className="divide-border flex min-w-0 flex-1 flex-col divide-y">
               <CurrentPlanPanel
                 subscription={subscription}
-                paymentMethod={linkedPaymentMethod}
+                planTitle={t(`products.${productType}.planTitle`)}
+                pricePeriod={t(`products.${productType}.pricePeriod`)}
                 onCancel={() => {
                   confirm.open();
                 }}
               />
 
-              <AccountSection title={t('includesTitle')} contentClassName="gap-6">
-                <AcademyMembershipIncludesList featureLabel={(key) => tFeatures(key)} />
-              </AccountSection>
+              {productType === 'policy' && policyBillingHistory.length > 0 ? (
+                <AccountSection title={tGeneratorPlan('billingHistory')} contentClassName="gap-0">
+                  <AccountTable aria-label={tGeneratorPlan('billingHistory')}>
+                    <Table.Header>
+                      <Table.Column isRowHeader>{t('colInvoice')}</Table.Column>
+                      <Table.Column>{t('colDate')}</Table.Column>
+                      <Table.Column>{tGeneratorPlan('colSites')}</Table.Column>
+                      <Table.Column className="text-right">{t('colAmount')}</Table.Column>
+                      <Table.Column className="text-right">
+                        <span className="sr-only">{t('colPdf')}</span>
+                      </Table.Column>
+                    </Table.Header>
+                    <Table.Body>
+                      {policyBillingHistory.map((order) => (
+                        <Table.Row key={order.id}>
+                          <Table.Cell>
+                            <span className="font-mono text-sm font-semibold">{order.number}</span>
+                          </Table.Cell>
+                          <Table.Cell>{formatDate(order.date)}</Table.Cell>
+                          <Table.Cell>{order.siteCount ?? '—'}</Table.Cell>
+                          <Table.Cell className="text-right">
+                            <span className="text-foreground font-normal">
+                              {formatMoney(order.total, order.currency)}
+                            </span>
+                          </Table.Cell>
+                          <Table.Cell className="text-right">
+                            <InvoiceDownloadButton
+                              label={tGeneratorPlan('downloadInvoice')}
+                              onPress={() => {
+                                void handleInvoiceDownload(order.id, () => {
+                                  toast.success(t('invoiceDownloadStarted'));
+                                });
+                              }}
+                            />
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </AccountTable>
+                </AccountSection>
+              ) : null}
 
-              {billingHistory.length > 0 ? (
+              {productType !== 'policy' && billingHistory.length > 0 ? (
                 <AccountSection title={t('billingHistory')} contentClassName="gap-0">
                   <AccountTable aria-label={t('billingHistory')}>
                     <Table.Header>
                       <Table.Column isRowHeader>{t('colInvoice')}</Table.Column>
-                      <Table.Column>{tOrders('colDate')}</Table.Column>
+                      <Table.Column>{t('colDate')}</Table.Column>
                       <Table.Column className="text-right">{t('colAmount')}</Table.Column>
+                      <Table.Column className="text-right">
+                        <span className="sr-only">{t('colPdf')}</span>
+                      </Table.Column>
                     </Table.Header>
                     <Table.Body>
                       {billingHistory.map((order) => (
                         <Table.Row key={order.id}>
                           <Table.Cell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold">{order.number}</span>
-                              <InvoiceDownloadButton
-                                label={t('downloadInvoice')}
-                                onPress={() => {
-                                  toast.success(t('invoiceDownloadStarted'));
-                                }}
-                              />
-                            </div>
+                            <span className="font-mono text-sm font-semibold">{order.number}</span>
                           </Table.Cell>
                           <Table.Cell>{formatDate(order.date)}</Table.Cell>
                           <Table.Cell className="text-right">
                             <span className="text-foreground font-normal">
                               {formatMoney(order.total, order.currency)}
                             </span>
+                          </Table.Cell>
+                          <Table.Cell className="text-right">
+                            <InvoiceDownloadButton
+                              label={tOrders('downloadInvoice')}
+                              onPress={() => {
+                                void handleInvoiceDownload(order.id, () => {
+                                  toast.success(t('invoiceDownloadStarted'));
+                                });
+                              }}
+                            />
                           </Table.Cell>
                         </Table.Row>
                       ))}
@@ -333,17 +341,6 @@ export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: (
             </div>
 
             <div className="divide-border flex w-full shrink-0 flex-col divide-y lg:w-[280px]">
-              {subscription.status !== 'cancelled' && subscription.nextPaymentDate ? (
-                <NextPaymentPanel
-                  subscription={subscription}
-                  paymentMethod={linkedPaymentMethod}
-                  onChangePayment={() => {
-                    setBillingSelectionKind('paymentMethod');
-                    billingSelection.open();
-                  }}
-                />
-              ) : null}
-
               {billing ? (
                 <AccountSection
                   size="small"
@@ -352,7 +349,6 @@ export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: (
                   action={
                     <NavigationLink
                       onPress={() => {
-                        setBillingSelectionKind('billingAddress');
                         billingSelection.open();
                       }}
                       size="sm"
@@ -386,8 +382,10 @@ export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: (
                 title={t('questionsTitle')}
                 icon={<Question size={14} weight="fill" className="shrink-0" aria-hidden />}
               >
-                <p className="text-foreground text-sm leading-relaxed">{t('questionsBody')}</p>
-                <NavigationLink href="/contact?subject=academy" size="sm">
+                <p className="text-foreground text-sm leading-relaxed">
+                  {t(`products.${productType}.questionsBody`)}
+                </p>
+                <NavigationLink href={`/contact?subject=${CONTACT_SUBJECT[productType]}`} size="sm">
                   {t('contactUs')}
                 </NavigationLink>
               </AccountSection>
@@ -424,7 +422,6 @@ export function AcademyMembershipPanel({ onManagePayment }: { onManagePayment: (
       {subscription ? (
         <BillingSelectionDialog
           state={billingSelection}
-          kind={billingSelectionKind}
           subscription={subscription}
           onManage={onManagePayment}
         />

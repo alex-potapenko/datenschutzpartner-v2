@@ -12,6 +12,8 @@ import {
   getUpcomingAcademyFeaturedEvent,
   resolveAcademyEventTitle,
 } from '@/lib/academy-content/events';
+import { ACCOUNT_UPCOMING_LIMIT } from '@/lib/academy-content/preview-schedule';
+import { ACADEMY_ACCOUNT_RESOURCES } from '@/lib/academy-content/resources';
 import {
   ACADEMY_PAST_SESSION_TAB_IDS,
   type AcademyPastSessionTab,
@@ -26,6 +28,7 @@ import {
   Tabs,
   cn,
 } from '@/components/ui';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import { AcademyMembershipPromoBanner } from '@/components/shared/AcademyMembershipPromoBanner';
 import {
   AcademyPastSessionsByYear,
@@ -43,9 +46,9 @@ import {
   ACCOUNT_TAB_PANEL_CLASS,
   EmptyState,
 } from '../account-ui';
-import { AcademyMembershipPanel } from './AcademyMembershipPanel';
+import { MembershipPanel } from './MembershipPanel';
 
-const ACADEMY_TOP_TAB_IDS = ['sessions', 'membership'] as const;
+const ACADEMY_TOP_TAB_IDS = ['sessions', 'resources', 'membership'] as const;
 type AcademyTopTab = (typeof ACADEMY_TOP_TAB_IDS)[number];
 
 type TimeFilter = 'upcoming' | 'past';
@@ -87,7 +90,10 @@ function AccountAcademySessionList({
   const featuredTitle = visibleFeatured
     ? resolveAcademyEventTitle(locale, visibleFeatured)
     : undefined;
-  const upcomingCompact = filterAcademyUpcomingEvents(compact, tab);
+  const upcomingCompact = filterAcademyUpcomingEvents(compact, tab).slice(
+    0,
+    ACCOUNT_UPCOMING_LIMIT
+  );
   const filteredPast = filterAcademyPastSessions(pastSessions, tab);
 
   const showFeatured =
@@ -161,13 +167,41 @@ function AccountAcademySessionList({
   );
 }
 
+function AcademyAccountResources() {
+  const t = useTranslations('account.academy.resources');
+
+  return (
+    <ul className="border-border divide-border flex flex-col divide-y border-y">
+      {ACADEMY_ACCOUNT_RESOURCES.map((resource) => (
+        <li key={resource.id}>
+          <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="text-foreground font-medium">{t(`items.${resource.id}.title`)}</p>
+              <p className="text-muted text-sm leading-relaxed">
+                {t(`items.${resource.id}.description`)}
+              </p>
+            </div>
+            <NavigationLink
+              href={resource.href}
+              size="sm"
+              className="shrink-0 self-start sm:self-center"
+            >
+              {resource.featureKey === 'employeeDeclaration' ? t('openGenerator') : t('view')}
+            </NavigationLink>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function SessionsTab() {
   const locale = useLocale() as Locale;
   const t = useTranslations('account.academy');
   const tPast = useTranslations('academy.pastSessions');
   const tPreview = useTranslations('academy.landing.preview');
   const [typeTab, setTypeTab] = useState<AcademyPastSessionTab>('all');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('past');
   const [selectedYear, setSelectedYear] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -254,6 +288,9 @@ function SessionsTab() {
               items={typeTabItems}
             />
           </div>
+          <NavigationLink href="/academy/past-sessions" size="sm" className="shrink-0">
+            {t('fullLibrary')}
+          </NavigationLink>
           <div className="ml-auto w-64 min-w-48 shrink-0">
             <SearchField
               aria-label={t('searchLabel')}
@@ -309,8 +346,14 @@ export function AcademySection({
       <Tabs.Panel id="sessions" className={cn(ACCOUNT_TAB_PANEL_CLASS, 'p-8')}>
         <SessionsTab />
       </Tabs.Panel>
+      <Tabs.Panel id="resources" className={cn(ACCOUNT_TAB_PANEL_CLASS, 'p-8')}>
+        <AcademyAccountResources />
+      </Tabs.Panel>
       <Tabs.Panel id="membership" className={ACCOUNT_TAB_PANEL_CLASS}>
-        <AcademyMembershipPanel onManagePayment={() => onNavigateToAccountDetails?.()} />
+        <MembershipPanel
+          productType="academy"
+          onManagePayment={() => onNavigateToAccountDetails?.()}
+        />
       </Tabs.Panel>
     </AccountSectionFrame>
   );

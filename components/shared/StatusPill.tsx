@@ -41,14 +41,12 @@ export function StatusPill({
   );
 }
 
-/** Maps a billing / document / membership status key to a pill tone. */
+/** Maps a billing / membership status key to a pill tone. */
 export function statusTone(status: string): StatusTone {
   switch (status) {
     case 'active':
-    case 'upToDate':
       return 'success';
     case 'processing':
-    case 'updateAvailable':
       return 'warning';
     case 'cancelled':
       return 'danger';

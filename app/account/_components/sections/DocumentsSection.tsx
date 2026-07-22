@@ -6,32 +6,19 @@ import { useTranslations } from 'next-intl';
 import {
   useDocuments,
   useGeneratorPlan,
-  type DocumentStatus,
+  resolveDocumentSite,
   type GeneratedDocument,
 } from '@/api/documents';
-import {
-  ArrowsClockwise,
-  CheckCircle,
-  FileText,
-  GridFour,
-  Plus,
-  Button,
-  SearchField,
-  Table,
-} from '@/components/ui';
+import { FileText, Plus, Button, SearchField, Table } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { PriceBlock } from '@/components/shared/PriceBlock';
-import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import {
-  AccountFilterDropdown,
   AccountSection,
   AccountTable,
   DataState,
   EmptyState,
   useDateFormatter,
 } from '../account-ui';
-
-type StatusFilter = 'all' | DocumentStatus;
 
 function CountWithAdd({
   addLabel,
@@ -59,59 +46,44 @@ function CountWithAdd({
   );
 }
 
-function matchesDocumentSearch(name: string, query: string): boolean {
+function matchesDocumentSearch(document: GeneratedDocument, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
-  return name.toLowerCase().includes(normalized);
+  return (
+    document.name.toLowerCase().includes(normalized) ||
+    resolveDocumentSite(document).toLowerCase().includes(normalized)
+  );
 }
 
 function DocumentTable({
   documents,
   searchQuery,
-  statusFilter,
   emptySearch,
-  emptyFiltered,
   tableLabel,
-  onRetrieve,
-  onUpdate,
 }: {
   documents: GeneratedDocument[];
   searchQuery: string;
-  statusFilter: StatusFilter;
   emptySearch: string;
-  emptyFiltered: string;
   tableLabel: string;
-  onRetrieve: () => void;
-  onUpdate: () => void;
 }) {
   const t = useTranslations('account.documents');
-  const ts = useTranslations('account.status');
   const formatDate = useDateFormatter();
 
   const filtered = useMemo(() => {
-    return documents.filter((doc) => {
-      if (statusFilter !== 'all' && doc.status !== statusFilter) return false;
-      return matchesDocumentSearch(doc.name, searchQuery);
-    });
-  }, [documents, searchQuery, statusFilter]);
-
-  const hasSearchQuery = searchQuery.trim().length > 0;
-  const hasStatusFilter = statusFilter !== 'all';
+    return documents.filter((doc) => matchesDocumentSearch(doc, searchQuery));
+  }, [documents, searchQuery]);
 
   if (filtered.length === 0) {
-    return (
-      <EmptyState
-        message={hasSearchQuery ? emptySearch : hasStatusFilter ? emptyFiltered : emptySearch}
-      />
-    );
+    return <EmptyState message={emptySearch} />;
   }
 
   return (
     <AccountTable aria-label={tableLabel}>
       <Table.Header>
         <Table.Column isRowHeader>{t('colName')}</Table.Column>
+        <Table.Column>{t('colSite')}</Table.Column>
         <Table.Column>{t('colCreated')}</Table.Column>
-        <Table.Column>{t('colStatus')}</Table.Column>
+        <Table.Column>{t('colUpdated')}</Table.Column>
         <Table.Column className="text-right">{t('colActions')}</Table.Column>
       </Table.Header>
       <Table.Body>
@@ -123,21 +95,15 @@ function DocumentTable({
                 {doc.name}
               </span>
             </Table.Cell>
-            <Table.Cell>{formatDate(doc.createdDate)}</Table.Cell>
             <Table.Cell>
-              <StatusPill tone={statusTone(doc.status)}>{ts(doc.status)}</StatusPill>
+              <span className="text-muted">{resolveDocumentSite(doc)}</span>
             </Table.Cell>
+            <Table.Cell>{formatDate(doc.createdDate)}</Table.Cell>
+            <Table.Cell>{formatDate(doc.updatedDate)}</Table.Cell>
             <Table.Cell className="text-right">
-              <div className="flex items-center justify-end gap-3">
-                {doc.status === 'updateAvailable' ? (
-                  <NavigationLink onPress={onUpdate} size="sm" chevron="none">
-                    {t('update')}
-                  </NavigationLink>
-                ) : null}
-                <NavigationLink onPress={onRetrieve} size="sm" chevron="none">
-                  {t('retrieve')}
-                </NavigationLink>
-              </div>
+              <NavigationLink href={`/account/policies/${doc.id}`} size="sm" chevron="right">
+                {t('open')}
+              </NavigationLink>
             </Table.Cell>
           </Table.Row>
         ))}
@@ -193,8 +159,6 @@ function GeneratedCountSection({
   addLabel: string;
 }) {
   const t = useTranslations('account.documents');
-  const upToDate = documents.filter((doc) => doc.status === 'upToDate').length;
-  const updateAvailable = documents.filter((doc) => doc.status === 'updateAvailable').length;
 
   return (
     <AccountSection
@@ -209,28 +173,7 @@ function GeneratedCountSection({
           className="min-w-0"
         />
       </CountWithAdd>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span className="text-foreground inline-flex items-center gap-1.5">
-          <CheckCircle size={14} weight="fill" className="text-success shrink-0" aria-hidden />
-          {t('countUpToDate', { count: upToDate })}
-        </span>
-        {updateAvailable > 0 ? (
-          <>
-            <span className="text-muted" aria-hidden>
-              ·
-            </span>
-            <span className="text-foreground inline-flex items-center gap-1.5">
-              <ArrowsClockwise
-                size={14}
-                weight="bold"
-                className="text-warning shrink-0"
-                aria-hidden
-              />
-              {t('countUpdateAvailable', { count: updateAvailable })}
-            </span>
-          </>
-        ) : null}
-      </div>
+      <p className="text-muted text-sm">{t('countAutoUpdated')}</p>
     </AccountSection>
   );
 }
@@ -238,13 +181,15 @@ function GeneratedCountSection({
 function PolicyStatsRow({
   documents,
   siteAllowance,
-  onAdd,
+  onAddSites,
+  onAddPolicies,
   sitesAddLabel,
   policiesAddLabel,
 }: {
   documents: GeneratedDocument[];
   siteAllowance?: number;
-  onAdd: () => void;
+  onAddSites: () => void;
+  onAddPolicies: () => void;
   sitesAddLabel: string;
   policiesAddLabel: string;
 }) {
@@ -254,11 +199,15 @@ function PolicyStatsRow({
         <AllowanceSection
           used={documents.length}
           total={siteAllowance}
-          onAdd={onAdd}
+          onAdd={onAddSites}
           addLabel={sitesAddLabel}
         />
       ) : null}
-      <GeneratedCountSection documents={documents} onAdd={onAdd} addLabel={policiesAddLabel} />
+      <GeneratedCountSection
+        documents={documents}
+        onAdd={onAddPolicies}
+        addLabel={policiesAddLabel}
+      />
     </div>
   );
 }
@@ -269,30 +218,15 @@ export function DocumentsSection() {
   const router = useRouter();
   const documents = useDocuments();
   const plan = useGeneratorPlan();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const goToGenerator = () => {
-    router.push('/scan');
+  const goToCheckout = () => {
+    router.push('/account/generator/checkout');
   };
 
-  const statusFilterItems: ReadonlyArray<{ id: StatusFilter; label: string; icon: ReactNode }> = [
-    {
-      id: 'all',
-      label: t('statusAll'),
-      icon: <GridFour size={18} weight="fill" aria-hidden />,
-    },
-    {
-      id: 'upToDate',
-      label: t('statusUpToDate'),
-      icon: <CheckCircle size={18} weight="fill" aria-hidden />,
-    },
-    {
-      id: 'updateAvailable',
-      label: t('statusUpdateAvailable'),
-      icon: <ArrowsClockwise size={18} weight="fill" aria-hidden />,
-    },
-  ];
+  const goToScan = () => {
+    router.push('/scan');
+  };
 
   return (
     <DataState
@@ -305,7 +239,8 @@ export function DocumentsSection() {
           <PolicyStatsRow
             documents={documents.data}
             siteAllowance={plan.data?.siteAllowance}
-            onAdd={goToGenerator}
+            onAddSites={goToCheckout}
+            onAddPolicies={goToScan}
             sitesAddLabel={tGenerator('buyMore')}
             policiesAddLabel={t('create')}
           />
@@ -315,7 +250,7 @@ export function DocumentsSection() {
               <EmptyState
                 message={t('empty')}
                 action={
-                  <Button variant="primary" size="md" className="gap-2" onPress={goToGenerator}>
+                  <Button variant="primary" size="md" className="gap-2" onPress={goToScan}>
                     <Plus size={18} weight="bold" />
                     {t('emptyCta')}
                   </Button>
@@ -324,45 +259,38 @@ export function DocumentsSection() {
             ) : (
               <>
                 <div className="flex min-w-0 items-center gap-4 overflow-x-auto">
-                  <AccountFilterDropdown
-                    ariaLabel={t('statusFilterLabel')}
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    items={statusFilterItems}
-                  />
-                  <div className="ml-auto flex shrink-0 items-center gap-4">
-                    <div className="w-64 min-w-48 shrink-0">
-                      <SearchField
-                        aria-label={t('searchLabel')}
-                        name="document-search"
-                        variant="secondary"
-                        fullWidth
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                      >
-                        <SearchField.Group>
-                          <SearchField.SearchIcon />
-                          <SearchField.Input placeholder={t('searchPlaceholder')} />
-                          <SearchField.ClearButton />
-                        </SearchField.Group>
-                      </SearchField>
-                    </div>
-                    <Button variant="outline" size="sm" className="gap-2" onPress={goToGenerator}>
-                      <Plus size={14} weight="bold" />
-                      {t('create')}
-                    </Button>
+                  <div className="w-64 min-w-48 shrink-0">
+                    <SearchField
+                      aria-label={t('searchLabel')}
+                      name="document-search"
+                      variant="secondary"
+                      fullWidth
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                    >
+                      <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder={t('searchPlaceholder')} />
+                        <SearchField.ClearButton />
+                      </SearchField.Group>
+                    </SearchField>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto shrink-0 gap-2"
+                    onPress={goToScan}
+                  >
+                    <Plus size={14} weight="bold" />
+                    {t('create')}
+                  </Button>
                 </div>
 
                 <DocumentTable
                   documents={documents.data}
                   searchQuery={searchQuery}
-                  statusFilter={statusFilter}
                   emptySearch={t('emptySearch')}
-                  emptyFiltered={t('emptyFiltered')}
                   tableLabel={t('listTitle')}
-                  onRetrieve={goToGenerator}
-                  onUpdate={goToGenerator}
                 />
               </>
             )}

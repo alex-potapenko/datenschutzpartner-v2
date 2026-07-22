@@ -2,26 +2,79 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Tabs, Wrench } from '@/components/ui';
-import { AccountSectionFrame, ACCOUNT_TAB_PANEL_CLASS } from '../account-ui';
-import { SubscriptionPanel } from './SubscriptionPanel';
+import { useEuRepInquiries, type EuRepInquiryStatus } from '@/api/eu-rep-inquiries';
+import { Tabs, Table } from '@/components/ui';
+import { StatusPill, type StatusTone } from '@/components/shared/StatusPill';
+import {
+  AccountSectionFrame,
+  ACCOUNT_TAB_PANEL_CLASS,
+  AccountPanel,
+  AccountTable,
+  DataState,
+  EmptyState,
+  useDateFormatter,
+} from '../account-ui';
+import { MembershipPanel } from './MembershipPanel';
 
 const EU_REP_TAB_IDS = ['inquiries', 'subscription'] as const;
 type EuRepTab = (typeof EU_REP_TAB_IDS)[number];
 
-function InquiriesStub() {
+function inquiryStatusTone(status: EuRepInquiryStatus): StatusTone {
+  switch (status) {
+    case 'answered':
+      return 'success';
+    case 'forwarded':
+      return 'warning';
+    case 'closed':
+      return 'neutral';
+  }
+}
+
+function InquiriesPanel() {
   const t = useTranslations('account.euRep.inquiries');
+  const inquiries = useEuRepInquiries();
+  const formatDate = useDateFormatter();
 
   return (
-    <div className="border-border flex flex-col items-center gap-4 rounded-2xl border border-dashed px-6 py-16 text-center">
-      <div className="bg-accent-soft text-accent flex size-12 items-center justify-center rounded-full">
-        <Wrench size={22} weight="fill" aria-hidden />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <p className="text-foreground text-base font-semibold">{t('comingSoonTitle')}</p>
-        <p className="text-muted max-w-sm text-sm leading-relaxed">{t('comingSoonBody')}</p>
-      </div>
-    </div>
+    <DataState
+      isLoading={inquiries.isLoading}
+      isError={inquiries.isError}
+      onRetry={() => void inquiries.refetch()}
+    >
+      {inquiries.data && inquiries.data.length === 0 ? <EmptyState message={t('empty')} /> : null}
+
+      {inquiries.data && inquiries.data.length > 0 ? (
+        <AccountPanel>
+          <AccountTable aria-label={t('tableLabel')}>
+            <Table.Header>
+              <Table.Column isRowHeader>{t('colDate')}</Table.Column>
+              <Table.Column>{t('colSubject')}</Table.Column>
+              <Table.Column>{t('colStatus')}</Table.Column>
+            </Table.Header>
+            <Table.Body>
+              {inquiries.data.map((inquiry) => (
+                <Table.Row key={inquiry.id}>
+                  <Table.Cell>{formatDate(inquiry.date)}</Table.Cell>
+                  <Table.Cell>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-foreground font-medium">{inquiry.subject}</span>
+                      {inquiry.reference ? (
+                        <span className="text-muted font-mono text-xs">{inquiry.reference}</span>
+                      ) : null}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <StatusPill tone={inquiryStatusTone(inquiry.status)}>
+                      {t(`status.${inquiry.status}`)}
+                    </StatusPill>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </AccountTable>
+        </AccountPanel>
+      ) : null}
+    </DataState>
   );
 }
 
@@ -44,10 +97,13 @@ export function EuRepSection({
       }}
     >
       <Tabs.Panel id="inquiries" className={ACCOUNT_TAB_PANEL_CLASS}>
-        <InquiriesStub />
+        <InquiriesPanel />
       </Tabs.Panel>
       <Tabs.Panel id="subscription" className={ACCOUNT_TAB_PANEL_CLASS}>
-        <SubscriptionPanel productType="euRep" onManagePayment={onNavigateToAccountDetails} />
+        <MembershipPanel
+          productType="euRep"
+          onManagePayment={() => onNavigateToAccountDetails?.()}
+        />
       </Tabs.Panel>
     </AccountSectionFrame>
   );

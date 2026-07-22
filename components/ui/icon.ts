@@ -32,6 +32,7 @@ import {
   PlayCircleIcon as PlayCircle,
   PlayIcon as Play,
   ClockIcon as Clock,
+  DownloadSimpleIcon as DownloadSimple,
 
   // Data / Business
   BuildingsIcon as Buildings,
@@ -124,6 +125,7 @@ export {
   PlayCircle,
   Play,
   Clock,
+  DownloadSimple,
 
   // Data / Business
   Buildings,

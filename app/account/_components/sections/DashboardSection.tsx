@@ -9,14 +9,12 @@ import { useAccountSnapshot, useProfile } from '@/api/account';
 import { useSession } from '@/api/auth';
 import {
   useOrders,
-  usePaymentMethods,
   useSubscriptions,
   type BillingProductType,
   type Order,
-  type PaymentMethod,
   type Subscription,
 } from '@/api/billing';
-import { useDocuments, useGeneratorPlan, type GeneratedDocument } from '@/api/documents';
+import { useDocuments, useGeneratorPlan } from '@/api/documents';
 import {
   AcademySessionSummary,
   upcomingEventHref,
@@ -27,12 +25,7 @@ import {
   resolveAcademyEventTitle,
 } from '@/lib/academy-content/events';
 import {
-  ArrowsClockwise,
   Button,
-  Card,
-  CardContent,
-  CheckCircle,
-  Chip,
   FileText,
   GraduationCap,
   GlobeHemisphereEast,
@@ -42,9 +35,7 @@ import {
   Table,
 } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-import { PaymentCardBrandMark } from '@/components/shared/PaymentCardBrandMark';
 import { PriceBlock } from '@/components/shared/PriceBlock';
-import { StatusPill } from '@/components/shared/StatusPill';
 import type { Locale } from '@/i18n/config';
 import type { AccountSectionId } from '../account-sections';
 import type { AccountDetailsTab } from './AccountDetailsSection';
@@ -65,11 +56,6 @@ function greetingPeriod(date: Date): GreetingPeriod {
   if (hour < 12) return 'morning';
   if (hour < 18) return 'afternoon';
   return 'evening';
-}
-
-function documentDisplayTitle(name: string): string {
-  const [title] = name.split('—');
-  return title?.trim() ?? name;
 }
 
 function calendarDaysBetween(startIso: string, endIso: string): number {
@@ -130,6 +116,7 @@ function ProgressBar({
 }
 
 const DASHBOARD_LAYOUT_COLUMNS = 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]';
+const RECENT_PAYMENTS_LIMIT = 20;
 
 const DASHBOARD_SECTION_EYEBROW_CLASS =
   'font-display text-muted text-xs font-semibold tracking-wide uppercase';
@@ -195,42 +182,6 @@ function ProductSummaryCard({
   );
 }
 
-function ServiceChip({ label }: { label: string }) {
-  return (
-    <Chip
-      variant="soft"
-      size="sm"
-      className="[--chip-bg:color-mix(in_srgb,var(--accent)_10%,transparent)] [--chip-fg:var(--accent)]"
-    >
-      {label}
-    </Chip>
-  );
-}
-
-function formatCardBrand(brand: string) {
-  return brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase();
-}
-
-function paymentMethodUsedByLabel(
-  methodId: string,
-  subscriptions: Subscription[],
-  t: ReturnType<typeof useTranslations<'account.dashboard.paymentMethods'>>
-): string | undefined {
-  const productTypes = subscriptions
-    .filter((row) => row.paymentMethodId === methodId && row.status !== 'cancelled')
-    .map((row) => row.productType);
-
-  if (productTypes.includes('academy') || productTypes.includes('policy')) {
-    return t('usedBy.academyAndPolicy');
-  }
-
-  if (productTypes.includes('euRep')) {
-    return t('usedBy.euRep');
-  }
-
-  return undefined;
-}
-
 export function DashboardSection({
   onNavigate,
 }: {
@@ -238,9 +189,8 @@ export function DashboardSection({
 }) {
   const t = useTranslations('account.dashboard');
   const tGenerator = useTranslations('account.generatorPlan');
-  const tDocuments = useTranslations('account.documents');
-  const tPaymentMethods = useTranslations('account.dashboard.paymentMethods');
   const tPreview = useTranslations('academy.landing.preview');
+  const tEuRepPlans = useTranslations('euRepPage.pricingSection');
   const tFooter = useTranslations('footer');
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -253,7 +203,6 @@ export function DashboardSection({
   const plan = useGeneratorPlan();
   const subscriptions = useSubscriptions();
   const orders = useOrders();
-  const paymentMethods = usePaymentMethods();
 
   const isLoading =
     profile.isLoading ||
@@ -262,8 +211,7 @@ export function DashboardSection({
     documents.isLoading ||
     plan.isLoading ||
     subscriptions.isLoading ||
-    orders.isLoading ||
-    paymentMethods.isLoading;
+    orders.isLoading;
 
   const firstName = profile.data?.firstName ?? profile.data?.displayName.split(' ')[0] ?? '';
   const [greetingKey] = useState<GreetingPeriod>(() => greetingPeriod(new Date()));
@@ -271,11 +219,10 @@ export function DashboardSection({
   const siteAllowance = plan.data?.siteAllowance ?? 0;
   const usedSites = documents.data?.length ?? 0;
   const remainingSites = Math.max(0, siteAllowance - usedSites);
-  const updatesNeeded = documents.data?.filter((doc) => doc.status === 'updateAvailable') ?? [];
-  const upToDateCount = documents.data?.filter((doc) => doc.status === 'upToDate').length ?? 0;
   const hasAcademyMembership = session.data?.hasAcademyMembership ?? false;
   const membership = snapshot.data?.membership;
 
+  const policySubscription = subscriptions.data?.find((row) => row.productType === 'policy');
   const euRepSubscription = subscriptions.data?.find((row) => row.productType === 'euRep');
   const academySubscription = subscriptions.data?.find((row) => row.productType === 'academy');
   const inquiryAllowance = snapshot.data?.euRepInquiryAllowance;
@@ -302,12 +249,10 @@ export function DashboardSection({
     orders.data
       ?.slice()
       .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 4) ?? [];
+      .slice(0, RECENT_PAYMENTS_LIMIT) ?? [];
 
   const renewalRows =
-    subscriptions.data?.filter(
-      (row) => row.status === 'active' && row.nextPaymentDate && row.productType !== 'policy'
-    ) ?? [];
+    subscriptions.data?.filter((row) => row.status === 'active' && row.nextPaymentDate) ?? [];
 
   const renewalTotal = renewalRows.reduce((sum, row) => sum + row.totals.total, 0);
   const renewalCurrency = renewalRows[0]?.totals.currency ?? 'CHF';
@@ -316,8 +261,21 @@ export function DashboardSection({
     return t(`recentPayments.services.${productType}`);
   }
 
-  function goToScan() {
-    router.push('/scan');
+  function goToCheckout() {
+    router.push('/account/generator/checkout');
+  }
+
+  function euRepSubscriptionNotes(subscription: Subscription): string[] {
+    const planId = subscription.planId;
+    if (planId === 'budget' || planId === 'standard' || planId === 'premium') {
+      return [
+        t('products.euRep.subscriptionPerYearForPlan', {
+          plan: tEuRepPlans(`plans.${planId}.tabLabel`),
+        }),
+      ];
+    }
+
+    return [t('products.euRep.subscriptionPerYear')];
   }
 
   if (isLoading) {
@@ -352,7 +310,7 @@ export function DashboardSection({
                 <div className="flex min-w-0 flex-col gap-4">
                   <div className="flex min-w-0 flex-col gap-3">
                     <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>{tGenerator('title')}</p>
-                    <DashboardCountWithAdd addLabel={tGenerator('buyMore')} onAdd={goToScan}>
+                    <DashboardCountWithAdd addLabel={tGenerator('buyMore')} onAdd={goToCheckout}>
                       <PriceBlock
                         amount={String(remainingSites)}
                         animatedAmount={remainingSites}
@@ -362,44 +320,28 @@ export function DashboardSection({
                     <ProgressBar value={usedSites} max={siteAllowance} dangerWhenFull />
                   </div>
 
-                  <div className="border-border flex min-w-0 flex-col gap-3 border-t pt-4">
-                    <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>{tDocuments('countTitle')}</p>
-                    <DashboardCountWithAdd addLabel={tDocuments('create')} onAdd={goToScan}>
+                  {policySubscription ? (
+                    <div className="border-border flex min-w-0 flex-col gap-3 border-t pt-4">
+                      <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>
+                        {t('products.privacyGenerator.subscriptionTitle')}
+                      </p>
                       <PriceBlock
-                        amount={String(usedSites)}
-                        animatedAmount={usedSites}
+                        currency={policySubscription.totals.currency}
+                        amount={policySubscription.totals.total.toFixed(2)}
+                        animatedAmount={policySubscription.totals.total}
+                        notes={[t('products.privacyGenerator.subscriptionPerYear')]}
                         size="sm"
-                        className="min-w-0 flex-col items-start gap-1"
+                        className="min-w-0"
                       />
-                    </DashboardCountWithAdd>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                      <span className="text-foreground inline-flex items-center gap-1.5">
-                        <CheckCircle
-                          size={14}
-                          weight="fill"
-                          className="text-success shrink-0"
-                          aria-hidden
-                        />
-                        {tDocuments('countUpToDate', { count: upToDateCount })}
-                      </span>
-                      {updatesNeeded.length > 0 ? (
-                        <>
-                          <span className="text-muted" aria-hidden>
-                            ·
-                          </span>
-                          <span className="text-foreground inline-flex items-center gap-1.5">
-                            <ArrowsClockwise
-                              size={14}
-                              weight="bold"
-                              className="text-warning shrink-0"
-                              aria-hidden
-                            />
-                            {tDocuments('countUpdateAvailable', { count: updatesNeeded.length })}
-                          </span>
-                        </>
+                      {policySubscription.nextPaymentDate ? (
+                        <p className="text-muted text-sm">
+                          {t('products.euRep.renewsOn', {
+                            date: formatDate(policySubscription.nextPaymentDate),
+                          })}
+                        </p>
                       ) : null}
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               </ProductSummaryCard>
 
@@ -445,7 +387,7 @@ export function DashboardSection({
                         currency={euRepSubscription.totals.currency}
                         amount={euRepSubscription.totals.total.toFixed(2)}
                         animatedAmount={euRepSubscription.totals.total}
-                        notes={[t('products.euRep.subscriptionPerYear'), euRepSubscription.product]}
+                        notes={euRepSubscriptionNotes(euRepSubscription)}
                         size="sm"
                         className="min-w-0"
                       />
@@ -545,36 +487,6 @@ export function DashboardSection({
             className={`divide-border grid grid-cols-1 divide-y ${DASHBOARD_LAYOUT_COLUMNS} lg:divide-x lg:divide-y-0`}
           >
             <div className="divide-border flex min-w-0 flex-col divide-y lg:col-span-2">
-              <AccountSection
-                title={t('attention.title')}
-                titleAside={
-                  updatesNeeded.length > 0 ? (
-                    <StatusPill tone="warning">{updatesNeeded.length}</StatusPill>
-                  ) : undefined
-                }
-                contentClassName="gap-4"
-              >
-                {updatesNeeded.length === 0 ? (
-                  <p className="text-muted text-sm">{t('attention.empty')}</p>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {updatesNeeded.map((doc) => (
-                      <PolicyUpdateCardItem
-                        key={doc.id}
-                        document={doc}
-                        updateLabel={t('attention.update')}
-                        sinceLabel={t('attention.updateAvailableSince', {
-                          date: formatDate(doc.updateAvailableSince ?? doc.createdDate),
-                        })}
-                        onUpdate={() => {
-                          onNavigate('generator');
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </AccountSection>
-
               <AccountSection title={t('recentPayments.title')} contentClassName="gap-0">
                 <DataState
                   isLoading={orders.isLoading}
@@ -585,10 +497,12 @@ export function DashboardSection({
                     <AccountTable aria-label={t('recentPayments.title')}>
                       <Table.Header>
                         <Table.Column isRowHeader>{t('recentPayments.colInvoice')}</Table.Column>
-                        <Table.Column>{t('recentPayments.colService')}</Table.Column>
                         <Table.Column>{t('recentPayments.colDate')}</Table.Column>
                         <Table.Column className="text-right">
                           {t('recentPayments.colAmount')}
+                        </Table.Column>
+                        <Table.Column className="text-right">
+                          <span className="sr-only">{t('recentPayments.downloadPdf')}</span>
                         </Table.Column>
                       </Table.Header>
                       <Table.Body>
@@ -614,19 +528,9 @@ export function DashboardSection({
             <div className="divide-border flex min-w-0 flex-col divide-y">
               <AccountSection size="small" title={t('renewals.title')} contentClassName="gap-4">
                 <ul className="flex flex-col gap-4">
-                  {renewalRows.map((row) => {
-                    const method = paymentMethods.data?.find(
-                      (entry) => entry.id === row.paymentMethodId
-                    );
-                    return (
-                      <RenewalRow
-                        key={row.id}
-                        subscription={row}
-                        paymentMethod={method}
-                        formatDate={formatDate}
-                      />
-                    );
-                  })}
+                  {renewalRows.map((row) => (
+                    <RenewalRow key={row.id} subscription={row} formatDate={formatDate} />
+                  ))}
                 </ul>
                 {renewalRows.length > 0 ? (
                   <div className="border-border flex items-center justify-between gap-3 border-t pt-4 text-sm">
@@ -638,46 +542,6 @@ export function DashboardSection({
                     </span>
                   </div>
                 ) : null}
-              </AccountSection>
-
-              <AccountSection
-                size="small"
-                title={t('paymentMethods.title')}
-                action={
-                  <NavigationLink
-                    onPress={() => {
-                      onNavigate('accountDetails', { tab: 'paymentDetails' });
-                    }}
-                    size="sm"
-                    chevron="none"
-                    className="shrink-0"
-                  >
-                    {t('paymentMethods.manage')}
-                  </NavigationLink>
-                }
-                contentClassName="gap-4"
-              >
-                <ul className="flex flex-col gap-4">
-                  {paymentMethods.data?.map((method) => (
-                    <PaymentMethodRow
-                      key={method.id}
-                      method={method}
-                      usedBy={
-                        subscriptions.data
-                          ? paymentMethodUsedByLabel(method.id, subscriptions.data, tPaymentMethods)
-                          : undefined
-                      }
-                      expiresLabel={
-                        method.expMonth != null && method.expYear != null
-                          ? t('renewals.cardExpires', {
-                              month: String(method.expMonth).padStart(2, '0'),
-                              year: String(method.expYear),
-                            })
-                          : undefined
-                      }
-                    />
-                  ))}
-                </ul>
               </AccountSection>
 
               <AccountSection
@@ -707,37 +571,6 @@ export function DashboardSection({
   );
 }
 
-function PolicyUpdateCardItem({
-  document,
-  updateLabel,
-  sinceLabel,
-  onUpdate,
-}: {
-  document: GeneratedDocument;
-  updateLabel: string;
-  sinceLabel: string;
-  onUpdate: () => void;
-}) {
-  const subtitle = document.siteUrl ? `${document.siteUrl} · ${sinceLabel}` : sinceLabel;
-
-  return (
-    <Card className="w-full min-w-0 !gap-4">
-      <CardContent className="!flex !flex-row items-center gap-3">
-        <span className="bg-accent-soft text-accent flex size-9 shrink-0 items-center justify-center rounded-full">
-          <FileText size={16} weight="fill" aria-hidden />
-        </span>
-        <div className="text-foreground min-w-0 flex-1 text-sm leading-relaxed">
-          <p className="truncate font-semibold">{documentDisplayTitle(document.name)}</p>
-          <p className="text-muted truncate">{subtitle}</p>
-        </div>
-        <Button variant="outline" size="sm" className="shrink-0" onPress={onUpdate}>
-          {updateLabel}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 function RecentPaymentRow({
   order,
   formatDate,
@@ -754,17 +587,17 @@ function RecentPaymentRow({
   return (
     <Table.Row>
       <Table.Cell>
-        <div className="flex items-center gap-2">
-          <span className="font-mono font-semibold">{order.number}</span>
-          <InvoiceDownloadButton label={downloadLabel} onPress={onDownload} />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-mono text-sm font-semibold">{order.number}</span>
+          <span className="text-muted text-xs">{serviceLabel}</span>
         </div>
-      </Table.Cell>
-      <Table.Cell>
-        <ServiceChip label={serviceLabel} />
       </Table.Cell>
       <Table.Cell>{formatDate(order.date)}</Table.Cell>
       <Table.Cell className="text-right font-normal">
         {formatMoney(order.total, order.currency)}
+      </Table.Cell>
+      <Table.Cell className="text-right">
+        <InvoiceDownloadButton label={downloadLabel} onPress={onDownload} />
       </Table.Cell>
     </Table.Row>
   );
@@ -772,11 +605,9 @@ function RecentPaymentRow({
 
 function RenewalRow({
   subscription,
-  paymentMethod,
   formatDate,
 }: {
   subscription: Subscription;
-  paymentMethod?: PaymentMethod;
   formatDate: ReturnType<typeof useDateFormatter>;
 }) {
   return (
@@ -789,37 +620,7 @@ function RenewalRow({
       </div>
       <p className="text-muted text-sm">
         {subscription.nextPaymentDate ? formatDate(subscription.nextPaymentDate) : '—'}
-        {paymentMethod?.brand && paymentMethod.last4
-          ? ` · ${formatCardBrand(paymentMethod.brand)} •••• ${paymentMethod.last4}`
-          : null}
       </p>
-    </li>
-  );
-}
-
-function PaymentMethodRow({
-  method,
-  usedBy,
-  expiresLabel,
-}: {
-  method: PaymentMethod;
-  usedBy?: string;
-  expiresLabel?: string;
-}) {
-  return (
-    <li className="flex items-start gap-3">
-      {method.brand ? (
-        <PaymentCardBrandMark brand={method.brand} className="mt-0.5 shrink-0" />
-      ) : null}
-      <div className="min-w-0">
-        <p className="text-foreground text-sm font-semibold">
-          {method.brand && method.last4
-            ? `${formatCardBrand(method.brand)} •••• ${method.last4}`
-            : method.label}
-        </p>
-        {expiresLabel ? <p className="text-muted text-xs">{expiresLabel}</p> : null}
-        {usedBy ? <p className="text-muted mt-1 text-xs">{usedBy}</p> : null}
-      </div>
     </li>
   );
 }

@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Tabs, cn } from '@/components/ui';
+import { Tabs } from '@/components/ui';
 import { AccountSectionFrame, ACCOUNT_TAB_PANEL_CLASS } from '../account-ui';
 import { DocumentsSection } from './DocumentsSection';
-import { GeneratorPaymentsPanel } from './GeneratorPaymentsPanel';
+import { MembershipPanel } from './MembershipPanel';
 
-const GENERATOR_TAB_IDS = ['policies', 'payments'] as const;
+const GENERATOR_TAB_IDS = ['policies', 'subscription'] as const;
 type GeneratorTab = (typeof GENERATOR_TAB_IDS)[number];
 
 export function GeneratorSection({
@@ -31,11 +31,11 @@ export function GeneratorSection({
       <Tabs.Panel id="policies" className={ACCOUNT_TAB_PANEL_CLASS}>
         <DocumentsSection />
       </Tabs.Panel>
-      <Tabs.Panel
-        id="payments"
-        className={cn(ACCOUNT_TAB_PANEL_CLASS, 'flex min-h-0 flex-1 flex-col')}
-      >
-        <GeneratorPaymentsPanel onManagePayment={onNavigateToAccountDetails} />
+      <Tabs.Panel id="subscription" className={ACCOUNT_TAB_PANEL_CLASS}>
+        <MembershipPanel
+          productType="policy"
+          onManagePayment={() => onNavigateToAccountDetails?.()}
+        />
       </Tabs.Panel>
     </AccountSectionFrame>
   );

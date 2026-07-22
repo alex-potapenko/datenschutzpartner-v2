@@ -7,7 +7,7 @@ Stack is fixed — see `AGENTS.md`.
 | Path                    | Responsibility                                                                                                                     |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `app/academy/`          | Academy landing page, past sessions archive (`/academy/past-sessions`), and member content.                                        |
-| `app/eu-rep/`           | EU representative landing page and the Art. 27 GDPR questionnaire (`/eu-rep/questionnaire`).                                       |
+| `app/eu-rep/`           | EU representation landing page and the Art. 27 GDPR questionnaire (`/eu-rep/questionnaire`).                                       |
 | `app/scan/`             | Privacy policy generator landing page (`/scan`) and FAQ (`/scan/faq`); linked from the result wizard top bar.                      |
 | `app/account/`          | Authenticated member area (`/account`, «Mein Konto»); client-side section switching (`?section=`) over a persistent sidebar shell. |
 | `components/ui/`        | Local seam over HeroUI and Phosphor icons — the only place that imports `@heroui/*` or `@phosphor-icons/*`.                        |

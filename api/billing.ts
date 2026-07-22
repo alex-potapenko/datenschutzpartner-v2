@@ -7,7 +7,7 @@ import { request } from './client';
  * shown across the member area's Billing cluster.
  */
 
-export const billingStatusEnum = z.enum(['active', 'processing', 'updateAvailable', 'cancelled']);
+export const billingStatusEnum = z.enum(['active', 'processing', 'cancelled']);
 export type BillingStatus = z.infer<typeof billingStatusEnum>;
 
 /**
@@ -38,9 +38,6 @@ export const subscriptionSchema = z.object({
   startDate: z.string(),
   lastOrderDate: z.string().nullable(),
   nextPaymentDate: z.string().nullable(),
-  /** @deprecated Prefer paymentMethodId + payment-methods endpoint for card details. */
-  paymentMethod: z.string(),
-  paymentMethodId: z.string().optional(),
   billingAddressId: z.string().optional(),
   totals: subscriptionTotalsSchema,
   relatedOrderIds: z.array(z.string()),
@@ -69,107 +66,24 @@ export const orderSchema = z.object({
   status: billingStatusEnum,
   total: z.number(),
   currency: z.string(),
-  /** Privacy Policy Generator orders — number of websites covered by the plan. */
+  /**
+   * Privacy Policy Generator orders — number of websites purchased. Each order
+   * adds to the running `siteAllowance` and, on payment, resets the active
+   * `policy` subscription renewal to +12 months from that order's date.
+   */
   siteCount: z.number().int().positive().optional(),
   /** Distinguishes the base subscription from add-on purchases such as extra EU Rep inquiries. */
   orderKind: orderKindEnum.optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
 
-export const paymentMethodTypeEnum = z.enum(['card', 'invoice']);
-export type PaymentMethodType = z.infer<typeof paymentMethodTypeEnum>;
-
-export const paymentCardBrandEnum = z.enum(['visa', 'mastercard', 'maestro']);
-export type PaymentCardBrand = z.infer<typeof paymentCardBrandEnum>;
-
-export const paymentMethodSchema = z.object({
-  id: z.string(),
-  type: paymentMethodTypeEnum,
-  label: z.string(),
-  cardholderName: z.string().optional(),
-  brand: paymentCardBrandEnum.optional(),
-  last4: z.string().optional(),
-  expMonth: z.number().int().min(1).max(12).optional(),
-  expYear: z.number().int().optional(),
-  /** Set once the card is tokenized via Payrexx (or another PSP). */
-  provider: z.enum(['payrexx']).optional(),
-  externalId: z.string().optional(),
-});
-export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
-
-const cardExpiryMonthSchema = z
-  .number('validation.required')
-  .int('validation.required')
-  .min(1, 'validation.required')
-  .max(12, 'validation.required');
-
-const cardExpiryYearSchema = z
-  .number('validation.required')
-  .int('validation.required')
-  .min(new Date().getFullYear(), 'validation.required');
-
-/** Stored-card updates — expiry and cardholder name only (no PAN/CVV). */
-export const paymentMethodUpdateInputSchema = z.object({
-  type: z.literal('card'),
-  cardholderName: z.string('validation.required').min(1, 'validation.required'),
-  expMonth: cardExpiryMonthSchema,
-  expYear: cardExpiryYearSchema,
-});
-export type PaymentMethodUpdateInput = z.infer<typeof paymentMethodUpdateInputSchema>;
-
 /**
- * POC create payload — simulates a Payrexx tokenization round-trip. The mock
- * handler derives `last4`/`brand` and discards PAN + CVV. Production replaces
- * this with `useCreatePaymentMethodFromPayrexx` after the Payrexx widget returns
- * a token (see `payrexxPaymentMethodSessionSchema`).
+ * Payments are handled entirely by Payrexx (hosted checkout). The member area
+ * never stores or displays card details — updating a payment method happens on
+ * Payrexx, not in this app — so there is no payment-method resource here. Only
+ * the billing address is assignable per subscription.
  */
-export const paymentMethodCreateInputSchema = z.object({
-  type: z.literal('card'),
-  cardholderName: z.string('validation.required').min(1, 'validation.required'),
-  cardNumber: z
-    .string('validation.required')
-    .min(1, 'validation.required')
-    .transform((value) => value.replace(/\s/g, ''))
-    .refine((value) => /^\d{13,19}$/.test(value), { message: 'validation.cardNumber' }),
-  cvv: z.string('validation.required').regex(/^\d{3,4}$/, 'validation.cvv'),
-  expMonth: cardExpiryMonthSchema,
-  expYear: cardExpiryYearSchema,
-});
-export type PaymentMethodCreateInput = z.infer<typeof paymentMethodCreateInputSchema>;
-
-/** @deprecated Use paymentMethodCreateInputSchema or paymentMethodUpdateInputSchema. */
-export const paymentMethodInputSchema = paymentMethodUpdateInputSchema;
-/** @deprecated Use PaymentMethodCreateInput or PaymentMethodUpdateInput. */
-export type PaymentMethodInput = PaymentMethodUpdateInput;
-
-/** Payrexx tokenization session — backend creates this via Payrexx API. */
-export const payrexxPaymentMethodSessionSchema = z.object({
-  sessionId: z.string(),
-  checkoutUrl: z.url(),
-  expiresAt: z.string(),
-});
-export type PayrexxPaymentMethodSession = z.infer<typeof payrexxPaymentMethodSessionSchema>;
-
-/** Production create body after Payrexx.js / hosted page returns a token. */
-export const paymentMethodFromPayrexxInputSchema = z.object({
-  payrexxToken: z.string().min(1, 'validation.required'),
-});
-export type PaymentMethodFromPayrexxInput = z.infer<typeof paymentMethodFromPayrexxInputSchema>;
-
-export function normalizeCardNumber(value: string) {
-  return value.replace(/\s/g, '');
-}
-
-export function detectCardBrand(cardNumber: string): PaymentCardBrand | undefined {
-  const digits = normalizeCardNumber(cardNumber);
-  if (digits.startsWith('4')) return 'visa';
-  if (/^5[1-5]/.test(digits) || /^2[2-7]/.test(digits)) return 'mastercard';
-  if (/^(5018|5020|5038|6304|6759|6761|6763)/.test(digits)) return 'maestro';
-  return undefined;
-}
-
 export const subscriptionBillingUpdateSchema = z.object({
-  paymentMethodId: z.string().optional(),
   billingAddressId: z.string().optional(),
 });
 export type SubscriptionBillingUpdate = z.infer<typeof subscriptionBillingUpdateSchema>;
@@ -178,7 +92,6 @@ export const billingKeys = {
   subscriptions: ['billing', 'subscriptions'] as const,
   memberships: ['billing', 'memberships'] as const,
   orders: ['billing', 'orders'] as const,
-  paymentMethods: ['billing', 'payment-methods'] as const,
 };
 
 export function useSubscriptions() {
@@ -202,13 +115,6 @@ export function useOrders() {
   });
 }
 
-export function usePaymentMethods() {
-  return useQuery({
-    queryKey: billingKeys.paymentMethods,
-    queryFn: () => request<PaymentMethod[]>('/billing/payment-methods'),
-  });
-}
-
 export function useCancelSubscription() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -218,62 +124,6 @@ export function useCancelSubscription() {
       void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
       void queryClient.invalidateQueries({ queryKey: billingKeys.memberships });
     },
-  });
-}
-
-export function useCreatePaymentMethod() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: PaymentMethodCreateInput) =>
-      request<PaymentMethod>('/billing/payment-methods', {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: billingKeys.paymentMethods }),
-  });
-}
-
-export function useUpdatePaymentMethod() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: PaymentMethodUpdateInput }) =>
-      request<PaymentMethod>(`/billing/payment-methods/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(input),
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: billingKeys.paymentMethods }),
-  });
-}
-
-/** Starts a Payrexx tokenization session (hosted page / widget). POC returns a mock URL. */
-export function usePayrexxPaymentMethodSession() {
-  return useMutation({
-    mutationFn: () =>
-      request<PayrexxPaymentMethodSession>('/billing/payment-methods/payrexx-session', {
-        method: 'POST',
-      }),
-  });
-}
-
-/** Production path — persist a card alias from a Payrexx token. */
-export function useCreatePaymentMethodFromPayrexx() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: PaymentMethodFromPayrexxInput) =>
-      request<PaymentMethod>('/billing/payment-methods/from-payrexx', {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: billingKeys.paymentMethods }),
-  });
-}
-
-export function useDeletePaymentMethod() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      request<undefined>(`/billing/payment-methods/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: billingKeys.paymentMethods }),
   });
 }
 

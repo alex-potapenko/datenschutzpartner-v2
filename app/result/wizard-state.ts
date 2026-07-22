@@ -2,34 +2,80 @@ import type { ImprovedFormData } from './content/improved-form';
 
 export type WizardStep = 'scan' | 'improved' | 'eu-rep' | 'summary';
 
-export type WizardPersistedState = {
-  step: WizardStep;
+export type EuRepPlanId = 'budget' | 'standard' | 'premium';
+
+/**
+ * EU representation decision captured on the conditional `eu-rep` step. The step
+ * only appears when {@link isEuRepApplicable} is true (the controller is based
+ * outside the EEA). The step shows a verdict (representative required vs.
+ * optional) plus the representation offer.
+ */
+export type EuRepState = {
+  /** Chosen representation plan. */
+  plan?: EuRepPlanId;
+  /** They declined to add EU representation. */
+  declined?: boolean;
+  /** The step was completed and summary may be reached. */
+  done?: boolean;
+};
+
+export type WizardProgress = {
   scanDone: boolean;
   formData?: ImprovedFormData;
-  euRepPlan?: 'budget' | 'standard' | 'premium';
-  euRepSkipped: boolean;
+  euRep: EuRepState;
+};
+
+export type WizardPersistedState = WizardProgress & {
+  step: WizardStep;
   visitedSteps: WizardStep[];
+  checkoutPhase?: 'payment' | 'ready';
+  checkoutDocumentId?: string;
 };
 
 const WIZARD_STORAGE_KEY = 'datenschutzpartner-result-wizard';
 
-export const WIZARD_STEP_ORDER: WizardStep[] = ['scan', 'improved', 'eu-rep', 'summary'];
-
-const VALID_STEPS = new Set<WizardStep>(WIZARD_STEP_ORDER);
-
-export type WizardProgress = Pick<
-  WizardPersistedState,
-  'scanDone' | 'formData' | 'euRepPlan' | 'euRepSkipped'
->;
+const VALID_STEPS = new Set<WizardStep>(['scan', 'improved', 'eu-rep', 'summary']);
 
 export function isWizardStep(value: string | null): value is WizardStep {
   return value !== null && VALID_STEPS.has(value as WizardStep);
 }
 
+export function emptyEuRepState(): EuRepState {
+  return {};
+}
+
+/**
+ * Q1 of the EU representation check: the step is only relevant when the
+ * controller is based outside the EEA (e.g. Switzerland). Controllers within
+ * the EEA never need an Article 27 representative.
+ */
+export function isEuRepApplicable(formData?: ImprovedFormData): boolean {
+  if (!formData) return false;
+  return formData.basedInSwitzerland === 'yes';
+}
+
+/**
+ * Verdict: EU representation is required when the controller is outside the
+ * EEA (Q1) AND either offers goods/services to (Q2) or monitors the behaviour
+ * of (Q3) people in the EEA. Otherwise representation is optional.
+ */
+export function isEuRepRequired(formData?: ImprovedFormData): boolean {
+  if (!isEuRepApplicable(formData)) return false;
+  return formData?.offersToEU === 'yes' || formData?.monitorsEUBehaviour === 'yes';
+}
+
+/** The ordered steps for the current run — `eu-rep` is conditional. */
+export function wizardStepOrder(progress: WizardProgress): WizardStep[] {
+  const steps: WizardStep[] = ['scan', 'improved'];
+  if (isEuRepApplicable(progress.formData)) steps.push('eu-rep');
+  steps.push('summary');
+  return steps;
+}
+
 export function maxAccessibleStep(progress: WizardProgress): WizardStep {
   if (!progress.scanDone) return 'scan';
   if (!progress.formData) return 'improved';
-  if (!progress.euRepPlan && !progress.euRepSkipped) return 'eu-rep';
+  if (isEuRepApplicable(progress.formData) && !progress.euRep.done) return 'eu-rep';
   return 'summary';
 }
 
@@ -37,31 +83,31 @@ export function resolveWizardStep(
   requestedStep: WizardStep | null,
   progress: WizardProgress
 ): WizardStep {
+  const order = wizardStepOrder(progress);
   const maxStep = maxAccessibleStep(progress);
-  const maxIndex = WIZARD_STEP_ORDER.indexOf(maxStep);
+  const maxIndex = order.indexOf(maxStep);
 
   if (!requestedStep) return maxStep;
 
-  const requestedIndex = WIZARD_STEP_ORDER.indexOf(requestedStep);
+  const requestedIndex = order.indexOf(requestedStep);
+  // Requested step is not part of the current flow (e.g. eu-rep when it does
+  // not apply) — fall back to the furthest reachable step.
   if (requestedIndex < 0) return maxStep;
 
-  return WIZARD_STEP_ORDER[Math.min(requestedIndex, maxIndex)] ?? maxStep;
+  return order[Math.min(requestedIndex, maxIndex)] ?? maxStep;
 }
 
 export function buildVisitedSteps(state: WizardProgress & { step: WizardStep }): WizardStep[] {
-  const visited: WizardStep[] = ['scan'];
+  const order = wizardStepOrder(state);
+  const maxIndex = order.indexOf(maxAccessibleStep(state));
+  const stepIndex = Math.max(0, order.indexOf(state.step));
+  const upTo = Math.max(maxIndex, stepIndex);
+  return order.slice(0, upTo + 1);
+}
 
-  if (state.scanDone) visited.push('improved');
-  if (state.formData) visited.push('eu-rep');
-  if (state.euRepPlan || state.euRepSkipped) visited.push('summary');
-
-  const maxIndex = WIZARD_STEP_ORDER.indexOf(maxAccessibleStep(state));
-  const stepIndex = WIZARD_STEP_ORDER.indexOf(state.step);
-  if (stepIndex >= 0 && stepIndex <= maxIndex && !visited.includes(state.step)) {
-    visited.push(state.step);
-  }
-
-  return visited;
+function migrateEuRep(raw: unknown): EuRepState {
+  if (!raw || typeof raw !== 'object') return {};
+  return raw;
 }
 
 export function readWizardState(stepFromUrl?: string | null): WizardPersistedState | null {
@@ -71,17 +117,23 @@ export function readWizardState(stepFromUrl?: string | null): WizardPersistedSta
     const raw = sessionStorage.getItem(WIZARD_STORAGE_KEY);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw) as WizardPersistedState;
-    if (!isWizardStep(parsed.step)) return null;
+    const parsed = JSON.parse(raw) as Partial<WizardPersistedState> & { step?: string };
+    if (!isWizardStep(parsed.step ?? null)) return null;
+
+    const progress: WizardProgress = {
+      scanDone: Boolean(parsed.scanDone),
+      formData: parsed.formData,
+      euRep: migrateEuRep(parsed.euRep),
+    };
 
     const stepParam = stepFromUrl ?? null;
-    const stepCandidate = isWizardStep(stepParam) ? stepParam : parsed.step;
-    const step = resolveWizardStep(stepCandidate, parsed);
+    const stepCandidate = isWizardStep(stepParam) ? stepParam : (parsed.step as WizardStep);
+    const step = resolveWizardStep(stepCandidate, progress);
 
     return {
-      ...parsed,
+      ...progress,
       step,
-      visitedSteps: buildVisitedSteps({ ...parsed, step }),
+      visitedSteps: buildVisitedSteps({ ...progress, step }),
     };
   } catch {
     return null;
