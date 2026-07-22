@@ -16,6 +16,7 @@ import {
   SPECIAL_DATA_OPTIONS,
   SUPERVISORY_AUTHORITY_OPTIONS,
 } from '../content/improved-form';
+import { isWizardValidationSkipped } from '@/lib/wizard-debug';
 
 export type { ImprovedFormData };
 
@@ -169,6 +170,11 @@ export function ImprovedStep({ domain, onSubmit, onBack, initialData }: Improved
   }
 
   function handleSubmit() {
+    if (isWizardValidationSkipped()) {
+      onSubmit(form);
+      return;
+    }
+
     const result = improvedFormSchema.safeParse(form);
     if (!result.success) {
       const firstIssue = result.error.issues[0];

@@ -31,8 +31,8 @@ The authenticated hub at `/account` reads from three domain modules:
 - `api/account.ts` — dashboard snapshot, profile, addresses (full CRUD), password
   change. `GET /account/snapshot` feeds the **Overview** dashboard: membership summary,
   next live session timestamp, document count, and optional EU Rep inquiry allowance
-  (`euRepInquiryAllowance`: included/used counts + further-inquiry price). The **Account details** section splits into **Profile** (name, email,
-  password) and **Payment Details** (`PaymentDetailsSection`) — the member's saved
+  (`euRepInquiryAllowance`: included/used counts + further-inquiry price). The **Account Details** section splits into **Profile** (name, email,
+  password) and **Billing Addresses** (`PaymentDetailsSection`) — the member's saved
   billing addresses, laid out in the same section/column/divider style as the Academy
   membership screen. Addresses carry an optional `label` (e.g. "Head office") and an
   optional `vatId` shown on invoices; there is no more upsert-by-type — a member can
@@ -110,9 +110,9 @@ Generator, Academy, EU Rep) — each `Subscription` independently points at one
   (`app/account/_components/BillingSelectionDialog.tsx`), a modal listing the member's
   saved billing addresses as selectable cards. Confirming calls
   `useUpdateSubscriptionBilling` to re-point that one subscription. The dialog includes
-  a "Manage addresses in Payment Details" link that navigates to Account details →
-  Payment Details — it never creates, edits, or deletes records itself.
-- **CRUD, only in Payment Details** (`PaymentDetailsSection`) — lists billing addresses
+  a "Manage billing addresses" link that navigates to Account Details →
+  Billing Addresses — it never creates, edits, or deletes records itself.
+- **CRUD, only in Billing Addresses** (`PaymentDetailsSection`) — lists billing addresses
   as HeroUI `Card`s in a vertical list; "New address" and each card's edit icon open a
   `Modal` dialog form (`react-hook-form` + `zodResolver`, schema `addressInputSchema`);
   delete goes through the shared `ConfirmDialog`. This is the **only** place members can
@@ -126,11 +126,11 @@ therefore **never stores or displays card details** — there is no payment-meth
 resource, form, or brand/last4/expiry anywhere in the app. **PAN and CVV are never
 touched by this frontend.**
 
-Every billing surface (the `MembershipPanel` subscription tabs, the dashboard, and
-Payment Details) shows a short "Payment via Payrexx" block (`account.payrexx.*`)
-instead of a saved card. Its "Manage payment via Payrexx" action is where, in
-production, the member is redirected to Payrexx's hosted portal to change the card used
-for renewals; in the POC it is a stub. Changing the card never happens inside this app.
+Every checkout flow redirects to Payrexx's hosted checkout (`api/checkout.ts`). The
+member area never stores or displays card details — there is no payment-method resource,
+form, or brand/last4/expiry anywhere in the app. **PAN and CVV are never touched by this
+frontend.** In production, payment-method changes happen on Payrexx's hosted portal, not
+inside this app; the POC stubs that redirect via `openPayrexxPortal()`.
 
 Subscriptions/memberships/orders are gated on the bearer token in `mocks/handlers.ts`:
 the member token (`lucas.baumgartner@gmail.com`) sees an active subscription +

@@ -1381,7 +1381,7 @@
     "billingSelection": {
       "addressTitle": "Rechnungsadresse wählen",
       "addressEmpty": "Noch keine gespeicherten Rechnungsadressen.",
-      "manageLink": "Zahlungsdaten verwalten",
+      "manageLink": "Rechnungsadressen verwalten",
       "confirm": "Auswahl übernehmen",
       "saved": "Zahlungsdaten aktualisiert."
     },
@@ -1416,7 +1416,7 @@
       "tabsAriaLabel": "Kontodaten-Bereiche",
       "tabs": {
         "profile": "Profil",
-        "paymentDetails": "Zahlungsdaten"
+        "paymentDetails": "Rechnungsadressen"
       },
       "profileTitle": "Profil",
       "firstName": "Vorname",

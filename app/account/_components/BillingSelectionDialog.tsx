@@ -26,7 +26,7 @@ type OverlayState = ReturnType<typeof useOverlayState>;
 /**
  * Lets a member pick which saved billing address applies to a given
  * subscription. Selection only — CRUD on the underlying addresses happens
- * exclusively in Account details → Payment Details. Payments themselves run
+ * exclusively in Account Details → Billing Addresses. Payments themselves run
  * through Payrexx, so there is no card selection here.
  */
 export function BillingSelectionDialog({

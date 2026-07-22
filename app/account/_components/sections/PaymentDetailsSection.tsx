@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { openPayrexxPortal } from '@/api/checkout';
 import {
   addressInputSchema,
   useAddresses,
@@ -19,7 +18,6 @@ import {
   Button,
   Card,
   CardContent,
-  CreditCard,
   Input,
   MapPin,
   ModalRoot,
@@ -35,76 +33,7 @@ import {
   Trash,
   useOverlayState,
 } from '@/components/ui';
-import { NavigationLink } from '@/components/shared/NavigationLink';
 import { ConfirmDialog, DataState, EmptyState, AccountSection } from '../account-ui';
-import { SECTION_ICON, type AccountSectionId } from '../account-sections';
-
-const ASSIGNMENT_PRODUCT_IDS = [
-  'generator',
-  'academy',
-  'euRep',
-] as const satisfies ReadonlyArray<AccountSectionId>;
-
-function PaymentDetailsAboutSection() {
-  const t = useTranslations('account.paymentDetails');
-  const tNav = useTranslations('account.nav');
-
-  return (
-    <AccountSection size="small" title={t('aboutEyebrow')} contentClassName="gap-3">
-      <p className="text-foreground text-sm leading-relaxed">{t('aboutIntro')}</p>
-      <ul className="flex flex-col gap-2">
-        {ASSIGNMENT_PRODUCT_IDS.map((id) => {
-          const Icon = SECTION_ICON[id];
-          return (
-            <li key={id} className="text-foreground flex items-center gap-2.5 text-sm font-medium">
-              <span
-                className="text-accent flex size-8 shrink-0 items-center justify-center rounded-lg"
-                style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
-                aria-hidden
-              >
-                <Icon size={16} weight="fill" />
-              </span>
-              {tNav(id)}
-            </li>
-          );
-        })}
-      </ul>
-    </AccountSection>
-  );
-}
-
-/**
- * Payments run entirely through Payrexx (hosted checkout). The member area
- * never stores card details — changing the card used for renewals happens on
- * Payrexx, so this surface only explains that and links out.
- */
-function PayrexxSection() {
-  const t = useTranslations('account.payrexx');
-
-  return (
-    <AccountSection title={t('title')} className="gap-6" contentClassName="gap-4">
-      <div className="flex items-start gap-3">
-        <span className="bg-accent-soft text-accent flex size-9 shrink-0 items-center justify-center rounded-full">
-          <CreditCard size={16} weight="fill" aria-hidden />
-        </span>
-        <p className="text-foreground text-sm leading-relaxed">{t('body')}</p>
-      </div>
-      <div>
-        <Button
-          variant="outline"
-          size="md"
-          onPress={() => {
-            void openPayrexxPortal().catch(() => {
-              toast.info(t('redirecting'));
-            });
-          }}
-        >
-          {t('manage')}
-        </Button>
-      </div>
-    </AccountSection>
-  );
-}
 
 function Field({
   id,
@@ -373,7 +302,6 @@ function AddressDialog({
 
 export function PaymentDetailsSection() {
   const t = useTranslations('account.paymentDetails');
-  const tFooter = useTranslations('footer');
   const addresses = useAddresses();
   const deleteAddress = useDeleteAddress();
 
@@ -397,76 +325,52 @@ export function PaymentDetailsSection() {
 
   return (
     <>
-      <div className="divide-border flex min-h-0 flex-1 flex-col divide-y lg:flex-row lg:divide-x lg:divide-y-0">
-        <div className="divide-border flex min-h-0 min-w-0 flex-1 flex-col divide-y">
-          <PayrexxSection />
-
-          <AccountSection
-            title={t('addressesTitle')}
-            className="gap-6"
-            contentClassName="gap-6"
-            action={
-              <Button
-                variant="outline"
-                size="sm"
-                onPress={() => {
-                  setEditingAddress(null);
-                  addressDrawer.open();
-                }}
-              >
-                <Plus size={14} aria-hidden />
-                {t('addAddress')}
-              </Button>
-            }
-          >
-            <DataState
-              isLoading={addresses.isLoading}
-              isError={addresses.isError}
-              onRetry={() => void addresses.refetch()}
+      <div className="divide-border flex min-h-0 flex-1 flex-col divide-y">
+        <AccountSection
+          title={t('addressesTitle')}
+          className="gap-6"
+          contentClassName="gap-6"
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => {
+                setEditingAddress(null);
+                addressDrawer.open();
+              }}
             >
-              {billingAddresses.length === 0 ? (
-                <EmptyState message={t('addressesEmpty')} />
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {billingAddresses.map((address) => (
-                    <AddressCardItem
-                      key={address.id}
-                      address={address}
-                      onEdit={() => {
-                        setEditingAddress(address);
-                        addressDrawer.open();
-                      }}
-                      onDelete={() => {
-                        setAddressPendingDelete(address);
-                        deleteAddressConfirm.open();
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </DataState>
-          </AccountSection>
-        </div>
-
-        <div className="divide-border flex w-full shrink-0 flex-col divide-y lg:w-[280px]">
-          <PaymentDetailsAboutSection />
-
-          <AccountSection size="small" title={t('questionsTitle')}>
-            <p className="text-foreground text-sm leading-relaxed">{t('questionsBody')}</p>
-            <NavigationLink href="/contact" size="sm">
-              {t('contactUs')}
-            </NavigationLink>
-          </AccountSection>
-
-          <AccountSection size="small" className="gap-1.5" contentClassName="gap-1.5">
-            <NavigationLink href="/terms" size="sm">
-              {tFooter('termsOfService')}
-            </NavigationLink>
-            <NavigationLink href="/privacy" size="sm">
-              {tFooter('privacyPolicy')}
-            </NavigationLink>
-          </AccountSection>
-        </div>
+              <Plus size={14} aria-hidden />
+              {t('addAddress')}
+            </Button>
+          }
+        >
+          <DataState
+            isLoading={addresses.isLoading}
+            isError={addresses.isError}
+            onRetry={() => void addresses.refetch()}
+          >
+            {billingAddresses.length === 0 ? (
+              <EmptyState message={t('addressesEmpty')} />
+            ) : (
+              <div className="flex flex-col gap-4">
+                {billingAddresses.map((address) => (
+                  <AddressCardItem
+                    key={address.id}
+                    address={address}
+                    onEdit={() => {
+                      setEditingAddress(address);
+                      addressDrawer.open();
+                    }}
+                    onDelete={() => {
+                      setAddressPendingDelete(address);
+                      deleteAddressConfirm.open();
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </DataState>
+        </AccountSection>
       </div>
 
       <AddressDialog

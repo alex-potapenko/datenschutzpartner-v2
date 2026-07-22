@@ -11,10 +11,12 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_API_BASE_URL: z.string().min(1).default('/api'),
     NEXT_PUBLIC_API_MOCKING: z.enum(['enabled', 'disabled']).default('disabled'),
+    NEXT_PUBLIC_WIZARD_SKIP_VALIDATION: z.enum(['enabled', 'disabled']).default('disabled'),
   },
   runtimeEnv: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     NEXT_PUBLIC_API_MOCKING: process.env.NEXT_PUBLIC_API_MOCKING,
+    NEXT_PUBLIC_WIZARD_SKIP_VALIDATION: process.env.NEXT_PUBLIC_WIZARD_SKIP_VALIDATION,
   },
   emptyStringAsUndefined: true,
 });

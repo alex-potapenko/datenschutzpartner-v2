@@ -1113,7 +1113,7 @@
       "generator": "Privacy Policy Generator",
       "academy": "Datenschutz Academy",
       "euRep": "EU Representation",
-      "accountDetails": "Account details",
+      "accountDetails": "Account Details",
       "logout": "Log out",
       "openMenu": "Open account menu"
     },
@@ -1381,7 +1381,7 @@
     "billingSelection": {
       "addressTitle": "Choose billing address",
       "addressEmpty": "No saved billing addresses yet.",
-      "manageLink": "Manage payment details",
+      "manageLink": "Manage billing addresses",
       "confirm": "Use selected",
       "saved": "Billing details updated."
     },
@@ -1412,11 +1412,11 @@
       "referenceEmpty": "—"
     },
     "accountDetails": {
-      "title": "Account details",
-      "tabsAriaLabel": "Account details sections",
+      "title": "Account Details",
+      "tabsAriaLabel": "Account Details sections",
       "tabs": {
         "profile": "Profile",
-        "paymentDetails": "Payment Details"
+        "paymentDetails": "Billing Addresses"
       },
       "profileTitle": "Profile",
       "firstName": "First name",
@@ -1448,7 +1448,7 @@
       "contactUs": "Contact us"
     },
     "paymentDetails": {
-      "addressesTitle": "Billing addresses",
+      "addressesTitle": "Billing Addresses",
       "addAddress": "New Address",
       "addressesEmpty": "No saved billing addresses yet. Add one to use it for any of your subscriptions.",
       "editAddress": "Edit address",
