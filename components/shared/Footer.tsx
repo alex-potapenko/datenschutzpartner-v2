@@ -72,7 +72,7 @@ export function Footer() {
               <Link
                 href="/"
                 aria-label={tc('home')}
-                className="block w-full"
+                className="block w-full cursor-pointer"
                 style={{ color: 'var(--accent)' }}
               >
                 <Logo inverse={false} />

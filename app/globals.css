@@ -27,6 +27,8 @@
   --color-success-soft: var(--success-soft);
   --color-success-soft-foreground: var(--success-soft-foreground);
   --shadow-card: var(--shadow-card);
+
+  --animate-scan-tech-marquee: scan-tech-marquee 50s linear infinite;
 }
 
 body {
@@ -45,6 +47,21 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
+}
+
+@keyframes scan-tech-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-tech-marquee {
+    animation: none !important;
+  }
 }
 
 /* Inline text link — accent color; underline hidden via transparent, revealed on hover.

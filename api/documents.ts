@@ -87,11 +87,12 @@ export function normalizeGeneratedDocument(document: GeneratedDocument): Generat
  * member area derives "used" from the generated-document inventory so the
  * counter stays in sync, and the underlying subscription (see the `policy`
  * `Subscription`) carries the term and renewal date. Buying additional sites
- * mid-term adds to `siteAllowance` and resets renewal to +12 months from the
- * new payment (see `docs/data-layer.md`).
+ * mid-term upgrade replaces the tier allowance and resets renewal to +12 months from
+ * the upgrade payment, with credit for unused time (see `docs/data-layer.md`).
  */
 export const generatorPlanSchema = z.object({
   siteAllowance: z.number().int().nonnegative(),
+  planId: z.enum(['single', 'team', 'agency']).optional(),
 });
 export type GeneratorPlan = z.infer<typeof generatorPlanSchema>;
 

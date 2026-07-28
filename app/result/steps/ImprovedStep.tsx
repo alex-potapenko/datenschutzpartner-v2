@@ -24,6 +24,7 @@ interface ImprovedStepProps {
   domain: string;
   onSubmit: (data: ImprovedFormData) => void;
   onBack?: () => void;
+  backLabel?: string;
   initialData?: Partial<ImprovedFormData>;
 }
 
@@ -77,7 +78,13 @@ function QField({
   );
 }
 
-export function ImprovedStep({ domain, onSubmit, onBack, initialData }: ImprovedStepProps) {
+export function ImprovedStep({
+  domain,
+  onSubmit,
+  onBack,
+  backLabel,
+  initialData,
+}: ImprovedStepProps) {
   const t = useTranslations('result.improvedStep');
   const tEuRepQ = useTranslations('euRepQuestionnaire');
   const tValidation = useTranslations('validation');
@@ -488,7 +495,12 @@ export function ImprovedStep({ domain, onSubmit, onBack, initialData }: Improved
         </div>
       </Container>
 
-      <StepFooter onBack={onBack} onContinue={handleSubmit} ctaLabel={t('continue')} />
+      <StepFooter
+        onBack={onBack}
+        backLabel={backLabel}
+        onContinue={handleSubmit}
+        ctaLabel={t('continue')}
+      />
     </>
   );
 }

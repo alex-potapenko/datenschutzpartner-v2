@@ -8,7 +8,7 @@ import { request } from './client';
 
 /**
  * Checkout domain — Payrexx-hosted payment sessions for the Privacy Policy
- * Generator (new policy or mid-term site top-up) and related side effects
+ * Generator (new policy or tier upgrade) and related side effects
  * (orders, allowance, hosted document creation). Components never talk to
  * Payrexx directly; they create a session, redirect to `redirectUrl`, then
  * confirm completion via `useCompleteCheckoutSession`.
@@ -30,12 +30,146 @@ export const GENERATOR_PLAN_PRICES: Record<GeneratorPlanId, number> = {
   agency: 279,
 };
 
+export const GENERATOR_PLAN_IDS: GeneratorPlanId[] = ['single', 'team', 'agency'];
+
 export function generatorPlanSiteCount(planId: GeneratorPlanId): number {
   return GENERATOR_PLAN_SITE_COUNTS[planId];
 }
 
 export function generatorPlanPrice(planId: GeneratorPlanId): number {
   return GENERATOR_PLAN_PRICES[planId];
+}
+
+const MS_PER_DAY = 86_400_000;
+
+/** Higher site allowance = higher tier. */
+export function compareGeneratorPlans(a: GeneratorPlanId, b: GeneratorPlanId): number {
+  return GENERATOR_PLAN_SITE_COUNTS[a] - GENERATOR_PLAN_SITE_COUNTS[b];
+}
+
+function daysBetween(start: string, end: string): number {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 0;
+  return Math.max(0, Math.round((endMs - startMs) / MS_PER_DAY));
+}
+
+/** Credit for unused time on the active generator term (Option 1 upgrades). */
+export function calculateGeneratorUpgradeCredit(input: {
+  currentPlanId: GeneratorPlanId;
+  lastOrderDate: string;
+  nextPaymentDate: string;
+  today?: string;
+}): number {
+  const today = input.today ?? new Date().toISOString().slice(0, 10);
+  if (today >= input.nextPaymentDate) return 0;
+
+  const termDays = Math.max(1, daysBetween(input.lastOrderDate, input.nextPaymentDate));
+  const remainingDays = daysBetween(today, input.nextPaymentDate);
+  const paid = GENERATOR_PLAN_PRICES[input.currentPlanId];
+
+  return Math.round((remainingDays / termDays) * paid * 100) / 100;
+}
+
+export type GeneratorUpgradeQuote = {
+  currentPlanId: GeneratorPlanId | null;
+  targetPlanId: GeneratorPlanId;
+  siteAllowance: number;
+  listPrice: number;
+  creditAmount: number;
+  amountDue: number;
+  isUpgrade: boolean;
+};
+
+export function calculateGeneratorUpgradeQuote(input: {
+  targetPlanId: GeneratorPlanId;
+  currentPlanId?: GeneratorPlanId | null;
+  lastOrderDate?: string | null;
+  nextPaymentDate?: string | null;
+  today?: string;
+}): GeneratorUpgradeQuote {
+  const listPrice = GENERATOR_PLAN_PRICES[input.targetPlanId];
+  const siteAllowance = GENERATOR_PLAN_SITE_COUNTS[input.targetPlanId];
+  const currentPlanId = input.currentPlanId ?? null;
+
+  if (!currentPlanId) {
+    return {
+      currentPlanId: null,
+      targetPlanId: input.targetPlanId,
+      siteAllowance,
+      listPrice,
+      creditAmount: 0,
+      amountDue: listPrice,
+      isUpgrade: false,
+    };
+  }
+
+  const creditAmount =
+    input.lastOrderDate && input.nextPaymentDate
+      ? calculateGeneratorUpgradeCredit({
+          currentPlanId,
+          lastOrderDate: input.lastOrderDate,
+          nextPaymentDate: input.nextPaymentDate,
+          today: input.today,
+        })
+      : 0;
+
+  return {
+    currentPlanId,
+    targetPlanId: input.targetPlanId,
+    siteAllowance,
+    listPrice,
+    creditAmount,
+    amountDue: Math.max(0, Math.round((listPrice - creditAmount) * 100) / 100),
+    isUpgrade: compareGeneratorPlans(input.targetPlanId, currentPlanId) > 0,
+  };
+}
+
+export function isGeneratorUpgradeAllowed(
+  targetPlanId: GeneratorPlanId,
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): boolean {
+  const targetSites = GENERATOR_PLAN_SITE_COUNTS[targetPlanId];
+  if (targetSites < usedSiteCount) return false;
+  if (!currentPlanId) return true;
+  return compareGeneratorPlans(targetPlanId, currentPlanId) > 0;
+}
+
+export type GeneratorPlanCheckoutState =
+  | { status: 'available' }
+  | { status: 'current' }
+  | { status: 'unavailable'; reason: 'lowerTier' | 'insufficientSites' };
+
+/** Upgrade checkout UI — every tier is shown; unavailable tiers carry a reason. */
+export function getGeneratorPlanCheckoutState(
+  targetPlanId: GeneratorPlanId,
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): GeneratorPlanCheckoutState {
+  if (currentPlanId && targetPlanId === currentPlanId) {
+    return { status: 'current' };
+  }
+
+  const targetSites = GENERATOR_PLAN_SITE_COUNTS[targetPlanId];
+  if (targetSites < usedSiteCount) {
+    return { status: 'unavailable', reason: 'insufficientSites' };
+  }
+
+  if (currentPlanId && compareGeneratorPlans(targetPlanId, currentPlanId) < 0) {
+    return { status: 'unavailable', reason: 'lowerTier' };
+  }
+
+  return { status: 'available' };
+}
+
+export function canUpgradeGeneratorPlan(
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): boolean {
+  return GENERATOR_PLAN_IDS.some((planId) =>
+    isGeneratorUpgradeAllowed(planId, currentPlanId, usedSiteCount)
+  );
 }
 
 export const checkoutKindEnum = z.enum(['generator', 'generatorTopUp']);
@@ -62,6 +196,10 @@ export const checkoutSessionSchema = z.object({
   amount: z.number(),
   currency: z.string(),
   siteCount: z.number().int().positive(),
+  /** Full plan price before upgrade credit. */
+  listPrice: z.number().optional(),
+  /** Unused-term credit applied on tier upgrades. */
+  creditAmount: z.number().optional(),
 });
 export type CheckoutSession = z.infer<typeof checkoutSessionSchema>;
 
@@ -71,6 +209,7 @@ export const checkoutCompleteResultSchema = z.object({
   document: documentSchema.optional(),
   siteAllowance: z.number().int().nonnegative(),
   nextPaymentDate: z.string().nullable(),
+  creditAmount: z.number().optional(),
 });
 export type CheckoutCompleteResult = z.infer<typeof checkoutCompleteResultSchema>;
 

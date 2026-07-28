@@ -11,6 +11,7 @@ interface StepFooterProps {
   onSkip?: () => void;
   ctaLabel?: ReactNode;
   skipLabel?: string;
+  backLabel?: ReactNode;
   ctaDisabled?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function StepFooter({
   onSkip,
   ctaLabel,
   skipLabel,
+  backLabel,
   ctaDisabled,
 }: StepFooterProps) {
   const t = useTranslations('common');
@@ -36,7 +38,9 @@ export function StepFooter({
               onPress={onBack}
             >
               <CaretLeft size={16} weight="bold" />
-              <span className="hidden sm:inline">{t('back')}</span>
+              <span className={backLabel ? 'inline' : 'hidden sm:inline'}>
+                {backLabel ?? t('back')}
+              </span>
             </Button>
           ) : (
             <div />

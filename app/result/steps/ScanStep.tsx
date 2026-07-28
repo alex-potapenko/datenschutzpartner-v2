@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { StepFooter } from '../ui/StepFooter';
+import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import {
   ChatCircle,
   UsersThree,
@@ -26,66 +26,38 @@ import {
 import { Container } from '@/components/shared/Container';
 
 import {
-  SCAN_GROUP_DEFINITIONS,
+  SCAN_CAROUSEL_ITEMS,
   SCAN_ITEM_COUNT,
   logoUrl,
   type ScanIconKey,
-  type ScanItemStatus,
 } from '../content/scan-groups';
 
-interface ScanItem {
-  icon: React.ReactNode;
-  logo?: string;
-  name: string;
-  description: string;
-  status: ScanItemStatus;
-  value?: string;
-}
-
-interface ScanGroup {
-  label: string;
-  items: ScanItem[];
-}
-
 const SCAN_ICONS: Record<ScanIconKey, React.ReactNode> = {
-  chat: <ChatCircle size={20} weight="fill" />,
-  users: <UsersThree size={20} weight="fill" />,
-  bell: <Bell size={20} weight="fill" />,
-  map: <MapPin size={20} weight="fill" />,
-  youtube: <YoutubeLogo size={20} weight="fill" />,
-  text: <TextT size={20} weight="fill" />,
-  instagram: <InstagramLogo size={20} weight="fill" />,
-  megaphone: <MegaphoneSimple size={20} weight="fill" />,
-  cloud: <Cloud size={20} weight="fill" />,
-  credit: <CreditCard size={20} weight="fill" />,
-  storefront: <Storefront size={20} weight="fill" />,
-  envelope: <EnvelopeSimple size={20} weight="fill" />,
-  user: <UserCircle size={20} weight="fill" />,
-  shield: <ShieldCheck size={20} weight="fill" />,
-  cookie: <Cookie size={20} weight="fill" />,
-  robot: <Robot size={20} weight="fill" />,
-  chart: <ChartBar size={20} weight="fill" />,
-  crosshair: <Crosshair size={20} weight="fill" />,
+  chat: <ChatCircle size={28} weight="fill" />,
+  users: <UsersThree size={28} weight="fill" />,
+  bell: <Bell size={28} weight="fill" />,
+  map: <MapPin size={28} weight="fill" />,
+  youtube: <YoutubeLogo size={28} weight="fill" />,
+  text: <TextT size={28} weight="fill" />,
+  instagram: <InstagramLogo size={28} weight="fill" />,
+  megaphone: <MegaphoneSimple size={28} weight="fill" />,
+  cloud: <Cloud size={28} weight="fill" />,
+  credit: <CreditCard size={28} weight="fill" />,
+  storefront: <Storefront size={28} weight="fill" />,
+  envelope: <EnvelopeSimple size={28} weight="fill" />,
+  user: <UserCircle size={28} weight="fill" />,
+  shield: <ShieldCheck size={28} weight="fill" />,
+  cookie: <Cookie size={28} weight="fill" />,
+  robot: <Robot size={28} weight="fill" />,
+  chart: <ChartBar size={28} weight="fill" />,
+  crosshair: <Crosshair size={28} weight="fill" />,
 };
 
-const SCAN_GROUPS: ScanGroup[] = SCAN_GROUP_DEFINITIONS.map((group) => ({
-  label: group.label,
-  items: group.items.map((item) => ({
-    icon: SCAN_ICONS[item.iconKey],
-    logo: item.logoDomain ? logoUrl(item.logoDomain) : undefined,
-    name: item.name,
-    description: item.description,
-    status: item.status,
-    value: item.value,
-  })),
-}));
-
-const TOTAL_ITEMS = SCAN_ITEM_COUNT;
+// Carousel viewport: 7 icons — 7×64 + 6×20 = 568px; sm: 7×72 + 6×24 = 648px
 
 interface ScanStepProps {
   domain: string;
   onContinue: () => void;
-  onBack?: () => void;
   skipLoading?: boolean;
 }
 
@@ -103,79 +75,142 @@ function Spinner({ size = 16 }: { size?: number }) {
   );
 }
 
-function LogoIcon({
+function CarouselLogo({
   logo,
   fallback,
-  defaultBg,
-  defaultColor,
-  faded,
+  name,
 }: {
   logo: string;
   fallback: React.ReactNode;
-  defaultBg: string;
-  defaultColor: string;
-  faded: boolean;
+  name: string;
 }) {
-  const [bg, setBg] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-
-  function handleLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const img = e.currentTarget;
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || 64;
-      canvas.height = img.naturalHeight || 64;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let r = 0,
-        g = 0,
-        b = 0,
-        count = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3] ?? 0;
-        if (alpha > 10) {
-          r += data[i] ?? 0;
-          g += data[i + 1] ?? 0;
-          b += data[i + 2] ?? 0;
-          count++;
-        }
-      }
-      if (count > 0)
-        setBg(
-          `rgba(${Math.round(r / count)},${Math.round(g / count)},${Math.round(b / count)},0.15)`
-        );
-    } catch {
-      /* CORS blocked — keep defaultBg */
-    }
-  }
 
   return (
     <div
-      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl"
-      style={{ background: bg ?? defaultBg, color: defaultColor, opacity: faded ? 0.4 : 1 }}
+      className="bg-key-50 text-accent flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl sm:h-[72px] sm:w-[72px]"
+      aria-hidden
     >
       {failed ? (
         fallback
       ) : (
         <img
           src={logo}
-          crossOrigin="anonymous"
           alt=""
-          className="h-6 w-6 rounded object-contain"
-          onLoad={handleLoad}
+          className="h-9 w-9 rounded object-contain sm:h-10 sm:w-10"
           onError={() => {
             setFailed(true);
           }}
         />
       )}
+      <span className="sr-only">{name}</span>
     </div>
   );
 }
 
-export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepProps) {
-  const [scannedCount, setScannedCount] = useState(skipLoading ? TOTAL_ITEMS : 0);
+function CarouselIcon({ icon, name }: { icon: React.ReactNode; name: string }) {
+  return (
+    <div
+      className="bg-key-50 text-accent flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl sm:h-[72px] sm:w-[72px]"
+      aria-hidden
+    >
+      {icon}
+      <span className="sr-only">{name}</span>
+    </div>
+  );
+}
+
+function TechCarousel() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const reducedMotion = useReducedMotion();
+  const items = [...SCAN_CAROUSEL_ITEMS, ...SCAN_CAROUSEL_ITEMS];
+
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    let rafId = 0;
+
+    const updateScales = () => {
+      const container = containerRef.current;
+      if (!container) {
+        rafId = requestAnimationFrame(updateScales);
+        return;
+      }
+
+      const { left, width } = container.getBoundingClientRect();
+      const centerX = left + width / 2;
+      const halfWidth = width / 2;
+
+      itemRefs.current.forEach((el) => {
+        if (!el) return;
+
+        const baseWidth = el.offsetWidth;
+        const rect = el.getBoundingClientRect();
+        const itemCenterX = rect.left + rect.width / 2;
+        const distance = Math.abs(itemCenterX - centerX);
+        const t = Math.min(distance / halfWidth, 1);
+        const scale = 1 - t * t * 0.45;
+        const opacity = 1 - t * t;
+        const marginOffset = (baseWidth * (1 - scale)) / 2;
+
+        el.style.transform = `scale(${scale})`;
+        el.style.opacity = String(opacity);
+        el.style.marginLeft = `${-marginOffset}px`;
+        el.style.marginRight = `${-marginOffset}px`;
+      });
+
+      rafId = requestAnimationFrame(updateScales);
+    };
+
+    rafId = requestAnimationFrame(updateScales);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [reducedMotion]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative mx-auto w-[568px] max-w-full sm:w-[648px]"
+      style={{
+        maskImage:
+          'linear-gradient(to right, transparent 0%, black 16%, black 84%, transparent 100%)',
+        WebkitMaskImage:
+          'linear-gradient(to right, transparent 0%, black 16%, black 84%, transparent 100%)',
+      }}
+      aria-hidden
+    >
+      <div className="animate-scan-tech-marquee flex w-max gap-5 motion-reduce:animate-none sm:gap-6">
+        {items.map((item, index) => (
+          <div
+            key={`${item.name}-${index}`}
+            ref={(el) => {
+              itemRefs.current[index] = el;
+            }}
+            className="shrink-0 will-change-transform"
+            style={{ transformOrigin: 'center center' }}
+          >
+            {item.logoDomain ? (
+              <CarouselLogo
+                logo={logoUrl(item.logoDomain)}
+                fallback={SCAN_ICONS[item.iconKey]}
+                name={item.name}
+              />
+            ) : (
+              <CarouselIcon icon={SCAN_ICONS[item.iconKey]} name={item.name} />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ScanStep({ domain, onContinue, skipLoading }: ScanStepProps) {
+  const t = useTranslations('result.scanStep');
+  const [scannedCount, setScannedCount] = useState(skipLoading ? SCAN_ITEM_COUNT : 0);
 
   useEffect(() => {
     if (skipLoading) return;
@@ -186,9 +221,9 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
       () => {
         count++;
         setScannedCount(count);
-        if (count >= TOTAL_ITEMS) window.clearInterval(interval);
+        if (count >= SCAN_ITEM_COUNT) window.clearInterval(interval);
       },
-      Math.max(1, Math.round(12000 / TOTAL_ITEMS))
+      Math.max(1, Math.round(12000 / SCAN_ITEM_COUNT))
     );
 
     return () => {
@@ -196,152 +231,43 @@ export function ScanStep({ domain, onContinue, onBack, skipLoading }: ScanStepPr
     };
   }, [skipLoading]);
 
-  const isComplete = scannedCount >= TOTAL_ITEMS;
+  const isComplete = scannedCount >= SCAN_ITEM_COUNT;
 
-  const visibleGroups = SCAN_GROUPS.map((group, groupIndex) => {
-    const itemsBefore = SCAN_GROUPS.slice(0, groupIndex).reduce(
-      (acc, g) => acc + g.items.length,
-      0
-    );
+  useEffect(() => {
+    if (!isComplete || skipLoading) return;
 
-    const visibleItems = group.items
-      .map((item, itemIndex) => ({
-        item,
-        globalIndex: itemsBefore + itemIndex,
-      }))
-      .filter(({ globalIndex }) => globalIndex <= scannedCount);
+    const timeoutId = window.setTimeout(() => {
+      onContinue();
+    }, 600);
 
-    return { group, visibleItems };
-  }).filter(({ visibleItems }) => visibleItems.length > 0);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isComplete, skipLoading, onContinue]);
 
   return (
-    <>
-      <Container>
-        <div className="border-border flex flex-col border-r border-l">
-          <div className="border-border flex flex-col gap-3 border-b px-4 pt-10 pb-8 sm:px-8 sm:pt-16 sm:pb-10">
-            <div className="flex items-center gap-3">
-              <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
-                {isComplete ? 'Scan complete.' : `Scanning ${domain}...`}
-              </h1>
-              {!isComplete && <Spinner size={28} />}
-            </div>
-            {!isComplete && (
-              <p className="text-muted max-w-lg text-base leading-relaxed">
-                Analyzing your website for data processing tools and technologies.
-              </p>
-            )}
+    <Container className="flex flex-1 flex-col">
+      <div className="border-border flex min-h-[min(70dvh,640px)] flex-1 flex-col items-center justify-center overflow-x-hidden border-r border-l px-4 py-16 sm:px-8 sm:py-24">
+        <div className="flex w-full max-w-2xl flex-col items-center gap-4 text-center">
+          <div className="flex items-center justify-center gap-3">
+            <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
+              {isComplete ? t('completeTitle') : t('scanningTitle', { domain })}
+            </h1>
+            {!isComplete && <Spinner size={28} />}
           </div>
-
-          {visibleGroups.map(({ group, visibleItems }, visibleIndex) => (
-            <div key={group.label} className="flex flex-col">
-              <div
-                className={`grid grid-cols-1 lg:grid-cols-2 ${visibleIndex < visibleGroups.length - 1 ? 'border-border border-b' : ''}`}
-              >
-                <div className="border-border flex flex-col gap-5 border-b p-4 sm:gap-8 sm:p-8 lg:border-r lg:border-b-0">
-                  <h2 className="text-lg leading-snug font-semibold" style={{ color: '#525252' }}>
-                    {group.label}
-                  </h2>
-                </div>
-
-                <div className="divide-border flex flex-col divide-y">
-                  <AnimatePresence initial={false}>
-                    {visibleItems.map(({ item, globalIndex }) => {
-                      const isScanning = scannedCount === globalIndex;
-
-                      return (
-                        <motion.div
-                          key={item.name}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.28, ease: 'easeOut' }}
-                          className="flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-8"
-                        >
-                          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                            {item.logo ? (
-                              <LogoIcon
-                                logo={item.logo}
-                                fallback={item.icon}
-                                defaultBg={
-                                  item.status === 'warning'
-                                    ? 'rgba(217,119,6,0.08)'
-                                    : item.status === 'not-detected'
-                                      ? 'rgba(0,0,0,0.04)'
-                                      : 'rgba(47,84,134,0.07)'
-                                }
-                                defaultColor={
-                                  item.status === 'warning'
-                                    ? '#d97706'
-                                    : item.status === 'not-detected'
-                                      ? '#9ca3af'
-                                      : 'var(--accent)'
-                                }
-                                faded={isScanning}
-                              />
-                            ) : (
-                              <div
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                                style={{
-                                  background: isScanning
-                                    ? 'rgba(0,0,0,0.03)'
-                                    : item.status === 'warning'
-                                      ? 'rgba(217,119,6,0.08)'
-                                      : item.status === 'not-detected'
-                                        ? 'rgba(0,0,0,0.04)'
-                                        : 'rgba(47,84,134,0.07)',
-                                  color: isScanning
-                                    ? '#d1d5db'
-                                    : item.status === 'warning'
-                                      ? '#d97706'
-                                      : item.status === 'not-detected'
-                                        ? '#9ca3af'
-                                        : 'var(--accent)',
-                                  opacity: isScanning ? 0.4 : 1,
-                                }}
-                              >
-                                {item.icon}
-                              </div>
-                            )}
-                            <div className="flex min-w-0 flex-col gap-0.5">
-                              <h3
-                                className="truncate !font-sans text-base font-semibold"
-                                style={{
-                                  color: isScanning ? '#9ca3af' : 'var(--foreground)',
-                                }}
-                              >
-                                {item.name}
-                              </h3>
-                              <p className="text-muted truncate text-xs">{item.description}</p>
-                            </div>
-                          </div>
-
-                          {isScanning ? (
-                            <div className="ml-auto shrink-0">
-                              <Spinner size={16} />
-                            </div>
-                          ) : null}
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          ))}
+          {!isComplete && (
+            <p className="text-muted max-w-lg text-base leading-relaxed">
+              {t('scanningDescription')}
+            </p>
+          )}
         </div>
-      </Container>
 
-      <AnimatePresence>
-        {isComplete && (
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32, mass: 1 }}
-          >
-            <StepFooter onBack={onBack} onContinue={onContinue} />
-          </motion.div>
+        {!isComplete && (
+          <div className="mt-12 flex w-full justify-center sm:mt-16">
+            <TechCarousel />
+          </div>
         )}
-      </AnimatePresence>
-    </>
+      </div>
+    </Container>
   );
 }

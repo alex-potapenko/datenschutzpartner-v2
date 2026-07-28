@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ArrowsClockwise, Clock, Crosshair, Gavel } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
+import { generatorPlanSiteCount } from '@/api/checkout';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 
 const PLAN_IDS = ['single', 'team', 'agency'] as const;
@@ -73,6 +74,7 @@ export function GeneratorBenefitsPanel() {
     tabLabel: tp(`plans.${id}.tabLabel`),
     showPerYear: false,
     price: t(`plans.${id}.price`),
+    note: tp('sitesIncluded', { count: generatorPlanSiteCount(id) }),
   }));
 
   return (
@@ -120,15 +122,13 @@ export function GeneratorBenefitsPanel() {
           plans={plans}
           defaultPlanId="team"
           pricePeriod=""
-          orderCta={t('orderCta')}
-          orderHref="#scan-form"
+          showOrderCta={false}
           tabsAriaLabel={tp('selectPlan')}
           selectPlanTitle={tp('selectPlan')}
           includedTitle={tp('includedTitle')}
           features={INCLUDED_KEYS.map((key) => t(`features.${key}`))}
           legal={t.rich('legal', {
             terms: (chunks) => <Link href="/terms">{chunks}</Link>,
-            faq: (chunks) => <Link href="/scan/faq">{chunks}</Link>,
           })}
         />
       </div>

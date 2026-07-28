@@ -16,11 +16,11 @@ import {
   ModalHeading,
   useOverlayState,
 } from '@/components/ui';
-import { X, Check } from '@/components/ui';
+import { Check, Question } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
 import { Logo } from '@/components/shared/Logo';
-import { buildResultReturnTo, type WizardStep } from '@/app/result/wizard-state';
+import { buildResultReturnTo, clearWizardState, type WizardStep } from '@/app/result/wizard-state';
 
 interface StepDef {
   id: string;
@@ -36,6 +36,8 @@ interface StepLayoutProps {
   onStepClick?: (stepId: string) => void;
   visitedSteps?: Set<string>;
   visibleStepIds?: string[];
+  /** Completed steps that must not be navigated back to (e.g. one-way scan). */
+  disabledStepIds?: string[];
   /** Hide the domain + stepper bars — used for the post-config checkout screens. */
   showSteps?: boolean;
 }
@@ -47,11 +49,13 @@ export function StepLayout({
   onStepClick,
   visitedSteps,
   visibleStepIds,
+  disabledStepIds,
   showSteps = true,
 }: StepLayoutProps) {
   const t = useTranslations('result.steps');
   const tCommon = useTranslations('common');
   const tCancel = useTranslations('result.cancelModal');
+  const tGenerator = useTranslations('services.privacyGenerator');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -77,11 +81,26 @@ export function StepLayout({
       {/* Top bar */}
       <div className="shrink-0 text-white" style={{ background: 'var(--accent)' }}>
         <Container>
-          <div className="flex items-stretch border-r border-l border-white/20">
-            <div className="flex w-1/2 min-w-0 items-center px-4 py-4 sm:px-8 sm:py-5">
-              <Logo markClassName="size-[22px]" />
+          <div className="flex items-center border-r border-l border-white/20">
+            <div className="flex w-1/2 min-w-0 items-center px-4 py-5 sm:px-8">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                <button
+                  type="button"
+                  className="inline-flex min-w-0 cursor-pointer items-center rounded-sm border-0 bg-transparent p-0 text-left hover:opacity-90"
+                  aria-label={tCancel('title')}
+                  onClick={() => {
+                    modal.open();
+                  }}
+                >
+                  <Logo />
+                </button>
+                <div aria-hidden className="h-6 w-px shrink-0 bg-white/20" />
+                <span className="font-display flex min-w-0 items-center truncate text-sm leading-none font-medium tracking-tight text-white lowercase">
+                  {tGenerator('label')}
+                </span>
+              </div>
             </div>
-            <div className="flex w-1/2 items-center justify-end gap-2 px-4 py-4 sm:gap-3 sm:px-8 sm:py-5">
+            <div className="flex w-1/2 items-center justify-end gap-2 px-4 py-5 sm:gap-3 sm:px-8">
               <LocaleSwitcher />
               <Button
                 variant="outline"
@@ -92,19 +111,19 @@ export function StepLayout({
                   router.push(`/scan/faq?returnTo=${encodeURIComponent(returnTo)}`);
                 }}
               >
+                <Question size={16} weight="bold" />
                 <span className="hidden sm:inline">{tCommon('faq')}</span>
                 <span className="sm:hidden">{tCommon('faqShort')}</span>
               </Button>
               <Button
                 variant="outline"
                 size="md"
-                className="gap-2 border-white/20 text-white hover:bg-white/10"
+                className="border-white/20 text-white hover:bg-white/10"
                 onPress={() => {
                   modal.open();
                 }}
               >
-                <X size={16} weight="bold" />
-                <span className="hidden sm:inline">{tCommon('cancel')}</span>
+                {tCancel('quit')}
               </Button>
             </div>
           </div>
@@ -143,7 +162,8 @@ export function StepLayout({
                     const done = i < current;
                     const active = i === current;
                     const visited = visitedSteps?.has(s.id) ?? false;
-                    const clickable = !active && visited && !!onStepClick;
+                    const clickable =
+                      !active && visited && !!onStepClick && !disabledStepIds?.includes(s.id);
                     return (
                       <motion.div
                         key={s.id}
@@ -221,6 +241,7 @@ export function StepLayout({
                   variant="outline"
                   className="text-danger"
                   onPress={() => {
+                    clearWizardState();
                     window.location.href = '/';
                   }}
                 >

@@ -83,8 +83,6 @@ function InquiryAllowanceSection({
 }) {
   const t = useTranslations('account.euRep.inquiries');
   const remaining = Math.max(0, included - used);
-  const usedFraction = included > 0 ? Math.min(1, used / included) : 1;
-  const isDepleted = remaining <= 0;
 
   return (
     <AccountSection
@@ -98,18 +96,6 @@ function InquiryAllowanceSection({
       <p className="text-muted text-sm leading-snug">
         {currency} {furtherInquiryAmount.toFixed(0)} {t('furtherInquiryNote')}
       </p>
-      <div
-        className="bg-border h-2 w-full overflow-hidden rounded-full"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={included}
-        aria-valuenow={used}
-      >
-        <div
-          className={isDepleted ? 'bg-danger h-full rounded-full' : 'bg-accent h-full rounded-full'}
-          style={{ width: `${usedFraction * 100}%` }}
-        />
-      </div>
     </AccountSection>
   );
 }

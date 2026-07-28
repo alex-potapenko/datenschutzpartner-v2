@@ -5,7 +5,11 @@ import type { ForgotPasswordInput, LoginInput, Session } from '@/api/auth';
 import type { Address, AddressInput, AddressUpdate, AccountSnapshot, Profile } from '@/api/account';
 import type { MembershipRow, Order, Subscription, SubscriptionBillingUpdate } from '@/api/billing';
 import type { CheckoutSessionCreate, EuRepCheckoutPlanId, GeneratorPlanId } from '@/api/checkout';
-import { GENERATOR_PLAN_PRICES, GENERATOR_PLAN_SITE_COUNTS } from '@/api/checkout';
+import {
+  GENERATOR_PLAN_SITE_COUNTS,
+  calculateGeneratorUpgradeQuote,
+  isGeneratorUpgradeAllowed,
+} from '@/api/checkout';
 import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
 import { normalizeGeneratedDocument } from '@/api/documents';
 import type { EuRepInquiry } from '@/api/eu-rep-inquiries';
@@ -130,38 +134,37 @@ const subscriptions = createCollection<Subscription>(
     {
       id: '3',
       productType: 'policy',
-      product: 'Privacy Policy Generator',
-      planId: 'policy',
+      product: 'Privacy Policy Generator — Team',
+      planId: 'team',
       status: 'active',
       startDate: '2026-01-15',
-      lastOrderDate: '2026-07-01',
-      nextPaymentDate: '2027-07-01',
+      lastOrderDate: '2026-01-15',
+      nextPaymentDate: '2027-01-15',
       billingAddressId: '1',
       totals: {
-        product: 'Privacy Policy Generator — 8 Sites (12 Monate)',
-        subtotal: 712,
+        product: 'Privacy Policy Generator — 3 Sites (12 Monate)',
+        subtotal: 199,
         discount: 0,
-        total: 712,
+        total: 199,
         currency: 'CHF',
       },
-      relatedOrderIds: ['2', '19'],
+      relatedOrderIds: ['2'],
     },
   ],
-  4
+  5
 );
 
 /**
  * Privacy Policy Generator is a yearly subscription that also grants a site
- * allowance. Mock narrative: Lucas bought 5 sites on 2026-01-15, generated all
- * five policies, then bought 3 more on 2026-07-01 — allowance is now 8 and
- * renewal reset to 2027-07-01 (see docs/data-layer.md). "Used" is derived from
- * the generated-document inventory (5 of 8).
+ * allowance. Mock narrative: Lucas subscribed to the Team tier (3 sites) on
+ * 2026-01-15 and generated three policies (3 of 3 used). Agency upgrade is
+ * available (Option 1 — see docs/data-layer.md).
  */
-const generatorPlans = createCollection<{ id: string; siteAllowance: number }>(
-  'generator-plan',
-  [{ id: '1', siteAllowance: 8 }],
-  5
-);
+const generatorPlans = createCollection<{
+  id: string;
+  siteAllowance: number;
+  planId: GeneratorPlanId;
+}>('generator-plan', [{ id: '1', siteAllowance: 3, planId: 'team' }], 6);
 
 const euRepInquiries = createCollection<EuRepInquiry>(
   'eu-rep-inquiries',
@@ -209,6 +212,8 @@ type CheckoutSessionRecord = {
   planId: GeneratorPlanId;
   siteCount: number;
   amount: number;
+  listPrice: number;
+  creditAmount: number;
   currency: 'CHF';
   domain?: string;
   policyName?: string;
@@ -223,15 +228,17 @@ function readSiteAllowance(): number {
   return generatorPlans.all()[0]?.siteAllowance ?? 0;
 }
 
-function addSiteAllowance(count: number): number {
+function readGeneratorPlanId(): GeneratorPlanId | null {
+  return generatorPlans.all()[0]?.planId ?? null;
+}
+
+function setGeneratorPlan(planId: GeneratorPlanId, siteAllowance: number) {
   const row = generatorPlans.all()[0];
   if (!row) {
-    generatorPlans.create({ siteAllowance: count });
-    return count;
+    generatorPlans.create({ siteAllowance, planId });
+    return;
   }
-  const next = row.siteAllowance + count;
-  generatorPlans.update(row.id, { siteAllowance: next });
-  return next;
+  generatorPlans.update(row.id, { siteAllowance, planId });
 }
 
 function addOneYear(isoDate: string): string {
@@ -253,32 +260,54 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const siteAllowance = addSiteAllowance(session.siteCount);
+  const siteAllowance = session.siteCount;
+  setGeneratorPlan(session.planId, siteAllowance);
   const nextPaymentDate = addOneYear(today);
 
-  const generatorAmount = GENERATOR_PLAN_PRICES[session.planId];
   const policyOrder = orders.create({
     productType: 'policy',
     number: nextOrderNumber(),
     date: today,
     status: 'active',
-    total: generatorAmount,
+    total: session.amount,
     currency: session.currency,
     siteCount: session.siteCount,
+    creditAmount: session.creditAmount > 0 ? session.creditAmount : undefined,
   });
 
   const policySub = subscriptions.all().find((row) => row.productType === 'policy');
   if (policySub) {
     subscriptions.update(policySub.id, {
+      planId: session.planId,
       lastOrderDate: today,
       nextPaymentDate,
       totals: {
         ...policySub.totals,
         product: `Privacy Policy Generator — ${siteAllowance} Sites (12 Monate)`,
-        subtotal: policySub.totals.subtotal + generatorAmount,
-        total: policySub.totals.total + generatorAmount,
+        subtotal: policySub.totals.subtotal + session.amount,
+        discount: policySub.totals.discount + session.creditAmount,
+        total: policySub.totals.total + session.amount,
       },
       relatedOrderIds: [...policySub.relatedOrderIds, policyOrder.id],
+    });
+  } else {
+    subscriptions.create({
+      productType: 'policy',
+      product: `Privacy Policy Generator — ${session.planId}`,
+      planId: session.planId,
+      status: 'active',
+      startDate: today,
+      lastOrderDate: today,
+      nextPaymentDate,
+      billingAddressId: '1',
+      totals: {
+        product: `Privacy Policy Generator — ${siteAllowance} Sites (12 Monate)`,
+        subtotal: session.amount,
+        discount: session.creditAmount,
+        total: session.amount,
+        currency: 'CHF',
+      },
+      relatedOrderIds: [policyOrder.id],
     });
   }
 
@@ -365,17 +394,7 @@ const orders = createCollection<Order>(
       number: 'DSP-2026-1005',
       date: '2026-01-15',
       status: 'active',
-      total: 445,
-      currency: 'CHF',
-      siteCount: 5,
-    },
-    {
-      id: '19',
-      productType: 'policy',
-      number: 'DSP-2026-1188',
-      date: '2026-07-01',
-      status: 'active',
-      total: 267,
+      total: 199,
       currency: 'CHF',
       siteCount: 3,
     },
@@ -410,7 +429,7 @@ const orders = createCollection<Order>(
       orderKind: 'subscription',
     },
   ],
-  2
+  3
 );
 
 /** Latest legal year the hosted policies have been maintained through. */
@@ -461,24 +480,9 @@ const documents = createCollection<GeneratedDocument>(
         createdDate: '2026-02-03',
         updatedDate: '2026-05-20',
       },
-      {
-        id: '4',
-        name: 'Datenschutzerklärung',
-        site: 'mueller-consulting.ch',
-        createdDate: '2026-03-10',
-        updatedDate: '2026-03-10',
-      },
-      {
-        id: '5',
-        name: 'Cookie Policy',
-        site: 'kreativ-studio.ch',
-        siteUrl: 'www.kreativ-studio.ch/cookie-policy',
-        createdDate: '2026-04-15',
-        updatedDate: '2026-07-01',
-      },
     ] satisfies GeneratedDocument[]
   ).map((doc) => ({ ...doc, versions: buildPolicyVersions(doc.createdDate) })),
-  4
+  5
 );
 
 const UID_COMPANIES: UidCompany[] = [
@@ -752,11 +756,14 @@ export const handlers = [
     return HttpResponse.json(results);
   }),
 
-  http.get('/api/generator/plan', ({ request }) =>
-    HttpResponse.json(
-      isMemberToken(tokenFromRequest(request)) ? { siteAllowance: readSiteAllowance() } : null
-    )
-  ),
+  http.get('/api/generator/plan', ({ request }) => {
+    const row = generatorPlans.all()[0];
+    return HttpResponse.json(
+      isMemberToken(tokenFromRequest(request)) && row
+        ? { siteAllowance: row.siteAllowance, planId: row.planId }
+        : null
+    );
+  }),
 
   http.get('/api/eu-rep/inquiries', ({ request }) =>
     HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? euRepInquiries.all() : [])
@@ -765,7 +772,25 @@ export const handlers = [
   http.post('/api/checkout/sessions', async ({ request }) => {
     const input = (await request.json()) as CheckoutSessionCreate;
     const siteCount = GENERATOR_PLAN_SITE_COUNTS[input.planId];
-    let amount = GENERATOR_PLAN_PRICES[input.planId];
+    const policySub = subscriptions.all().find((row) => row.productType === 'policy');
+    const currentPlanId =
+      readGeneratorPlanId() ?? (policySub?.planId as GeneratorPlanId | undefined);
+    const usedSiteCount = documents.all().length;
+
+    if (input.kind === 'generatorTopUp') {
+      if (!isGeneratorUpgradeAllowed(input.planId, currentPlanId ?? null, usedSiteCount)) {
+        return HttpResponse.json({ message: 'upgrade_not_allowed' }, { status: 400 });
+      }
+    }
+
+    const quote = calculateGeneratorUpgradeQuote({
+      targetPlanId: input.planId,
+      currentPlanId: input.kind === 'generator' ? null : currentPlanId,
+      lastOrderDate: policySub?.lastOrderDate,
+      nextPaymentDate: policySub?.nextPaymentDate,
+    });
+
+    let amount = quote.amountDue;
     if (input.euRepPlanId) {
       amount += EU_REP_CHECKOUT_PRICES[input.euRepPlanId];
     }
@@ -776,6 +801,8 @@ export const handlers = [
       planId: input.planId,
       siteCount,
       amount,
+      listPrice: quote.listPrice,
+      creditAmount: quote.creditAmount,
       currency: 'CHF',
       domain: input.domain,
       policyName: input.policyName,
@@ -789,6 +816,8 @@ export const handlers = [
         amount: session.amount,
         currency: session.currency,
         siteCount: session.siteCount,
+        listPrice: session.listPrice,
+        creditAmount: session.creditAmount,
       },
       { status: 201 }
     );
@@ -811,6 +840,7 @@ export const handlers = [
       document: document ? normalizeGeneratedDocument(document) : undefined,
       siteAllowance: readSiteAllowance(),
       nextPaymentDate: policySub?.nextPaymentDate ?? null,
+      creditAmount: completed.creditAmount > 0 ? completed.creditAmount : undefined,
     });
   }),
 

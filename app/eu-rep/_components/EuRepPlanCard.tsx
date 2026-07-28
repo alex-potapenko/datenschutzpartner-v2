@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type Key } from 'react';
+import { useCallback, useState, type Key } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button, CaretRight, Check, Tabs } from '@/components/ui';
@@ -37,66 +37,128 @@ type EuRepPlanCardProps = {
   plans: EuRepPlan[];
   defaultPlanId: string;
   pricePeriod: string;
-  orderCta: string;
+  orderCta?: string;
   tabsAriaLabel: string;
   selectPlanTitle: string;
   includedTitle: string;
   features: string[];
-  legal: React.ReactNode;
+  legal?: React.ReactNode;
   onChoose?: (planId: string) => void;
   chooseLabels?: Partial<Record<string, string>>;
   orderHref?: string;
+  showOrderCta?: boolean;
+  value?: string;
+  onPlanChange?: (planId: string) => void;
+  layout?: 'sidebar' | 'standalone';
+  footer?: React.ReactNode;
 };
 
 type EuRepPlanPanelContentProps = {
   plan: EuRepPlan;
   pricePeriod: string;
-  orderCta: string;
+  orderCta?: string;
   onChoose?: (planId: string) => void;
   chooseLabels?: Partial<Record<string, string>>;
-  orderHref: string;
+  orderHref?: string;
+  showOrderCta?: boolean;
 };
 
-const REVEAL_TRANSITION = { duration: 0.25, ease: 'easeInOut' as const };
+const SLIDE_TRANSITION = { duration: 0.24, ease: [0.32, 0.72, 0, 1] as const };
+const HEIGHT_TRANSITION = { duration: 0.32, ease: [0.32, 0.72, 0, 1] as const };
+const SLIDE_OFFSET = 32;
 
-function RevealSection({
-  show,
+const SLIDE_VARIANTS = {
+  enter: (direction: number) => ({ x: direction * SLIDE_OFFSET, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: direction * -SLIDE_OFFSET, opacity: 0 }),
+};
+
+/**
+ * Cross-fades keyed content with a directional slide while interpolating the
+ * container height. The outgoing panel is popped out of layout flow so the
+ * height is driven solely by the measured incoming panel.
+ */
+function SlidingPanel({
+  panelKey,
+  direction,
+  className,
+  alwaysVisibleOverflow = false,
   children,
-  sectionKey,
 }: {
-  show: boolean;
+  panelKey: string;
+  direction: number;
+  className?: string;
+  /** Keeps overflow visible even mid-animation (e.g. footers with a CTA button). */
+  alwaysVisibleOverflow?: boolean;
   children: React.ReactNode;
-  sectionKey: string;
 }) {
   const reduceMotion = useReducedMotion();
+  const [height, setHeight] = useState<number | 'auto'>('auto');
+  const [isSettled, setIsSettled] = useState(true);
+
+  const measureRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return undefined;
+
+    const observer = new ResizeObserver(() => {
+      setHeight(node.offsetHeight);
+    });
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  if (reduceMotion) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
-    <AnimatePresence initial={false}>
-      {show ? (
+    <motion.div
+      className={className}
+      initial={false}
+      animate={{ height }}
+      transition={HEIGHT_TRANSITION}
+      onAnimationStart={() => {
+        setIsSettled(false);
+      }}
+      onAnimationComplete={() => {
+        setIsSettled(true);
+        // Release the measured height so the panel can never clip its content
+        // once it has settled (focus rings, font swaps, sub-pixel rounding).
+        setHeight('auto');
+      }}
+      style={{
+        position: 'relative',
+        overflow: alwaysVisibleOverflow || isSettled ? 'visible' : 'hidden',
+      }}
+    >
+      <AnimatePresence mode="popLayout" initial={false} custom={direction}>
         <motion.div
-          key={sectionKey}
-          initial={reduceMotion ? false : { opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
-          transition={reduceMotion ? { duration: 0 } : REVEAL_TRANSITION}
-          className="overflow-hidden"
+          key={panelKey}
+          custom={direction}
+          variants={SLIDE_VARIANTS}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={SLIDE_TRANSITION}
         >
-          {children}
+          <div ref={measureRef}>{children}</div>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
 function EuRepPlanPanelContent({
   plan,
   pricePeriod,
-  orderCta,
+  orderCta = '',
   onChoose,
   chooseLabels,
-  orderHref,
+  orderHref = '#',
+  showOrderCta = true,
 }: EuRepPlanPanelContentProps) {
-  const reduceMotion = useReducedMotion();
   const priceValue = Number(plan.price);
   const includedCountValue = plan.inquiryAllowance
     ? Number(plan.inquiryAllowance.includedCount)
@@ -135,61 +197,39 @@ function EuRepPlanPanelContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-6">
-        <PriceBlock
-          currency="CHF"
-          amount={plan.price}
-          animatedAmount={Number.isFinite(priceValue) ? priceValue : undefined}
-          notes={[plan.showPerYear ? pricePeriod : null, plan.note]}
-        />
-        <RevealSection show={showInquiryAllowance} sectionKey="inquiry-allowance">
-          <div className="border-border flex items-stretch overflow-hidden rounded-xl border">
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-4">
-              <AnimatedRollingNumber
-                value={includedCountValue ?? 0}
-                className={ROLLING_AMOUNT_CLASS}
-              />
-              <span className="text-muted text-sm leading-snug">
-                {plan.inquiryAllowance?.includedLabel}
-              </span>
-            </div>
+      <PriceBlock
+        currency="CHF"
+        amount={plan.price}
+        animatedAmount={Number.isFinite(priceValue) ? priceValue : undefined}
+        notes={[plan.showPerYear ? pricePeriod : null, plan.note]}
+      />
 
-            <div className="bg-border w-px shrink-0 self-stretch" aria-hidden />
-
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-4">
-              <p className="flex flex-nowrap items-end gap-1.5 whitespace-nowrap">
-                <span className="font-display text-foreground pb-0.5 text-sm leading-none font-bold">
-                  CHF
-                </span>
-                <AnimatedRollingNumber
-                  value={furtherAmountValue ?? 0}
-                  className={ROLLING_AMOUNT_CLASS}
-                />
-              </p>
-              <span className="text-muted text-sm leading-snug">
-                {plan.inquiryAllowance?.furtherLabel}
-              </span>
-            </div>
+      {showInquiryAllowance ? (
+        <div className="border-border flex items-stretch overflow-hidden rounded-xl border">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-4">
+            <AnimatedRollingNumber value={includedCountValue} className={ROLLING_AMOUNT_CLASS} />
+            <span className="text-muted text-sm leading-snug">
+              {plan.inquiryAllowance?.includedLabel}
+            </span>
           </div>
-        </RevealSection>
-      </div>
-      <motion.div
-        key={showInquiryAllowance ? 'order-with-inquiry' : 'order-budget'}
-        layout={!reduceMotion}
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={
-          reduceMotion
-            ? { duration: 0 }
-            : {
-                duration: 0.22,
-                ease: 'easeOut',
-                layout: REVEAL_TRANSITION,
-              }
-        }
-      >
-        {orderButton}
-      </motion.div>
+
+          <div className="bg-border w-px shrink-0 self-stretch" aria-hidden />
+
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-4">
+            <p className="flex flex-nowrap items-end gap-1.5 whitespace-nowrap">
+              <span className="font-display text-foreground pb-0.5 text-sm leading-none font-bold">
+                CHF
+              </span>
+              <AnimatedRollingNumber value={furtherAmountValue} className={ROLLING_AMOUNT_CLASS} />
+            </p>
+            <span className="text-muted text-sm leading-snug">
+              {plan.inquiryAllowance?.furtherLabel}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {showOrderCta ? orderButton : null}
     </div>
   );
 }
@@ -206,75 +246,123 @@ export function EuRepPlanCard({
   legal,
   onChoose,
   chooseLabels,
-  orderHref = '#',
+  orderHref,
+  showOrderCta = true,
+  value,
+  onPlanChange,
+  layout = 'sidebar',
+  footer,
 }: EuRepPlanCardProps) {
-  const [selectedPlanId, setSelectedPlanId] = useState(defaultPlanId);
+  const [internalPlanId, setInternalPlanId] = useState(defaultPlanId);
+  const [lastDefaultPlanId, setLastDefaultPlanId] = useState(defaultPlanId);
+  const [direction, setDirection] = useState(1);
+  if (value === undefined && defaultPlanId !== lastDefaultPlanId) {
+    setLastDefaultPlanId(defaultPlanId);
+    setInternalPlanId(defaultPlanId);
+  }
+  const selectedPlanId = value ?? internalPlanId;
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[0];
 
   if (!selectedPlan) return null;
 
+  const outerClassName =
+    layout === 'standalone'
+      ? 'flex justify-center overflow-visible px-4 py-8 sm:px-8 sm:py-10'
+      : 'border-border flex min-h-full items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:border-l lg:px-16 lg:py-12';
+
+  function handlePlanChange(planId: string) {
+    const currentIndex = plans.findIndex((plan) => plan.id === selectedPlanId);
+    const nextIndex = plans.findIndex((plan) => plan.id === planId);
+    if (currentIndex !== -1 && nextIndex !== -1 && currentIndex !== nextIndex) {
+      setDirection(nextIndex > currentIndex ? 1 : -1);
+    }
+
+    if (value === undefined) {
+      setInternalPlanId(planId);
+    }
+    onPlanChange?.(planId);
+  }
+
   return (
-    <div className="border-border relative flex min-h-full items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:border-l lg:px-16 lg:py-12">
-      <HeroGlowOrbs />
+    <div className={outerClassName}>
+      <div className="relative flex w-full max-w-[440px] flex-col gap-4 overflow-visible">
+        <HeroGlowOrbs />
 
-      <div className="relative z-10 flex w-full max-w-sm flex-col gap-4">
-        <div className="squircle w-full overflow-hidden" style={MEMBERSHIP_CARD_STYLE}>
-          <div className="flex flex-col gap-6 p-4 sm:p-8">
-            <h2 className="text-foreground text-center text-xl font-semibold">{selectPlanTitle}</h2>
+        <div className="relative z-10 flex w-full flex-col gap-4">
+          <div className="squircle w-full overflow-hidden" style={MEMBERSHIP_CARD_STYLE}>
+            <div className="flex flex-col gap-6 p-4 sm:p-8">
+              <h2 className="text-foreground text-center text-xl font-semibold">
+                {selectPlanTitle}
+              </h2>
 
-            <Tabs
-              selectedKey={selectedPlanId}
-              onSelectionChange={(key: Key) => {
-                setSelectedPlanId(String(key));
-              }}
-              className="!gap-6"
-            >
-              <Tabs.ListContainer>
-                <Tabs.List aria-label={tabsAriaLabel} className="!w-full">
-                  {plans.map((plan) => (
-                    <Tabs.Tab key={plan.id} id={plan.id} className="!flex-1 justify-center">
-                      <span className="text-base font-medium whitespace-nowrap">
-                        {plan.tabLabel}
-                      </span>
-                      <Tabs.Indicator />
-                    </Tabs.Tab>
+              <Tabs
+                selectedKey={selectedPlanId}
+                onSelectionChange={(key: Key) => {
+                  handlePlanChange(String(key));
+                }}
+                className="!gap-6"
+              >
+                <Tabs.ListContainer>
+                  <Tabs.List aria-label={tabsAriaLabel} className="!w-full">
+                    {plans.map((plan) => (
+                      <Tabs.Tab key={plan.id} id={plan.id} className="!flex-1 justify-center">
+                        <span className="text-base font-medium whitespace-nowrap">
+                          {plan.tabLabel}
+                        </span>
+                        <Tabs.Indicator />
+                      </Tabs.Tab>
+                    ))}
+                  </Tabs.List>
+                </Tabs.ListContainer>
+
+                <SlidingPanel panelKey={selectedPlanId} direction={direction}>
+                  <EuRepPlanPanelContent
+                    plan={selectedPlan}
+                    pricePeriod={pricePeriod}
+                    orderCta={orderCta}
+                    onChoose={onChoose}
+                    chooseLabels={chooseLabels}
+                    orderHref={orderHref}
+                    showOrderCta={showOrderCta}
+                  />
+                </SlidingPanel>
+              </Tabs>
+
+              <div className="border-border flex flex-col gap-4 border-t pt-6">
+                <p className="text-foreground text-base font-semibold">{includedTitle}</p>
+                <ul className="flex flex-col gap-2.5">
+                  {features.map((label) => (
+                    <li
+                      key={label}
+                      className="text-foreground flex items-start gap-2.5 text-sm leading-snug"
+                    >
+                      <Check
+                        size={16}
+                        weight="bold"
+                        className="text-success mt-0.5 shrink-0"
+                        aria-hidden
+                      />
+                      {label}
+                    </li>
                   ))}
-                </Tabs.List>
-              </Tabs.ListContainer>
+                </ul>
+              </div>
 
-              <EuRepPlanPanelContent
-                plan={selectedPlan}
-                pricePeriod={pricePeriod}
-                orderCta={orderCta}
-                onChoose={onChoose}
-                chooseLabels={chooseLabels}
-                orderHref={orderHref}
-              />
-            </Tabs>
-
-            <div className="border-border flex flex-col gap-4 border-t pt-6">
-              <p className="text-foreground text-base font-semibold">{includedTitle}</p>
-              <ul className="flex flex-col gap-2.5">
-                {features.map((label) => (
-                  <li
-                    key={label}
-                    className="text-foreground flex items-start gap-2.5 text-sm leading-snug"
-                  >
-                    <Check
-                      size={16}
-                      weight="bold"
-                      className="text-success mt-0.5 shrink-0"
-                      aria-hidden
-                    />
-                    {label}
-                  </li>
-                ))}
-              </ul>
+              {footer ? (
+                <SlidingPanel
+                  panelKey={selectedPlanId}
+                  direction={direction}
+                  className="border-border border-t"
+                  alwaysVisibleOverflow
+                >
+                  <div className="flex flex-col gap-4 pt-6">{footer}</div>
+                </SlidingPanel>
+              ) : null}
             </div>
           </div>
-        </div>
 
-        <p className="text-muted text-center text-xs leading-relaxed">{legal}</p>
+          {legal ? <p className="text-muted text-center text-xs leading-relaxed">{legal}</p> : null}
+        </div>
       </div>
     </div>
   );
