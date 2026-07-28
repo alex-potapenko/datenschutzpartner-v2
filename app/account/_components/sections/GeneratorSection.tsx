@@ -33,7 +33,7 @@ export function GeneratorSection({
       onTabChange={(key) => {
         const params = new URLSearchParams(searchParams.toString());
         params.set('section', 'generator');
-        params.set('tab', key);
+        params.set('tab', String(key));
         router.replace(`/account?${params.toString()}`, { scroll: false });
       }}
     >
