@@ -31,12 +31,35 @@ export type WizardProgress = {
 export type WizardPersistedState = WizardProgress & {
   step: WizardStep;
   visitedSteps: WizardStep[];
+  /** Hostname the persisted run belongs to — prevents cross-site state bleed. */
+  domain?: string;
   checkoutPhase?: 'payment' | 'ready';
   checkoutDocumentId?: string;
 };
 
 export function isQuestionnaireOnlyMode(params: URLSearchParams): boolean {
   return params.get('mode') === 'update';
+}
+
+/** Whether sessionStorage wizard progress matches the current URL run. */
+export function shouldRestoreWizardState(
+  restored: WizardPersistedState,
+  params: URLSearchParams,
+  domain: string
+): boolean {
+  const isUpdateFlow = isQuestionnaireOnlyMode(params);
+
+  if (isUpdateFlow) {
+    return true;
+  }
+
+  // A new-site generation must never inherit a policy-update session.
+  if (restored.questionnaireOnly) {
+    return false;
+  }
+
+  // Resume an in-progress generation for the same site (reload or back navigation).
+  return restored.domain === undefined || restored.domain === domain;
 }
 
 const WIZARD_STORAGE_KEY = 'datenschutzpartner-result-wizard';
@@ -146,6 +169,7 @@ export function readWizardState(stepFromUrl?: string | null): WizardPersistedSta
 
     return {
       ...progress,
+      domain: parsed.domain,
       step,
       visitedSteps: buildVisitedSteps({ ...progress, step }),
     };

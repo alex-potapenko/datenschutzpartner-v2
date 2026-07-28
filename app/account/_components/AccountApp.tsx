@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRequireSession } from '@/api/auth';
 import { Spinner } from '@/components/ui';
@@ -17,5 +18,15 @@ export function AccountApp() {
     );
   }
 
-  return <AccountShell />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh flex-1 items-center justify-center">
+          <Spinner aria-label={t('loading')} />
+        </div>
+      }
+    >
+      <AccountShell />
+    </Suspense>
+  );
 }

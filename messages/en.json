@@ -865,6 +865,10 @@
       "title": "Review & checkout",
       "description": "Confirm your subscription. Your privacy policy is generated and published the moment your payment is confirmed.",
       "selectPlan": "Select your plan",
+      "generatorLine": "Privacy Policy Generator",
+      "generatorLineDetail": "Annual privacy policy hosting for {domain}",
+      "generatorLineDetailWithExtra": "Annual privacy policy hosting for {domain} plus {additional, plural, one {# additional site} other {# additional sites}}",
+      "euRepLine": "EU representation — {plan} plan",
       "totalDue": "Total due today",
       "renewalNote": "Renews yearly · cancel anytime",
       "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
@@ -1546,6 +1550,11 @@
     "versionsAriaLabel": "Policy versions by year",
     "archivedNote": "You're viewing an archived version. The latest year is the one live on your site.",
     "effectiveFrom": "Effective from",
+    "tabs": {
+      "ariaLabel": "Policy detail",
+      "policy": "Policy Text",
+      "instruction": "Instruction"
+    },
     "implementation": {
       "title": "How to publish this policy on your website",
       "body": "Your policy is hosted by Datenschutzpartner and kept legally up to date automatically. Add it to your site using the hosted URL or the embed code below.",

@@ -51,6 +51,9 @@ type EuRepPlanCardProps = {
   onPlanChange?: (planId: string) => void;
   layout?: 'sidebar' | 'standalone';
   footer?: React.ReactNode;
+  showGlow?: boolean;
+  /** Stretch the card area to fill available height (wizard checkout). */
+  fillHeight?: boolean;
 };
 
 type EuRepPlanPanelContentProps = {
@@ -252,6 +255,8 @@ export function EuRepPlanCard({
   onPlanChange,
   layout = 'sidebar',
   footer,
+  showGlow = true,
+  fillHeight = false,
 }: EuRepPlanCardProps) {
   const [internalPlanId, setInternalPlanId] = useState(defaultPlanId);
   const [lastDefaultPlanId, setLastDefaultPlanId] = useState(defaultPlanId);
@@ -267,7 +272,7 @@ export function EuRepPlanCard({
 
   const outerClassName =
     layout === 'standalone'
-      ? 'flex justify-center overflow-visible px-4 py-8 sm:px-8 sm:py-10'
+      ? `flex justify-center overflow-visible px-4 py-8 sm:px-8 sm:py-10${fillHeight ? ' min-h-0 flex-1' : ''}`
       : 'border-border flex min-h-full items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:border-l lg:px-16 lg:py-12';
 
   function handlePlanChange(planId: string) {
@@ -286,7 +291,7 @@ export function EuRepPlanCard({
   return (
     <div className={outerClassName}>
       <div className="relative flex w-full max-w-[440px] flex-col gap-4 overflow-visible">
-        <HeroGlowOrbs />
+        {showGlow ? <HeroGlowOrbs /> : null}
 
         <div className="relative z-10 flex w-full flex-col gap-4">
           <div className="squircle w-full overflow-hidden" style={MEMBERSHIP_CARD_STYLE}>

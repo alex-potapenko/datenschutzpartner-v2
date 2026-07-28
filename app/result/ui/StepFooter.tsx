@@ -27,7 +27,7 @@ export function StepFooter({
   const t = useTranslations('common');
 
   return (
-    <div className="border-border bg-background sticky bottom-0 z-10 border-t">
+    <div className="border-border bg-background sticky bottom-0 z-20 border-t">
       <Container>
         <div className="border-border flex items-center justify-between gap-2 border-r border-l px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
           {onBack ? (

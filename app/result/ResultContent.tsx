@@ -20,6 +20,7 @@ import {
   isWizardStep,
   readWizardState,
   resolveWizardStep,
+  shouldRestoreWizardState,
   wizardStepOrder,
   writeWizardState,
   type EuRepState,
@@ -133,14 +134,16 @@ export default function ResultContent() {
     const urlUpdateDocumentId = params.get('documentId') ?? undefined;
 
     /* eslint-disable react-hooks/set-state-in-effect */
-    if (restored) {
+    if (restored && shouldRestoreWizardState(restored, params, domain)) {
       setStep(restored.step);
       if (restored.formData !== undefined) setFormData(restored.formData);
       setScanDone(urlQuestionnaireOnly ? true : restored.scanDone);
       setEuRep(restored.euRep);
       setVisitedSteps(new Set(restored.visitedSteps));
-      setQuestionnaireOnly(urlQuestionnaireOnly || Boolean(restored.questionnaireOnly));
-      setUpdateDocumentId(urlUpdateDocumentId ?? restored.updateDocumentId);
+      setQuestionnaireOnly(urlQuestionnaireOnly);
+      setUpdateDocumentId(
+        urlQuestionnaireOnly ? (urlUpdateDocumentId ?? restored.updateDocumentId) : undefined
+      );
 
       if (restored.checkoutPhase === 'payment' || restored.checkoutPhase === 'ready') {
         setPhase(restored.checkoutPhase);
@@ -200,6 +203,7 @@ export default function ResultContent() {
       euRep,
       questionnaireOnly,
       updateDocumentId,
+      domain,
       visitedSteps: [...visitedSteps] as WizardStep[],
       checkoutPhase: phase === 'wizard' ? undefined : phase,
       checkoutDocumentId: checkoutDocument?.id,
@@ -212,6 +216,7 @@ export default function ResultContent() {
     euRep,
     questionnaireOnly,
     updateDocumentId,
+    domain,
     visitedSteps,
     phase,
     checkoutDocument?.id,
