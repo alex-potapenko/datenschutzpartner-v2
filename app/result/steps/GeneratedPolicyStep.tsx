@@ -20,7 +20,6 @@ export function GeneratedPolicyStep({ document }: GeneratedPolicyStepProps) {
       <PolicyDetailTabs
         document={document}
         showVersions={false}
-        defaultTab="instruction"
         onExport={() => {
           toast.success(tDocuments('exportStarted'));
         }}

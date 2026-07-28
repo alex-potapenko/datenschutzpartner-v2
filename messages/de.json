@@ -1552,7 +1552,7 @@
     "effectiveFrom": "Gültig ab",
     "tabs": {
       "ariaLabel": "Richtliniendetails",
-      "policy": "Richtlinie",
+      "policy": "Richtlinientext",
       "instruction": "Anleitung"
     },
     "implementation": {

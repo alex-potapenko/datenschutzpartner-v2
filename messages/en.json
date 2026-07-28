@@ -1552,7 +1552,7 @@
     "effectiveFrom": "Effective from",
     "tabs": {
       "ariaLabel": "Policy detail",
-      "policy": "Policy",
+      "policy": "Policy Text",
       "instruction": "Instruction"
     },
     "implementation": {
