@@ -67,11 +67,13 @@ export const orderSchema = z.object({
   total: z.number(),
   currency: z.string(),
   /**
-   * Privacy Policy Generator orders — number of websites purchased. Each order
-   * adds to the running `siteAllowance` and, on payment, resets the active
-   * `policy` subscription renewal to +12 months from that order's date.
+   * Privacy Policy Generator orders — websites covered by the purchased tier.
+   * Each upgrade replaces the running allowance (does not stack) and resets
+   * the active `policy` subscription renewal to +12 months from that order's date.
    */
   siteCount: z.number().int().positive().optional(),
+  /** Upgrade credit for unused time on the previous generator term. */
+  creditAmount: z.number().nonnegative().optional(),
   /** Distinguishes the base subscription from add-on purchases such as extra EU Rep inquiries. */
   orderKind: orderKindEnum.optional(),
 });

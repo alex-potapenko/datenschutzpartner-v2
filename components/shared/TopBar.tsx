@@ -258,7 +258,11 @@ export function TopBar({
         {minimal ? (
           <div className="flex items-center border-r border-l border-white/20 px-4 py-5 sm:px-8 lg:px-8">
             <div className="flex items-center gap-4">
-              <Link href="/" aria-label={tc('home')} className="flex min-w-0 shrink items-center">
+              <Link
+                href="/"
+                aria-label={tc('home')}
+                className="flex min-w-0 shrink cursor-pointer items-center"
+              >
                 <Logo showText={false} />
               </Link>
               {backLink ? (
@@ -286,7 +290,11 @@ export function TopBar({
           <div className="flex items-stretch border-r border-l border-white/20">
             <div className="flex shrink-0 items-center border-r border-white/20 px-4 py-5 sm:px-8 lg:w-[280px]">
               {showLogo ? (
-                <Link href="/" aria-label={tc('home')} className="flex min-w-0 shrink items-center">
+                <Link
+                  href="/"
+                  aria-label={tc('home')}
+                  className="flex min-w-0 shrink cursor-pointer items-center"
+                >
                   <Logo />
                 </Link>
               ) : null}
@@ -331,7 +339,11 @@ export function TopBar({
                 </HistoryBackLink>
               )}
               {showLogo && (
-                <Link href="/" aria-label={tc('home')} className="flex min-w-0 shrink items-center">
+                <Link
+                  href="/"
+                  aria-label={tc('home')}
+                  className="flex min-w-0 shrink cursor-pointer items-center"
+                >
                   <Logo />
                 </Link>
               )}
@@ -408,7 +420,7 @@ export function TopBar({
                       <Link
                         href="/"
                         aria-label={tc('home')}
-                        className="flex min-w-0 shrink items-center"
+                        className="flex min-w-0 shrink cursor-pointer items-center"
                         onClick={() => {
                           mobileMenu.close();
                         }}

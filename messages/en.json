@@ -715,10 +715,15 @@
       "skipConfirmCancel": "Go back"
     },
     "cancelModal": {
-      "title": "Cancel generation?",
+      "title": "Quit privacy policy generator?",
       "body": "Your progress will be lost. Are you sure you want to leave?",
       "quit": "Quit",
       "proceed": "Proceed working"
+    },
+    "scanStep": {
+      "scanningTitle": "Scanning {domain}...",
+      "scanningDescription": "Analyzing your website for data processing tools and technologies.",
+      "completeTitle": "Scan complete."
     },
     "summary": {
       "title": "Your privacy policy is ready.",
@@ -783,6 +788,7 @@
     },
     "improvedStep": {
       "title": "Complete your privacy policy.",
+      "scanAgain": "Scan again",
       "continue": "Continue",
       "validationError": "Please complete all required fields.",
       "categories": {
@@ -927,6 +933,7 @@
     "pricingSection": {
       "selectPlan": "Select your plan",
       "includedTitle": "Included in every plan",
+      "sitesIncluded": "{count, plural, one {# site included} other {# sites included}}",
       "plans": {
         "single": {
           "tabLabel": "1 site"
@@ -960,7 +967,7 @@
       "hosting": "Hosting of the privacy policies",
       "pdf": "Privacy policies as PDF files"
     },
-    "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> apply. Unless cancelled, the subscription is automatically renewed for 12 months. A single website is one domain with all its subdomains. <faq>FAQ on the privacy policy generator</faq> · Agency packages at attractive prices for web agencies."
+    "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> apply. Unless cancelled, the subscription is automatically renewed for 12 months. A single website is one domain with all its subdomains. Agency packages at attractive prices for web agencies."
   },
   "scan": {
     "title": "Privacy Policy Generator",
@@ -1131,7 +1138,8 @@
           "title": "Privacy Policies",
           "updatesBadge": "{count} to update",
           "subscriptionTitle": "Subscription",
-          "subscriptionPerYear": "/ year"
+          "subscriptionPerYear": "/ year",
+          "daysLeft": "days left"
         },
         "academy": {
           "title": "Datenschutz Academy",
@@ -1150,6 +1158,7 @@
           "subscriptionTitle": "Subscription",
           "subscriptionPerYear": "/ year",
           "subscriptionPerYearForPlan": "/ year for {plan} plan",
+          "daysLeft": "days left",
           "renewsOn": "Renews on {date}",
           "furtherInquiryNote": "per extra inquiry",
           "addInquiry": "Add inquiry",
@@ -1199,25 +1208,31 @@
       }
     },
     "generatorCheckout": {
-      "metaTitle": "Buy more sites — Privacy Policy Generator",
-      "title": "Buy more sites",
-      "description": "Add websites to your yearly subscription. Your renewal date resets to 12 months from today.",
+      "metaTitle": "Upgrade plan — Privacy Policy Generator",
+      "title": "Upgrade your plan",
+      "description": "Move to a larger site package. Unused time on your current subscription is credited automatically.",
       "backToGenerator": "Back to Privacy Policy Generator",
       "currentAllowance": "Current allowance",
-      "allowanceNote": "Sites available in your subscription",
-      "selectPlan": "Choose a package",
-      "renewalResetNote": "After payment your subscription renews for another 12 months and the new sites are added to your allowance.",
+      "allowanceNote": "Sites in your current plan",
+      "selectPlan": "Choose a plan",
+      "currentPlanMessage": "This is your current plan",
+      "unavailableLowerTier": "This plan is lower than your current plan",
+      "unavailableInsufficientSites": "Exceeds your current plan's limit",
+      "renewalResetNote": "After payment your subscription renews for another 12 months. Your site allowance matches the new plan (it does not stack).",
       "summary": "Order summary",
-      "lineItem": "{count, plural, one {# site} other {# sites}}",
-      "lineItemDetail": "Annual hosting & legal updates",
+      "lineItem": "New allowance: {count, plural, one {# site} other {# sites}}",
+      "lineItemDetail": "Replaces your current plan — does not add on top. Annual hosting & legal updates.",
+      "creditLine": "Credit for unused time",
+      "totalDue": "Total due today",
+      "noUpgradeAvailable": "You are already on the largest plan and have used all included sites. Contact us if you need a custom package.",
       "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
       "legalReviewNote": "Reviewed by Swiss data protection lawyers.",
       "redirecting": "Redirecting to Payrexx…",
       "processing": "Processing payment…",
       "failed": "Payment could not be completed. Please try again.",
-      "success": "Added {sites, plural, one {# site} other {# sites}}. Your allowance is now {allowance}.",
+      "success": "Plan upgraded. Your allowance is now {allowance, plural, one {# site} other {# sites}}.",
       "cancel": "Cancel",
-      "payCta": "Pay CHF {total}"
+      "payCta": "Continue with Payrexx"
     },
     "academy": {
       "title": "Datenschutz Academy",
@@ -1323,8 +1338,7 @@
       "countTitle": "Generated Policies",
       "countUnit": "{count, plural, one {policy} other {policies}}",
       "countUpToDate": "{count} up to date",
-      "countUpdateAvailable": "{count} to update",
-      "countAutoUpdated": "Kept up to date automatically"
+      "countUpdateAvailable": "{count} to update"
     },
     "membershipPanel": {
       "sectionPayment": "Payment",
@@ -1372,7 +1386,9 @@
       "title": "Sites Available",
       "remainingLabel": "{count, plural, one {site available} other {sites available}}",
       "usedOfTotal": "{used} of {total} used",
-      "buyMore": "Buy more sites",
+      "buyMore": "Upgrade plan",
+      "upgrade": "Upgrade",
+      "maxPlanNote": "You are on the largest plan and have used all included sites.",
       "billingHistory": "Billing history",
       "colInvoice": "Invoice",
       "colDate": "Date",

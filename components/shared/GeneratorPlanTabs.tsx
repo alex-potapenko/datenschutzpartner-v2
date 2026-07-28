@@ -3,19 +3,33 @@
 import { useTranslations } from 'next-intl';
 import { Tabs } from '@/components/ui';
 import { PriceBlock } from '@/components/shared/PriceBlock';
-import { GENERATOR_PLAN_PRICES, type GeneratorPlanId } from '@/api/checkout';
-
-const GENERATOR_PLAN_IDS: GeneratorPlanId[] = ['single', 'team', 'agency'];
+import {
+  GENERATOR_PLAN_IDS,
+  GENERATOR_PLAN_PRICES,
+  generatorPlanSiteCount,
+  type GeneratorPlanId,
+} from '@/api/checkout';
 
 type GeneratorPlanTabsProps = {
   value: GeneratorPlanId;
   onChange: (planId: GeneratorPlanId) => void;
   ariaLabel?: string;
+  /** When set, only these tiers are shown (e.g. upgrade targets). */
+  visiblePlanIds?: GeneratorPlanId[];
 };
 
-export function GeneratorPlanTabs({ value, onChange, ariaLabel }: GeneratorPlanTabsProps) {
-  const t = useTranslations('generatorPage.pricingSection.plans');
+export function GeneratorPlanTabs({
+  value,
+  onChange,
+  ariaLabel,
+  visiblePlanIds,
+}: GeneratorPlanTabsProps) {
+  const tPlans = useTranslations('generatorPage.pricingSection.plans');
+  const tPricing = useTranslations('generatorPage.pricingSection');
   const tCheckout = useTranslations('result.checkout');
+  const planIds = visiblePlanIds ?? GENERATOR_PLAN_IDS;
+  const gridCols =
+    planIds.length === 1 ? 'grid-cols-1' : planIds.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
 
   return (
     <Tabs
@@ -25,20 +39,23 @@ export function GeneratorPlanTabs({ value, onChange, ariaLabel }: GeneratorPlanT
       }}
       className="w-full"
     >
-      <Tabs.List aria-label={ariaLabel} className="grid w-full grid-cols-3 gap-2">
-        {GENERATOR_PLAN_IDS.map((planId) => (
+      <Tabs.List aria-label={ariaLabel} className={`grid w-full gap-2 ${gridCols}`}>
+        {planIds.map((planId) => (
           <Tabs.Tab key={planId} id={planId} className="min-w-0 flex-1">
-            <span className="truncate">{t(`${planId}.tabLabel`)}</span>
+            <span className="truncate">{tPlans(`${planId}.tabLabel`)}</span>
           </Tabs.Tab>
         ))}
       </Tabs.List>
 
-      {GENERATOR_PLAN_IDS.map((planId) => (
+      {planIds.map((planId) => (
         <Tabs.Panel key={planId} id={planId} className="pt-4">
           <PriceBlock
             currency="CHF"
             amount={GENERATOR_PLAN_PRICES[planId].toFixed(2)}
-            notes={[tCheckout('renewalNote')]}
+            notes={[
+              tPricing('sitesIncluded', { count: generatorPlanSiteCount(planId) }),
+              tCheckout('renewalNote'),
+            ]}
             size="sm"
           />
         </Tabs.Panel>

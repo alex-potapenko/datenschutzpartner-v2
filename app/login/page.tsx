@@ -23,7 +23,7 @@ export default async function LoginPage() {
         <Link
           href="/"
           aria-label={tc('home')}
-          className="mb-8 self-center text-[var(--accent)] transition-opacity hover:opacity-80"
+          className="mb-8 cursor-pointer self-center text-[var(--accent)] transition-opacity hover:opacity-80"
         >
           <Logo inverse={false} />
         </Link>

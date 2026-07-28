@@ -15,6 +15,7 @@ import {
   type Subscription,
 } from '@/api/billing';
 import { useDocuments, useGeneratorPlan } from '@/api/documents';
+import { canUpgradeGeneratorPlan, type GeneratorPlanId } from '@/api/checkout';
 import {
   AcademySessionSummary,
   upcomingEventHref,
@@ -83,17 +84,11 @@ function membershipDaysState(
   return { remainingDays, totalDays };
 }
 
-function ProgressBar({
-  value,
-  max,
-  dangerWhenFull = false,
-}: {
-  value: number;
-  max: number;
-  dangerWhenFull?: boolean;
-}) {
+const DASHBOARD_SECTION_EYEBROW_CLASS =
+  'font-display text-muted text-xs font-semibold tracking-wide uppercase';
+
+function ProgressBar({ value, max }: { value: number; max: number }) {
   const fraction = max > 0 ? Math.min(1, value / max) : 0;
-  const isFull = value >= max;
 
   return (
     <div
@@ -103,14 +98,36 @@ function ProgressBar({
       aria-valuemax={max}
       aria-valuenow={value}
     >
-      <div
-        className={
-          dangerWhenFull && isFull
-            ? 'bg-danger h-full rounded-full'
-            : 'bg-accent h-full rounded-full'
-        }
-        style={{ width: `${fraction * 100}%` }}
-      />
+      <div className="bg-accent h-full rounded-full" style={{ width: `${fraction * 100}%` }} />
+    </div>
+  );
+}
+
+function DashboardSubscriptionPeriodBlock({
+  title,
+  period,
+  daysLeftLabel,
+}: {
+  title: string;
+  period: { remainingDays: number; totalDays: number } | null;
+  daysLeftLabel: string;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>{title}</p>
+      {period ? (
+        <>
+          <div className="flex min-w-0 items-center gap-3">
+            <PriceBlock
+              amount={String(period.remainingDays)}
+              animatedAmount={period.remainingDays}
+              className="min-w-0 shrink-0"
+            />
+            <p className="text-muted min-w-0 text-sm leading-snug">{daysLeftLabel}</p>
+          </div>
+          <ProgressBar value={period.remainingDays} max={period.totalDays} />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -118,31 +135,38 @@ function ProgressBar({
 const DASHBOARD_LAYOUT_COLUMNS = 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]';
 const RECENT_PAYMENTS_LIMIT = 20;
 
-const DASHBOARD_SECTION_EYEBROW_CLASS =
-  'font-display text-muted text-xs font-semibold tracking-wide uppercase';
-
 function DashboardCountWithAdd({
   addLabel,
   onAdd,
+  actionVariant = 'add',
   children,
 }: {
-  addLabel: string;
-  onAdd: () => void;
+  addLabel?: string;
+  onAdd?: () => void;
+  actionVariant?: 'add' | 'upgrade';
   children: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 items-center justify-between gap-3">
       <div className="min-w-0 flex-1">{children}</div>
-      <Button
-        variant="outline"
-        size="sm"
-        isIconOnly
-        aria-label={addLabel}
-        className="size-9 shrink-0 rounded-full"
-        onPress={onAdd}
-      >
-        <Plus size={14} weight="bold" aria-hidden />
-      </Button>
+      {onAdd ? (
+        actionVariant === 'upgrade' ? (
+          <Button variant="outline" size="sm" className="shrink-0" onPress={onAdd}>
+            {addLabel}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            isIconOnly
+            aria-label={addLabel}
+            className="size-9 shrink-0 rounded-full"
+            onPress={onAdd}
+          >
+            <Plus size={14} weight="bold" aria-hidden />
+          </Button>
+        )
+      ) : null}
     </div>
   );
 }
@@ -190,7 +214,6 @@ export function DashboardSection({
   const t = useTranslations('account.dashboard');
   const tGenerator = useTranslations('account.generatorPlan');
   const tPreview = useTranslations('academy.landing.preview');
-  const tEuRepPlans = useTranslations('euRepPage.pricingSection');
   const tFooter = useTranslations('footer');
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -226,9 +249,15 @@ export function DashboardSection({
   const euRepSubscription = subscriptions.data?.find((row) => row.productType === 'euRep');
   const academySubscription = subscriptions.data?.find((row) => row.productType === 'academy');
   const inquiryAllowance = snapshot.data?.euRepInquiryAllowance;
+  const currentGeneratorPlanId =
+    plan.data?.planId ?? (policySubscription?.planId as GeneratorPlanId | undefined);
+  const canUpgradeSites =
+    !plan.isLoading &&
+    !subscriptions.isLoading &&
+    canUpgradeGeneratorPlan(currentGeneratorPlanId, usedSites);
+  const showMaxPlanNote = !canUpgradeSites && remainingSites === 0 && plan.data != null;
   const includedInquiries = inquiryAllowance?.included ?? 0;
-  const usedInquiries = inquiryAllowance?.used ?? 0;
-  const remainingInquiries = Math.max(0, includedInquiries - usedInquiries);
+  const remainingInquiries = Math.max(0, includedInquiries - (inquiryAllowance?.used ?? 0));
 
   const featuredEvent = getUpcomingAcademyFeaturedEvent(locale);
   const featuredTitle = featuredEvent ? resolveAcademyEventTitle(locale, featuredEvent) : undefined;
@@ -244,6 +273,15 @@ export function DashboardSection({
       : academySubscription && academySubscription.startDate && academySubscription.nextPaymentDate
         ? membershipDaysState(academySubscription.startDate, academySubscription.nextPaymentDate)
         : null;
+
+  const policySubscriptionPeriod =
+    policySubscription?.startDate && policySubscription.nextPaymentDate
+      ? membershipDaysState(policySubscription.startDate, policySubscription.nextPaymentDate)
+      : null;
+  const euRepSubscriptionPeriod =
+    euRepSubscription?.startDate && euRepSubscription.nextPaymentDate
+      ? membershipDaysState(euRepSubscription.startDate, euRepSubscription.nextPaymentDate)
+      : null;
 
   const recentOrders =
     orders.data
@@ -263,19 +301,6 @@ export function DashboardSection({
 
   function goToCheckout() {
     router.push('/account/generator/checkout');
-  }
-
-  function euRepSubscriptionNotes(subscription: Subscription): string[] {
-    const planId = subscription.planId;
-    if (planId === 'budget' || planId === 'standard' || planId === 'premium') {
-      return [
-        t('products.euRep.subscriptionPerYearForPlan', {
-          plan: tEuRepPlans(`plans.${planId}.tabLabel`),
-        }),
-      ];
-    }
-
-    return [t('products.euRep.subscriptionPerYear')];
   }
 
   if (isLoading) {
@@ -308,40 +333,53 @@ export function DashboardSection({
                 title={t('products.privacyGenerator.title')}
               >
                 <div className="flex min-w-0 flex-col gap-4">
-                  <div className="flex min-w-0 flex-col gap-3">
+                  {policySubscription ? (
+                    <DashboardSubscriptionPeriodBlock
+                      title={t('products.privacyGenerator.subscriptionTitle')}
+                      period={policySubscriptionPeriod}
+                      daysLeftLabel={t('products.privacyGenerator.daysLeft')}
+                    />
+                  ) : null}
+
+                  <div
+                    className={
+                      policySubscription
+                        ? 'border-border flex min-w-0 flex-col gap-3 border-t pt-4'
+                        : 'flex min-w-0 flex-col gap-3'
+                    }
+                  >
                     <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>{tGenerator('title')}</p>
-                    <DashboardCountWithAdd addLabel={tGenerator('buyMore')} onAdd={goToCheckout}>
+                    <DashboardCountWithAdd
+                      addLabel={
+                        canUpgradeSites
+                          ? remainingSites === 0
+                            ? tGenerator('upgrade')
+                            : tGenerator('buyMore')
+                          : undefined
+                      }
+                      actionVariant={canUpgradeSites && remainingSites === 0 ? 'upgrade' : 'add'}
+                      onAdd={canUpgradeSites ? goToCheckout : undefined}
+                    >
                       <PriceBlock
                         amount={String(remainingSites)}
                         animatedAmount={remainingSites}
                         className="min-w-0 flex-col items-start gap-1"
                       />
                     </DashboardCountWithAdd>
-                    <ProgressBar value={usedSites} max={siteAllowance} dangerWhenFull />
-                  </div>
-
-                  {policySubscription ? (
-                    <div className="border-border flex min-w-0 flex-col gap-3 border-t pt-4">
-                      <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>
-                        {t('products.privacyGenerator.subscriptionTitle')}
+                    {showMaxPlanNote ? (
+                      <p className="text-muted text-sm leading-relaxed">
+                        {tGenerator('maxPlanNote')}{' '}
+                        <NavigationLink
+                          href="/contact?subject=generator"
+                          size="sm"
+                          chevron="none"
+                          className="inline-flex"
+                        >
+                          {tGenerator('contactUs')}
+                        </NavigationLink>
                       </p>
-                      <PriceBlock
-                        currency={policySubscription.totals.currency}
-                        amount={policySubscription.totals.total.toFixed(2)}
-                        animatedAmount={policySubscription.totals.total}
-                        notes={[t('products.privacyGenerator.subscriptionPerYear')]}
-                        size="sm"
-                        className="min-w-0"
-                      />
-                      {policySubscription.nextPaymentDate ? (
-                        <p className="text-muted text-sm">
-                          {t('products.euRep.renewsOn', {
-                            date: formatDate(policySubscription.nextPaymentDate),
-                          })}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </div>
               </ProductSummaryCard>
 
@@ -353,7 +391,13 @@ export function DashboardSection({
               >
                 {euRepSubscription && inquiryAllowance ? (
                   <div className="flex min-w-0 flex-col gap-4">
-                    <div className="flex min-w-0 flex-col gap-3">
+                    <DashboardSubscriptionPeriodBlock
+                      title={t('products.euRep.subscriptionTitle')}
+                      period={euRepSubscriptionPeriod}
+                      daysLeftLabel={t('products.euRep.daysLeft')}
+                    />
+
+                    <div className="border-border flex min-w-0 flex-col gap-3 border-t pt-4">
                       <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>
                         {t('products.euRep.inquiriesTitle')}
                       </p>
@@ -376,28 +420,6 @@ export function DashboardSection({
                           </p>
                         </div>
                       </DashboardCountWithAdd>
-                      <ProgressBar value={usedInquiries} max={includedInquiries} dangerWhenFull />
-                    </div>
-
-                    <div className="border-border flex min-w-0 flex-col gap-3 border-t pt-4">
-                      <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>
-                        {t('products.euRep.subscriptionTitle')}
-                      </p>
-                      <PriceBlock
-                        currency={euRepSubscription.totals.currency}
-                        amount={euRepSubscription.totals.total.toFixed(2)}
-                        animatedAmount={euRepSubscription.totals.total}
-                        notes={euRepSubscriptionNotes(euRepSubscription)}
-                        size="sm"
-                        className="min-w-0"
-                      />
-                      {euRepSubscription.nextPaymentDate ? (
-                        <p className="text-muted text-sm">
-                          {t('products.euRep.renewsOn', {
-                            date: formatDate(euRepSubscription.nextPaymentDate),
-                          })}
-                        </p>
-                      ) : null}
                     </div>
                   </div>
                 ) : null}

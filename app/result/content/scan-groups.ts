@@ -276,6 +276,14 @@ export const SCAN_ITEM_COUNT = SCAN_GROUP_DEFINITIONS.reduce(
   0
 );
 
+/** Deduplicated scan items for the loading carousel (by logo domain or name). */
+export const SCAN_CAROUSEL_ITEMS = SCAN_GROUP_DEFINITIONS.flatMap((group) => group.items).filter(
+  (item, index, items) =>
+    items.findIndex((candidate) =>
+      item.logoDomain ? candidate.logoDomain === item.logoDomain : candidate.name === item.name
+    ) === index
+);
+
 export function logoUrl(domain: string) {
   return `https://img.logo.dev/${domain}?token=pk_SVxg-nzqQv6sx6IKaC4yVA`;
 }

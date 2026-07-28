@@ -96,6 +96,11 @@ export function resolveWizardStep(
 
   if (!requestedStep) return maxStep;
 
+  // Scan is one-way — once completed, it cannot be revisited.
+  if (requestedStep === 'scan' && progress.scanDone && !progress.questionnaireOnly) {
+    return maxStep;
+  }
+
   const requestedIndex = order.indexOf(requestedStep);
   // Requested step is not part of the current flow (e.g. eu-rep when it does
   // not apply) — fall back to the furthest reachable step.
@@ -154,6 +159,16 @@ export function writeWizardState(state: WizardPersistedState) {
 
   try {
     sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* quota / private mode — ignore */
+  }
+}
+
+export function clearWizardState() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    sessionStorage.removeItem(WIZARD_STORAGE_KEY);
   } catch {
     /* quota / private mode — ignore */
   }

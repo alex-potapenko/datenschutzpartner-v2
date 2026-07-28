@@ -45,7 +45,7 @@ The authenticated hub at `/account` reads from three domain modules:
   **There is no payment-method resource**: payments run through Payrexx (see below), so
   the member area never stores or displays card details.
 - `api/documents.ts` — the generated-document inventory plus the Privacy Policy
-  Generator plan (`useGeneratorPlan` → `GET /generator/plan`, `{ siteAllowance }`). The
+  Generator plan (`useGeneratorPlan` → `GET /generator/plan`, `{ siteAllowance, planId? }`). The
   generator is a **yearly subscription that also grants a site allowance**: a member buys
   a number of websites and every generated policy consumes one, so the member area derives
   "used" from the document count and shows the remaining allowance. The term/renewal live
@@ -61,27 +61,30 @@ The authenticated hub at `/account` reads from three domain modules:
   (allowance + generated count) above the document list; billing history for the generator
   lives on the "Subscription" tab inside the shared `MembershipPanel`.
 
-#### Mid-term site purchases (working assumption)
+#### Generator tier upgrades (Option 1)
 
-When a member has used their full site allowance and buys **additional sites** before
-the current term ends, treat the purchase as a **new yearly subscription charge**, not
-a prorated allowance bump on the existing term:
+When a member **upgrades** their Privacy Policy Generator tier (e.g. 1 → 3
+websites) before the current term ends:
 
-1. **`siteAllowance` increases** — the new order's `siteCount` is added to the running
-   total (e.g. 5 sites + 3 more → allowance 8).
-2. **Renewal resets** — `Subscription.nextPaymentDate` moves to **+12 months from the
-   top-up payment date**; `lastOrderDate` updates to that payment. There is still one
-   active `policy` subscription, not a second contract.
-3. **Existing hosted policies stay live** — documents already generated keep working;
-   the member can create policies for the newly purchased slots until the new allowance
-   is used.
-4. **Billing history** — each purchase is a separate `Order` with its own `siteCount`
-   and invoice; the "+" action on **site allowance** opens `/account/generator/checkout`
-   (`generatorTopUp` session); completing the generator wizard opens a `generator`
-   session that also creates the hosted document.
+1. **`siteAllowance` is replaced** — the new tier's site count applies (e.g.
+   Single → Team = **3**, not 1+3).
+2. **Renewal resets** — `Subscription.nextPaymentDate` moves to **+12 months from
+   the upgrade payment date**; there is still one active `policy` subscription.
+3. **Credit for unused time** — remaining days on the current term are offset
+   against the new plan price:  
+   `credit = (remainingDays / termDays) × currentPlanPrice`,  
+   `amountDue = max(0, newPlanPrice − credit)`.
+4. **Existing hosted policies stay live** — generated documents keep working as
+   long as the new tier covers at least as many sites as already generated.
+5. **Billing history** — each purchase/upgrade is a separate `Order` with
+   `siteCount`, optional `creditAmount`, and invoice; `/account/generator/checkout`
+   (`generatorTopUp` session) lists **all tiers** with reasons when a plan cannot be
+   selected (current plan, downgrade, or fewer sites than already in use); only
+   higher tiers with enough site allowance can be purchased;
+   (`generator` session) creates the first subscription and hosted document.
 
-This assumption is not spelled out in the client PDFs; it matches the product model
-(hosted policy = yearly service) until billing confirms otherwise.
+Agency-style additive top-ups (Option 2) are **not** implemented in the POC —
+only tier upgrades with credit.
 
 - `api/eu-rep-inquiries.ts` — inquiry log for EU Representation members.
   `useEuRepInquiries` → `GET /eu-rep/inquiries` returns `{ id, date, subject, status,
@@ -93,9 +96,11 @@ reference? }[]` with `status` in `forwarded` | `answered` | `closed`. Gated on t
   `useCreateCheckoutSession` → `POST /checkout/sessions` returns `{ id, redirectUrl,
 amount, siteCount }`. The POC simulates Payrexx by calling
   `useCompleteCheckoutSession` → `POST /checkout/sessions/:id/complete`, which appends
-  an `Order`, increases `siteAllowance`, resets the `policy` subscription renewal,
-  and (for `kind: 'generator'`) creates a hosted document. Mid-term top-ups use
-  `kind: 'generatorTopUp'` from `/account/generator/checkout`. Helpers:
+  an `Order`, **replaces** `siteAllowance` with the new tier, applies upgrade credit,
+  resets the `policy` subscription renewal, and (for `kind: 'generator'`) creates a
+  hosted document. Tier upgrades use `kind: 'generatorTopUp'` from
+  `/account/generator/checkout`. Credit/quote helpers live in `api/checkout.ts`
+  (`calculateGeneratorUpgradeQuote`). Helpers:
   `openPayrexxPortal()` → `GET /checkout/payrexx-portal`; `downloadOrderInvoice(orderId)`
   → `GET /billing/orders/:id/invoice` (+ PDF blob).
 

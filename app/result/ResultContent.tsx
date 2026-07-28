@@ -80,6 +80,7 @@ export default function ResultContent() {
   const params = useSearchParams();
   const router = useRouter();
   const tSummary = useTranslations('result.summary');
+  const tImproved = useTranslations('result.improvedStep');
   const regenerateDocument = useRegenerateDocument();
   const rawUrl = params.get('url') ?? 'https://mywebsite.ch';
 
@@ -250,15 +251,18 @@ export default function ResultContent() {
     advance('summary', { ...progress, euRep: next });
   }
 
+  function handleScanAgain() {
+    setScanDone(false);
+    advance('scan', { ...progress, scanDone: false });
+  }
+
   function handleBack() {
     if (step === 'improved') {
       if (questionnaireOnly) {
         router.push(
           updateDocumentId ? `/account/policies/${updateDocumentId}` : '/account?section=generator'
         );
-        return;
       }
-      goToStep('scan');
       return;
     }
     if (step === 'eu-rep') goToStep('improved');
@@ -286,10 +290,13 @@ export default function ResultContent() {
 
   function handleStepClick(stepId: string) {
     if (!isWizardStep(stepId)) return;
+    if (stepId === 'scan' && scanDone && !questionnaireOnly) return;
     goToStep(stepId);
   }
 
-  const canGoBack = questionnaireOnly ? true : step !== 'scan';
+  const canGoBack = questionnaireOnly
+    ? step === 'improved'
+    : step !== 'scan' && step !== 'improved';
   const visibleStepIds = wizardStepOrder(progress);
 
   // Post-configuration checkout: payment → generated policy (full policy detail page).
@@ -339,6 +346,7 @@ export default function ResultContent() {
       onStepClick={handleStepClick}
       visitedSteps={visitedSteps}
       visibleStepIds={visibleStepIds}
+      disabledStepIds={scanDone && !questionnaireOnly ? ['scan'] : undefined}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -354,7 +362,12 @@ export default function ResultContent() {
           )}
 
           {step === 'improved' && (
-            <ImprovedStep domain={domain} onSubmit={handleImprovedSubmit} onBack={handleBack} />
+            <ImprovedStep
+              domain={domain}
+              onSubmit={handleImprovedSubmit}
+              onBack={questionnaireOnly ? handleBack : handleScanAgain}
+              backLabel={questionnaireOnly ? undefined : tImproved('scanAgain')}
+            />
           )}
 
           {step === 'eu-rep' && formData && (

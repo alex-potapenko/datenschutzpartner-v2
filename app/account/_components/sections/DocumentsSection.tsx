@@ -9,6 +9,8 @@ import {
   resolveDocumentSite,
   type GeneratedDocument,
 } from '@/api/documents';
+import { canUpgradeGeneratorPlan, type GeneratorPlanId } from '@/api/checkout';
+import { useSubscriptions } from '@/api/billing';
 import { buildPolicyUpdateUrl } from '@/app/result/wizard-state';
 import { FileText, Plus, Button, SearchField, Table } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
@@ -24,25 +26,35 @@ import {
 function CountWithAdd({
   addLabel,
   onAdd,
+  actionVariant = 'add',
   children,
 }: {
-  addLabel: string;
-  onAdd: () => void;
+  addLabel?: string;
+  onAdd?: () => void;
+  actionVariant?: 'add' | 'upgrade';
   children: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 items-center justify-between gap-3">
       <div className="min-w-0 flex-1">{children}</div>
-      <Button
-        variant="outline"
-        size="sm"
-        isIconOnly
-        aria-label={addLabel}
-        className="size-9 shrink-0 rounded-full"
-        onPress={onAdd}
-      >
-        <Plus size={14} weight="bold" aria-hidden />
-      </Button>
+      {onAdd ? (
+        actionVariant === 'upgrade' ? (
+          <Button variant="outline" size="sm" className="shrink-0" onPress={onAdd}>
+            {addLabel}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            isIconOnly
+            aria-label={addLabel}
+            className="size-9 shrink-0 rounded-full"
+            onPress={onAdd}
+          >
+            <Plus size={14} weight="bold" aria-hidden />
+          </Button>
+        )
+      ) : null}
     </div>
   );
 }
@@ -126,34 +138,39 @@ function AllowanceSection({
   total,
   onAdd,
   addLabel,
+  showMaxPlanNote,
 }: {
   used: number;
   total: number;
-  onAdd: () => void;
-  addLabel: string;
+  onAdd?: () => void;
+  addLabel?: string;
+  showMaxPlanNote?: boolean;
 }) {
   const t = useTranslations('account.generatorPlan');
   const remaining = Math.max(0, total - used);
-  const usedFraction = total > 0 ? Math.min(1, used / total) : 1;
-  const isDepleted = remaining <= 0;
 
   return (
     <AccountSection title={t('title')} className="min-w-0 flex-1 gap-4" contentClassName="gap-3">
-      <CountWithAdd addLabel={addLabel} onAdd={onAdd}>
+      <CountWithAdd
+        addLabel={addLabel}
+        onAdd={onAdd}
+        actionVariant={onAdd && remaining === 0 ? 'upgrade' : 'add'}
+      >
         <PriceBlock amount={String(remaining)} animatedAmount={remaining} className="min-w-0" />
       </CountWithAdd>
-      <div
-        className="bg-border h-2 w-full overflow-hidden rounded-full"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={total}
-        aria-valuenow={used}
-      >
-        <div
-          className={isDepleted ? 'bg-danger h-full rounded-full' : 'bg-accent h-full rounded-full'}
-          style={{ width: `${usedFraction * 100}%` }}
-        />
-      </div>
+      {showMaxPlanNote ? (
+        <p className="text-muted text-sm leading-relaxed">
+          {t('maxPlanNote')}{' '}
+          <NavigationLink
+            href="/contact?subject=generator"
+            size="sm"
+            chevron="none"
+            className="inline-flex"
+          >
+            {t('contactUs')}
+          </NavigationLink>
+        </p>
+      ) : null}
     </AccountSection>
   );
 }
@@ -182,7 +199,6 @@ function GeneratedCountSection({
           className="min-w-0"
         />
       </CountWithAdd>
-      <p className="text-muted text-sm">{t('countAutoUpdated')}</p>
     </AccountSection>
   );
 }
@@ -194,13 +210,15 @@ function PolicyStatsRow({
   onAddPolicies,
   sitesAddLabel,
   policiesAddLabel,
+  showMaxPlanNote,
 }: {
   documents: GeneratedDocument[];
   siteAllowance?: number;
-  onAddSites: () => void;
+  onAddSites?: () => void;
   onAddPolicies: () => void;
-  sitesAddLabel: string;
+  sitesAddLabel?: string;
   policiesAddLabel: string;
+  showMaxPlanNote?: boolean;
 }) {
   return (
     <div className="border-border divide-border flex flex-col divide-y border-b sm:flex-row sm:divide-x sm:divide-y-0">
@@ -210,6 +228,7 @@ function PolicyStatsRow({
           total={siteAllowance}
           onAdd={onAddSites}
           addLabel={sitesAddLabel}
+          showMaxPlanNote={showMaxPlanNote}
         />
       ) : null}
       <GeneratedCountSection
@@ -227,7 +246,18 @@ export function DocumentsSection() {
   const router = useRouter();
   const documents = useDocuments();
   const plan = useGeneratorPlan();
+  const subscriptions = useSubscriptions();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const policySub = subscriptions.data?.find((row) => row.productType === 'policy');
+  const currentPlanId = plan.data?.planId ?? (policySub?.planId as GeneratorPlanId | undefined);
+  const usedSiteCount = documents.data?.length ?? 0;
+  const siteAllowance = plan.data?.siteAllowance ?? 0;
+  const remainingSites = Math.max(0, siteAllowance - usedSiteCount);
+  const upgradeStateReady = !plan.isLoading && !subscriptions.isLoading;
+  const canUpgradeSites =
+    upgradeStateReady && canUpgradeGeneratorPlan(currentPlanId, usedSiteCount);
+  const showMaxPlanNote = upgradeStateReady && !canUpgradeSites && remainingSites === 0;
 
   const goToCheckout = () => {
     router.push('/account/generator/checkout');
@@ -239,7 +269,7 @@ export function DocumentsSection() {
 
   return (
     <DataState
-      isLoading={documents.isLoading || plan.isLoading}
+      isLoading={documents.isLoading || plan.isLoading || subscriptions.isLoading}
       isError={documents.isError}
       onRetry={() => void documents.refetch()}
     >
@@ -248,10 +278,19 @@ export function DocumentsSection() {
           <PolicyStatsRow
             documents={documents.data}
             siteAllowance={plan.data?.siteAllowance}
-            onAddSites={goToCheckout}
-            onAddPolicies={goToScan}
-            sitesAddLabel={tGenerator('buyMore')}
-            policiesAddLabel={t('create')}
+            onAddSites={canUpgradeSites ? goToCheckout : undefined}
+            onAddPolicies={remainingSites === 0 && canUpgradeSites ? goToCheckout : goToScan}
+            sitesAddLabel={
+              canUpgradeSites
+                ? remainingSites === 0
+                  ? tGenerator('upgrade')
+                  : tGenerator('buyMore')
+                : undefined
+            }
+            policiesAddLabel={
+              remainingSites === 0 && canUpgradeSites ? tGenerator('upgrade') : t('create')
+            }
+            showMaxPlanNote={showMaxPlanNote}
           />
 
           <AccountSection title={t('listTitle')} contentClassName="gap-8">

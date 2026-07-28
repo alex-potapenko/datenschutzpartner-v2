@@ -715,10 +715,15 @@
       "skipConfirmCancel": "Zurück"
     },
     "cancelModal": {
-      "title": "Erstellung abbrechen?",
+      "title": "Datenschutz-Generator beenden?",
       "body": "Dein Fortschritt geht verloren. Möchtest Du wirklich abbrechen?",
       "quit": "Beenden",
       "proceed": "Weiterarbeiten"
+    },
+    "scanStep": {
+      "scanningTitle": "Scanne {domain}…",
+      "scanningDescription": "Deine Website wird auf Datenverarbeitungs-Tools und Technologien analysiert.",
+      "completeTitle": "Scan abgeschlossen."
     },
     "summary": {
       "title": "Deine Datenschutzerklärung ist bereit.",
@@ -783,6 +788,7 @@
     },
     "improvedStep": {
       "title": "Vervollständige Deine Datenschutzerklärung.",
+      "scanAgain": "Erneut scannen",
       "continue": "Weiter",
       "validationError": "Bitte fülle alle Pflichtfelder aus.",
       "categories": {
@@ -927,6 +933,7 @@
     "pricingSection": {
       "selectPlan": "Plan wählen",
       "includedTitle": "In jedem Plan enthalten",
+      "sitesIncluded": "{count, plural, one {# Website enthalten} other {# Websites enthalten}}",
       "plans": {
         "single": {
           "tabLabel": "1 Site"
@@ -960,7 +967,7 @@
       "hosting": "Hosting der Datenschutzerklärungen",
       "pdf": "Datenschutzerklärungen als PDF"
     },
-    "legal": "Alle Preise verstehen sich zzgl. gesetzlicher MwSt. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms>. Sofern nicht gekündigt, verlängert sich das Abo automatisch um 12 Monate. Eine Website ist eine Domain mit allen Subdomains. <faq>FAQ zum Datenschutz-Generator</faq> · Agentur-Pakete zu attraktiven Preisen für Webagenturen."
+    "legal": "Alle Preise verstehen sich zzgl. gesetzlicher MwSt. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms>. Sofern nicht gekündigt, verlängert sich das Abo automatisch um 12 Monate. Eine Website ist eine Domain mit allen Subdomains. Agentur-Pakete zu attraktiven Preisen für Webagenturen."
   },
   "scan": {
     "title": "Datenschutz-Generator",
@@ -1131,7 +1138,8 @@
           "title": "Datenschutzerklärungen",
           "updatesBadge": "{count} zu aktualisieren",
           "subscriptionTitle": "Abonnement",
-          "subscriptionPerYear": "/ Jahr"
+          "subscriptionPerYear": "/ Jahr",
+          "daysLeft": "Tage übrig"
         },
         "academy": {
           "title": "Datenschutz Academy",
@@ -1150,6 +1158,7 @@
           "subscriptionTitle": "Abonnement",
           "subscriptionPerYear": "/ Jahr",
           "subscriptionPerYearForPlan": "/ Jahr, Plan {plan}",
+          "daysLeft": "Tage übrig",
           "renewsOn": "Verlängerung am {date}",
           "furtherInquiryNote": "je weitere Anfrage",
           "addInquiry": "Anfrage hinzufügen",
@@ -1199,25 +1208,31 @@
       }
     },
     "generatorCheckout": {
-      "metaTitle": "Weitere Websites kaufen — Datenschutzerklärungs-Generator",
-      "title": "Weitere Websites kaufen",
-      "description": "Erweitere dein Jahresabo um weitere Websites. Das Verlängerungsdatum wird auf 12 Monate ab heute zurückgesetzt.",
+      "metaTitle": "Plan upgraden — Datenschutzerklärungs-Generator",
+      "title": "Plan upgraden",
+      "description": "Wechsle zu einem grösseren Website-Paket. Nicht genutzte Restlaufzeit deines aktuellen Abos wird automatisch angerechnet.",
       "backToGenerator": "Zurück zum Datenschutzerklärungs-Generator",
       "currentAllowance": "Aktuelles Kontingent",
-      "allowanceNote": "Verfügbare Websites in deinem Abo",
-      "selectPlan": "Paket wählen",
-      "renewalResetNote": "Nach der Zahlung verlängert sich dein Abo um 12 Monate und die neuen Websites werden deinem Kontingent hinzugefügt.",
+      "allowanceNote": "Websites in deinem aktuellen Plan",
+      "selectPlan": "Plan wählen",
+      "currentPlanMessage": "Das ist dein aktueller Plan",
+      "unavailableLowerTier": "Dieser Plan ist niedriger als dein aktueller Plan",
+      "unavailableInsufficientSites": "Übersteigt das Limit deines aktuellen Plans",
+      "renewalResetNote": "Nach der Zahlung verlängert sich dein Abo um 12 Monate. Dein Website-Kontingent entspricht dem neuen Plan (es wird nicht addiert).",
       "summary": "Bestellübersicht",
-      "lineItem": "{count, plural, one {# Website} other {# Websites}}",
-      "lineItemDetail": "Jährliches Hosting & rechtliche Updates",
+      "lineItem": "Neues Kontingent: {count, plural, one {# Website} other {# Websites}}",
+      "lineItemDetail": "Ersetzt deinen aktuellen Plan — wird nicht addiert. Jährliches Hosting & rechtliche Updates.",
+      "creditLine": "Gutschrift für Restlaufzeit",
+      "totalDue": "Heute fällig",
+      "noUpgradeAvailable": "Du bist bereits im grössten Plan und hast alle enthaltenen Sites genutzt. Kontaktiere uns für ein individuelles Paket.",
       "payrexxNote": "Du wirst zur sicheren Zahlung über Payrexx weitergeleitet.",
       "legalReviewNote": "Geprüft von Schweizer Datenschutzjuristen.",
       "redirecting": "Weiterleitung zu Payrexx…",
       "processing": "Zahlung wird verarbeitet…",
       "failed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
-      "success": "{sites, plural, one {# Website} other {# Websites}} hinzugefügt. Dein Kontingent beträgt jetzt {allowance}.",
+      "success": "Plan upgegradet. Dein Kontingent beträgt jetzt {allowance, plural, one {# Website} other {# Websites}}.",
       "cancel": "Abbrechen",
-      "payCta": "CHF {total} bezahlen"
+      "payCta": "Weiter mit Payrexx"
     },
     "academy": {
       "title": "Datenschutz Academy",
@@ -1323,8 +1338,7 @@
       "countTitle": "Erstellte Richtlinien",
       "countUnit": "{count, plural, one {Richtlinie} other {Richtlinien}}",
       "countUpToDate": "{count} aktuell",
-      "countUpdateAvailable": "{count} zu aktualisieren",
-      "countAutoUpdated": "Wird automatisch aktuell gehalten"
+      "countUpdateAvailable": "{count} zu aktualisieren"
     },
     "membershipPanel": {
       "sectionPayment": "Zahlung",
@@ -1372,7 +1386,9 @@
       "title": "Websites verfügbar",
       "remainingLabel": "{count, plural, one {Website verfügbar} other {Websites verfügbar}}",
       "usedOfTotal": "{used} von {total} verwendet",
-      "buyMore": "Weitere Websites kaufen",
+      "buyMore": "Plan upgraden",
+      "upgrade": "Upgraden",
+      "maxPlanNote": "Du bist im grössten Plan und hast alle enthaltenen Sites genutzt.",
       "billingHistory": "Zahlungsverlauf",
       "colInvoice": "Rechnung",
       "colDate": "Datum",
