@@ -1,10 +1,11 @@
 import { getTranslations } from 'next-intl/server';
+import { GENERATOR_POLICIES_HREF } from '@/app/account/_components/account-sections';
 import { RegularPage } from '@/components/shared/RegularPage';
 import { Spinner } from '@/components/ui';
 
 export default async function PolicyDetailLoading() {
   const t = await getTranslations('account');
-  const tDocuments = await getTranslations('account.documents');
+  const tCommon = await getTranslations('common');
 
   return (
     <RegularPage
@@ -12,8 +13,8 @@ export default async function PolicyDetailLoading() {
       noPadding
       minimal
       backLink={{
-        href: '/account?section=generator',
-        label: tDocuments('backToList'),
+        href: GENERATOR_POLICIES_HREF,
+        label: tCommon('back'),
         preferHref: true,
       }}
     >

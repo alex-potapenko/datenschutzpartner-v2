@@ -865,6 +865,10 @@
       "title": "Prüfen & bezahlen",
       "description": "Bestätige dein Abo. Deine Datenschutzerklärung wird erstellt und veröffentlicht, sobald die Zahlung bestätigt ist.",
       "selectPlan": "Plan wählen",
+      "generatorLine": "Datenschutz-Generator",
+      "generatorLineDetail": "Jährliches Hosting der Datenschutzerklärung für {domain}",
+      "generatorLineDetailWithExtra": "Jährliches Hosting der Datenschutzerklärung für {domain} plus {additional, plural, one {# zusätzliche Site} other {# zusätzliche Sites}}",
+      "euRepLine": "EU-Vertretung — {plan}-Plan",
       "totalDue": "Heute fällig",
       "renewalNote": "Jährliche Verlängerung · jederzeit kündbar",
       "payrexxNote": "Du wirst zur sicheren Zahlung über Payrexx weitergeleitet.",
@@ -1546,6 +1550,11 @@
     "versionsAriaLabel": "Richtlinienversionen nach Jahr",
     "archivedNote": "Du siehst eine archivierte Version. Die neueste Jahresversion ist auf deiner Website live.",
     "effectiveFrom": "Gültig ab",
+    "tabs": {
+      "ariaLabel": "Richtliniendetails",
+      "policy": "Richtlinie",
+      "instruction": "Anleitung"
+    },
     "implementation": {
       "title": "So veröffentlichen Sie diese Richtlinie auf Ihrer Website",
       "body": "Ihre Richtlinie wird von Datenschutzpartner gehostet und automatisch rechtlich aktuell gehalten. Fügen Sie sie mit der gehosteten URL oder dem Einbettungscode auf Ihrer Website ein.",

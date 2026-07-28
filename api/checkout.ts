@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { accountKeys } from './account';
 import { billingKeys } from './billing';
-import { documentKeys, documentSchema } from './documents';
+import { documentKeys, documentSchema, type GeneratorPlan } from './documents';
 import { env } from '@/env';
 import { getAuthToken } from '@/lib/auth-session';
 import { request } from './client';
@@ -208,6 +209,7 @@ export const checkoutCompleteResultSchema = z.object({
   orderId: z.string(),
   document: documentSchema.optional(),
   siteAllowance: z.number().int().nonnegative(),
+  planId: generatorPlanIdEnum.optional(),
   nextPaymentDate: z.string().nullable(),
   creditAmount: z.number().optional(),
 });
@@ -245,11 +247,19 @@ export function useCompleteCheckoutSession() {
       request<CheckoutCompleteResult>(`/checkout/sessions/${sessionId}/complete`, {
         method: 'POST',
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: documentKeys.all });
-      void queryClient.invalidateQueries({ queryKey: documentKeys.plan });
-      void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
-      void queryClient.invalidateQueries({ queryKey: billingKeys.orders });
+    onSuccess: async (result) => {
+      queryClient.setQueryData(documentKeys.plan, (current: GeneratorPlan | null | undefined) => ({
+        siteAllowance: result.siteAllowance,
+        planId: result.planId ?? current?.planId,
+      }));
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: documentKeys.plan }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.orders }),
+        queryClient.invalidateQueries({ queryKey: accountKeys.snapshot }),
+      ]);
     },
   });
 }

@@ -29,3 +29,6 @@ export const SECTION_ICON: Record<AccountSectionId, IconComponent> = {
 export function isAccountSection(value: string | null): value is AccountSectionId {
   return value !== null && (ACCOUNT_SECTION_IDS as readonly string[]).includes(value);
 }
+
+/** Deep-link back to the generator policies list (not dashboard overview). */
+export const GENERATOR_POLICIES_HREF = '/account?section=generator&tab=policies';

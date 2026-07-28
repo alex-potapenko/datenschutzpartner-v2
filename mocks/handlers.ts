@@ -151,7 +151,7 @@ const subscriptions = createCollection<Subscription>(
       relatedOrderIds: ['2'],
     },
   ],
-  5
+  7
 );
 
 /**
@@ -164,7 +164,7 @@ const generatorPlans = createCollection<{
   id: string;
   siteAllowance: number;
   planId: GeneratorPlanId;
-}>('generator-plan', [{ id: '1', siteAllowance: 3, planId: 'team' }], 6);
+}>('generator-plan', [{ id: '1', siteAllowance: 3, planId: 'team' }], 8);
 
 const euRepInquiries = createCollection<EuRepInquiry>(
   'eu-rep-inquiries',
@@ -429,7 +429,7 @@ const orders = createCollection<Order>(
       orderKind: 'subscription',
     },
   ],
-  3
+  4
 );
 
 /** Latest legal year the hosted policies have been maintained through. */
@@ -482,7 +482,7 @@ const documents = createCollection<GeneratedDocument>(
       },
     ] satisfies GeneratedDocument[]
   ).map((doc) => ({ ...doc, versions: buildPolicyVersions(doc.createdDate) })),
-  5
+  7
 );
 
 const UID_COMPANIES: UidCompany[] = [
@@ -839,6 +839,7 @@ export const handlers = [
       orderId: completed.orderId,
       document: document ? normalizeGeneratedDocument(document) : undefined,
       siteAllowance: readSiteAllowance(),
+      planId: readGeneratorPlanId() ?? undefined,
       nextPaymentDate: policySub?.nextPaymentDate ?? null,
       creditAmount: completed.creditAmount > 0 ? completed.creditAmount : undefined,
     });

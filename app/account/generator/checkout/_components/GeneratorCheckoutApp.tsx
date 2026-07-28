@@ -20,6 +20,7 @@ import {
   type GeneratorPlanId,
 } from '@/api/checkout';
 import { useDocuments, useGeneratorPlan } from '@/api/documents';
+import { GENERATOR_POLICIES_HREF } from '@/app/account/_components/account-sections';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
 import { Button, CaretRight, Spinner } from '@/components/ui';
 import { RegularPage } from '@/components/shared/RegularPage';
@@ -177,7 +178,7 @@ export function GeneratorCheckoutApp() {
           allowance: result.siteAllowance,
         })
       );
-      router.push('/account?section=generator');
+      router.push(GENERATOR_POLICIES_HREF);
     } catch {
       toast.error(t('failed'));
     }

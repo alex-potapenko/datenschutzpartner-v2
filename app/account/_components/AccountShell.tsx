@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState, useSyncExternalStore } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { clearAuthToken } from '@/lib/auth-session';
@@ -16,13 +16,12 @@ import { AcademySection } from './sections/AcademySection';
 import { EuRepSection } from './sections/EuRepSection';
 import {
   AccountDetailsSection,
-  readAccountDetailsTabFromUrl,
+  isAccountDetailsTab,
   type AccountDetailsTab,
 } from './sections/AccountDetailsSection';
 
-function readSectionFromUrl(): AccountSectionId {
-  if (typeof window === 'undefined') return 'dashboard';
-  const value = new URLSearchParams(window.location.search).get('section');
+function readSectionFromUrl(searchParams: URLSearchParams): AccountSectionId {
+  const value = searchParams.get('section');
   return isAccountSection(value) ? value : 'dashboard';
 }
 
@@ -85,52 +84,55 @@ function AccountSectionContent({
   }
 }
 
+function readAccountDetailsTabFromSearchParams(searchParams: URLSearchParams): AccountDetailsTab {
+  const value = searchParams.get('tab');
+  return isAccountDetailsTab(value) ? value : 'profile';
+}
+
 export function AccountShell() {
   const t = useTranslations('account');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const logout = useOverlayState();
   const isLargeScreen = useIsLargeScreen();
 
-  const [section, setSection] = useState<AccountSectionId>(() => readSectionFromUrl());
-  const [accountDetailsTab, setAccountDetailsTab] = useState<AccountDetailsTab>(() =>
-    readAccountDetailsTabFromUrl()
-  );
+  const section = readSectionFromUrl(searchParams);
+  const accountDetailsTab = readAccountDetailsTabFromSearchParams(searchParams);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const navigate = useCallback((next: AccountSectionId, options?: { tab?: AccountDetailsTab }) => {
-    setSection(next);
-    setMobileNavOpen(false);
+  const navigate = useCallback(
+    (next: AccountSectionId, options?: { tab?: AccountDetailsTab }) => {
+      setMobileNavOpen(false);
 
-    const nextTab = next === 'accountDetails' ? (options?.tab ?? 'profile') : undefined;
-    if (nextTab) {
-      setAccountDetailsTab(nextTab);
-    }
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('section', next);
 
-    const url = new URL(window.location.href);
-    url.searchParams.set('section', next);
+      const nextTab = next === 'accountDetails' ? (options?.tab ?? 'profile') : undefined;
+      if (nextTab && nextTab !== 'profile') {
+        params.set('tab', nextTab);
+      } else if (next !== 'generator') {
+        params.delete('tab');
+      }
 
-    if (nextTab && nextTab !== 'profile') {
-      url.searchParams.set('tab', nextTab);
-    } else {
-      url.searchParams.delete('tab');
-    }
+      router.replace(`/account?${params.toString()}`, { scroll: false });
+      window.scrollTo({ top: 0 });
+    },
+    [router, searchParams]
+  );
 
-    window.history.replaceState(null, '', url);
-    window.scrollTo({ top: 0 });
-  }, []);
-
-  const handleAccountDetailsTabChange = useCallback((tab: AccountDetailsTab) => {
-    setAccountDetailsTab(tab);
-
-    const url = new URL(window.location.href);
-    if (tab === 'profile') {
-      url.searchParams.delete('tab');
-    } else {
-      url.searchParams.set('tab', tab);
-    }
-    window.history.replaceState(null, '', url);
-  }, []);
+  const handleAccountDetailsTabChange = useCallback(
+    (tab: AccountDetailsTab) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab === 'profile') {
+        params.delete('tab');
+      } else {
+        params.set('tab', tab);
+      }
+      router.replace(`/account?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   function handleLogout() {
     clearAuthToken();
