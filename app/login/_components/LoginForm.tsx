@@ -10,6 +10,7 @@ import { z } from 'zod';
 import type { FieldErrors } from 'react-hook-form';
 import { ApiError } from '@/api/client';
 import { useLogin, type LoginInput } from '@/api/auth';
+import { env } from '@/env';
 import { storeLoginCredential } from '@/lib/store-login-credential';
 import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
@@ -18,6 +19,11 @@ import { Button, Eye, EyeSlash, Input, InputGroup, Label } from '@/components/ui
 function firstValidationMessage(errors: FieldErrors<LoginInput>): string | undefined {
   return errors.email?.message ?? errors.password?.message;
 }
+
+const PROTOTYPE_LOGIN_DEFAULTS: LoginInput = {
+  email: 'lucas.baumgartner@gmail.com',
+  password: 'dspmp',
+};
 
 export function LoginForm() {
   const router = useRouter();
@@ -44,6 +50,7 @@ export function LoginForm() {
     resolver: zodResolver(schema),
     mode: 'onSubmit',
     reValidateMode: 'onChange',
+    defaultValues: env.NEXT_PUBLIC_API_MOCKING === 'enabled' ? PROTOTYPE_LOGIN_DEFAULTS : undefined,
   });
 
   const emailInvalid = Boolean(errors.email) || authFailed;
