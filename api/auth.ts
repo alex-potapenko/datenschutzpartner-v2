@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { setAuthToken } from '@/lib/auth-session';
 import { request } from './client';
 
 export const loginSchema = z.object({
@@ -43,10 +46,37 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) =>
       request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setAuthToken(data.token);
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
     },
   });
+}
+
+/**
+ * Protects member-only routes. Waits for any in-flight session refetch before
+ * redirecting — stale `{ email: null }` cache from public pages must not win
+ * over a token that was just stored at login.
+ */
+export function useRequireSession(returnTo?: string) {
+  const router = useRouter();
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email);
+  const isChecking = session.isLoading || session.isFetching;
+
+  useEffect(() => {
+    if (isChecking || session.isError) return;
+    if (isAuthenticated) return;
+
+    const href = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login';
+    router.replace(href);
+  }, [isChecking, session.isError, isAuthenticated, router, returnTo]);
+
+  return {
+    session,
+    isAuthenticated,
+    isChecking: isChecking || !isAuthenticated,
+  };
 }
 
 export function useForgotPassword() {

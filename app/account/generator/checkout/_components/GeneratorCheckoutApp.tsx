@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useRequireSession } from '@/api/auth';
 import {
   useCompleteCheckoutSession,
   useCreateCheckoutSession,
@@ -11,7 +12,6 @@ import {
   generatorPlanSiteCount,
   type GeneratorPlanId,
 } from '@/api/checkout';
-import { useSession } from '@/api/auth';
 import { useGeneratorPlan } from '@/api/documents';
 import { Button, Lock, ShieldCheck, Spinner } from '@/components/ui';
 import { RegularPage } from '@/components/shared/RegularPage';
@@ -23,22 +23,15 @@ export function GeneratorCheckoutApp() {
   const t = useTranslations('account.generatorCheckout');
   const tAccount = useTranslations('account');
   const router = useRouter();
-  const session = useSession();
+  const { isChecking } = useRequireSession('/account/generator/checkout');
   const plan = useGeneratorPlan();
   const [planId, setPlanId] = useState<GeneratorPlanId>('team');
   const createSession = useCreateCheckoutSession();
   const completeSession = useCompleteCheckoutSession();
   const isProcessing = createSession.isPending || completeSession.isPending;
 
-  const isAuthenticated = Boolean(session.data?.email);
   const siteCount = generatorPlanSiteCount(planId);
   const amount = generatorPlanPrice(planId);
-
-  useEffect(() => {
-    if (!session.isLoading && !session.isError && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [session.isLoading, session.isError, isAuthenticated, router]);
 
   async function handlePay() {
     try {
@@ -61,7 +54,7 @@ export function GeneratorCheckoutApp() {
     }
   }
 
-  if (session.isLoading || !isAuthenticated) {
+  if (isChecking) {
     return (
       <div className="flex min-h-dvh flex-1 items-center justify-center">
         <Spinner aria-label={tAccount('loading')} />

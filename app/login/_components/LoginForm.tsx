@@ -10,7 +10,6 @@ import { z } from 'zod';
 import type { FieldErrors } from 'react-hook-form';
 import { ApiError } from '@/api/client';
 import { useLogin, type LoginInput } from '@/api/auth';
-import { setAuthToken } from '@/lib/auth-session';
 import { storeLoginCredential } from '@/lib/store-login-credential';
 import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
@@ -70,8 +69,7 @@ export function LoginForm() {
     setAuthFailed(false);
 
     try {
-      const result = await login.mutateAsync(values);
-      setAuthToken(result.token);
+      await login.mutateAsync(values);
       await storeLoginCredential(values.email, values.password);
       toast.success(t('success'));
       startTransition(() => {
