@@ -36,7 +36,6 @@ export function UidCompanyLookup({ onSelect }: UidCompanyLookupProps) {
           )}
         </span>
       </div>
-      <p className="text-muted text-xs">{t('hint')}</p>
 
       {showResults ? (
         <ul

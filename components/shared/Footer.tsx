@@ -12,7 +12,7 @@ const FOOTER_SECTIONS = [
     headingKey: 'products',
     links: [
       { key: 'privacyGenerator', href: '/scan' },
-      { key: 'euRepresentative', href: '#' },
+      { key: 'euRepresentative', href: '/eu-rep' },
       { key: 'academy', href: '/academy' },
     ],
   },

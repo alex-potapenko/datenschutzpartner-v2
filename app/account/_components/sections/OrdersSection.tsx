@@ -8,8 +8,9 @@ import {
   AccountTable,
   DataState,
   EmptyState,
+  OrderAmount,
   SectionHeader,
-  formatMoney,
+  SubscriptionIdLink,
   useDateFormatter,
 } from '../account-ui';
 
@@ -18,13 +19,9 @@ type OrdersSectionProps = {
   productType?: BillingProductType;
 };
 
-function formatSiteCount(count: number, t: ReturnType<typeof useTranslations<'account.orders'>>) {
-  return t('siteCount', { count });
-}
-
 function orderKindLabel(order: Order, t: ReturnType<typeof useTranslations<'account.orders'>>) {
-  if (order.orderKind === 'extraInquiry') {
-    return t('orderKindExtraInquiry');
+  if (order.orderKind === 'renewal') {
+    return t('orderKindRenewal');
   }
 
   if (order.orderKind === 'subscription') {
@@ -40,9 +37,7 @@ export function OrdersSection({ embedded = false, productType }: OrdersSectionPr
   const formatDate = useDateFormatter();
 
   const rows = orders.data?.filter((order) => !productType || order.productType === productType);
-  const showSiteColumn = productType === 'policy' || rows?.some((order) => order.siteCount != null);
-  const showReferenceColumn =
-    productType === 'euRep' || rows?.some((order) => order.orderKind === 'extraInquiry');
+  const showReferenceColumn = Boolean(rows?.some((order) => order.orderKind));
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,28 +55,33 @@ export function OrdersSection({ embedded = false, productType }: OrdersSectionPr
             <AccountTable aria-label={t('title')}>
               <Table.Header>
                 <Table.Column isRowHeader>{t('colNumber')}</Table.Column>
+                <Table.Column>{t('colSubscriptionId')}</Table.Column>
                 <Table.Column>{t('colDate')}</Table.Column>
                 {showReferenceColumn ? <Table.Column>{t('colReference')}</Table.Column> : null}
-                {showSiteColumn ? <Table.Column>{t('colSites')}</Table.Column> : null}
                 <Table.Column className="text-right">{t('colTotal')}</Table.Column>
               </Table.Header>
               <Table.Body>
                 {rows.map((order) => (
                   <Table.Row key={order.id}>
                     <Table.Cell className="font-mono font-semibold">{order.number}</Table.Cell>
+                    <Table.Cell>
+                      {order.subscriptionId ? (
+                        <SubscriptionIdLink id={order.subscriptionId} className="font-mono" />
+                      ) : (
+                        <span className="text-muted font-mono text-sm">{t('referenceEmpty')}</span>
+                      )}
+                    </Table.Cell>
                     <Table.Cell>{formatDate(order.date)}</Table.Cell>
                     {showReferenceColumn ? (
                       <Table.Cell>{orderKindLabel(order, t) ?? t('referenceEmpty')}</Table.Cell>
                     ) : null}
-                    {showSiteColumn ? (
-                      <Table.Cell>
-                        {order.siteCount != null
-                          ? formatSiteCount(order.siteCount, t)
-                          : t('referenceEmpty')}
-                      </Table.Cell>
-                    ) : null}
                     <Table.Cell className="text-right font-normal">
-                      {formatMoney(order.total, order.currency)}
+                      <OrderAmount
+                        total={order.total}
+                        currency={order.currency}
+                        discountRate={order.discountRate}
+                        discountAmount={order.discountAmount}
+                      />
                     </Table.Cell>
                   </Table.Row>
                 ))}

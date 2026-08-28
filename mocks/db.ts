@@ -14,7 +14,7 @@ const canPersist = typeof window !== 'undefined' && typeof window.localStorage !
 
 export interface Collection<T extends Identifiable> {
   all: () => T[];
-  create: (item: Omit<T, 'id'>) => T;
+  create: (item: Omit<T, 'id'> & { id?: string }) => T;
   remove: (id: string) => boolean;
   update: (id: string, patch: Partial<Omit<T, 'id'>>) => T | undefined;
 }
@@ -52,8 +52,8 @@ export function createCollection<T extends Identifiable>(
 
   return {
     all: () => [...items],
-    create: (item) => {
-      const created = { ...item, id: nextId() } as T;
+    create: (item: Omit<T, 'id'> & { id?: string }) => {
+      const created = { ...item, id: item.id ?? nextId() } as T;
       items.push(created);
       persist();
       return created;

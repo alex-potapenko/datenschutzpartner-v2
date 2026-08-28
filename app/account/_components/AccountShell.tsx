@@ -54,13 +54,7 @@ function AccountSectionContent({
     case 'dashboard':
       return <DashboardSection onNavigate={onNavigate} />;
     case 'generator':
-      return (
-        <GeneratorSection
-          onNavigateToAccountDetails={() => {
-            onNavigate('accountDetails', { tab: 'paymentDetails' });
-          }}
-        />
-      );
+      return <GeneratorSection />;
     case 'academy':
       return (
         <AcademySection
@@ -70,13 +64,7 @@ function AccountSectionContent({
         />
       );
     case 'euRep':
-      return (
-        <EuRepSection
-          onNavigateToAccountDetails={() => {
-            onNavigate('accountDetails', { tab: 'paymentDetails' });
-          }}
-        />
-      );
+      return <EuRepSection />;
     case 'accountDetails':
       return (
         <AccountDetailsSection tab={accountDetailsTab} onTabChange={onAccountDetailsTabChange} />
@@ -111,7 +99,7 @@ export function AccountShell() {
       const nextTab = next === 'accountDetails' ? (options?.tab ?? 'profile') : undefined;
       if (nextTab && nextTab !== 'profile') {
         params.set('tab', nextTab);
-      } else if (next !== 'generator') {
+      } else {
         params.delete('tab');
       }
 
@@ -194,9 +182,10 @@ export function AccountShell() {
 
         <AccountLayoutProvider mode={isLargeScreen ? 'split' : 'stack'}>
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip lg:grid lg:grid-cols-[280px_1fr] lg:grid-rows-[auto_auto_auto_1fr]">
-            <div className="border-border hidden border-r lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:block">
+            <div className="border-border hidden border-r lg:col-start-1 lg:row-start-1 lg:block lg:self-start">
               <SidebarUser />
             </div>
+            <div className="border-border hidden border-r lg:col-start-1 lg:row-start-2 lg:block" />
 
             <div className="contents min-w-0">
               <AccountSectionContent

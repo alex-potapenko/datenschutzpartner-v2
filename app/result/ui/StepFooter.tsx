@@ -10,6 +10,7 @@ interface StepFooterProps {
   onContinue?: () => void;
   onSkip?: () => void;
   ctaLabel?: ReactNode;
+  ctaNote?: ReactNode;
   skipLabel?: string;
   backLabel?: ReactNode;
   ctaDisabled?: boolean;
@@ -20,6 +21,7 @@ export function StepFooter({
   onContinue,
   onSkip,
   ctaLabel,
+  ctaNote,
   skipLabel,
   backLabel,
   ctaDisabled,
@@ -27,14 +29,14 @@ export function StepFooter({
   const t = useTranslations('common');
 
   return (
-    <div className="border-border bg-background sticky bottom-0 z-20 border-t">
+    <div className="border-border sticky bottom-0 z-20 border-t bg-transparent">
       <Container>
         <div className="border-border flex items-center justify-between gap-2 border-r border-l px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
           {onBack ? (
             <Button
               variant="outline"
               size="lg"
-              className="h-11 shrink-0 gap-2 rounded-full sm:h-14"
+              className="h-11 shrink-0 gap-2 rounded-full px-5 sm:h-14 sm:px-8"
               onPress={onBack}
             >
               <CaretLeft size={16} weight="bold" />
@@ -45,29 +47,36 @@ export function StepFooter({
           ) : (
             <div />
           )}
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            {onSkip ? (
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-11 shrink-0 rounded-full sm:h-14"
-                onPress={onSkip}
-              >
-                {skipLabel ?? t('skip')}
-              </Button>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:gap-4">
+            {ctaNote ? (
+              <p className="text-foreground min-w-0 text-sm leading-snug md:whitespace-nowrap">
+                {ctaNote}
+              </p>
             ) : null}
-            {onContinue ? (
-              <Button
-                variant="primary"
-                size="lg"
-                className="h-11 min-w-0 gap-2 rounded-full sm:h-14"
-                onPress={onContinue}
-                isDisabled={ctaDisabled}
-              >
-                <span className="truncate">{ctaLabel ?? t('continue')}</span>
-                <CaretRight size={16} weight="bold" className="shrink-0" />
-              </Button>
-            ) : null}
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              {onSkip ? (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-11 shrink-0 rounded-full px-5 sm:h-14 sm:px-8"
+                  onPress={onSkip}
+                >
+                  {skipLabel ?? t('skip')}
+                </Button>
+              ) : null}
+              {onContinue ? (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="h-11 min-w-0 gap-2 rounded-full px-6 sm:h-14 sm:px-8"
+                  onPress={onContinue}
+                  isDisabled={ctaDisabled}
+                >
+                  <span className="truncate">{ctaLabel ?? t('continue')}</span>
+                  <CaretRight size={16} weight="bold" className="shrink-0" />
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       </Container>

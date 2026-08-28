@@ -1,11 +1,16 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { ReactNode, SyntheticEvent } from 'react';
 import { createContext, useContext } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { formatDiscountPercent } from '@/api/checkout';
+import { NavigationLink } from '@/components/shared/NavigationLink';
+import { policyDetailHref, subscriptionDetailHref } from './account-sections';
 import {
   Button,
   CaretDown,
+  CaretRight,
   Check,
   DropdownItem,
   DropdownMenu,
@@ -21,6 +26,7 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeading,
+  Plus,
   Spinner,
   Table,
   Tabs,
@@ -98,7 +104,7 @@ export function AccountSectionFrame({
   const layout = useAccountLayout();
 
   const titleBlock = (
-    <div className="flex flex-col gap-8 px-4 pt-12 pb-6 sm:px-8 sm:pt-20 sm:pb-8">
+    <div className="flex h-full flex-col justify-center px-4 sm:px-8">
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="flex min-w-0 flex-col gap-2">
           <h1 className="text-foreground text-2xl font-bold sm:text-3xl lg:text-4xl">{title}</h1>
@@ -267,6 +273,111 @@ export function AccountSection({
   );
 }
 
+function toLocalDateIso(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function calendarDaysBetween(startIso: string, endIso: string): number {
+  const start = new Date(`${startIso.slice(0, 10)}T00:00:00`);
+  const end = new Date(`${endIso.slice(0, 10)}T00:00:00`);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / msPerDay));
+}
+
+/** Remaining / total calendar days on a subscription term. */
+export function subscriptionDaysLeft(
+  startDate: string,
+  nextPaymentDate: string,
+  now = new Date()
+): { remainingDays: number; totalDays: number } {
+  const totalDays = Math.max(1, calendarDaysBetween(startDate, nextPaymentDate));
+  const remainingDays = Math.min(
+    totalDays,
+    calendarDaysBetween(toLocalDateIso(now), nextPaymentDate)
+  );
+  return { remainingDays, totalDays };
+}
+
+export function DaysLeftDonut({
+  remaining,
+  total,
+  label,
+}: {
+  remaining: number;
+  total: number;
+  label: string;
+}) {
+  const size = 20;
+  const stroke = 2.5;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const remainingFraction = total > 0 ? Math.min(1, Math.max(0, remaining / total)) : 0;
+  const remainingLength = circumference * remainingFraction;
+  const elapsedLength = circumference - remainingLength;
+  const isUrgent = remaining < 30;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="shrink-0"
+      overflow="visible"
+      role="img"
+      aria-label={label}
+    >
+      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={isUrgent ? 'var(--feature-red)' : 'var(--accent)'}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${remainingLength} ${circumference}`}
+          strokeDashoffset={-elapsedLength}
+        />
+      </g>
+    </svg>
+  );
+}
+
+export function CountWithAdd({
+  addLabel,
+  onAdd,
+  withPlus = false,
+  children,
+}: {
+  addLabel?: string;
+  onAdd?: () => void;
+  withPlus?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">{children}</div>
+      {onAdd ? (
+        <Button variant="outline" size="sm" className="shrink-0 gap-2" onPress={onAdd}>
+          {withPlus ? <Plus size={14} weight="bold" aria-hidden /> : null}
+          {addLabel}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 /** HeroUI table with the member area's default primary styling. */
 export function AccountTable({
   'aria-label': ariaLabel,
@@ -283,6 +394,84 @@ export function AccountTable({
         <Table.Content>{children}</Table.Content>
       </Table.ScrollContainer>
     </Table>
+  );
+}
+
+/** Clickable policy row — navigates to `/account/policies/:id`. Nested links use `TableRowAction`. */
+export function PolicyDetailTableRow({
+  documentId,
+  openLabel,
+  children,
+  className,
+}: {
+  documentId: string;
+  openLabel: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <Table.Row
+      className={cn('cursor-pointer', className)}
+      aria-label={openLabel}
+      onAction={() => {
+        router.push(policyDetailHref(documentId));
+      }}
+    >
+      {children}
+    </Table.Row>
+  );
+}
+
+/** Caret-only affordance for policy detail rows (replaces an explicit Open link). */
+export function PolicyTableRowCaret({ label }: { label: string }) {
+  return (
+    <span className="text-muted inline-flex items-center justify-end">
+      <CaretRight size={14} weight="bold" aria-hidden />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
+/** Prevents a nested control inside a clickable table row from triggering row navigation. */
+export function TableRowAction({ children }: { children: ReactNode }) {
+  const stop = (event: SyntheticEvent) => {
+    event.stopPropagation();
+  };
+
+  return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- stops row navigation for nested controls
+    <span
+      className="inline-flex"
+      onClick={stop}
+      onPointerDown={stop}
+      onPointerUp={stop}
+      onKeyDown={stop}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function SubscriptionIdLink({
+  id,
+  children,
+  className,
+}: {
+  id: string;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <NavigationLink
+      href={subscriptionDetailHref(id)}
+      size="sm"
+      chevron="right"
+      className={className}
+    >
+      {children ?? id}
+    </NavigationLink>
   );
 }
 
@@ -490,6 +679,36 @@ export function formatMoney(amount: number, currency: string) {
   return `${currency} ${amount.toFixed(2)}`;
 }
 
+export function OrderAmount({
+  total,
+  currency,
+  discountRate,
+  discountAmount,
+}: {
+  total: number;
+  currency: string;
+  discountRate?: number;
+  discountAmount?: number;
+}) {
+  const t = useTranslations('account.generatorPlan');
+  const percent = discountRate && discountRate > 0 ? formatDiscountPercent(discountRate) : null;
+  const hasDiscount = Boolean(percent && discountAmount && discountAmount > 0);
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span className="text-foreground font-normal">{formatMoney(total, currency)}</span>
+      {hasDiscount && percent ? (
+        <span className="text-success text-xs">
+          {t('discountNote', {
+            percent,
+            amount: formatMoney(discountAmount ?? 0, currency),
+          })}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 /** Confirmation dialog for destructive actions (cancel subscription, log out). */
 export function ConfirmDialog({
   state,
@@ -517,7 +736,7 @@ export function ConfirmDialog({
               <ModalHeading>{title}</ModalHeading>
             </ModalHeader>
             <ModalBody>
-              <p className="text-muted text-sm leading-relaxed">{body}</p>
+              <p className="text-foreground text-sm leading-relaxed">{body}</p>
             </ModalBody>
             <ModalFooter>
               <Button

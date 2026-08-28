@@ -1,14 +1,17 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ArrowsClockwise, Clock, Crosshair, Gavel } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
-import { generatorPlanSiteCount } from '@/api/checkout';
+import {
+  calculateGeneratorPolicyQuote,
+  formatDiscountPercent,
+  GENERATOR_POLICY_UNIT_PRICE,
+} from '@/api/checkout';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-
-const PLAN_IDS = ['single', 'team', 'agency'] as const;
+import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
 
 const INCLUDED_KEYS = [
   'services',
@@ -64,18 +67,30 @@ function BenefitIcon({ benefitKey }: { benefitKey: BenefitKey }) {
   );
 }
 
+function formatChf(amount: number): string {
+  return `CHF ${amount.toFixed(2)}`;
+}
+
 export function GeneratorBenefitsPanel() {
   const t = useTranslations('generatorPage');
   const tb = useTranslations('generatorPage.benefitsSection');
   const tp = useTranslations('generatorPage.pricingSection');
 
-  const plans: EuRepPlan[] = PLAN_IDS.map((id) => ({
-    id,
-    tabLabel: tp(`plans.${id}.tabLabel`),
-    showPerYear: false,
-    price: t(`plans.${id}.price`),
-    note: tp('sitesIncluded', { count: generatorPlanSiteCount(id) }),
-  }));
+  const [siteCount, setSiteCount] = useState(1);
+  const quote = useMemo(() => calculateGeneratorPolicyQuote(siteCount, siteCount), [siteCount]);
+
+  const plans: EuRepPlan[] = [
+    {
+      id: 'policy',
+      tabLabel: String(siteCount),
+      showPerYear: false,
+      price: quote.amountDue.toFixed(2),
+      note:
+        quote.discountRate > 0
+          ? tp('discountApplied', { percent: formatDiscountPercent(quote.discountRate) })
+          : tp('perSite', { price: formatChf(GENERATOR_POLICY_UNIT_PRICE) }),
+    },
+  ];
 
   return (
     <section id="plans" className="scroll-mt-24">
@@ -120,12 +135,22 @@ export function GeneratorBenefitsPanel() {
 
         <EuRepPlanCard
           plans={plans}
-          defaultPlanId="team"
-          pricePeriod=""
+          defaultPlanId="policy"
+          value="policy"
+          pricePeriod={tp('pricePeriod')}
           showOrderCta={false}
-          tabsAriaLabel={tp('selectPlan')}
+          tabsAriaLabel={tp('siteCountLabel')}
           selectPlanTitle={tp('selectPlan')}
           includedTitle={tp('includedTitle')}
+          selector={
+            <SiteQuantityStepper
+              value={siteCount}
+              onChange={setSiteCount}
+              decreaseLabel={tp('decreaseSites')}
+              increaseLabel={tp('increaseSites')}
+              valueLabel={tp('siteCountLabel')}
+            />
+          }
           features={INCLUDED_KEYS.map((key) => t(`features.${key}`))}
           legal={t.rich('legal', {
             terms: (chunks) => <Link href="/terms">{chunks}</Link>,

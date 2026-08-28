@@ -189,7 +189,14 @@ function TopBarNav({
 interface TopBarProps {
   activePath?: string;
   /** Fallback destination when there is no browser history (e.g. direct entry). */
-  backLink?: { href: string; label: string; preferHref?: boolean };
+  backLink?: {
+    href: string;
+    label: string;
+    preferHref?: boolean;
+    iconOnly?: boolean;
+    detailTitle?: string;
+    onPress?: () => void;
+  };
   showLogo?: boolean;
   /** When true, only the back link is shown — no logo, nav, locale switcher, or actions. */
   minimal?: boolean;
@@ -258,31 +265,48 @@ export function TopBar({
         {minimal ? (
           <div className="flex items-center border-r border-l border-white/20 px-4 py-5 sm:px-8 lg:px-8">
             <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                aria-label={tc('home')}
-                className="flex min-w-0 shrink cursor-pointer items-center"
-              >
-                <Logo showText={false} />
-              </Link>
-              {backLink ? (
-                <Button
-                  variant="outline"
-                  size="md"
-                  className={`${barOutlineButtonClass} gap-2`}
-                  aria-label={backLink.label}
-                  onPress={() => {
-                    if (!backLink.preferHref && window.history.length > 1) {
-                      router.back();
-                      return;
-                    }
-
-                    router.push(backLink.href);
-                  }}
+              {!backLink?.iconOnly ? (
+                <Link
+                  href="/"
+                  aria-label={tc('home')}
+                  className="flex min-w-0 shrink cursor-pointer items-center"
                 >
-                  <CaretLeft size={16} weight="bold" />
-                  {backLink.label}
-                </Button>
+                  <Logo showText={false} />
+                </Link>
+              ) : null}
+              {backLink ? (
+                <div className="flex min-w-0 items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="md"
+                    isIconOnly={backLink.iconOnly}
+                    className={
+                      backLink.iconOnly ? barOutlineButtonClass : `${barOutlineButtonClass} gap-2`
+                    }
+                    aria-label={backLink.label}
+                    onPress={() => {
+                      if (backLink.onPress) {
+                        backLink.onPress();
+                        return;
+                      }
+
+                      if (!backLink.preferHref && window.history.length > 1) {
+                        router.back();
+                        return;
+                      }
+
+                      router.push(backLink.href);
+                    }}
+                  >
+                    <CaretLeft size={16} weight="bold" />
+                    {!backLink.iconOnly ? backLink.label : null}
+                  </Button>
+                  {backLink.iconOnly && backLink.detailTitle ? (
+                    <span className="font-display min-w-0 truncate text-sm font-medium text-white">
+                      {backLink.detailTitle}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </div>

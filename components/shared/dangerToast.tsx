@@ -7,7 +7,9 @@ export function showDangerToast(message: string) {
       <Alert status="danger" role="alert" className="w-full max-w-sm shadow-lg">
         <Alert.Indicator />
         <Alert.Content>
-          <Alert.Description>{message}</Alert.Description>
+          <Alert.Description className="text-foreground text-sm leading-relaxed">
+            {message}
+          </Alert.Description>
         </Alert.Content>
       </Alert>
     ),

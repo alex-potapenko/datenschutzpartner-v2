@@ -6,31 +6,39 @@ export interface ImprovedFormData {
   postalCode: string;
   city: string;
   country: string;
-  generatesRevenue: string;
-  revenueTypes: string[];
-  processesSpecialData: string;
-  specialDataCategories: string[];
-  basedInSwitzerland: string;
-  processesEUData: string;
-  systematically: string;
+  hasDpo: string;
+  dpoCompanyName: string;
+  dpoFirstName: string;
+  dpoLastName: string;
+  dpoStreet: string;
+  dpoPostalCode: string;
+  dpoCity: string;
+  dpoCountry: string;
+  dpoEmail: string;
+  gdprApplicable: string;
   offersToEU: string;
   monitorsEUBehaviour: string;
-  hasEUEstablishment: string;
-  transfersToThirdCountry: string;
-  usesDataForMarketing: string;
+  transfersAbroad: string;
   usesProfiling: string;
-  hasEmployeePrivacyNotice: string;
-  employeePrivacyUrl: string;
-  listSupervisoryAuthority: string;
-  supervisoryAuthority: string;
+  processesSpecialData: string;
+  specialDataCategories: string[];
+  usesAiProcessing: string;
+  acceptsApplications: string;
+  hasTalentPool: string;
+  usesVideoSurveillance: string;
+  videoRetention: string;
+  videoRetentionAmount: string;
+  videoRetentionUnit: string;
+  hasThirdPartyEuRep: string;
+  thirdPartyRepName: string;
+  thirdPartyRepStreet: string;
+  thirdPartyRepPostalCode: string;
+  thirdPartyRepCity: string;
+  thirdPartyRepCountry: string;
+  thirdPartyRepEmail: string;
+  /** Swiss controller — defaults to yes for this product. */
+  basedInSwitzerland: string;
 }
-
-export const REVENUE_TYPE_OPTIONS = [
-  { value: 'memberships', label: 'Memberships / subscriptions' },
-  { value: 'products', label: 'Sale of products / services' },
-  { value: 'advertising', label: 'Advertising' },
-  { value: 'other', label: 'Other' },
-] as const;
 
 export const SPECIAL_DATA_OPTIONS = [
   { value: 'health', label: 'Health data' },
@@ -42,15 +50,20 @@ export const SPECIAL_DATA_OPTIONS = [
   { value: 'sexuality', label: 'Data about sex life / sexual orientation' },
 ] as const;
 
-export const SUPERVISORY_AUTHORITY_OPTIONS = [
-  { value: 'edob', label: 'EDÖB (Switzerland)' },
-  { value: 'bfdi', label: 'BfDI (Germany)' },
-  { value: 'dsb', label: 'DSB (Austria)' },
-  { value: 'other', label: 'Other' },
+export const TRANSFERS_ABROAD_OPTIONS = [
+  { value: 'no', label: 'No' },
+  { value: 'eea', label: 'Yes, to the European Economic Area (EEA)' },
+  { value: 'worldwide', label: 'Yes, worldwide' },
+] as const;
+
+export const VIDEO_RETENTION_OPTIONS = [
+  { value: 'none', label: 'No storage' },
+  { value: 'duration', label: 'Fixed duration' },
+  { value: 'asRequired', label: 'As long as required' },
 ] as const;
 
 const OPTION_LABELS = Object.fromEntries(
-  [...REVENUE_TYPE_OPTIONS, ...SPECIAL_DATA_OPTIONS, ...SUPERVISORY_AUTHORITY_OPTIONS].map(
+  [...SPECIAL_DATA_OPTIONS, ...TRANSFERS_ABROAD_OPTIONS, ...VIDEO_RETENTION_OPTIONS].map(
     (option) => [option.value, option.label]
   )
 ) as Record<string, string>;
@@ -76,22 +89,9 @@ export function formatOptionLabels(values: string[]) {
   return values.map(formatOptionLabel).join(', ');
 }
 
-export { getVisibleEuRepQuestionFields } from '@/api/generator';
-
-export const EU_REP_PLANS = {
-  budget: {
-    name: 'Budget',
-    price: 'CHF 149.00',
-    inquiry: 'CHF 99.00 per inquiry',
-  },
-  standard: {
-    name: 'Standard',
-    price: 'CHF 249.00',
-    inquiry: '1 inquiry / year included',
-  },
-  premium: {
-    name: 'Premium',
-    price: 'CHF 499.00',
-    inquiry: '5 inquiries / year included',
-  },
-} as const;
+export {
+  getVisibleEuRepQuestionFields,
+  getGdprBranchVisibility,
+  isGdprApplicable,
+  showThirdPartyEuRepQuestion,
+} from '@/api/generator';

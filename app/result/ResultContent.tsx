@@ -8,20 +8,20 @@ import { ScanStep } from './steps/ScanStep';
 import { ImprovedStep, type ImprovedFormData } from './steps/ImprovedStep';
 import { EuRepStep } from './steps/EuRepStep';
 import { SummaryStep } from './steps/SummaryStep';
-import { PaymentStep } from './steps/PaymentStep';
 import { GeneratedPolicyStep } from './steps/GeneratedPolicyStep';
 import type { GeneratedDocument } from '@/api/documents';
 import type { CheckoutCompleteResult } from '@/api/checkout';
 import {
   buildVisitedSteps,
   emptyEuRepState,
-  isEuRepApplicable,
   isQuestionnaireOnlyMode,
-  isWizardStep,
   readWizardState,
+  readFillSubscriptionId,
   resolveWizardStep,
   shouldRestoreWizardState,
+  shouldShowEuRepStep,
   wizardStepOrder,
+  normalizeWizardStepId,
   writeWizardState,
   type EuRepState,
   type WizardProgress,
@@ -33,8 +33,8 @@ import { useTranslations } from 'next-intl';
 
 type Step = WizardStep;
 
-/** Post-configuration checkout flow, layered on top of the config wizard. */
-type CheckoutPhase = 'wizard' | 'payment' | 'ready';
+/** Post-checkout generated policy screen. */
+type CheckoutPhase = 'wizard' | 'ready';
 
 function buildFallbackPolicy(domain: string, id: string): GeneratedDocument {
   const today = new Date().toISOString().slice(0, 10);
@@ -52,6 +52,7 @@ function buildFallbackPolicy(domain: string, id: string): GeneratedDocument {
 function createInitialState(params: URLSearchParams) {
   const questionnaireOnly = isQuestionnaireOnlyMode(params);
   const updateDocumentId = params.get('documentId') ?? undefined;
+  const fillSubscriptionId = readFillSubscriptionId(params);
   const stepFromUrl = params.get('step');
   const progress: WizardProgress = {
     scanDone: questionnaireOnly,
@@ -59,8 +60,9 @@ function createInitialState(params: URLSearchParams) {
     euRep: emptyEuRepState(),
     questionnaireOnly,
     updateDocumentId,
+    fillSubscriptionId,
   };
-  const step = resolveWizardStep(isWizardStep(stepFromUrl) ? stepFromUrl : null, progress);
+  const step = resolveWizardStep(stepFromUrl, progress);
 
   return {
     step,
@@ -111,6 +113,7 @@ export default function ResultContent() {
     initialState.questionnaireOnly ?? false
   );
   const [updateDocumentId, setUpdateDocumentId] = useState(initialState.updateDocumentId);
+  const [fillSubscriptionId, setFillSubscriptionId] = useState(initialState.fillSubscriptionId);
 
   const progress: WizardProgress = {
     scanDone,
@@ -118,6 +121,7 @@ export default function ResultContent() {
     euRep,
     questionnaireOnly,
     updateDocumentId,
+    fillSubscriptionId,
   };
 
   const didHydrate = useRef(false);
@@ -128,10 +132,11 @@ export default function ResultContent() {
     didHydrate.current = true;
 
     const stepParam = params.get('step');
-    const requestedStep = isWizardStep(stepParam) ? stepParam : null;
+    const requestedStep = stepParam;
     const restored = readWizardState(stepParam);
     const urlQuestionnaireOnly = isQuestionnaireOnlyMode(params);
     const urlUpdateDocumentId = params.get('documentId') ?? undefined;
+    const urlFillSubscriptionId = readFillSubscriptionId(params);
 
     /* eslint-disable react-hooks/set-state-in-effect */
     if (restored && shouldRestoreWizardState(restored, params, domain)) {
@@ -144,9 +149,10 @@ export default function ResultContent() {
       setUpdateDocumentId(
         urlQuestionnaireOnly ? (urlUpdateDocumentId ?? restored.updateDocumentId) : undefined
       );
+      setFillSubscriptionId(urlFillSubscriptionId ?? restored.fillSubscriptionId);
 
-      if (restored.checkoutPhase === 'payment' || restored.checkoutPhase === 'ready') {
-        setPhase(restored.checkoutPhase);
+      if (restored.checkoutPhase === 'ready') {
+        setPhase('ready');
       }
       if (restored.checkoutDocumentId) {
         setCheckoutDocument(buildFallbackPolicy(domain, restored.checkoutDocumentId));
@@ -158,6 +164,7 @@ export default function ResultContent() {
     } else {
       const resolvedStep = resolveWizardStep(requestedStep, progress);
       setStep(resolvedStep);
+      setFillSubscriptionId(urlFillSubscriptionId);
       syncVisitedSteps(progress, resolvedStep, setVisitedSteps);
 
       if (requestedStep && resolvedStep !== requestedStep) {
@@ -178,7 +185,7 @@ export default function ResultContent() {
     if (!hydrated) return;
 
     const stepParam = params.get('step');
-    const requestedStep = isWizardStep(stepParam) ? stepParam : null;
+    const requestedStep = stepParam;
     const resolvedStep = resolveWizardStep(requestedStep, progress);
 
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -203,6 +210,7 @@ export default function ResultContent() {
       euRep,
       questionnaireOnly,
       updateDocumentId,
+      fillSubscriptionId,
       domain,
       visitedSteps: [...visitedSteps] as WizardStep[],
       checkoutPhase: phase === 'wizard' ? undefined : phase,
@@ -216,6 +224,7 @@ export default function ResultContent() {
     euRep,
     questionnaireOnly,
     updateDocumentId,
+    fillSubscriptionId,
     domain,
     visitedSteps,
     phase,
@@ -244,21 +253,55 @@ export default function ResultContent() {
     advance('improved', { ...progress, scanDone: true });
   }
 
+  function handlePolicyUpdate() {
+    if (!questionnaireOnly || !updateDocumentId) return;
+
+    regenerateDocument.mutate(updateDocumentId, {
+      onSuccess: () => {
+        toast.success(tSummary('updateSuccess'));
+        router.push(`/account/policies/${updateDocumentId}`);
+      },
+      onError: () => {
+        toast.error(tSummary('updateFailed'));
+      },
+    });
+  }
+
   function handleImprovedSubmit(data: ImprovedFormData) {
     setFormData(data);
-    const nextProgress = { ...progress, formData: data };
-    const target: Step = isEuRepApplicable(data) ? 'eu-rep' : 'summary';
+    const skipEuRep = !shouldShowEuRepStep(data);
+    const nextEuRep = skipEuRep ? { done: true, declined: true } : emptyEuRepState();
+    setEuRep(nextEuRep);
+    const nextProgress = { ...progress, formData: data, euRep: nextEuRep };
+
+    if (questionnaireOnly) {
+      if (shouldShowEuRepStep(data)) {
+        advance('eu-rep', nextProgress);
+      } else {
+        handlePolicyUpdate();
+      }
+      return;
+    }
+
+    const target: Step = shouldShowEuRepStep(data) ? 'eu-rep' : 'summary';
     advance(target, nextProgress);
   }
 
   function handleEuRepComplete(next: EuRepState) {
     setEuRep(next);
-    advance('summary', { ...progress, euRep: next });
+    const nextProgress = { ...progress, euRep: next };
+
+    if (questionnaireOnly) {
+      handlePolicyUpdate();
+      return;
+    }
+
+    advance('summary', nextProgress);
   }
 
   function handleScanAgain() {
     setScanDone(false);
-    advance('scan', { ...progress, scanDone: false });
+    advance('scanning', { ...progress, scanDone: false });
   }
 
   function handleBack() {
@@ -272,74 +315,25 @@ export default function ResultContent() {
     }
     if (step === 'eu-rep') goToStep('improved');
     else if (step === 'summary') {
-      goToStep(isEuRepApplicable(formData) ? 'eu-rep' : 'improved');
+      goToStep(shouldShowEuRepStep(formData) ? 'eu-rep' : 'improved');
     }
-  }
-
-  function handleSummaryContinue() {
-    if (questionnaireOnly && updateDocumentId) {
-      regenerateDocument.mutate(updateDocumentId, {
-        onSuccess: () => {
-          toast.success(tSummary('updateSuccess'));
-          router.push(`/account/policies/${updateDocumentId}`);
-        },
-        onError: () => {
-          toast.error(tSummary('updateFailed'));
-        },
-      });
-      return;
-    }
-
-    setPhase('payment');
   }
 
   function handleStepClick(stepId: string) {
-    if (!isWizardStep(stepId)) return;
-    if (stepId === 'scan' && scanDone && !questionnaireOnly) return;
-    goToStep(stepId);
+    const normalized = normalizeWizardStepId(stepId);
+    if (!normalized) return;
+    if (normalized === 'scanning' && scanDone && !questionnaireOnly) return;
+    goToStep(normalized);
   }
 
   const canGoBack = questionnaireOnly
     ? step === 'improved'
-    : step !== 'scan' && step !== 'improved';
+    : step !== 'scanning' && step !== 'improved';
   const visibleStepIds = wizardStepOrder(progress);
 
-  // Post-configuration checkout: payment → generated policy (full policy detail page).
+  // Post-checkout: generated policy (full policy detail page).
   if (phase === 'ready' && checkoutDocument && formData) {
     return <GeneratedPolicyStep document={checkoutDocument} />;
-  }
-
-  if (phase !== 'wizard' && formData) {
-    return (
-      <StepLayout step={step} domain={domain} showSteps={false}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={phase}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="flex flex-1 flex-col"
-          >
-            {phase === 'payment' && (
-              <PaymentStep
-                domain={domain}
-                formData={formData}
-                euRep={euRep}
-                onPaid={(result: CheckoutCompleteResult) => {
-                  const document = result.document ?? buildFallbackPolicy(domain, result.orderId);
-                  setCheckoutDocument(document);
-                  setPhase('ready');
-                }}
-                onBack={() => {
-                  setPhase('wizard');
-                }}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </StepLayout>
-    );
   }
 
   return (
@@ -351,7 +345,7 @@ export default function ResultContent() {
       onStepClick={handleStepClick}
       visitedSteps={visitedSteps}
       visibleStepIds={visibleStepIds}
-      disabledStepIds={scanDone && !questionnaireOnly ? ['scan'] : undefined}
+      disabledStepIds={scanDone && !questionnaireOnly ? ['scanning'] : undefined}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -360,15 +354,16 @@ export default function ResultContent() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="flex flex-1 flex-col"
+          className="flex h-full min-h-0 flex-1 flex-col"
         >
-          {step === 'scan' && (
+          {step === 'scanning' && (
             <ScanStep domain={domain} skipLoading={scanDone} onContinue={handleScanContinue} />
           )}
 
           {step === 'improved' && (
             <ImprovedStep
               domain={domain}
+              initialData={formData}
               onSubmit={handleImprovedSubmit}
               onBack={questionnaireOnly ? handleBack : handleScanAgain}
               backLabel={questionnaireOnly ? undefined : tImproved('scanAgain')}
@@ -384,9 +379,12 @@ export default function ResultContent() {
               domain={domain}
               formData={formData}
               euRep={euRep}
-              isUpdateMode={questionnaireOnly}
-              isSubmitting={regenerateDocument.isPending}
-              onPreview={handleSummaryContinue}
+              fillSubscriptionId={fillSubscriptionId}
+              onPaid={(result: CheckoutCompleteResult) => {
+                const document = result.document ?? buildFallbackPolicy(domain, result.orderId);
+                setCheckoutDocument(document);
+                setPhase('ready');
+              }}
               onBack={handleBack}
             />
           )}

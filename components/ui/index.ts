@@ -5,6 +5,7 @@ export * from './feedback';
 export * from './field';
 export * from './icon';
 export * from './overlay';
+export { DotmCircular12 } from './dotm-circular-12';
 
 // Resolve naming conflicts — UI components take precedence over Phosphor aliases
 export { Table, Tabs, Pagination } from './collection';

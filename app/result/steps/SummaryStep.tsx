@@ -1,366 +1,295 @@
 'use client';
 
+import Link from 'next/link';
+import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+import { countActivePolicySites, useSubscriptions } from '@/api/billing';
+import type { CheckoutCompleteResult } from '@/api/checkout';
 import {
-  CheckCircle,
-  Globe,
-  Buildings,
-  EnvelopeSimple,
-  MapPin,
-  CurrencyDollar,
-  Database,
-  ArrowsLeftRight,
-  UsersThree,
-  Gavel,
-} from '@/components/ui';
-import { StepFooter } from '../ui/StepFooter';
-import { StepHeader } from '../ui/StepHeader';
+  useCompleteCheckoutSession,
+  useCreateCheckoutSession,
+  calculateAmountInclVat,
+  calculateEuRepQuote,
+  calculateGeneratorPolicyQuote,
+  calculateVatAmount,
+  formatDiscountPercent,
+  formatSwissVatPercent,
+  GENERATOR_POLICY_UNIT_PRICE,
+  POLICY_TRIAL_DAYS,
+  qualifyingSiteCountForCheckout,
+} from '@/api/checkout';
+import { countAvailablePolicySlots, useDocuments } from '@/api/documents';
+import { useEuRepContracts } from '@/api/eu-rep';
+import { INSIGHT_META_VALUE_CLASS } from '@/app/insights/_components/insight-article-layout';
+import { Timer } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
-import { SCAN_GROUP_DEFINITIONS } from '../content/scan-groups';
-import {
-  type ImprovedFormData,
-  EU_REP_PLANS,
-  REVENUE_TYPE_OPTIONS,
-  SPECIAL_DATA_OPTIONS,
-  SUPERVISORY_AUTHORITY_OPTIONS,
-} from '../content/improved-form';
-import { isEuRepApplicable, isEuRepRequired, type EuRepState } from '../wizard-state';
+import { StepFooter } from '../ui/StepFooter';
+import { StepFrame } from '../ui/StepFrame';
+import { StepHeader } from '../ui/StepHeader';
+import type { ImprovedFormData } from '../content/improved-form';
+import { isBuyingEuRep, isLinkingExistingEuRep, type EuRepState } from '../wizard-state';
 
 interface SummaryStepProps {
   domain: string;
   formData: ImprovedFormData;
   euRep: EuRepState;
-  onPreview: () => void;
-  onBack?: () => void;
-  isUpdateMode?: boolean;
-  isSubmitting?: boolean;
+  /** Prepaid slot on an existing subscription — no generator charge. */
+  fillSubscriptionId?: string;
+  onPaid: (result: CheckoutCompleteResult) => void;
+  onBack: () => void;
 }
 
-function CategoryRow({ label, children }: { label: string; children: React.ReactNode }) {
+function formatChf(amount: number): string {
+  return `CHF ${amount.toFixed(2)}`;
+}
+
+function PriceRow({
+  label,
+  detail,
+  amount,
+  amountClassName = 'text-foreground',
+}: {
+  label: string;
+  detail?: string;
+  amount: string;
+  amountClassName?: string;
+}) {
   return (
-    <div className="border-border grid grid-cols-1 border-b last:border-b-0 lg:grid-cols-2">
-      <div className="border-border border-b p-4 sm:p-8 lg:border-r lg:border-b-0">
-        <h2 className="text-muted text-lg leading-snug font-semibold">{label}</h2>
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-foreground text-sm font-normal">{label}</p>
+        {detail ? <p className="text-muted text-sm font-normal">{detail}</p> : null}
       </div>
-      <div className="divide-border flex flex-col divide-y">{children}</div>
+      <p className={`shrink-0 text-sm font-semibold ${amountClassName}`}>{amount}</p>
     </div>
   );
-}
-
-function Row({ children }: { children: React.ReactNode }) {
-  return <div className="px-4 py-4 sm:px-8 sm:py-5">{children}</div>;
-}
-
-function KV({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <p className="text-muted text-xs">{label}</p>
-      <div className="flex min-w-0 items-center gap-1.5">
-        {icon && <span className="text-muted shrink-0">{icon}</span>}
-        <p className="text-foreground min-w-0 text-base font-medium break-words">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="rounded-full px-3 py-1.5 text-sm font-medium"
-      style={{ background: 'rgba(47,84,134,0.07)', color: 'var(--accent)' }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function buildScanCoverage() {
-  return SCAN_GROUP_DEFINITIONS.map((group) => ({
-    label: group.label,
-    items: group.items
-      .filter((item) => item.status !== 'not-detected')
-      .map((item) => (item.value ? `${item.name} (${item.value})` : item.name))
-      .join(', '),
-  }));
 }
 
 export function SummaryStep({
   domain,
   formData,
   euRep,
-  onPreview,
+  fillSubscriptionId,
+  onPaid,
   onBack,
-  isUpdateMode = false,
-  isSubmitting = false,
 }: SummaryStepProps) {
   const t = useTranslations('result.summary');
-  const tImproved = useTranslations('result.improvedStep.options');
+  const tValidation = useTranslations('validation');
+  const tGenerator = useTranslations('generatorPage');
+  const tp = useTranslations('generatorPage.pricingSection');
+  const subscriptions = useSubscriptions();
+  const documents = useDocuments();
+  const euRepContracts = useEuRepContracts();
+  const createSession = useCreateCheckoutSession();
+  const completeSession = useCompleteCheckoutSession();
+  const isProcessing = createSession.isPending || completeSession.isPending;
+  const linkedContract = euRepContracts.data?.find((row) => row.id === euRep.linkContractId);
 
-  const scanCoverage = buildScanCoverage();
-  const companyName = formData.companyName || domain;
-  const euRepApplicable = isEuRepApplicable(formData);
-  const euRepRequired = isEuRepRequired(formData);
-  const gdprApplies = euRepRequired;
+  const buyingEuRep = isBuyingEuRep(euRep);
+  const linkingExisting = isLinkingExistingEuRep(euRep);
+  const legalEntity = euRep.legalEntity ?? formData.companyName;
+  const forwardingEmail = euRep.forwardingEmail ?? formData.email;
+  const activeSites = countActivePolicySites(subscriptions.data ?? []);
 
-  function formatYesNo(value: string) {
-    if (value === 'yes') return t('values.yes');
-    if (value === 'no') return t('values.no');
-    return '—';
-  }
+  const fillSubscription = useMemo(
+    () =>
+      fillSubscriptionId
+        ? subscriptions.data?.find((row) => row.id === fillSubscriptionId)
+        : undefined,
+    [fillSubscriptionId, subscriptions.data]
+  );
 
-  function formatYesNoUnknown(value: string) {
-    if (value === 'yes') return t('values.yes');
-    if (value === 'no') return t('values.no');
-    if (value === 'dontknow') return t('values.unknown');
-    return '—';
-  }
+  const isFillSlotMode = Boolean(
+    fillSubscriptionId &&
+    fillSubscription &&
+    documents.data &&
+    countAvailablePolicySlots(fillSubscription, documents.data) > 0
+  );
 
-  function formatOptionLabel(value: string) {
-    if (REVENUE_TYPE_OPTIONS.some((option) => option.value === value)) {
-      return tImproved(`revenueTypes.${value}`);
+  const quote = useMemo(() => {
+    if (isFillSlotMode) {
+      return {
+        siteCount: 1,
+        qualifyingSiteCount: activeSites,
+        unitPrice: GENERATOR_POLICY_UNIT_PRICE,
+        discountRate: 0,
+        listPrice: 0,
+        discountAmount: 0,
+        amountDue: 0,
+      };
     }
-    if (SPECIAL_DATA_OPTIONS.some((option) => option.value === value)) {
-      return tImproved(`specialDataCategories.${value}`);
-    }
-    if (SUPERVISORY_AUTHORITY_OPTIONS.some((option) => option.value === value)) {
-      return tImproved(`supervisoryAuthority.${value}`);
-    }
-    return value;
-  }
-
-  function formatCountry() {
-    if (formData.basedInSwitzerland === 'yes') return t('values.switzerland');
-    return formData.country || '—';
-  }
-
-  function formatAddress() {
-    const parts = [formData.street, formData.postalCode, formData.city, formatCountry()].filter(
-      (part) => part && part !== '—'
+    return calculateGeneratorPolicyQuote(
+      qualifyingSiteCountForCheckout(activeSites, 'generator', 1),
+      1
     );
-    return parts.length > 0 ? parts.join(', ') : '—';
+  }, [activeSites, isFillSlotMode]);
+
+  const euRepQuote = buyingEuRep ? calculateEuRepQuote(1) : null;
+  const euRepAmount = euRepQuote?.amountDue ?? 0;
+  const subtotalExclVat = quote.amountDue + euRepAmount;
+  const vatAmount = calculateVatAmount(subtotalExclVat);
+  const totalInclVat = calculateAmountInclVat(subtotalExclVat);
+  const hasTrial = !isFillSlotMode;
+  const dueToday = hasTrial ? 0 : totalInclVat;
+
+  async function handleStart() {
+    if (
+      buyingEuRep &&
+      (!legalEntity.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forwardingEmail.trim()))
+    ) {
+      toast.error(tValidation('required'));
+      return;
+    }
+
+    try {
+      if (!hasTrial) {
+        toast.info(t('redirecting'));
+      }
+
+      const session = await createSession.mutateAsync({
+        kind: 'generator',
+        siteCount: 1,
+        domain,
+        policyName: 'Privacy Policy',
+        legalEntity: formData.companyName.trim() || undefined,
+        fillSubscriptionId: isFillSlotMode ? fillSubscriptionId : undefined,
+        euRepEntityCount: buyingEuRep ? 1 : undefined,
+        euRepEntities: buyingEuRep
+          ? [{ legalEntity: legalEntity.trim(), forwardingEmail: forwardingEmail.trim() }]
+          : undefined,
+        euRepLinkContractId: linkingExisting ? euRep.linkContractId : undefined,
+      });
+
+      if (!hasTrial) {
+        await new Promise((resolve) => setTimeout(resolve, 900));
+      }
+
+      const result = await completeSession.mutateAsync(session.id);
+      toast.success(hasTrial ? t('trialStarted') : t('paymentConfirmed'));
+      onPaid(result);
+    } catch {
+      toast.error(hasTrial ? t('trialFailed') : t('paymentFailed'));
+    }
   }
 
-  function euRepSummary(): { label: string; detail?: string } {
-    if (euRep.plan) {
-      const plan = EU_REP_PLANS[euRep.plan];
-      return {
-        label: t('values.planLabel', { name: plan.name }),
-        detail: t('values.planMonths', { inquiry: plan.inquiry, price: plan.price }),
-      };
-    }
-    if (euRep.declined) {
-      return {
-        label: euRepRequired ? t('values.requiredNotAdded') : t('values.declined'),
-        detail: t('values.noEuRepAdded'),
-      };
-    }
-    return { label: t('values.pending') };
-  }
-
-  const authority =
-    formData.listSupervisoryAuthority === 'yes'
-      ? formatOptionLabel(formData.supervisoryAuthority)
-      : t('values.notListed');
-  const euRepInfo = euRepSummary();
+  const ctaLabel =
+    isFillSlotMode && subtotalExclVat === 0 && !buyingEuRep
+      ? t('publishCta')
+      : hasTrial
+        ? t('startTrialCta')
+        : t('payCta');
 
   return (
-    <>
-      <StepHeader title={t('title')} description={t('description')} />
-
-      <Container>
-        <div className="border-border flex flex-col border-r border-l">
-          <CategoryRow label={t('categories.overview')}>
-            <Row>
-              <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <KV label={t('fields.policyType')} value={t('values.policyTypeEnhanced')} />
-                <KV
-                  label={t('fields.domain')}
-                  value={formData.domain || domain}
-                  icon={<Globe size={14} />}
-                />
-                <KV
-                  label={t('fields.gdprApplicable')}
-                  value={gdprApplies ? t('values.yes') : t('values.no')}
-                />
-                <KV label={t('fields.compliance')} value={t('values.complianceFramework')} />
-                <KV
-                  label={t('fields.euRepresentative')}
-                  value={euRepApplicable ? euRepInfo.label : t('values.notRequired')}
-                />
-              </div>
-            </Row>
-          </CategoryRow>
-
-          <CategoryRow label={t('categories.scanCoverage')}>
-            {scanCoverage.map((item) => (
-              <Row key={item.label}>
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    size={16}
-                    weight="fill"
-                    className="mt-0.5 shrink-0"
-                    style={{ color: '#16a34a' }}
-                  />
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-foreground text-base font-medium">{item.label}</span>
-                    <span className="text-muted text-sm">{item.items}</span>
+    <StepFrame
+      centerContent
+      header={
+        <StepHeader
+          title={isFillSlotMode ? t('fillSlotTitle') : t('title')}
+          description={
+            isFillSlotMode ? (
+              <p>{t('fillSlotDescription', { id: fillSubscriptionId ?? '' })}</p>
+            ) : undefined
+          }
+        />
+      }
+      footer={
+        <StepFooter
+          onBack={onBack}
+          onContinue={() => void handleStart()}
+          ctaLabel={ctaLabel}
+          ctaNote={hasTrial ? t('startTrialNote', { days: POLICY_TRIAL_DAYS }) : undefined}
+          ctaDisabled={isProcessing}
+        />
+      }
+    >
+      <Container className="flex h-full flex-1 flex-col overflow-visible">
+        <div className="border-border flex h-full flex-1 flex-col overflow-visible border-r border-l">
+          <div className="flex h-full flex-1 flex-col px-4 pt-10 pb-10 sm:px-8 sm:pt-16">
+            <div className="flex w-full max-w-2xl flex-col items-start gap-8 text-left">
+              {hasTrial ? (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <Timer size={24} weight="fill" className="text-accent shrink-0" aria-hidden />
+                    <span className="font-display text-accent text-base font-medium">
+                      {t('trialLabel')}
+                    </span>
                   </div>
+                  <p className={`${INSIGHT_META_VALUE_CLASS} leading-relaxed`}>
+                    {t('trialBody', { days: POLICY_TRIAL_DAYS })}
+                  </p>
                 </div>
-              </Row>
-            ))}
-          </CategoryRow>
+              ) : null}
 
-          <CategoryRow label={t('categories.company')}>
-            <Row>
-              <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <KV
-                  label={t('fields.companyName')}
-                  value={companyName}
-                  icon={<Buildings size={14} />}
-                />
-                <KV
-                  label={t('fields.contactEmail')}
-                  value={formData.email || '—'}
-                  icon={<EnvelopeSimple size={14} />}
-                />
-                <KV
-                  label={t('fields.address')}
-                  value={formatAddress()}
-                  icon={<MapPin size={14} />}
-                />
-                <KV
-                  label={t('fields.basedInSwitzerland')}
-                  value={formatYesNo(formData.basedInSwitzerland)}
-                />
-              </div>
-            </Row>
-          </CategoryRow>
-
-          <CategoryRow label={t('categories.business')}>
-            <Row>
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                  <KV
-                    label={t('fields.generatesRevenue')}
-                    value={formatYesNo(formData.generatesRevenue)}
-                    icon={<CurrencyDollar size={14} />}
-                  />
-                  <KV
-                    label={t('fields.usesDataForMarketing')}
-                    value={formatYesNo(formData.usesDataForMarketing)}
-                  />
-                  <KV
-                    label={t('fields.usesProfiling')}
-                    value={formatYesNo(formData.usesProfiling)}
-                  />
-                  <KV
-                    label={t('fields.employeePrivacyNotice')}
-                    value={formatYesNo(formData.hasEmployeePrivacyNotice)}
-                    icon={<UsersThree size={14} />}
-                  />
-                </div>
-                {formData.generatesRevenue === 'yes' && formData.revenueTypes.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-muted text-xs">{t('fields.revenueTypes')}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.revenueTypes.map((type) => (
-                        <Tag key={type}>{formatOptionLabel(type)}</Tag>
-                      ))}
-                    </div>
-                  </div>
+              <div className="flex w-full flex-col gap-4">
+                {isFillSlotMode ? (
+                  <p className="text-muted text-sm">
+                    {t('slotIncluded', { id: fillSubscriptionId ?? '' })}
+                  </p>
                 ) : null}
-                {formData.hasEmployeePrivacyNotice === 'yes' && formData.employeePrivacyUrl ? (
-                  <KV label={t('fields.employeePrivacyUrl')} value={formData.employeePrivacyUrl} />
-                ) : null}
-              </div>
-            </Row>
-          </CategoryRow>
 
-          <CategoryRow label={t('categories.dataProcessing')}>
-            <Row>
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                  <KV
-                    label={t('fields.processesSpecialData')}
-                    value={formatYesNo(formData.processesSpecialData)}
-                    icon={<Database size={14} />}
-                  />
-                  <KV
-                    label={t('fields.thirdCountryTransfers')}
-                    value={formatYesNoUnknown(formData.transfersToThirdCountry)}
-                    icon={<ArrowsLeftRight size={14} />}
-                  />
-                </div>
-                {formData.processesSpecialData === 'yes' &&
-                formData.specialDataCategories.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-muted text-xs">{t('fields.specialDataCategories')}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.specialDataCategories.map((type) => (
-                        <Tag key={type}>{formatOptionLabel(type)}</Tag>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </Row>
-          </CategoryRow>
-
-          <CategoryRow label={t('categories.compliance')}>
-            <Row>
-              <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <KV
-                  label={t('fields.processesEuData')}
-                  value={formatYesNoUnknown(formData.processesEUData)}
+                <PriceRow
+                  label={t('generatorLine')}
+                  detail={
+                    isFillSlotMode
+                      ? t('generatorLineSlotDetail', { id: fillSubscriptionId ?? '', domain })
+                      : t('generatorLineDetail', { domain })
+                  }
+                  amount={formatChf(quote.amountDue)}
                 />
-                {formData.processesEUData === 'yes' ? (
-                  <KV
-                    label={t('fields.systematicProcessing')}
-                    value={formatYesNoUnknown(formData.systematically)}
+
+                {!isFillSlotMode && quote.discountAmount > 0 ? (
+                  <PriceRow
+                    label={t('discountLine', {
+                      percent: formatDiscountPercent(quote.discountRate),
+                    })}
+                    amount={`− ${formatChf(quote.discountAmount)}`}
+                    amountClassName="text-success"
+                  />
+                ) : !isFillSlotMode ? (
+                  <p className="text-muted text-sm">
+                    {tp('perSite', { price: formatChf(GENERATOR_POLICY_UNIT_PRICE) })}
+                  </p>
+                ) : null}
+
+                {buyingEuRep ? (
+                  <PriceRow
+                    label={t('euRepLine')}
+                    detail={t('euRepLineDetailNamed', { entity: legalEntity.trim() || '—' })}
+                    amount={formatChf(euRepAmount)}
                   />
                 ) : null}
-                <KV
-                  label={t('fields.targetsEuUsers')}
-                  value={formatYesNoUnknown(formData.offersToEU)}
-                />
-                <KV
-                  label={t('fields.monitorsEuBehaviour')}
-                  value={formatYesNoUnknown(formData.monitorsEUBehaviour)}
-                />
-                <KV
-                  label={t('fields.euEstablishment')}
-                  value={formatYesNo(formData.hasEUEstablishment)}
-                />
-                <KV
-                  label={t('fields.supervisoryAuthority')}
-                  value={authority}
-                  icon={<Gavel size={14} />}
-                />
-              </div>
-            </Row>
-          </CategoryRow>
 
-          {euRepApplicable ? (
-            <CategoryRow label={t('categories.euRep')}>
-              <Row>
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-foreground text-base font-medium">{euRepInfo.label}</p>
-                  {euRepInfo.detail ? (
-                    <p className="text-muted text-sm">{euRepInfo.detail}</p>
-                  ) : null}
+                {linkingExisting ? (
+                  <PriceRow
+                    label={t('euRepLinkLine')}
+                    detail={t('euRepLinkLineDetail', {
+                      entity: linkedContract?.legalEntity ?? '—',
+                    })}
+                    amount={formatChf(0)}
+                  />
+                ) : null}
+
+                <div className="border-border flex flex-col gap-3 border-t pt-4">
+                  <PriceRow label={t('subtotalExclVat')} amount={formatChf(subtotalExclVat)} />
+                  <PriceRow
+                    label={t('vatLine', { rate: formatSwissVatPercent() })}
+                    amount={formatChf(vatAmount)}
+                  />
+                  <PriceRow label={t('totalInclVat')} amount={formatChf(totalInclVat)} />
+                  <PriceRow label={t('dueToday')} amount={formatChf(dueToday)} />
                 </div>
-              </Row>
-            </CategoryRow>
-          ) : null}
+              </div>
+
+              <p className="text-muted text-sm leading-relaxed">
+                {tGenerator.rich('legal', {
+                  terms: (chunks) => <Link href="/terms">{chunks}</Link>,
+                })}
+              </p>
+            </div>
+          </div>
         </div>
       </Container>
-
-      <StepFooter
-        onBack={onBack}
-        onContinue={onPreview}
-        ctaLabel={isUpdateMode ? t('regeneratePolicy') : t('continueToCheckout')}
-        ctaDisabled={isSubmitting}
-      />
-    </>
+    </StepFrame>
   );
 }

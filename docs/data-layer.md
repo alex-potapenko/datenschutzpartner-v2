@@ -24,83 +24,144 @@ Auth uses `api/auth.ts`: `POST /auth/login` stores a bearer token in `localStora
 Mock accounts: `lucas.baumgartner@gmail.com` (logged in, with membership) — password `dspmp`;
 `demo@datenschutzpartner.ch` (logged in, no membership) — password `demo`.
 
+**Lucas seed (typical vs agency):** most policy subscriptions are **1 site = 1 abo**
+(wizard purchases). One **agency prepaid** row (`#84729`, `siteCount: 5`) has three
+client sites set up and **two empty slots** (buy-more flow). Separate single-site abos
+cover `sutter-web.ch` and `alpenblick-hotel.ch` with their own renewal dates. One
+expired single-site abo remains for history.
+
 ## Member area («Mein Konto»)
 
 The authenticated hub at `/account` reads from three domain modules:
 
 - `api/account.ts` — dashboard snapshot, profile, addresses (full CRUD), password
   change. `GET /account/snapshot` feeds the **Overview** dashboard: membership summary,
-  next live session timestamp, document count, and optional EU Rep inquiry allowance
-  (`euRepInquiryAllowance`: included/used counts + further-inquiry price). The **Account Details** section splits into **Profile** (name, email,
+  next live session timestamp, document count, and EU Rep **legal-entity** count
+  (from active EU Rep subscriptions). The **Account Details** section splits into **Profile** (name, email,
   password) and **Billing Addresses** (`PaymentDetailsSection`) — the member's saved
   billing addresses, laid out in the same section/column/divider style as the Academy
   membership screen. Addresses carry an optional `label` (e.g. "Head office") and an
   optional `vatId` shown on invoices; there is no more upsert-by-type — a member can
   save several `type: 'billing'` addresses and pick freely between them.
-- `api/billing.ts` — subscriptions (+ cancel), memberships and orders. Orders for the
-  Privacy Policy Generator may include `siteCount`; EU Rep orders use `orderKind`
-  (`subscription` | `extraInquiry`). Subscriptions expose optional `planId` for
+- `api/billing.ts` — subscriptions (+ cancel), memberships and orders. Orders use `orderKind`
+  (`subscription` | `renewal`). Privacy Policy Generator orders are always one policy
+  subscription per invoice. EU Representation is **one subscription per contract**
+  (one legal entity / year, CHF 249) — buying N entities creates N subscriptions and
+  N invoices. Subscriptions expose optional `planId` for
   plan-specific terms in the member UI, and an optional `billingAddressId` linking to
   the address used for that one subscription (`PATCH /billing/subscriptions/:id/billing`).
-  **There is no payment-method resource**: payments run through Payrexx (see below), so
+  `GET /billing/subscriptions/:id` feeds the dedicated subscription detail page
+  (`/account/subscriptions/[id]`). **There is no payment-method resource**: payments run through Payrexx (see below), so
   the member area never stores or displays card details.
-- `api/documents.ts` — the generated-document inventory plus the Privacy Policy
-  Generator plan (`useGeneratorPlan` → `GET /generator/plan`, `{ siteAllowance, planId? }`). The
-  generator is a **yearly subscription that also grants a site allowance**: a member buys
-  a number of websites and every generated policy consumes one, so the member area derives
-  "used" from the document count and shows the remaining allowance. The term/renewal live
-  on the `policy` `Subscription` (`api/billing.ts`), alongside Academy and EU Rep, so the
-  generator appears in the dashboard renewals like the other products. Generated policies
-  are **hosted on Datenschutzpartner servers and embedded on the customer's site**, so
-  legal updates are applied automatically — there is **no per-document status** to track
-  and no "update available" action. Each document has a `site` (website domain) and
-  an optional `siteUrl` (hosted policy page path). The member-area policy table shows
-  name, site, created date, and last updated date in separate columns; the detail page
-  is `/account/policies/[id]`.
-  The "Generated Policies" tab (`DocumentsSection`) surfaces this as two summary cards
-  (allowance + generated count) above the document list; billing history for the generator
-  lives on the "Subscription" tab inside the shared `MembershipPanel`.
+- `api/documents.ts` — the generated-document inventory plus an optional generator snapshot
+  (`useGeneratorPlan` → `GET /generator/plan`, `{ activeSubscriptionCount,
+availableSiteSlots, slotSubscriptionId? }`). Each
+  policy subscription can cover **prepaid capacity** for several websites (buy-more
+  flow) or **one website** when created through the wizard. Each hosted policy maps
+  to one site. The term/renewal live on that `policy` `Subscription` (`api/billing.ts`),
+  alongside Academy and EU Rep. Generated policies are **hosted on Datenschutzpartner
+  servers and embedded on the customer's site**, so legal updates are applied automatically
+  — there is **no per-document status** to track and no "update available" action. Each
+  document has a `site` (website domain), an optional `siteUrl` (hosted policy page path),
+  and a `legalEntity` — the **Swiss controller** of that website, independent of EU
+  Representation. The member-area policy table shows **website first** (as a link),
+  that Swiss legal entity, an **EU Rep** badge when the policy is linked to a
+  representation contract, created date, and last updated date;
+  the detail page is `/account/policies/[id]` (`Policy Text` and `Instruction`
+  tabs). `DocumentsSection` lists hosted policies grouped by
+  subscription; the subscription id links to `/account/subscriptions/[id]`
+  (the same `MembershipPanel` billing screen as a legal-entity detail). Billing
+  history and orders tables also link that id.
 
-#### Generator tier upgrades (Option 1)
+#### Generator purchases and renewals
 
-When a member **upgrades** their Privacy Policy Generator tier (e.g. 1 → 3
-websites) before the current term ends:
+Members buy policy coverage in two ways:
 
-1. **`siteAllowance` is replaced** — the new tier's site count applies (e.g.
-   Single → Team = **3**, not 1+3).
-2. **Renewal resets** — `Subscription.nextPaymentDate` moves to **+12 months from
-   the upgrade payment date**; there is still one active `policy` subscription.
-3. **Credit for unused time** — remaining days on the current term are offset
-   against the new plan price:  
-   `credit = (remainingDays / termDays) × currentPlanPrice`,  
-   `amountDue = max(0, newPlanPrice − credit)`.
-4. **Existing hosted policies stay live** — generated documents keep working as
-   long as the new tier covers at least as many sites as already generated.
-5. **Billing history** — each purchase/upgrade is a separate `Order` with
-   `siteCount`, optional `creditAmount`, and invoice; `/account/generator/checkout`
-   (`generatorTopUp` session) lists **all tiers** with reasons when a plan cannot be
-   selected (current plan, downgrade, or fewer sites than already in use); only
-   higher tiers with enough site allowance can be purchased;
-   (`generator` session) creates the first subscription and hosted document.
+1. **Wizard (`/scan` → `/result`)** — always **one website = one new subscription**
+   (`siteCount: 1`). The scan, questionnaire, and checkout all refer to that single
+   site. Payment creates one hosted policy and one billing subscription.
 
-Agency-style additive top-ups (Option 2) are **not** implemented in the POC —
-only tier upgrades with credit.
+2. **Buy more sites** (`/account/generator/checkout`) — **prepaid capacity** only:
+   purchase `siteCount` > 1 with no scan and no hosted documents yet. The member area
+   shows **empty rows** for unused slots; **Add Site** opens `/scan?fillSubscription=:id`
+   and runs the wizard in fill-slot mode (no generator charge; optional EU Rep add-on
+   still billable).
 
-- `api/eu-rep-inquiries.ts` — inquiry log for EU Representation members.
-  `useEuRepInquiries` → `GET /eu-rep/inquiries` returns `{ id, date, subject, status,
-reference? }[]` with `status` in `forwarded` | `answered` | `closed`. Gated on the
-  member token in MSW (empty for demo). The **EU Representation → Inquiries** tab
-  (`InquiriesSection`) mirrors the Privacy Policy Generator list layout: allowance
-  summary cards, search, and a table with `StatusPill` tones.
+A subscription with `siteCount` > 1 is **prepaid multi-site capacity** on one renewal
+calendar. Wizard-created subscriptions always have `siteCount: 1`. Volume discount
+is based on **paid site capacity** on active policy subscriptions (`siteCount` sum).
+A **new purchase** (wizard or buy-more) is priced on **active sites + sites in this
+order** — if the cart crosses a higher tier, that rate applies to the whole current
+order. **Renewal** re-evaluates against the live site count only, including the
+subscription being renewed:
+
+| Active sites | Discount |
+| ------------ | -------- |
+| 0–3          | none     |
+| 4–5          | 5%       |
+| 6–10         | 7.5%     |
+| 11+          | 10%      |
+
+Example: 8 active sites (5+3) → renewal of either subscription is **7.5%** off
+list price. 3 active sites + buy 1 more → that order qualifies at **4 sites → 5%**.
+3 active + buy 3 more → **6 sites → 7.5%** on this order. If cancellations drop
+the member below a threshold, the lower (or zero) rate starts at the **next**
+renewal.
+
+**Unused slots:** fill-slot wizard passes `fillSubscriptionId` on checkout; the new
+hosted policy attaches to that subscription without a generator charge.
+
+**Renewal** is a new one-year order (`orderKind: 'renewal'`) priced at the tier the
+member qualifies for **at that moment**. Each subscription has its own calendar. The
+owner is notified 30 days before each renewal (price + current discount; a lost-tier
+warning if the rate went up). Cancellation is allowed any time before the charge.
+
+Checkout kinds: `generator` (new policy), `generatorTopUp` (same as a new policy in
+this prototype — the dedicated checkout route redirects to `/scan`), `generatorRenewal`
+(renew one existing subscription), and `euRep` (standalone EU Representation from
+`/account/eu-rep/checkout`). Quote helpers live in `api/checkout.ts`
+(`calculateGeneratorPolicyQuote`, `calculateEuRepQuote`). Standalone EU Rep checkout
+buys **N legal-entity contracts** (`euRepEntityCount` + `euRepEntities[]` with
+`legalEntity` and `forwardingEmail` per contract) and creates **one billing
+subscription per contract**.
+
+- `api/eu-rep.ts` — EU Representation **contracts** (`GET /eu-rep/contracts`,
+  `GET /eu-rep/contracts/:id`, `PATCH /eu-rep/contracts/:id`,
+  `POST /eu-rep/contracts/:id/documents`). One
+  contract = one **Swiss** legal entity for one year. The EU representative is
+  always the constant `EU_REP_REPRESENTATIVE` (VGS Datenschutzpartner GmbH,
+  Hamburg) — there is no per-contract EU-side entity. A member may hold several
+  contracts (an agency with two Swiss clients = two contracts). Fields:
+  `subscriptionId`, `legalEntity` (the represented Swiss company),
+  `forwardingEmail` (internal inbox — **never** printed in the policy; it may
+  differ from emails in the policy because different people own policies vs EU
+  Rep), `linkedDocumentIds`, `status`. Each contract points at its own billing
+  `subscriptionId` (1:1). Hosted generator documents carry their own Swiss
+  `legalEntity` plus `euRepContractId` (and derived `euRepLinked`);
+  linking inserts the Hamburg Art. 27 block. Cancelling an EU
+  Rep subscription strips that block from **hosted** policies covered by that
+  contract only. The **EU Representation** section has no secondary tabs:
+  `EuRepContractPanel` lists linked hosted policies grouped by Swiss legal
+  entity. Opening an entity goes to `/account/eu-rep/contracts/[id]` with
+  **Details** (legal entity / forwarding email) and **Subscriptions**
+  (`MembershipPanel` for that contract) tabs.
 - `api/checkout.ts` — Payrexx checkout sessions and post-payment side effects.
   `useCreateCheckoutSession` → `POST /checkout/sessions` returns `{ id, redirectUrl,
-amount, siteCount }`. The POC simulates Payrexx by calling
+amount, siteCount, discountRate?, discountAmount? }`. The POC simulates Payrexx by calling
   `useCompleteCheckoutSession` → `POST /checkout/sessions/:id/complete`, which appends
-  an `Order`, **replaces** `siteAllowance` with the new tier, applies upgrade credit,
-  resets the `policy` subscription renewal, and (for `kind: 'generator'`) creates a
-  hosted document. Tier upgrades use `kind: 'generatorTopUp'` from
-  `/account/generator/checkout`. Credit/quote helpers live in `api/checkout.ts`
-  (`calculateGeneratorUpgradeQuote`). Helpers:
+  an `Order`, creates a **new** policy `Subscription` (or updates the named one on
+  `generatorRenewal`), and (for `kind: 'generator'` with a domain) creates a hosted
+  document. Additional policies are bought through the generator wizard (`/scan`).
+  Bundling `euRepEntityCount` / `euRepEntities` on a generator checkout creates a
+  new EU Rep **subscription + contract** and auto-links the new hosted document. Passing
+  `euRepLinkContractId` instead links the new document to an **existing**
+  contract with no extra charge. Kind `euRep` creates **one subscription per
+  purchased contract**. Unit price is CHF 249 / legal entity / year
+  (`EU_REP_UNIT_PRICE`). After a standalone purchase, leftover hosted policies
+  can be linked (`needsPolicyLinking`, `euRepContractIds`). Changing a contract's
+  legal entity regenerates linked hosted policies (`updatedDate`).
+  Quote helpers live in `api/checkout.ts` (`calculateGeneratorPolicyQuote`,
+  `calculateEuRepQuote`). Helpers:
   `openPayrexxPortal()` → `GET /checkout/payrexx-portal`; `downloadOrderInvoice(orderId)`
   → `GET /billing/orders/:id/invoice` (+ PDF blob).
 
@@ -145,11 +206,9 @@ shared across mock accounts (not gated). The shell renders client-side; `Account
 redirects unauthenticated visitors to `/login`, and the current password for the mock
 change-password endpoint is `dspmp`.
 
-The **Academy** tab (`AcademySection`) has three sub-tabs: **Sessions**, **Documents**, and
-**Membership**. Session schedules come from static modules under
-`lib/academy-content/` — upcoming/past sessions from `preview-schedule.ts` + `events.ts`;
-checklists and tools from `resources.ts` (linked to existing `/insights/…` articles and
-`/scan`). No dedicated API yet.
+The **Academy** tab (`AcademySection`) shows **Membership** only (sessions and
+resources live on the public `/academy` landing). Session schedules remain in static
+modules under `lib/academy-content/` for that landing. No dedicated Academy API yet.
 
 ## Future API replacement
 
