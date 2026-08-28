@@ -346,6 +346,7 @@ export default function ResultContent() {
       visitedSteps={visitedSteps}
       visibleStepIds={visibleStepIds}
       disabledStepIds={scanDone && !questionnaireOnly ? ['scanning'] : undefined}
+      scrollStepsWithContent={step === 'improved'}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -354,7 +355,7 @@ export default function ResultContent() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="flex h-full min-h-0 flex-1 flex-col"
+          className={`flex min-h-0 flex-1 flex-col${step === 'improved' ? '' : 'h-full'}`}
         >
           {step === 'scanning' && (
             <ScanStep domain={domain} skipLoading={scanDone} onContinue={handleScanContinue} />

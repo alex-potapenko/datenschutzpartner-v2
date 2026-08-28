@@ -14,6 +14,7 @@ interface StepFooterProps {
   skipLabel?: string;
   backLabel?: ReactNode;
   ctaDisabled?: boolean;
+  sticky?: boolean;
 }
 
 export function StepFooter({
@@ -25,11 +26,12 @@ export function StepFooter({
   skipLabel,
   backLabel,
   ctaDisabled,
+  sticky = true,
 }: StepFooterProps) {
   const t = useTranslations('common');
 
   return (
-    <div className="border-border sticky bottom-0 z-20 border-t bg-transparent">
+    <div className={`border-border border-t bg-transparent${sticky ? 'sticky bottom-0 z-20' : ''}`}>
       <Container>
         <div className="border-border flex items-center justify-between gap-2 border-r border-l px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
           {onBack ? (

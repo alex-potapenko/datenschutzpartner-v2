@@ -40,6 +40,8 @@ interface StepLayoutProps {
   disabledStepIds?: string[];
   /** Hide the domain + stepper bars — used for the post-config checkout screens. */
   showSteps?: boolean;
+  /** Scroll domain + stepper with step content — long questionnaire forms. */
+  scrollStepsWithContent?: boolean;
 }
 
 export function StepLayout({
@@ -51,6 +53,7 @@ export function StepLayout({
   visibleStepIds,
   disabledStepIds,
   showSteps = true,
+  scrollStepsWithContent = false,
 }: StepLayoutProps) {
   const t = useTranslations('result.steps');
   const tCommon = useTranslations('common');
@@ -75,6 +78,96 @@ export function StepLayout({
 
   const current = indexMap[step] ?? 0;
   const modal = useOverlayState();
+
+  const stepsChrome = showSteps ? (
+    <>
+      <div
+        className="shrink-0"
+        style={{
+          background: 'var(--accent)',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
+        }}
+      >
+        <Container>
+          <div
+            className="border-r border-l px-4 py-6 sm:px-8 sm:py-8"
+            style={{ borderColor: 'rgba(255,255,255,0.12)' }}
+          >
+            <h1 className="truncate text-2xl text-white sm:text-3xl lg:text-4xl">{domain}</h1>
+          </div>
+        </Container>
+      </div>
+
+      <div className="shrink-0" style={{ background: 'var(--accent)' }}>
+        <Container>
+          <div
+            className="flex items-stretch overflow-hidden border-r border-l"
+            style={{ borderColor: 'rgba(255,255,255,0.12)' }}
+          >
+            <AnimatePresence initial={false}>
+              {steps.map((s, i) => {
+                const done = i < current;
+                const active = i === current;
+                const visited = visitedSteps?.has(s.id) ?? false;
+                const clickable =
+                  !active && visited && !!onStepClick && !disabledStepIds?.includes(s.id);
+                return (
+                  <motion.div
+                    key={s.id}
+                    layout
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className={`flex flex-1 items-center justify-center gap-3 overflow-hidden border-r px-2 py-4 last:border-r-0 sm:justify-start sm:px-8 sm:py-6 ${clickable ? 'cursor-pointer' : ''}`}
+                    onClick={
+                      clickable
+                        ? () => {
+                            onStepClick(s.id);
+                          }
+                        : undefined
+                    }
+                    style={{
+                      borderColor: 'rgba(255,255,255,0.12)',
+                      borderTop: active || done ? '3px solid white' : '3px solid transparent',
+                    }}
+                  >
+                    {done ? (
+                      <div
+                        className="flex shrink-0 items-center justify-center rounded-full"
+                        style={{ width: 28, height: 28, background: 'white' }}
+                      >
+                        <Check size={14} weight="bold" style={{ color: 'var(--accent)' }} />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          background: active ? 'white' : 'transparent',
+                          border: active ? 'none' : '1.5px solid rgba(255,255,255,0.35)',
+                          color: active ? 'var(--accent)' : 'rgba(255,255,255,0.45)',
+                        }}
+                      >
+                        {i + 1}
+                      </div>
+                    )}
+                    <span
+                      className="hidden text-base font-medium whitespace-nowrap sm:inline"
+                      style={{ color: done || active ? 'white' : 'rgba(255,255,255,0.35)' }}
+                    >
+                      {s.label}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </Container>
+      </div>
+    </>
+  ) : null;
 
   return (
     <div className="bg-background flex h-dvh flex-col overflow-hidden">
@@ -130,100 +223,16 @@ export function StepLayout({
         </Container>
       </div>
 
-      {/* Domain name */}
-      {showSteps ? (
-        <>
-          <div
-            className="shrink-0"
-            style={{
-              background: 'var(--accent)',
-              borderBottom: '1px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            <Container>
-              <div
-                className="border-r border-l px-4 py-6 sm:px-8 sm:py-8"
-                style={{ borderColor: 'rgba(255,255,255,0.12)' }}
-              >
-                <h1 className="truncate text-2xl text-white sm:text-3xl lg:text-4xl">{domain}</h1>
-              </div>
-            </Container>
-          </div>
-
-          {/* Steps bar */}
-          <div className="shrink-0" style={{ background: 'var(--accent)' }}>
-            <Container>
-              <div
-                className="flex items-stretch overflow-hidden border-r border-l"
-                style={{ borderColor: 'rgba(255,255,255,0.12)' }}
-              >
-                <AnimatePresence initial={false}>
-                  {steps.map((s, i) => {
-                    const done = i < current;
-                    const active = i === current;
-                    const visited = visitedSteps?.has(s.id) ?? false;
-                    const clickable =
-                      !active && visited && !!onStepClick && !disabledStepIds?.includes(s.id);
-                    return (
-                      <motion.div
-                        key={s.id}
-                        layout
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className={`flex flex-1 items-center justify-center gap-3 overflow-hidden border-r px-2 py-4 last:border-r-0 sm:justify-start sm:px-8 sm:py-6 ${clickable ? 'cursor-pointer' : ''}`}
-                        onClick={
-                          clickable
-                            ? () => {
-                                onStepClick(s.id);
-                              }
-                            : undefined
-                        }
-                        style={{
-                          borderColor: 'rgba(255,255,255,0.12)',
-                          borderTop: active || done ? '3px solid white' : '3px solid transparent',
-                        }}
-                      >
-                        {done ? (
-                          <div
-                            className="flex shrink-0 items-center justify-center rounded-full"
-                            style={{ width: 28, height: 28, background: 'white' }}
-                          >
-                            <Check size={14} weight="bold" style={{ color: 'var(--accent)' }} />
-                          </div>
-                        ) : (
-                          <div
-                            className="flex shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                            style={{
-                              width: 28,
-                              height: 28,
-                              background: active ? 'white' : 'transparent',
-                              border: active ? 'none' : '1.5px solid rgba(255,255,255,0.35)',
-                              color: active ? 'var(--accent)' : 'rgba(255,255,255,0.45)',
-                            }}
-                          >
-                            {i + 1}
-                          </div>
-                        )}
-                        <span
-                          className="hidden text-base font-medium whitespace-nowrap sm:inline"
-                          style={{ color: done || active ? 'white' : 'rgba(255,255,255,0.35)' }}
-                        >
-                          {s.label}
-                        </span>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-            </Container>
-          </div>
-        </>
-      ) : null}
+      {/* Domain + steps — fixed on most steps, scroll with content on long forms */}
+      {showSteps && !scrollStepsWithContent ? stepsChrome : null}
 
       {/* Content */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+      <div
+        className={`flex min-h-0 flex-1 flex-col ${scrollStepsWithContent ? 'overflow-y-auto' : 'overflow-hidden'}`}
+      >
+        {showSteps && scrollStepsWithContent ? stepsChrome : null}
+        {children}
+      </div>
 
       {/* Cancel modal */}
       <ModalRoot state={modal}>

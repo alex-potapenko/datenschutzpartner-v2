@@ -253,9 +253,11 @@ export function ImprovedStep({
 
   return (
     <StepFrame
+      scrollWithContent
       header={<StepHeader title={t('title')} />}
       footer={
         <StepFooter
+          sticky={false}
           onBack={onBack}
           backLabel={backLabel}
           onContinue={handleSubmit}
@@ -263,8 +265,8 @@ export function ImprovedStep({
         />
       }
     >
-      <Container className="flex h-full flex-1 flex-col overflow-visible">
-        <div className="border-border flex h-full flex-1 flex-col overflow-visible border-r border-l">
+      <Container>
+        <div className="border-border border-r border-l">
           <CategoryRow label={t('categories.controller')}>
             <QField label={t('uidLookup.label')}>
               <UidCompanyLookup
