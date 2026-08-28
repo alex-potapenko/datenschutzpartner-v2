@@ -22,11 +22,6 @@
     "saved": "Gespeichert",
     "delete": "Löschen",
     "back": "Zurück",
-    "details": "Details",
-    "subscriptionDetails": "Abonnement-Details",
-    "policyDetails": "Richtlinien-Details",
-    "legalEntityDetails": "Juristische Person — Details",
-    "entityDetails": "{entity} — Details",
     "continue": "Weiter",
     "skip": "Überspringen"
   },
@@ -511,17 +506,32 @@
       }
     },
     "pricingSection": {
-      "title": "EU-Vertretung je juristische Person",
-      "subtitle": "Ein Vertrag gilt für eine juristische Person für 12 Monate.",
-      "includedTitle": "In jeder juristischen Person enthalten",
-      "includedToggle": "Was enthalten ist",
-      "selectPlan": "EU-Vertretung",
-      "selectOne": "Vertretungsvertrag",
+      "title": "Ein Schutz — drei Pläne",
+      "subtitle": "Alle Pläne bieten dieselbe EU-Vertretung. Der einzige Unterschied: wie viele Anfragen pro Jahr bereits inbegriffen sind.",
+      "includedTitle": "In jedem Plan enthalten",
+      "selectPlan": "Wählen Sie Ihren Plan",
       "perYear": "pro Jahr",
-      "perEntity": "{price} je juristische Person / Jahr",
-      "decreaseEntities": "Weniger juristische Personen",
-      "increaseEntities": "Mehr juristische Personen",
-      "entityCountLabel": "Juristische Personen in dieser Bestellung"
+      "includedLabel": "Anfragen inbegriffen",
+      "furtherInquiriesLabel": "pro zusätzliche Anfrage",
+      "plans": {
+        "budget": {
+          "tabLabel": "Budget",
+          "showPerYear": false,
+          "note": "/ pro einzelne Anfrage"
+        },
+        "standard": {
+          "tabLabel": "Standard",
+          "showPerYear": true,
+          "includedCount": "1",
+          "furtherAmount": "79"
+        },
+        "premium": {
+          "tabLabel": "Premium",
+          "showPerYear": true,
+          "includedCount": "5",
+          "furtherAmount": "59"
+        }
+      }
     },
     "pricePeriod": "/ 12 Monate",
     "plans": {
@@ -683,7 +693,6 @@
   "result": {
     "steps": {
       "scan": "Scan",
-      "scanning": "Scan läuft",
       "questionnaire": "Fragebogen",
       "euRep": "EU-Vertretung",
       "summary": "Zusammenfassung"
@@ -691,31 +700,11 @@
     "euRepStep": {
       "title": "EU-Datenschutzvertretung",
       "requiredIntro": "Basierend auf Deinen <answers>Antworten</answers> gehen wir davon aus, dass Du gemäss DSGVO eine EU-Datenschutzvertretung benennen musst.",
-      "requiredIntroPlain": "Basierend auf Deinen Antworten gehen wir davon aus, dass Du gemäss DSGVO eine EU-Datenschutzvertretung benennen musst.",
       "requiredDisclaimer": "Hinweis: Ausnahmsweise ist keine Vertretung erforderlich, wenn die Verarbeitung nur gelegentlich erfolgt, keine umfangreiche Verarbeitung besonderer Datenkategorien umfasst und voraussichtlich kein Risiko für Rechte und Freiheiten natürlicher Personen birgt. Wir raten davon ab, sich auf diese Ausnahme zu verlassen.",
       "optionalIntro": "Basierend auf Deinen <answers>Antworten</answers> benötigst Du wahrscheinlich keine EU-Datenschutzvertretung gemäss DSGVO. Du kannst unser Angebot dennoch nutzen — etwa weil Geschäftspartner und Kunden im EWR DSGVO-Konformität verlangen oder Du auf Nummer sicher gehen möchtest.",
-      "optionalIntroPlain": "Basierend auf Deinen Antworten benötigst Du wahrscheinlich keine EU-Datenschutzvertretung gemäss DSGVO. Du kannst unser Angebot dennoch nutzen — etwa weil Geschäftspartner und Kunden im EWR DSGVO-Konformität verlangen.",
-      "alreadyCoveredTitle": "Du bist bereits abgedeckt",
-      "alreadyCoveredIntro": "Deine juristische Person hat bereits eine aktive EU-Vertretung bei uns — ein erneuter Kauf ist nicht nötig.",
-      "alreadyCoveredBody": "Für diese juristische Person sind wir bereits für Dich da. Diese Richtlinie wird mit Deinem bestehenden EU-Vertretungsvertrag verknüpft.",
-      "alreadyCoveredHint": "Kein zusätzlicher Kauf erforderlich. Fahre mit der Zusammenfassung fort, um Deine Datenschutzerklärung abzuschliessen.",
-      "alreadyCoveredLegalEntity": "Juristische Person",
-      "alreadyCoveredForwardingEmail": "Weiterleitungs-E-Mail",
-      "alreadyCoveredLinkedPolicies": "Verknüpfte Richtlinien",
-      "alreadyCoveredLinkedPoliciesCount": "{count, plural, one {# gehostete Richtlinie} other {# gehostete Richtlinien}}",
       "answersLink": "Antworten",
       "answersDialogTitle": "Deine Antworten",
       "answersDialogDone": "Fertig",
-      "chooseAdd": "EU-Vertretung hinzufügen",
-      "chooseAnother": "Für eine weitere juristische Person kaufen",
-      "existingTitle": "Du hast bereits eine EU-Vertretung",
-      "existingBody": "Wähle einen bestehenden Vertrag, um diese Richtlinie kostenlos zu verknüpfen.",
-      "tabNew": "Neue juristische Person",
-      "tabExisting": "Bestehend",
-      "tabsAriaLabel": "Option EU-Vertretung",
-      "selectExistingRequired": "Wähle eine juristische Person, um fortzufahren.",
-      "unnamedEntity": "Unbenannte juristische Person",
-      "existingCtaNamed": "Diese Richtlinie mit {entity} verknüpfen",
       "chooseBudget": "Budget hinzufügen",
       "chooseStandard": "Standard hinzufügen",
       "choosePremium": "Premium hinzufügen",
@@ -737,36 +726,9 @@
       "completeTitle": "Scan abgeschlossen."
     },
     "summary": {
-      "title": "Zusammenfassung",
-      "trialLabel": "Testphase",
-      "trialBody": "Jede neue Richtlinie startet mit einer {days}-tägigen Testphase. Es erfolgt keine automatische Abbuchung — Du schliesst die Zahlung selbst ab, bevor die Testphase endet.",
-      "orderTitle": "Deine Bestellung",
-      "generatorLine": "Datenschutz-Generator",
-      "generatorLineDetail": "Jährliches Hosting der Datenschutzerklärung für {domain}",
-      "generatorLineSlotDetail": "Nutzt Prepaid-Kapazität im Abo #{id} für {domain}",
-      "slotIncluded": "Prepaid im Abo #{id} — kein zusätzlicher Generator-Preis",
-      "fillSlotTitle": "In Ihrem Abo veröffentlichen",
-      "fillSlotDescription": "Diese Website nutzt einen Prepaid-Platz im Abo #{id}. Schliessen Sie die Einrichtung ab, um zu veröffentlichen.",
-      "publishCta": "Richtlinie veröffentlichen",
-      "discountLine": "{percent} % Mengenrabatt",
-      "euRepLine": "EU-Vertretung",
-      "euRepLineDetailNamed": "{entity} · 12 Monate",
-      "euRepLinkLine": "EU-Vertretung",
-      "euRepLinkLineDetail": "Diese Richtlinie mit {entity} verknüpfen",
-      "subtotalExclVat": "Zwischensumme (exkl. MwSt.)",
-      "vatLine": "MwSt. ({rate}%)",
-      "totalInclVat": "Total (inkl. MwSt.)",
-      "dueToday": "Heute fällig",
-      "startTrialCta": "Richtlinie anzeigen",
-      "startTrialNote": "Mit dem Klick auf diese Schaltfläche bestätigst Du Deine Bestellung und verpflichtest Dich, sie innerhalb von {days} Tagen zu bezahlen.",
-      "payCta": "Weiter zur Zahlung",
-      "redirecting": "Weiterleitung zu Payrexx…",
-      "processing": "Testphase wird gestartet…",
-      "trialStarted": "Deine Testphase hat begonnen. Deine Richtlinie wird veröffentlicht.",
-      "trialFailed": "Die Testphase konnte nicht gestartet werden. Bitte erneut versuchen.",
-      "paymentConfirmed": "Zahlung bestätigt.",
-      "paymentFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
-      "continueToSummary": "Zusammenfassung prüfen",
+      "title": "Deine Datenschutzerklärung ist bereit.",
+      "description": "Erstellt auf Basis Deines Website-Scans und den Angaben, die Du gemacht hast.",
+      "continueToCheckout": "Weiter zur Kasse",
       "regeneratePolicy": "Richtlinie aktualisieren",
       "updateSuccess": "Ihre Richtlinie wurde aktualisiert.",
       "updateFailed": "Die Richtlinie konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
@@ -818,10 +780,8 @@
         "requiredNotAdded": "Erforderlich — nicht hinzugefügt",
         "declined": "Abgelehnt",
         "noEuRepAdded": "Keine EU-Vertretung hinzugefügt",
-        "added": "Enthalten",
-        "addedDetail": "Eine juristische Person · {price} / 12 Monate",
-        "linkedExisting": "Mit bestehendem Vertrag verknüpft",
-        "linkedExistingDetail": "{entity}"
+        "planMonths": "{inquiry} · {price} / 12 Monate",
+        "planLabel": "{name}-Plan"
       },
       "euRepSkippedTitle": "EU-Vertretung abgelehnt",
       "euRepSkippedDetail": "Nicht enthalten · CHF 0.00"
@@ -832,64 +792,47 @@
       "continue": "Weiter",
       "validationError": "Bitte fülle alle Pflichtfelder aus.",
       "categories": {
-        "controller": "Datenschutzrechtliche Verantwortung",
-        "internationalization": "Internationalisierung",
-        "specialRisks": "Besondere Risiken",
-        "artificialIntelligence": "Künstliche Intelligenz",
-        "humanResources": "Human Resources (HR)",
-        "videoSurveillance": "Videoüberwachung"
+        "controllerIdentity": "Verantwortliche Stelle",
+        "businessModel": "Geschäftsmodell und besondere Daten",
+        "jurisdiction": "Zuständigkeit und DSGVO",
+        "dataUsage": "Datennutzung und Compliance"
       },
       "fields": {
-        "companyName": "Juristischer Name",
-        "domain": "Domainname",
-        "email": "E‑Mail-Adresse",
-        "postalAddress": "Adresse",
-        "address": "Adresse",
-        "hasDpo": "Gibt es einen Datenschutzbeaufragten?",
-        "dpoCompanyName": "Firma",
-        "dpoOfficer": "Beauftragter",
-        "dpoCountry": "Land",
-        "dpoEmail": "E‑Mail-Adresse",
-        "gdprApplicable": "Ist die europäische Datenschutz-Grundverordnung (DSGVO) ganz oder teilweise anwendbar?",
-        "offersToEU": "Richtet sich das Angebot auch an Personen im Europäischen Wirtschaftsraum (EWR)?",
-        "monitorsEUBehaviour": "Soll das Verhalten von Personen im Europäischen Wirtschaftsraum (EWR) beobachtet werden (Tracking)?",
-        "transfersAbroad": "Werden Daten in andere Länder exportiert?",
-        "usesProfiling": "Findet Profiling statt?",
-        "processesSpecialData": "Werden besonders schützenswerte Daten bearbeitet?",
-        "specialDataCategories": "Welche besonders schützenswerten Daten?",
-        "usesAiProcessing": "Werden Daten auch automatisiert oder mit KI bearbeitet?",
-        "acceptsApplications": "Sind Bewerbungen möglich?",
-        "hasTalentPool": "Ist ein Talentpool vorhanden?",
-        "usesVideoSurveillance": "Wird Videoüberwachung eingesetzt?",
-        "videoRetention": "Wie lange werden die Aufnahmen gespeichert?",
-        "videoRetentionDuration": "Speicherdauer",
-        "hasThirdPartyEuRep": "Hast Du bereits eine EU-Datenschutzvertretung bei einem anderen Anbieter?",
-        "thirdPartyRepName": "Name der Vertretung",
-        "thirdPartyRepAddress": "Adresse",
-        "thirdPartyRepCountry": "Land",
-        "thirdPartyRepEmail": "E‑Mail-Adresse"
+        "companyName": "Wer ist für die Verarbeitung personenbezogener Daten verantwortlich?",
+        "domain": "Unter welcher Domain ist die Website erreichbar?",
+        "email": "E-Mail-Adresse",
+        "postalAddress": "Postanschrift",
+        "generatesRevenue": "Wird die Website genutzt, um direkten Umsatz zu erzielen?",
+        "revenueTypes": "Wie erzielt die Website direkten Umsatz?",
+        "processesSpecialData": "Werden besondere Kategorien personenbezogener Daten verarbeitet?",
+        "specialDataCategories": "Welche besonderen Kategorien?",
+        "processesEUData": "Verarbeitet das Unternehmen personenbezogene Daten aus der EU/dem EWR?",
+        "systematically": "Geschieht dies systematisch?",
+        "hasEUEstablishment": "Hat das Unternehmen eine Niederlassung in der EU/im EWR?",
+        "transfersToThirdCountry": "Werden personenbezogene Daten in ein Drittland ausserhalb der EU/des EWR übermittelt?",
+        "usesDataForMarketing": "Werden personenbezogene Daten für Direktmarketing genutzt?",
+        "usesProfiling": "Wird Profiling oder automatisierte Entscheidungsfindung durchgeführt?",
+        "hasEmployeePrivacyNotice": "Gibt es einen separaten Datenschutzhinweis für Mitarbeitende?",
+        "employeePrivacyUrl": "URL des Datenschutzhinweises für Mitarbeitende",
+        "listSupervisoryAuthority": "Sollen Kontaktdaten der Aufsichtsbehörde aufgeführt werden?",
+        "supervisoryAuthority": "Welche Aufsichtsbehörde?"
       },
       "placeholders": {
-        "companyName": "Name der juristischen Person",
+        "companyName": "Firma oder Person",
         "domain": "meinewebsite.ch",
         "email": "info@meinewebsite.ch",
         "street": "Strasse und Hausnummer",
         "postalCode": "PLZ",
         "city": "Ort",
         "country": "Land",
-        "dpoCompanyName": "Firma",
-        "firstName": "Vorname",
-        "lastName": "Nachname",
-        "dpoEmail": "dpo@firma.ch",
-        "videoRetentionAmount": "Dauer",
-        "thirdPartyRepName": "Name der Vertretung oder Firma",
-        "thirdPartyRepEmail": "vertretung@anbieter.eu"
+        "employeePrivacyUrl": "https://deinefirma.ch/mitarbeiter-datenschutz"
       },
       "options": {
-        "transfersAbroad": {
-          "no": "Nein",
-          "eea": "Ja, in den Europäischen Wirtschaftsraum (EWR)",
-          "worldwide": "Ja, in die ganze Welt"
+        "revenueTypes": {
+          "memberships": "Mitgliedschaften / Abonnements",
+          "products": "Verkauf von Produkten / Dienstleistungen",
+          "advertising": "Werbung",
+          "other": "Sonstiges"
         },
         "specialDataCategories": {
           "health": "Gesundheitsdaten",
@@ -900,14 +843,11 @@
           "biometric": "Biometrische Daten",
           "sexuality": "Daten über Sexualleben / sexuelle Orientierung"
         },
-        "videoRetention": {
-          "none": "Keine Speicherung",
-          "duration": "Feste Dauer",
-          "asRequired": "Solange, wie erforderlich"
-        },
-        "videoRetentionUnit": {
-          "hours": "Stunden",
-          "days": "Tage"
+        "supervisoryAuthority": {
+          "edob": "EDÖB (Schweiz)",
+          "bfdi": "BfDI (Deutschland)",
+          "dsb": "DSB (Österreich)",
+          "other": "Andere"
         }
       },
       "continueToSummary": "Zusammenfassung prüfen",
@@ -922,26 +862,13 @@
       }
     },
     "checkout": {
-      "title": "Kasse",
-      "description": "Bitte prüfe dein Abo. Deine Datenschutzerklärung wird erstellt und veröffentlicht, sobald die Zahlung bestätigt ist.",
-      "selectPlan": "Anzahl Websites wählen",
-      "planTitle": "Datenschutzerklärung für...",
-      "orderTitle": "Deine Bestellung",
+      "title": "Prüfen & bezahlen",
+      "description": "Bestätige dein Abo. Deine Datenschutzerklärung wird erstellt und veröffentlicht, sobald die Zahlung bestätigt ist.",
+      "selectPlan": "Plan wählen",
       "generatorLine": "Datenschutz-Generator",
       "generatorLineDetail": "Jährliches Hosting der Datenschutzerklärung für {domain}",
       "generatorLineDetailWithExtra": "Jährliches Hosting der Datenschutzerklärung für {domain} plus {additional, plural, one {# zusätzliche Site} other {# zusätzliche Sites}}",
-      "generatorLineSlotDetail": "Nutzt Prepaid-Kapazität im Abo #{id} für {domain}",
-      "slotIncluded": "Prepaid im Abo #{id} — kein zusätzlicher Generator-Preis",
-      "fillSlotTitle": "In Ihrem Abo veröffentlichen",
-      "fillSlotDescription": "Diese Website nutzt einen Prepaid-Platz im Abo #{id}. Schliessen Sie die Einrichtung ab, um zu veröffentlichen.",
-      "fillSlotPlanTitle": "Prepaid-Website-Platz",
-      "publishCta": "Richtlinie veröffentlichen",
-      "discountLine": "{percent} % Mengenrabatt",
-      "euRepLine": "EU-Vertretung",
-      "euRepLineDetail": "Eine juristische Person für 12 Monate",
-      "euRepLineDetailNamed": "{entity} · 12 Monate",
-      "euRepLinkLine": "EU-Vertretung",
-      "euRepLinkLineDetail": "Diese Richtlinie mit {entity} verknüpfen",
+      "euRepLine": "EU-Vertretung — {plan}-Plan",
       "totalDue": "Heute fällig",
       "renewalNote": "Jährliche Verlängerung · jederzeit kündbar",
       "payrexxNote": "Du wirst zur sicheren Zahlung über Payrexx weitergeleitet.",
@@ -963,7 +890,6 @@
     "eyebrow": "Datenschutz-Generator",
     "title": "Eine konforme Datenschutzerklärung — in Minuten.",
     "heroIntro": "Erstelle eine rechtlich geprüfte Datenschutzerklärung, die zu Deiner Situation in der Schweiz passt — mit neuem Schweizer <fadp>DSG</fadp> und EU-<gdpr>DSGVO</gdpr>, inklusive über 300 Drittanbietern.",
-    "fillSlotScanNote": "Du richtest eine Prepaid-Website im Abo #{id} ein. Scanne die Website, die abgedeckt werden soll.",
     "heroImageAlt": "Vorschau Datenschutz-Generator",
     "orderCta": "Start",
     "faqNote": "Noch Fragen? Unsere <faq>FAQ zum Datenschutz-Generator</faq> hilft weiter.",
@@ -1009,20 +935,12 @@
       }
     },
     "pricingSection": {
-      "selectPlan": "Wie viele Websites?",
-      "includedTitle": "Bei jeder Website enthalten",
-      "includedToggle": "Was enthalten ist",
-      "sitesIncluded": "{count, plural, one {# Richtlinie / Jahr} other {# Richtlinien / Jahr}}",
-      "perSite": "{price} pro Website / Jahr",
-      "pricePeriod": "/ Jahr",
-      "discountApplied": "{percent} % Mengenrabatt",
-      "noDiscount": "Mengenrabatt ab 4 aktiven Websites",
-      "decreaseSites": "Weniger Websites",
-      "increaseSites": "Mehr Websites",
-      "siteCountLabel": "Websites in diesem Abo",
+      "selectPlan": "Plan wählen",
+      "includedTitle": "In jedem Plan enthalten",
+      "sitesIncluded": "{count, plural, one {# Website enthalten} other {# Websites enthalten}}",
       "plans": {
         "single": {
-          "tabLabel": "1 Richtlinie"
+          "tabLabel": "1 Site"
         },
         "team": {
           "tabLabel": "3 Sites"
@@ -1199,7 +1117,6 @@
       "processing": "In Bearbeitung",
       "updateAvailable": "Update verfügbar",
       "cancelled": "Gekündigt",
-      "expired": "Abgelaufen",
       "upToDate": "Aktuell"
     },
     "nav": {
@@ -1215,6 +1132,11 @@
       "title": "Übersicht",
       "loading": "Dashboard wird geladen …",
       "productsAriaLabel": "Deine Services",
+      "greeting": {
+        "morning": "Guten Morgen, {name}. So stehen Deine Services heute.",
+        "afternoon": "Guten Tag, {name}. So stehen Deine Services heute.",
+        "evening": "Guten Abend, {name}. So stehen Deine Services heute."
+      },
       "products": {
         "privacyGenerator": {
           "title": "Datenschutzerklärungen",
@@ -1234,13 +1156,16 @@
         },
         "euRep": {
           "title": "EU-Vertretung",
-          "contractsTitle": "Juristische Personen",
-          "buyMore": "Weitere kaufen",
+          "inquiriesTitle": "Anfragen verfügbar",
+          "inquiriesRemainingLabel": "{count, plural, one {Anfrage verfügbar} other {Anfragen verfügbar}}",
+          "inquiriesUsedOfTotal": "{used} von {total} genutzt",
           "subscriptionTitle": "Abonnement",
           "subscriptionPerYear": "/ Jahr",
           "subscriptionPerYearForPlan": "/ Jahr, Plan {plan}",
           "daysLeft": "Tage übrig",
           "renewsOn": "Verlängerung am {date}",
+          "furtherInquiryNote": "je weitere Anfrage",
+          "addInquiry": "Anfrage hinzufügen",
           "discover": "EU-Vertretung entdecken"
         }
       },
@@ -1279,52 +1204,39 @@
       }
     },
     "generator": {
-      "title": "Datenschutzerklärungs-Generator"
+      "title": "Datenschutzerklärungs-Generator",
+      "tabsAriaLabel": "Bereiche des Datenschutzerklärungs-Generators",
+      "tabs": {
+        "policies": "Richtlinien",
+        "subscription": "Abonnement"
+      }
     },
     "generatorCheckout": {
-      "metaTitle": "Neue Richtlinie — Datenschutz-Generator",
-      "title": "Neue Richtlinie",
-      "description": "Kaufe ein weiteres Jahresabo. Es kann mehrere Websites abdecken; der Mengenrabatt richtet sich nach der Zahl bereits aktiver Websites.",
+      "metaTitle": "Plan upgraden — Datenschutzerklärungs-Generator",
+      "title": "Plan upgraden",
+      "description": "Wechsle zu einem grösseren Website-Paket. Nicht genutzte Restlaufzeit deines aktuellen Abos wird automatisch angerechnet.",
       "backToGenerator": "Zurück zum Datenschutzerklärungs-Generator",
-      "pricePeriod": "/ 12 Monate",
       "currentAllowance": "Aktuelles Kontingent",
-      "allowanceNote": "Websites in deinem aktuellen Abo",
-      "selectPlan": "Wie viele Websites im neuen Abo?",
-      "activeNow": "{count, plural, one {# aktives Abo} other {# aktive Abos}}",
-      "afterPurchase": "{count, plural, one {# Abo nach dem Kauf} other {# Abos nach dem Kauf}}",
-      "discountLine": "{percent} % Mengenrabatt",
-      "discountCurrent": "Mengenrabatt: {percent} %, da Du {minSites}+ aktive Websites hast.",
-      "discountUnlocked": "Mengenrabatt: {percent} % freigeschaltet ab {count} Websites.",
-      "discountThresholdsLabel": "Mengenrabatt",
-      "discountThresholdsIntro": "Der Rabatt richtet sich danach, wie viele aktive Websites Du derzeit hast.",
-      "discountThresholdNone": "Bis {to} Websites: kein Rabatt",
-      "discountThresholdRange": "{from}–{to} Websites: {percent} %",
-      "discountThresholdPlus": "Ab {from} Websites: {percent} %",
-      "discountThresholdsDone": "Verstanden",
-      "listPriceLine": "Listenpreis",
+      "allowanceNote": "Websites in deinem aktuellen Plan",
+      "selectPlan": "Plan wählen",
+      "currentPlanMessage": "Das ist dein aktueller Plan",
+      "unavailableLowerTier": "Dieser Plan ist niedriger als dein aktueller Plan",
+      "unavailableInsufficientSites": "Übersteigt das Limit deines aktuellen Plans",
+      "renewalResetNote": "Nach der Zahlung verlängert sich dein Abo um 12 Monate. Dein Website-Kontingent entspricht dem neuen Plan (es wird nicht addiert).",
+      "summary": "Bestellübersicht",
+      "lineItem": "Neues Kontingent: {count, plural, one {# Website} other {# Websites}}",
+      "lineItemDetail": "Ersetzt deinen aktuellen Plan — wird nicht addiert. Jährliches Hosting & rechtliche Updates.",
+      "creditLine": "Gutschrift für Restlaufzeit",
       "totalDue": "Heute fällig",
+      "noUpgradeAvailable": "Du bist bereits im grössten Plan und hast alle enthaltenen Sites genutzt. Kontaktiere uns für ein individuelles Paket.",
       "payrexxNote": "Du wirst zur sicheren Zahlung über Payrexx weitergeleitet.",
       "legalReviewNote": "Geprüft von Schweizer Datenschutzjuristen.",
       "redirecting": "Weiterleitung zu Payrexx…",
       "processing": "Zahlung wird verarbeitet…",
       "failed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
-      "success": "Abo hinzugefügt. Du hast jetzt {allowance, plural, one {# aktives Abo} other {# aktive Abos}}.",
+      "success": "Plan upgegradet. Dein Kontingent beträgt jetzt {allowance, plural, one {# Website} other {# Websites}}.",
       "cancel": "Abbrechen",
-      "payCta": "Weiter zur Zahlung"
-    },
-    "euRepCheckout": {
-      "metaTitle": "EU-Vertretung — Bestellung",
-      "title": "Neue juristische Person hinzufügen",
-      "selectPlan": "Wähle Deinen EU-Vertretungsplan",
-      "selectQuantity": "Wie viele juristische Personen?",
-      "entityLabel": "Juristische Person {index}",
-      "totalDue": "Heute fällig",
-      "payrexxNote": "Du wirst zu Payrexx weitergeleitet, um die Zahlung sicher abzuschliessen.",
-      "redirecting": "Weiterleitung zu Payrexx…",
-      "processing": "Zahlung wird verarbeitet…",
-      "failed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
-      "success": "EU-Vertretung ist aktiv.",
-      "payCta": "Weiter zur Zahlung"
+      "payCta": "Weiter mit Payrexx"
     },
     "academy": {
       "title": "Datenschutz Academy",
@@ -1372,58 +1284,39 @@
     },
     "euRep": {
       "title": "EU-Vertretung",
-      "contract": {
-        "title": "Vertretene Organisation",
-        "countTitle": "Verträge",
-        "linkedCountTitle": "Verknüpfte Richtlinien",
-        "create": "Neuer Vertrag",
-        "listEmpty": "Du hast noch keine Verträge zur EU-Vertretung.",
-        "buyCta": "EU-Vertretung kaufen",
-        "buyMore": "Weitere Verträge kaufen",
-        "legalEntity": "Schweizerische juristische Person",
-        "name": "Name Deiner Schweizer juristischen Person",
-        "legalEntityHint": "Die Schweizer Firma, die dieser Vertrag vertritt.",
-        "forwardingEmail": "Weiterleitungs-E-Mail",
-        "forwardingEmailHint": "An diese Adresse leiten wir Anfragen von Aufsichtsbehörden und betroffenen Personen weiter. Sie erscheint nicht in der Datenschutzerklärung.",
-        "save": "Speichern",
-        "saved": "Angaben gespeichert.",
-        "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
-        "detailTitle": "Vertrag zur EU-Vertretung",
-        "notFound": "Dieser Vertrag wurde nicht gefunden.",
-        "tabsAriaLabel": "Bereiche der juristischen Person",
-        "tabs": {
-          "details": "Details",
-          "subscription": "Abo"
-        },
-        "sectionContractDetails": "Schweizerische juristische Person",
-        "sectionPublishedAddress": "Adresse in der Datenschutzerklärung",
-        "linkedTitle": "Verknüpfte gehostete Richtlinien",
-        "linkedEmpty": "Noch keine gehostete Richtlinie enthält die EU-Vertretung.",
-        "openPolicy": "Öffnen",
-        "linkCta": "Richtlinie verknüpfen",
-        "linkTitle": "EU-Vertretung in gehostete Richtlinien aufnehmen",
-        "linkTitleForEntity": "EU-Vertretung in Richtlinien von {entity} aufnehmen",
-        "linkBody": "Wähle die gehosteten Richtlinien, die VGS Datenschutzpartner in Hamburg nennen sollen. Selbst gehostete Richtlinien musst Du selbst anpassen.",
-        "linkEmpty": "Alle gehosteten Richtlinien enthalten die Vertretung bereits.",
-        "linkConfirm": "Auswahl aktualisieren",
-        "linkSkip": "Jetzt nicht",
-        "linked": "Gehostete Richtlinien aktualisiert.",
-        "linkedCount": "{count, plural, one {# gehostete Richtlinie aktualisiert.} other {# gehostete Richtlinien aktualisiert.}}",
-        "linkFailed": "Die ausgewählten Richtlinien konnten nicht aktualisiert werden.",
-        "removeCta": "Website entfernen",
-        "removeTitle": "EU-Vertretung aus gehosteter Richtlinie entfernen?",
-        "removeBody": "Der Vertretungsblock (VGS Datenschutzpartner GmbH, Hamburg) wird aus der gehosteten Datenschutzerklärung für {site} entfernt. Die Richtlinie bleibt online. Du kannst diese Website erneut verknüpfen, solange Dein EU-Vertretungsabo aktiv ist.",
-        "removeConfirm": "Entfernen",
-        "removeCancel": "Verknüpfung behalten",
-        "removeSuccess": "EU-Vertretung aus gehosteter Richtlinie entfernt.",
-        "removeFailed": "Die EU-Vertretung konnte nicht aus dieser gehosteten Richtlinie entfernt werden.",
-        "lapseNote": "Läuft dieses Abo aus, entfernen wir den Vertretungsblock nur aus gehosteten Richtlinien."
+      "tabsAriaLabel": "Bereiche der EU-Vertretung",
+      "tabs": {
+        "inquiries": "Anfragen",
+        "subscription": "Abonnement"
+      },
+      "inquiries": {
+        "allowanceTitle": "Anfragen verfügbar",
+        "countTitle": "Weitergeleitete Anfragen",
+        "countNote": "In Deinem Namen durch unsere EU-Vertretung bearbeitet",
+        "furtherInquiryNote": "je weitere Anfrage",
+        "listTitle": "Anfragen",
+        "addInquiry": "Anfrage hinzufügen",
+        "searchLabel": "Anfragen suchen",
+        "searchPlaceholder": "Anfragen suchen…",
+        "emptySearch": "Keine Anfragen entsprechen Deiner Suche.",
+        "emptyCta": "Erste Anfrage weiterleiten",
+        "tableLabel": "EU-Vertretung Anfragen",
+        "colDate": "Datum",
+        "colSubject": "Betreff",
+        "colReference": "Referenz",
+        "colStatus": "Status",
+        "empty": "Es wurden noch keine Anfragen in Deinem Namen weitergeleitet.",
+        "status": {
+          "forwarded": "Weitergeleitet",
+          "answered": "Beantwortet",
+          "closed": "Abgeschlossen"
+        }
       }
     },
     "documents": {
       "title": "Dokumente",
+      "colName": "Dokument",
       "colSite": "Website",
-      "colLegalEntity": "Juristische Person",
       "colCreated": "Erstellt",
       "colUpdated": "Aktualisiert",
       "colStatus": "Status",
@@ -1437,7 +1330,6 @@
       "create": "Neue Richtlinie",
       "empty": "Du hast noch keine Dokumente erstellt.",
       "emptyCta": "Erstes Dokument erstellen",
-      "euRepBadge": "EU-Vertretung",
       "statusFilterLabel": "Nach Status filtern",
       "statusAll": "Alle Richtlinien",
       "statusUpToDate": "Aktuell",
@@ -1446,42 +1338,24 @@
       "searchPlaceholder": "Richtlinien durchsuchen …",
       "emptySearch": "Keine Richtlinien entsprechen Deiner Suche.",
       "emptyFiltered": "Keine Richtlinien entsprechen diesem Filter.",
-      "listTitle": "Richtlinien",
-      "subscriptionGroup": "Abo #{id}",
-      "subscriptionGroupUnknown": "—",
-      "subscriptionSites": "{count, plural, one {# Website} other {# Websites}}",
-      "daysLeft": "{count, plural, one {# Tag übrig} other {# Tage übrig}}",
-      "subscriptionCountTitle": "Aktive Abos",
-      "buyMoreSites": "Weitere Websites kaufen",
-      "buy": "Kaufen",
-      "addSite": "Website hinzufügen",
-      "noSitesInSubscription": "Dieses Abo enthielt keine Websites.",
-      "emptySlotLabel": "Prepaid — noch nicht eingerichtet",
-      "countTitle": "Richtlinien",
-      "availableCountTitle": "Verfügbare Websites",
+      "listTitle": "Erstellte Richtlinien",
+      "countTitle": "Erstellte Richtlinien",
       "countUnit": "{count, plural, one {Richtlinie} other {Richtlinien}}",
       "countUpToDate": "{count} aktuell",
       "countUpdateAvailable": "{count} zu aktualisieren"
     },
     "membershipPanel": {
       "sectionPayment": "Zahlung",
-      "sectionRenewal": "Verlängerung",
+      "sectionRenewal": "Automatische Verlängerung",
       "renewalReminder": "Wir erinnern Dich 30 Tage vor der Verlängerung per E-Mail.",
-      "renewsOn": "Verlängerung am {date}",
-      "renewalDiscountTooltip": "Du hast {minSites} oder mehr aktive Websites → {percent} % Rabatt.",
-      "renewalDiscountTooltipLabel": "Warum dieser Rabatt?",
-      "renewalPriceIncreased": "Dein Mengenrabatt ist gesunken, weil Du weniger aktive Websites hast. Diese Verlängerung wird zum höheren Preis belastet.",
       "readMore": "Mehr erfahren",
-      "downloadInvoice": "Download",
+      "downloadInvoice": "Rechnung herunterladen",
       "invoiceDownloadStarted": "Rechnungs-Download gestartet.",
       "billingHistory": "Rechnungsverlauf",
       "colInvoice": "Rechnung",
-      "colSubscriptionId": "Abo-ID",
-      "subscriptionIdTitle": "Abo #{id}",
       "colDate": "Datum",
       "colAmount": "Betrag",
       "colPdf": "PDF",
-      "colLegalEntity": "Juristische Person",
       "paidOn": "Bezahlt am {date}",
       "change": "Ändern",
       "billingDetailsEyebrow": "Rechnungsdetails",
@@ -1489,19 +1363,11 @@
       "contactUs": "Kontakt aufnehmen",
       "cancelTitle": "Abo kündigen",
       "cancelBody": "Die Kündigung wird zum Ende der bezahlten Periode wirksam ({date}). Bis dahin behältst Du vollen Zugriff, weitere Zahlungen fallen nicht an. Kein Grund und keine Frist erforderlich.",
-      "cancelBodyEuRep": "Die Kündigung wird zum Ende der bezahlten Periode wirksam ({date}). Danach entfernen wir den Vertretungsblock aus gehosteten Richtlinien. Selbst gehostete Richtlinien musst Du selbst anpassen.",
       "cancelCta": "Abo kündigen",
       "cancelConfirm": "Abo kündigen",
       "keepSubscription": "Behalten",
-      "continueSubscription": "Abo fortsetzen",
       "cancelled": "Abo gekündigt.",
-      "continued": "Abo fortgesetzt.",
-      "expiredOn": "Abgelaufen am {date}",
-      "cancelledWithAccess": "Dein Abo wurde gekündigt, aber Du hast noch Zugriff bis {date}.",
-      "expiredWithAccess": "Dein Abo ist abgelaufen, aber Du hast noch Zugriff bis {date}.",
-      "cancelledOn": "Gekündigt am {date}",
       "empty": "Du hast für dieses Produkt kein aktives Abonnement.",
-      "notFound": "Dieses Abo wurde nicht gefunden.",
       "products": {
         "academy": {
           "planTitle": "Jahresmitgliedschaft",
@@ -1515,8 +1381,6 @@
         },
         "policy": {
           "planTitle": "Jahresabo",
-          "planTitleWithSite": "{site}",
-          "planTitleWithSites": "{count, plural, one {# Website} other {# Websites}}",
           "pricePeriod": "/ 12 Monate",
           "questionsBody": "Bei Fragen zu Deinem Plan antwortet unser Team innerhalb eines Werktags."
         }
@@ -1526,8 +1390,8 @@
       "title": "Websites verfügbar",
       "remainingLabel": "{count, plural, one {Website verfügbar} other {Websites verfügbar}}",
       "usedOfTotal": "{used} von {total} verwendet",
-      "buyMore": "Weitere Websites kaufen",
-      "upgrade": "Weitere Websites kaufen",
+      "buyMore": "Plan upgraden",
+      "upgrade": "Upgraden",
       "maxPlanNote": "Du bist im grössten Plan und hast alle enthaltenen Sites genutzt.",
       "billingHistory": "Zahlungsverlauf",
       "colInvoice": "Rechnung",
@@ -1535,7 +1399,6 @@
       "colSites": "Websites",
       "colAmount": "Betrag",
       "colActions": "Aktionen",
-      "discountNote": "−{percent} % (−{amount})",
       "vatNote": "inkl. 8.1% MwSt. ({amount})",
       "billingDetailsEyebrow": "Rechnungsdaten",
       "change": "Ändern",
@@ -1565,7 +1428,6 @@
     "orders": {
       "title": "Bestellungen",
       "colNumber": "Bestellung",
-      "colSubscriptionId": "Abo-ID",
       "colDate": "Datum",
       "colReference": "Art",
       "colSites": "Websites",
@@ -1577,7 +1439,7 @@
       "empty": "Du hast noch keine Bestellungen.",
       "siteCount": "{count, plural, one {# Website} other {# Websites}}",
       "orderKindSubscription": "Jahresabo",
-      "orderKindRenewal": "Verlängerung",
+      "orderKindExtraInquiry": "Zusätzliche Anfrage",
       "referenceEmpty": "—"
     },
     "accountDetails": {
@@ -1682,39 +1544,29 @@
       "submit": "Erstellen"
     }
   },
-  "euRepRepresentative": {
-    "previewTitle": "Adresse in der Datenschutzerklärung",
-    "country": "Deutschland"
-  },
   "policyDocument": {
     "exportHtml": "HTML exportieren",
+    "sidebarVersion": "Version",
+    "versionsAriaLabel": "Richtlinienversionen nach Jahr",
+    "archivedNote": "Du siehst eine archivierte Version. Die neueste Jahresversion ist auf deiner Website live.",
     "effectiveFrom": "Gültig ab",
     "tabs": {
       "ariaLabel": "Richtliniendetails",
       "policy": "Richtlinientext",
       "instruction": "Anleitung"
     },
-    "hosted": {
-      "loading": "Richtlinie wird geladen…"
-    },
     "implementation": {
-      "title": "Installationsanleitung",
-      "body": "Ihre Richtlinie wird von Datenschutzpartner gehostet und automatisch rechtlich aktuell gehalten.",
-      "tabs": {
-        "embed": "Einbetten",
-        "url": "URL"
-      },
-      "tabsAriaLabel": "Installationsmethode",
+      "title": "So veröffentlichen Sie diese Richtlinie auf Ihrer Website",
+      "body": "Ihre Richtlinie wird von Datenschutzpartner gehostet und automatisch rechtlich aktuell gehalten. Fügen Sie sie mit der gehosteten URL oder dem Einbettungscode auf Ihrer Website ein.",
       "steps": {
-        "embedIframe": "Kopieren Sie den iframe-Code und fügen Sie ihn dort ein, wo die Richtlinie auf Ihrer Seite erscheinen soll.",
-        "embedScript": "Nutzen Sie das JavaScript-Snippet, wenn Ihr CMS oder Theme ein Script-Tag bevorzugt."
+        "hosted": "Kopieren Sie die gehostete URL und verlinken Sie sie im Footer oder auf Ihrer Rechtsseite.",
+        "link": "Alternativ fügen Sie den iframe-Einbettungscode auf der Seite ein, auf der die Richtlinie erscheinen soll.",
+        "embed": "Speichern und veröffentlichen Sie Ihre Website — rechtliche Updates erscheinen automatisch ohne weiteren Aufwand."
       },
-      "iframeEmbedLabel": "Iframe-Einbettung",
-      "javascriptEmbedLabel": "JavaScript-Einbettung",
-      "alternativeBody": "Wenn Einbetten nicht möglich ist, verlinken Sie die gehostete Richtlinien-URL im Footer oder auf Ihrer Rechtsseite.",
       "hostedUrlLabel": "Gehostete Richtlinien-URL",
-      "copy": "Kopieren",
-      "open": "Öffnen",
+      "embedCodeLabel": "Einbettungscode",
+      "copyUrl": "URL kopieren",
+      "copyEmbed": "Code kopieren",
       "copied": "In die Zwischenablage kopiert.",
       "copyFailed": "Kopieren fehlgeschlagen. Bitte manuell kopieren."
     },
@@ -1722,12 +1574,6 @@
       "controller": {
         "title": "Verantwortlicher",
         "body": "Diese Datenschutzerklärung erläutert, wie personenbezogene Daten im Zusammenhang mit {site} verarbeitet werden. Der Verantwortliche ist für die nachfolgend beschriebene Verarbeitung sowie deren Vereinbarkeit mit der DSGVO und dem Schweizer Datenschutzgesetz (revDSG) verantwortlich."
-      },
-      "euRepresentative": {
-        "title": "Datenschutz-Vertretung im Europäischen Wirtschaftsraum (EWR)",
-        "intro": "Wir verfügen über nachfolgende Datenschutz-Vertretung gemäss <art27>Art. 27 DSGVO</art27>:",
-        "country": "Deutschland",
-        "closing": "Die Datenschutz-Vertretung dient betroffenen Personen und Behörden in der Europäischen Union (EU) und im übrigen Europäischen Wirtschaftsraum (EWR) als zusätzliche Anlaufstelle für Anfragen im Zusammenhang mit der DSGVO."
       },
       "dataWeProcess": {
         "title": "Welche Daten wir verarbeiten",

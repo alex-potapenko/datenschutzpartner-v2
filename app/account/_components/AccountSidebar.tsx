@@ -25,8 +25,8 @@ export function SidebarUser() {
   const avatarLabel = displayName.trim() || `${firstName} ${lastName}`.trim() || email;
 
   return (
-    <div className="flex items-center gap-4 px-6 py-8">
-      <div className="relative size-16 shrink-0 overflow-hidden rounded-full">
+    <div className="flex flex-col items-center gap-4 px-4 pt-8 pb-6 sm:px-6">
+      <div className="relative size-[76px] shrink-0 overflow-hidden rounded-full">
         {profile.isLoading ? (
           <div className="bg-accent-soft flex size-full items-center justify-center">
             <Spinner aria-label={t('loading')} className="size-8" />
@@ -35,15 +35,15 @@ export function SidebarUser() {
           <Image
             src={MEMBER_AVATAR_PHOTO}
             alt={avatarLabel}
-            width={64}
-            height={64}
+            width={76}
+            height={76}
             className="size-full object-cover object-top"
           />
         )}
       </div>
-      <div className="font-display flex min-w-0 flex-col">
-        <span className="text-foreground text-base leading-tight font-semibold">{firstName}</span>
-        <span className="text-foreground text-base leading-tight font-semibold">{lastName}</span>
+      <div className="font-display flex min-w-0 flex-col items-center text-center">
+        <span className="text-foreground text-lg leading-tight font-semibold">{firstName}</span>
+        <span className="text-foreground text-lg leading-tight font-semibold">{lastName}</span>
       </div>
     </div>
   );

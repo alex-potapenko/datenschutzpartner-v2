@@ -60,7 +60,7 @@ export function StepLayout({
   const searchParams = useSearchParams();
 
   const allSteps: StepDef[] = [
-    { id: 'scanning', label: t('scanning') },
+    { id: 'scan', label: t('scan') },
     { id: 'improved', label: t('questionnaire') },
     { id: 'eu-rep', label: t('euRep') },
     { id: 'summary', label: t('summary') },
@@ -77,7 +77,7 @@ export function StepLayout({
   const modal = useOverlayState();
 
   return (
-    <div className="bg-background flex h-dvh flex-col overflow-hidden">
+    <div className="bg-background flex min-h-dvh flex-1 flex-col">
       {/* Top bar */}
       <div className="shrink-0 text-white" style={{ background: 'var(--accent)' }}>
         <Container>
@@ -223,7 +223,7 @@ export function StepLayout({
       ) : null}
 
       {/* Content */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+      <div className="flex flex-1 flex-col">{children}</div>
 
       {/* Cancel modal */}
       <ModalRoot state={modal}>
@@ -234,7 +234,7 @@ export function StepLayout({
                 <ModalHeading>{tCancel('title')}</ModalHeading>
               </ModalHeader>
               <ModalBody>
-                <p className="text-foreground text-sm leading-relaxed">{tCancel('body')}</p>
+                <p className="text-muted text-sm">{tCancel('body')}</p>
               </ModalBody>
               <ModalFooter>
                 <Button

@@ -5,9 +5,6 @@ export type { ImprovedFormData } from '@/app/result/content/improved-form';
 
 const yesNo = z.enum(['yes', 'no', '']);
 const yesNoDontKnow = z.enum(['yes', 'no', 'dontknow', '']);
-const transfersAbroad = z.enum(['no', 'eea', 'worldwide', '']);
-const videoRetention = z.enum(['none', 'duration', 'asRequired', '']);
-const videoRetentionUnit = z.enum(['hours', 'days', '']);
 
 export const improvedFormSchema = z
   .object({
@@ -18,48 +15,36 @@ export const improvedFormSchema = z
     postalCode: z.string().min(1, 'validation.required'),
     city: z.string().min(1, 'validation.required'),
     country: z.string().min(1, 'validation.required'),
-    hasDpo: yesNo,
-    dpoCompanyName: z.string(),
-    dpoFirstName: z.string(),
-    dpoLastName: z.string(),
-    dpoStreet: z.string(),
-    dpoPostalCode: z.string(),
-    dpoCity: z.string(),
-    dpoCountry: z.string(),
-    dpoEmail: z.string(),
-    gdprApplicable: yesNoDontKnow,
-    offersToEU: yesNoDontKnow,
-    monitorsEUBehaviour: yesNoDontKnow,
-    transfersAbroad: transfersAbroad,
-    usesProfiling: yesNo,
+    generatesRevenue: yesNo,
+    revenueTypes: z.array(z.string()),
     processesSpecialData: yesNo,
     specialDataCategories: z.array(z.string()),
-    usesAiProcessing: yesNo,
-    acceptsApplications: yesNo,
-    hasTalentPool: yesNo,
-    usesVideoSurveillance: yesNo,
-    videoRetention: videoRetention,
-    videoRetentionAmount: z.string(),
-    videoRetentionUnit: videoRetentionUnit,
-    hasThirdPartyEuRep: yesNo,
-    thirdPartyRepName: z.string(),
-    thirdPartyRepStreet: z.string(),
-    thirdPartyRepPostalCode: z.string(),
-    thirdPartyRepCity: z.string(),
-    thirdPartyRepCountry: z.string(),
-    thirdPartyRepEmail: z.string(),
     basedInSwitzerland: yesNo,
+    processesEUData: yesNoDontKnow,
+    systematically: yesNoDontKnow,
+    offersToEU: yesNoDontKnow,
+    monitorsEUBehaviour: yesNoDontKnow,
+    hasEUEstablishment: yesNo,
+    transfersToThirdCountry: yesNoDontKnow,
+    usesDataForMarketing: yesNo,
+    usesProfiling: yesNo,
+    hasEmployeePrivacyNotice: yesNo,
+    employeePrivacyUrl: z.string(),
+    listSupervisoryAuthority: yesNo,
+    supervisoryAuthority: z.string(),
   })
   .superRefine((data, ctx) => {
     const requiredYesNo = [
-      'hasDpo',
-      'gdprApplicable',
-      'transfersAbroad',
-      'usesProfiling',
+      'generatesRevenue',
       'processesSpecialData',
-      'usesAiProcessing',
-      'acceptsApplications',
-      'usesVideoSurveillance',
+      'basedInSwitzerland',
+      'processesEUData',
+      'hasEUEstablishment',
+      'transfersToThirdCountry',
+      'usesDataForMarketing',
+      'usesProfiling',
+      'hasEmployeePrivacyNotice',
+      'listSupervisoryAuthority',
     ] as const satisfies readonly (keyof ImprovedFormData)[];
 
     for (const field of requiredYesNo) {
@@ -68,13 +53,13 @@ export const improvedFormSchema = z
       }
     }
 
-    const gdprBranch = getGdprBranchVisibility(data);
+    const euRepVisible = getVisibleEuRepQuestionFields(data);
 
-    if (gdprBranch.showEeaOffer && !data.offersToEU) {
+    if (euRepVisible.offersToEU && !data.offersToEU) {
       ctx.addIssue({ code: 'custom', path: ['offersToEU'], message: 'validation.required' });
     }
 
-    if (gdprBranch.showEeaMonitoring && !data.monitorsEUBehaviour) {
+    if (euRepVisible.monitorsEUBehaviour && !data.monitorsEUBehaviour) {
       ctx.addIssue({
         code: 'custom',
         path: ['monitorsEUBehaviour'],
@@ -82,28 +67,8 @@ export const improvedFormSchema = z
       });
     }
 
-    if (data.hasDpo === 'yes') {
-      if (!data.dpoCompanyName.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoCompanyName'], message: 'validation.required' });
-      }
-      if (!data.dpoFirstName.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoFirstName'], message: 'validation.required' });
-      }
-      if (!data.dpoLastName.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoLastName'], message: 'validation.required' });
-      }
-      if (!data.dpoStreet.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoStreet'], message: 'validation.required' });
-      }
-      if (!data.dpoPostalCode.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoPostalCode'], message: 'validation.required' });
-      }
-      if (!data.dpoCity.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoCity'], message: 'validation.required' });
-      }
-      if (!data.dpoCountry.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoCountry'], message: 'validation.required' });
-      }
+    if (data.generatesRevenue === 'yes' && data.revenueTypes.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['revenueTypes'], message: 'validation.required' });
     }
 
     if (data.processesSpecialData === 'yes' && data.specialDataCategories.length === 0) {
@@ -114,117 +79,36 @@ export const improvedFormSchema = z
       });
     }
 
-    if (data.acceptsApplications === 'yes' && !data.hasTalentPool) {
-      ctx.addIssue({ code: 'custom', path: ['hasTalentPool'], message: 'validation.required' });
+    if (data.processesEUData === 'yes' && !data.systematically) {
+      ctx.addIssue({ code: 'custom', path: ['systematically'], message: 'validation.required' });
     }
 
-    if (data.usesVideoSurveillance === 'yes' && !data.videoRetention) {
-      ctx.addIssue({ code: 'custom', path: ['videoRetention'], message: 'validation.required' });
-    }
-
-    if (data.usesVideoSurveillance === 'yes' && data.videoRetention === 'duration') {
-      const amount = Number(data.videoRetentionAmount);
-      if (!data.videoRetentionAmount.trim() || !Number.isFinite(amount) || amount <= 0) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['videoRetentionAmount'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.videoRetentionUnit) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['videoRetentionUnit'],
-          message: 'validation.required',
-        });
-      }
-    }
-
-    if (showThirdPartyEuRepQuestion(data) && !data.hasThirdPartyEuRep) {
+    if (data.hasEmployeePrivacyNotice === 'yes' && !data.employeePrivacyUrl.trim()) {
       ctx.addIssue({
         code: 'custom',
-        path: ['hasThirdPartyEuRep'],
+        path: ['employeePrivacyUrl'],
         message: 'validation.required',
       });
     }
 
-    if (data.hasThirdPartyEuRep === 'yes') {
-      if (!data.thirdPartyRepName.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepName'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepStreet.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepStreet'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepPostalCode.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepPostalCode'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepCity.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepCity'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepCountry.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepCountry'],
-          message: 'validation.required',
-        });
-      }
-      if (
-        !data.thirdPartyRepEmail.trim() ||
-        !z.email().safeParse(data.thirdPartyRepEmail.trim()).success
-      ) {
-        ctx.addIssue({ code: 'custom', path: ['thirdPartyRepEmail'], message: 'validation.email' });
-      }
+    if (data.listSupervisoryAuthority === 'yes' && !data.supervisoryAuthority) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['supervisoryAuthority'],
+        message: 'validation.required',
+      });
     }
   });
 
-export function getGdprBranchVisibility(
-  form: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU'>
-): { showEeaOffer: boolean; showEeaMonitoring: boolean } {
-  const showEeaOffer = form.gdprApplicable === 'dontknow';
-  const showEeaMonitoring = showEeaOffer && form.offersToEU === 'no';
-  return { showEeaOffer, showEeaMonitoring };
-}
-
-/** Whether GDPR applies to this controller based on questionnaire answers. */
-export function isGdprApplicable(
-  form?: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU' | 'monitorsEUBehaviour'>
-): boolean {
-  if (!form?.gdprApplicable) return false;
-  if (form.gdprApplicable === 'yes') return true;
-  if (form.gdprApplicable === 'no') return false;
-  return form.offersToEU === 'yes' || form.monitorsEUBehaviour === 'yes';
-}
-
-/** Show the third-party EU representative question once GDPR applicability is known. */
-export function showThirdPartyEuRepQuestion(
-  form: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU' | 'monitorsEUBehaviour'>
-): boolean {
-  return isGdprApplicable(form);
-}
-
-/** Matches EU-rep questionnaire branching when GDPR applicability is unknown. */
+/** Matches {@link EuRepQuestionnaireFlow} visibility: hide EU-offer questions when not based outside the EEA; hide Q3 when Q2 is yes. */
 export function getVisibleEuRepQuestionFields(
-  form: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU'>
+  form: Pick<ImprovedFormData, 'basedInSwitzerland' | 'offersToEU'>
 ): { offersToEU: boolean; monitorsEUBehaviour: boolean } {
-  const { showEeaOffer, showEeaMonitoring } = getGdprBranchVisibility(form);
-  return {
-    offersToEU: showEeaOffer,
-    monitorsEUBehaviour: showEeaMonitoring,
-  };
+  if (form.basedInSwitzerland !== 'yes') {
+    return { offersToEU: false, monitorsEUBehaviour: false };
+  }
+  if (form.offersToEU === 'yes') {
+    return { offersToEU: true, monitorsEUBehaviour: false };
+  }
+  return { offersToEU: true, monitorsEUBehaviour: true };
 }

@@ -2,213 +2,191 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { accountKeys } from './account';
 import { billingKeys } from './billing';
-import { documentKeys, documentSchema } from './documents';
-import { euRepKeys } from './eu-rep';
+import { documentKeys, documentSchema, type GeneratorPlan } from './documents';
 import { env } from '@/env';
 import { getAuthToken } from '@/lib/auth-session';
 import { request } from './client';
 
 /**
  * Checkout domain — Payrexx-hosted payment sessions for the Privacy Policy
- * Generator (one policy subscription at a time, or a renewal) and related
- * side effects (orders, hosted document creation). Components never talk
- * to Payrexx directly; they create a session, redirect to `redirectUrl`, then
+ * Generator (new policy or tier upgrade) and related side effects
+ * (orders, allowance, hosted document creation). Components never talk to
+ * Payrexx directly; they create a session, redirect to `redirectUrl`, then
  * confirm completion via `useCompleteCheckoutSession`.
  */
 
-/** Yearly list price per website on a policy subscription (CHF, excl. VAT). */
-export const GENERATOR_POLICY_UNIT_PRICE = 89;
+export const generatorPlanIdEnum = z.enum(['single', 'team', 'agency']);
+export type GeneratorPlanId = z.infer<typeof generatorPlanIdEnum>;
 
-/** Swiss statutory VAT rate applied to checkout totals. */
-export const SWISS_VAT_RATE = 0.081;
-
-/** Free trial length for every new hosted privacy policy. */
-export const POLICY_TRIAL_DAYS = 10;
-
-export function calculateVatAmount(amountExclVat: number): number {
-  return roundMoney(amountExclVat * SWISS_VAT_RATE);
-}
-
-export function calculateAmountInclVat(amountExclVat: number): number {
-  return roundMoney(amountExclVat * (1 + SWISS_VAT_RATE));
-}
-
-export function formatSwissVatPercent(): string {
-  return (SWISS_VAT_RATE * 100).toFixed(1);
-}
-
-export const GENERATOR_SITE_QUANTITY_MIN = 1;
-export const GENERATOR_SITE_QUANTITY_MAX = 99;
-
-function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-/**
- * Volume discount is based on **paid site capacity** on active policy
- * subscriptions (`siteCount` sum). A **new purchase** is priced on
- * `active sites + sites in this order` — crossing a higher tier in the
- * current cart unlocks that rate for the whole order. **Renewal** uses the
- * live active site count only (including the subscription being renewed).
- */
-export type GeneratorVolumeDiscountTier = {
-  /** Inclusive lower bound of active sites that unlock this rate. */
-  minSites: number;
-  /** Inclusive upper bound; `null` means no upper bound. */
-  maxSites: number | null;
-  rate: number;
+export const GENERATOR_PLAN_SITE_COUNTS: Record<GeneratorPlanId, number> = {
+  single: 1,
+  team: 3,
+  agency: 5,
 };
 
-export const GENERATOR_VOLUME_DISCOUNT_TIERS: readonly GeneratorVolumeDiscountTier[] = [
-  { minSites: 0, maxSites: 3, rate: 0 },
-  { minSites: 4, maxSites: 5, rate: 0.05 },
-  { minSites: 6, maxSites: 10, rate: 0.075 },
-  { minSites: 11, maxSites: null, rate: 0.1 },
-];
+/** Yearly subscription prices (CHF, excl. VAT) — aligned with `generatorPage.plans.*`. */
+export const GENERATOR_PLAN_PRICES: Record<GeneratorPlanId, number> = {
+  single: 89,
+  team: 199,
+  agency: 279,
+};
 
-export function generatorVolumeDiscountTier(activeSiteCount: number): GeneratorVolumeDiscountTier {
-  const count = Math.max(0, Math.floor(activeSiteCount));
-  const match = GENERATOR_VOLUME_DISCOUNT_TIERS.find((tier) => {
-    if (count < tier.minSites) return false;
-    if (tier.maxSites == null) return true;
-    return count <= tier.maxSites;
-  });
-  const fallback = GENERATOR_VOLUME_DISCOUNT_TIERS[0];
-  if (!fallback) {
-    return { minSites: 0, maxSites: 3, rate: 0 };
-  }
-  return match ?? fallback;
+export const GENERATOR_PLAN_IDS: GeneratorPlanId[] = ['single', 'team', 'agency'];
+
+export function generatorPlanSiteCount(planId: GeneratorPlanId): number {
+  return GENERATOR_PLAN_SITE_COUNTS[planId];
 }
 
-export function generatorVolumeDiscountRate(activeSiteCount: number): number {
-  return generatorVolumeDiscountTier(activeSiteCount).rate;
+export function generatorPlanPrice(planId: GeneratorPlanId): number {
+  return GENERATOR_PLAN_PRICES[planId];
 }
 
-/**
- * Site capacity that determines the volume rate.
- * New generator orders include the sites being bought now; renewal does not.
- */
-export function qualifyingSiteCountForCheckout(
-  activeSiteCount: number,
-  kind: CheckoutKind,
-  siteCount = 1
-): number {
-  const active = Math.max(0, Math.floor(activeSiteCount));
-  const sites = Math.max(1, Math.floor(siteCount));
-  if (kind === 'generatorRenewal') {
-    return active;
-  }
-  return active + sites;
+const MS_PER_DAY = 86_400_000;
+
+/** Higher site allowance = higher tier. */
+export function compareGeneratorPlans(a: GeneratorPlanId, b: GeneratorPlanId): number {
+  return GENERATOR_PLAN_SITE_COUNTS[a] - GENERATOR_PLAN_SITE_COUNTS[b];
 }
 
-/** Display helper — `0.075` → `"7.5"`. */
-export function formatDiscountPercent(rate: number): string {
-  return String(roundMoney(rate * 100));
+function daysBetween(start: string, end: string): number {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 0;
+  return Math.max(0, Math.round((endMs - startMs) / MS_PER_DAY));
 }
 
-/**
- * Copy params for the renewal tooltip. `null` when no volume discount applies.
- * `minSites` is the threshold of the matched tier, not the member's current count.
- */
-export function generatorVolumeDiscountExplanation(
-  activeSiteCount: number
-): { minSites: number; percent: string } | null {
-  const tier = generatorVolumeDiscountTier(activeSiteCount);
-  if (tier.rate <= 0) return null;
-  return { minSites: tier.minSites, percent: formatDiscountPercent(tier.rate) };
+/** Credit for unused time on the active generator term (Option 1 upgrades). */
+export function calculateGeneratorUpgradeCredit(input: {
+  currentPlanId: GeneratorPlanId;
+  lastOrderDate: string;
+  nextPaymentDate: string;
+  today?: string;
+}): number {
+  const today = input.today ?? new Date().toISOString().slice(0, 10);
+  if (today >= input.nextPaymentDate) return 0;
+
+  const termDays = Math.max(1, daysBetween(input.lastOrderDate, input.nextPaymentDate));
+  const remainingDays = daysBetween(today, input.nextPaymentDate);
+  const paid = GENERATOR_PLAN_PRICES[input.currentPlanId];
+
+  return Math.round((remainingDays / termDays) * paid * 100) / 100;
 }
 
-export type GeneratorPolicyQuote = {
-  siteCount: number;
-  qualifyingSiteCount: number;
-  unitPrice: number;
-  discountRate: number;
+export type GeneratorUpgradeQuote = {
+  currentPlanId: GeneratorPlanId | null;
+  targetPlanId: GeneratorPlanId;
+  siteAllowance: number;
   listPrice: number;
-  discountAmount: number;
+  creditAmount: number;
   amountDue: number;
+  isUpgrade: boolean;
 };
 
-/**
- * Price one policy subscription covering `siteCount` websites. The volume
- * rate comes from `qualifyingSiteCount` — every site on this order gets
- * that same rate (never split inside the subscription).
- */
-export function calculateGeneratorPolicyQuote(
-  qualifyingSiteCount: number,
-  siteCount = 1
-): GeneratorPolicyQuote {
-  const sites = Math.max(1, Math.floor(siteCount));
-  const qualifying = Math.max(0, Math.floor(qualifyingSiteCount));
-  const discountRate = generatorVolumeDiscountRate(qualifying);
-  const listPrice = roundMoney(sites * GENERATOR_POLICY_UNIT_PRICE);
-  const discountAmount = roundMoney(listPrice * discountRate);
-  const amountDue = roundMoney(listPrice - discountAmount);
+export function calculateGeneratorUpgradeQuote(input: {
+  targetPlanId: GeneratorPlanId;
+  currentPlanId?: GeneratorPlanId | null;
+  lastOrderDate?: string | null;
+  nextPaymentDate?: string | null;
+  today?: string;
+}): GeneratorUpgradeQuote {
+  const listPrice = GENERATOR_PLAN_PRICES[input.targetPlanId];
+  const siteAllowance = GENERATOR_PLAN_SITE_COUNTS[input.targetPlanId];
+  const currentPlanId = input.currentPlanId ?? null;
+
+  if (!currentPlanId) {
+    return {
+      currentPlanId: null,
+      targetPlanId: input.targetPlanId,
+      siteAllowance,
+      listPrice,
+      creditAmount: 0,
+      amountDue: listPrice,
+      isUpgrade: false,
+    };
+  }
+
+  const creditAmount =
+    input.lastOrderDate && input.nextPaymentDate
+      ? calculateGeneratorUpgradeCredit({
+          currentPlanId,
+          lastOrderDate: input.lastOrderDate,
+          nextPaymentDate: input.nextPaymentDate,
+          today: input.today,
+        })
+      : 0;
 
   return {
-    siteCount: sites,
-    qualifyingSiteCount: qualifying,
-    unitPrice: GENERATOR_POLICY_UNIT_PRICE,
-    discountRate,
+    currentPlanId,
+    targetPlanId: input.targetPlanId,
+    siteAllowance,
     listPrice,
-    discountAmount,
-    amountDue,
+    creditAmount,
+    amountDue: Math.max(0, Math.round((listPrice - creditAmount) * 100) / 100),
+    isUpgrade: compareGeneratorPlans(input.targetPlanId, currentPlanId) > 0,
   };
 }
 
-export const checkoutKindEnum = z.enum([
-  'generator',
-  'generatorTopUp',
-  'generatorRenewal',
-  'euRep',
-]);
+export function isGeneratorUpgradeAllowed(
+  targetPlanId: GeneratorPlanId,
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): boolean {
+  const targetSites = GENERATOR_PLAN_SITE_COUNTS[targetPlanId];
+  if (targetSites < usedSiteCount) return false;
+  if (!currentPlanId) return true;
+  return compareGeneratorPlans(targetPlanId, currentPlanId) > 0;
+}
+
+export type GeneratorPlanCheckoutState =
+  | { status: 'available' }
+  | { status: 'current' }
+  | { status: 'unavailable'; reason: 'lowerTier' | 'insufficientSites' };
+
+/** Upgrade checkout UI — every tier is shown; unavailable tiers carry a reason. */
+export function getGeneratorPlanCheckoutState(
+  targetPlanId: GeneratorPlanId,
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): GeneratorPlanCheckoutState {
+  if (currentPlanId && targetPlanId === currentPlanId) {
+    return { status: 'current' };
+  }
+
+  const targetSites = GENERATOR_PLAN_SITE_COUNTS[targetPlanId];
+  if (targetSites < usedSiteCount) {
+    return { status: 'unavailable', reason: 'insufficientSites' };
+  }
+
+  if (currentPlanId && compareGeneratorPlans(targetPlanId, currentPlanId) < 0) {
+    return { status: 'unavailable', reason: 'lowerTier' };
+  }
+
+  return { status: 'available' };
+}
+
+export function canUpgradeGeneratorPlan(
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): boolean {
+  return GENERATOR_PLAN_IDS.some((planId) =>
+    isGeneratorUpgradeAllowed(planId, currentPlanId, usedSiteCount)
+  );
+}
+
+export const checkoutKindEnum = z.enum(['generator', 'generatorTopUp']);
 export type CheckoutKind = z.infer<typeof checkoutKindEnum>;
 
-/** Yearly price per legal entity (CHF, excl. VAT). */
-export const EU_REP_UNIT_PRICE = 249;
-export const EU_REP_ENTITY_QUANTITY_MIN = 1;
-export const EU_REP_ENTITY_QUANTITY_MAX = 1;
-
-export function calculateEuRepQuote(entityCount = 1): {
-  entityCount: number;
-  unitPrice: number;
-  amountDue: number;
-} {
-  const count = Math.min(
-    EU_REP_ENTITY_QUANTITY_MAX,
-    Math.max(EU_REP_ENTITY_QUANTITY_MIN, Math.floor(entityCount))
-  );
-  return {
-    entityCount: count,
-    unitPrice: EU_REP_UNIT_PRICE,
-    amountDue: roundMoney(count * EU_REP_UNIT_PRICE),
-  };
-}
-
-export const euRepCheckoutEntitySchema = z.object({
-  legalEntity: z.string().min(1),
-  forwardingEmail: z.email(),
-});
-export type EuRepCheckoutEntity = z.infer<typeof euRepCheckoutEntitySchema>;
+export const euRepCheckoutPlanIdEnum = z.enum(['budget', 'standard', 'premium']);
+export type EuRepCheckoutPlanId = z.infer<typeof euRepCheckoutPlanIdEnum>;
 
 export const checkoutSessionCreateSchema = z.object({
   kind: checkoutKindEnum,
-  /** Websites covered by this new (or renewing) subscription. */
-  siteCount: z.number().int().positive().optional(),
+  planId: generatorPlanIdEnum,
   /** Covered website when purchasing through the generator wizard. */
   domain: z.string().min(1).optional(),
   policyName: z.string().min(1).optional(),
-  /** Swiss controller of the generated policy (from the questionnaire). */
-  legalEntity: z.string().min(1).optional(),
-  /** How many Swiss legal-entity slots to buy (`euRep`, or bundled on a generator checkout). */
-  euRepEntityCount: z.number().int().positive().optional(),
-  /** Details for each new EU Rep contract created by this checkout. */
-  euRepEntities: z.array(euRepCheckoutEntitySchema).optional(),
-  /** Link the new hosted policy to this existing contract (no extra EU Rep charge). */
-  euRepLinkContractId: z.string().min(1).optional(),
-  /** Which policy subscription to renew (`generatorRenewal` only). */
-  subscriptionId: z.string().min(1).optional(),
-  /** Fill a prepaid slot on this policy subscription (wizard fill-slot mode). */
-  fillSubscriptionId: z.string().min(1).optional(),
+  /** Bundled EU representation plan selected on the eu-rep step. */
+  euRepPlanId: euRepCheckoutPlanIdEnum.optional(),
 });
 export type CheckoutSessionCreate = z.infer<typeof checkoutSessionCreateSchema>;
 
@@ -219,9 +197,10 @@ export const checkoutSessionSchema = z.object({
   amount: z.number(),
   currency: z.string(),
   siteCount: z.number().int().positive(),
+  /** Full plan price before upgrade credit. */
   listPrice: z.number().optional(),
-  discountRate: z.number().optional(),
-  discountAmount: z.number().optional(),
+  /** Unused-term credit applied on tier upgrades. */
+  creditAmount: z.number().optional(),
 });
 export type CheckoutSession = z.infer<typeof checkoutSessionSchema>;
 
@@ -229,16 +208,10 @@ export const checkoutCompleteResultSchema = z.object({
   sessionId: z.string(),
   orderId: z.string(),
   document: documentSchema.optional(),
-  activeSubscriptionCount: z.number().int().nonnegative(),
+  siteAllowance: z.number().int().nonnegative(),
+  planId: generatorPlanIdEnum.optional(),
   nextPaymentDate: z.string().nullable(),
-  discountRate: z.number().optional(),
-  discountAmount: z.number().optional(),
-  /** Standalone EU Rep purchase with hosted policies not yet linked. */
-  needsPolicyLinking: z.boolean().optional(),
-  /** First new contract — kept for older clients. */
-  euRepContractId: z.string().optional(),
-  /** New contracts created by this checkout, in purchase order. */
-  euRepContractIds: z.array(z.string()).optional(),
+  creditAmount: z.number().optional(),
 });
 export type CheckoutCompleteResult = z.infer<typeof checkoutCompleteResultSchema>;
 
@@ -275,9 +248,10 @@ export function useCompleteCheckoutSession() {
         method: 'POST',
       }),
     onSuccess: async (result) => {
-      queryClient.setQueryData(documentKeys.plan, {
-        activeSubscriptionCount: result.activeSubscriptionCount,
-      });
+      queryClient.setQueryData(documentKeys.plan, (current: GeneratorPlan | null | undefined) => ({
+        siteAllowance: result.siteAllowance,
+        planId: result.planId ?? current?.planId,
+      }));
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: documentKeys.all }),
@@ -285,7 +259,6 @@ export function useCompleteCheckoutSession() {
         queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
         queryClient.invalidateQueries({ queryKey: billingKeys.orders }),
         queryClient.invalidateQueries({ queryKey: accountKeys.snapshot }),
-        queryClient.invalidateQueries({ queryKey: euRepKeys.contracts }),
       ]);
     },
   });

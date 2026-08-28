@@ -27,6 +27,8 @@
   --color-success-soft: var(--success-soft);
   --color-success-soft-foreground: var(--success-soft-foreground);
   --shadow-card: var(--shadow-card);
+
+  --animate-scan-tech-marquee: scan-tech-marquee 50s linear infinite;
 }
 
 body {
@@ -45,6 +47,21 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
+}
+
+@keyframes scan-tech-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-tech-marquee {
+    animation: none !important;
+  }
 }
 
 /* Inline text link — accent color; underline hidden via transparent, revealed on hover.
@@ -122,26 +139,6 @@ li a.academy-preview-list-row-link:hover {
   /* Modal: title → body spacing via padding-top (not HeroUI's mt-2). */
   .modal__header + .modal__body {
     @apply mt-0 pt-4;
-  }
-}
-
-/* Unlayered so these beat HeroUI's unlayered border-radius on overlays. */
-.modal__dialog,
-[data-slot='modal-dialog'],
-.alert-dialog__dialog,
-.alert,
-[data-sonner-toast] {
-  border-radius: 20px;
-}
-
-@supports (corner-shape: squircle) {
-  .modal__dialog,
-  [data-slot='modal-dialog'],
-  .alert-dialog__dialog,
-  .alert,
-  [data-sonner-toast] {
-    corner-shape: squircle;
-    border-radius: 37px;
   }
 }
 

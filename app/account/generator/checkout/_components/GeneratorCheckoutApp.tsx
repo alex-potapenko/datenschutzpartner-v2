@@ -1,42 +1,29 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useRequireSession } from '@/api/auth';
-import { countActivePolicySites, useSubscriptions } from '@/api/billing';
+import { useSubscriptions } from '@/api/billing';
 import {
   useCompleteCheckoutSession,
   useCreateCheckoutSession,
-  calculateGeneratorPolicyQuote,
-  formatDiscountPercent,
-  GENERATOR_POLICY_UNIT_PRICE,
-  GENERATOR_VOLUME_DISCOUNT_TIERS,
-  generatorVolumeDiscountExplanation,
-  generatorVolumeDiscountRate,
-  qualifyingSiteCountForCheckout,
+  calculateGeneratorUpgradeQuote,
+  canUpgradeGeneratorPlan,
+  GENERATOR_PLAN_IDS,
+  GENERATOR_PLAN_PRICES,
+  generatorPlanSiteCount,
+  getGeneratorPlanCheckoutState,
+  isGeneratorUpgradeAllowed,
+  type GeneratorPlanId,
 } from '@/api/checkout';
+import { useDocuments, useGeneratorPlan } from '@/api/documents';
 import { GENERATOR_POLICIES_HREF } from '@/app/account/_components/account-sections';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
-import {
-  Button,
-  CaretRight,
-  Info,
-  ModalBackdrop,
-  ModalBody,
-  ModalContainer,
-  ModalDialog,
-  ModalFooter,
-  ModalHeader,
-  ModalHeading,
-  ModalRoot,
-  Spinner,
-  useOverlayState,
-} from '@/components/ui';
+import { Button, CaretRight, Spinner } from '@/components/ui';
 import { RegularPage } from '@/components/shared/RegularPage';
-import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
 
 const GENERATOR_INCLUDED_KEYS = [
   'services',
@@ -49,79 +36,19 @@ const GENERATOR_INCLUDED_KEYS = [
   'pdf',
 ] as const;
 
+function firstUpgradePlan(
+  currentPlanId: GeneratorPlanId | null | undefined,
+  usedSiteCount: number
+): GeneratorPlanId | null {
+  return (
+    GENERATOR_PLAN_IDS.find((planId) =>
+      isGeneratorUpgradeAllowed(planId, currentPlanId, usedSiteCount)
+    ) ?? null
+  );
+}
+
 function formatChf(amount: number): string {
   return `CHF ${amount.toFixed(2)}`;
-}
-
-function VolumeDiscountNote({ label, onOpen }: { label: ReactNode; onOpen: () => void }) {
-  const t = useTranslations('account.generatorCheckout');
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span>{label}</span>
-      <button
-        type="button"
-        aria-label={t('discountThresholdsLabel')}
-        className="text-accent hover:text-key-700 inline-flex cursor-pointer items-center justify-center"
-        onClick={onOpen}
-      >
-        <Info size={16} weight="bold" aria-hidden />
-      </button>
-    </span>
-  );
-}
-
-function VolumeDiscountThresholdsDialog({ state }: { state: ReturnType<typeof useOverlayState> }) {
-  const t = useTranslations('account.generatorCheckout');
-
-  return (
-    <ModalRoot state={state}>
-      <ModalBackdrop isDismissable>
-        <ModalContainer size="sm">
-          <ModalDialog>
-            <ModalHeader>
-              <ModalHeading>{t('discountThresholdsLabel')}</ModalHeading>
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-4">
-                <p className="text-foreground text-sm leading-relaxed">
-                  {t('discountThresholdsIntro')}
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {GENERATOR_VOLUME_DISCOUNT_TIERS.map((tier) => (
-                    <li key={tier.minSites} className="text-foreground text-sm leading-snug">
-                      {tier.rate <= 0
-                        ? t('discountThresholdNone', { to: tier.maxSites ?? 3 })
-                        : tier.maxSites == null
-                          ? t('discountThresholdPlus', {
-                              from: tier.minSites,
-                              percent: formatDiscountPercent(tier.rate),
-                            })
-                          : t('discountThresholdRange', {
-                              from: tier.minSites,
-                              to: tier.maxSites,
-                              percent: formatDiscountPercent(tier.rate),
-                            })}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="primary"
-                onPress={() => {
-                  state.close();
-                }}
-              >
-                {t('discountThresholdsDone')}
-              </Button>
-            </ModalFooter>
-          </ModalDialog>
-        </ModalContainer>
-      </ModalBackdrop>
-    </ModalRoot>
-  );
 }
 
 function GeneratorUpgradePageShell({
@@ -156,89 +83,99 @@ export function GeneratorCheckoutApp() {
   const tp = useTranslations('generatorPage.pricingSection');
   const router = useRouter();
   const { isChecking } = useRequireSession('/account/generator/checkout');
+  const plan = useGeneratorPlan();
+  const documents = useDocuments();
   const subscriptions = useSubscriptions();
-  const [siteCount, setSiteCount] = useState(1);
+  const [selectedPlanId, setSelectedPlanId] = useState<GeneratorPlanId | null>(null);
   const createSession = useCreateCheckoutSession();
   const completeSession = useCompleteCheckoutSession();
-  const discountDialog = useOverlayState();
   const isProcessing = createSession.isPending || completeSession.isPending;
 
-  const activeSites = countActivePolicySites(subscriptions.data ?? []);
-  const qualifyingSites = qualifyingSiteCountForCheckout(activeSites, 'generator', siteCount);
-  const quote = calculateGeneratorPolicyQuote(qualifyingSites, siteCount);
-  const existingExplanation = generatorVolumeDiscountExplanation(activeSites);
-  const cartExplanation = generatorVolumeDiscountExplanation(qualifyingSites);
-  const cartUnlocksHigherTier =
-    generatorVolumeDiscountRate(qualifyingSites) > generatorVolumeDiscountRate(activeSites);
+  const policySub = subscriptions.data?.find((row) => row.productType === 'policy');
+  const currentPlanId = plan.data?.planId ?? (policySub?.planId as GeneratorPlanId | undefined);
+  const usedSiteCount = documents.data?.length ?? 0;
 
-  const checkoutPlans: EuRepPlan[] = useMemo(() => {
-    const discountNote =
-      cartUnlocksHigherTier && cartExplanation ? (
-        <VolumeDiscountNote
-          label={t('discountUnlocked', {
-            count: qualifyingSites,
-            percent: cartExplanation.percent,
-          })}
-          onOpen={() => {
-            discountDialog.open();
-          }}
-        />
-      ) : existingExplanation ? (
-        <VolumeDiscountNote
-          label={t('discountCurrent', {
-            minSites: existingExplanation.minSites,
-            percent: existingExplanation.percent,
-          })}
-          onOpen={() => {
-            discountDialog.open();
-          }}
-        />
-      ) : (
-        tp('noDiscount')
-      );
+  const upgradePlanIds = useMemo(
+    () =>
+      GENERATOR_PLAN_IDS.filter((id) =>
+        isGeneratorUpgradeAllowed(id, currentPlanId, usedSiteCount)
+      ),
+    [currentPlanId, usedSiteCount]
+  );
 
-    return [
-      {
-        id: 'quantity',
-        tabLabel: String(siteCount),
-        showPerYear: true,
-        price: quote.amountDue.toFixed(2),
-        listPrice: quote.discountAmount > 0 ? quote.listPrice.toFixed(2) : undefined,
-        note: discountNote,
-        noteClassName:
-          existingExplanation || cartUnlocksHigherTier
-            ? 'text-foreground text-sm leading-snug'
-            : 'text-muted text-sm leading-snug',
-      },
-    ];
+  const planId = useMemo(() => {
+    const fallback = firstUpgradePlan(currentPlanId, usedSiteCount) ?? upgradePlanIds[0] ?? 'team';
+    if (selectedPlanId && GENERATOR_PLAN_IDS.includes(selectedPlanId)) {
+      return selectedPlanId;
+    }
+    return fallback;
+  }, [selectedPlanId, currentPlanId, usedSiteCount, upgradePlanIds]);
+
+  const checkoutPlans: EuRepPlan[] = useMemo(
+    () =>
+      GENERATOR_PLAN_IDS.map((id) => ({
+        id,
+        tabLabel: tp(`plans.${id}.tabLabel`),
+        showPerYear: false,
+        price: GENERATOR_PLAN_PRICES[id].toFixed(2),
+        note: tp('sitesIncluded', { count: generatorPlanSiteCount(id) }),
+      })),
+    [tp]
+  );
+
+  const unavailableFooterMessage = useMemo(() => {
+    const state = getGeneratorPlanCheckoutState(planId, currentPlanId, usedSiteCount);
+    if (state.status === 'current') return t('currentPlanMessage');
+    if (state.status === 'unavailable') {
+      return state.reason === 'insufficientSites'
+        ? t('unavailableInsufficientSites')
+        : t('unavailableLowerTier');
+    }
+    return undefined;
+  }, [planId, currentPlanId, usedSiteCount, t]);
+
+  useEffect(() => {
+    if (plan.isLoading || documents.isLoading || subscriptions.isLoading) return;
+    if (!canUpgradeGeneratorPlan(currentPlanId, usedSiteCount)) {
+      router.replace('/account?section=generator');
+    }
   }, [
-    cartExplanation,
-    cartUnlocksHigherTier,
-    discountDialog,
-    existingExplanation,
-    qualifyingSites,
-    quote.amountDue,
-    quote.discountAmount,
-    quote.listPrice,
-    siteCount,
-    t,
-    tp,
+    plan.isLoading,
+    documents.isLoading,
+    subscriptions.isLoading,
+    currentPlanId,
+    usedSiteCount,
+    router,
   ]);
 
-  const isDataLoading = subscriptions.isLoading;
+  const quote = useMemo(
+    () =>
+      calculateGeneratorUpgradeQuote({
+        targetPlanId: planId,
+        currentPlanId,
+        lastOrderDate: policySub?.lastOrderDate,
+        nextPaymentDate: policySub?.nextPaymentDate,
+      }),
+    [planId, currentPlanId, policySub?.lastOrderDate, policySub?.nextPaymentDate]
+  );
+
+  const canUpgrade = upgradePlanIds.length > 0;
+  const isDataLoading = plan.isLoading || documents.isLoading || subscriptions.isLoading;
 
   async function handlePay() {
+    if (!quote.isUpgrade) return;
+
     try {
       toast.info(t('redirecting'));
       const checkoutSession = await createSession.mutateAsync({
-        kind: 'generator',
-        siteCount,
+        kind: 'generatorTopUp',
+        planId,
       });
       await new Promise((resolve) => setTimeout(resolve, 900));
       const result = await completeSession.mutateAsync(checkoutSession.id);
       toast.success(
         t('success', {
-          allowance: result.activeSubscriptionCount,
+          allowance: result.siteAllowance,
         })
       );
       router.push(GENERATOR_POLICIES_HREF);
@@ -247,7 +184,7 @@ export function GeneratorCheckoutApp() {
     }
   }
 
-  if (isChecking || isDataLoading) {
+  if (isChecking || isDataLoading || !canUpgrade) {
     return (
       <GeneratorUpgradePageShell backLabel={tCommon('back')}>
         <div className="flex min-h-40 items-center justify-center py-20">
@@ -261,86 +198,67 @@ export function GeneratorCheckoutApp() {
     <GeneratorUpgradePageShell backLabel={tCommon('back')}>
       <EuRepPlanCard
         plans={checkoutPlans}
-        defaultPlanId="quantity"
-        value="quantity"
-        pricePeriod={tp('pricePeriod')}
+        defaultPlanId={planId}
+        value={planId}
+        onPlanChange={(id) => {
+          setSelectedPlanId(id as GeneratorPlanId);
+        }}
+        pricePeriod=""
         showOrderCta={false}
         layout="standalone"
-        tabsAriaLabel={tp('siteCountLabel')}
-        selectPlanTitle={t('selectPlan')}
-        includedTitle={tp('includedToggle')}
-        featuresCollapsible
-        selector={
-          <SiteQuantityStepper
-            value={siteCount}
-            onChange={setSiteCount}
-            decreaseLabel={tp('decreaseSites')}
-            increaseLabel={tp('increaseSites')}
-            valueLabel={tp('siteCountLabel')}
-          />
-        }
+        tabsAriaLabel={tp('selectPlan')}
+        selectPlanTitle={tp('selectPlan')}
+        includedTitle={tp('includedTitle')}
         features={GENERATOR_INCLUDED_KEYS.map((key) => tGenerator(`features.${key}`))}
         legal={tGenerator.rich('legal', {
           terms: (chunks) => <Link href="/terms">{chunks}</Link>,
         })}
         footer={
-          <>
-            <div className="flex items-start justify-between gap-4">
-              <p className="text-foreground text-sm">{t('listPriceLine')}</p>
-              <p
-                className={`text-foreground shrink-0 text-sm ${quote.discountAmount > 0 ? 'line-through' : 'font-medium'}`}
-              >
-                {formatChf(quote.listPrice)}
-              </p>
-            </div>
+          quote.isUpgrade ? (
+            <>
+              {quote.creditAmount > 0 ? (
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-muted text-sm">{t('creditLine')}</p>
+                  <p className="text-success shrink-0 text-sm font-medium">
+                    − {formatChf(quote.creditAmount)}
+                  </p>
+                </div>
+              ) : null}
 
-            {quote.discountAmount > 0 ? (
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-foreground text-sm">
-                  {t('discountLine', { percent: formatDiscountPercent(quote.discountRate) })}
-                </p>
-                <p className="text-success shrink-0 text-sm font-medium">
-                  − {formatChf(quote.discountAmount)}
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-foreground text-base font-semibold">{t('totalDue')}</p>
+                <p className="text-foreground shrink-0 text-xl font-bold">
+                  {formatChf(quote.amountDue)}
                 </p>
               </div>
-            ) : null}
 
-            <p className="text-muted text-sm">
-              {tp('perSite', { price: formatChf(GENERATOR_POLICY_UNIT_PRICE) })}
+              <Button
+                variant="primary"
+                size="lg"
+                className="font-display h-14 w-full gap-2 rounded-full text-base"
+                onPress={() => void handlePay()}
+                isDisabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size="sm" aria-hidden />
+                    {t('processing')}
+                  </span>
+                ) : (
+                  <>
+                    {t('payCta')}
+                    <CaretRight size={16} weight="bold" aria-hidden />
+                  </>
+                )}
+              </Button>
+            </>
+          ) : unavailableFooterMessage ? (
+            <p className="text-muted py-2 text-center text-sm leading-relaxed">
+              {unavailableFooterMessage}
             </p>
-          </>
-        }
-        postFeaturesFooter={
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-foreground text-base font-semibold">{t('totalDue')}</p>
-            <p className="text-foreground shrink-0 text-base font-semibold">
-              {formatChf(quote.amountDue)}
-            </p>
-          </div>
-        }
-        footerAction={
-          <Button
-            variant="primary"
-            size="lg"
-            className="font-display h-14 w-full gap-2 rounded-full text-base"
-            onPress={() => void handlePay()}
-            isDisabled={isProcessing}
-          >
-            {isProcessing ? (
-              <span className="inline-flex items-center gap-2">
-                <Spinner size="sm" aria-hidden />
-                {t('processing')}
-              </span>
-            ) : (
-              <>
-                {t('payCta')}
-                <CaretRight size={16} weight="bold" aria-hidden />
-              </>
-            )}
-          </Button>
+          ) : null
         }
       />
-      <VolumeDiscountThresholdsDialog state={discountDialog} />
     </GeneratorUpgradePageShell>
   );
 }

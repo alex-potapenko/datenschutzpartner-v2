@@ -3,11 +3,9 @@ import ResultContent from './ResultContent';
 
 export default function ResultPage() {
   return (
-    <div className="flex h-dvh flex-col">
-      <Suspense fallback={<LoadingFallback />}>
-        <ResultContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<LoadingFallback />}>
+      <ResultContent />
+    </Suspense>
   );
 }
 

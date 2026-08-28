@@ -4,22 +4,18 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { ReactNode } from 'react';
-import { useAccountSnapshot } from '@/api/account';
+import { useState } from 'react';
+import { useAccountSnapshot, useProfile } from '@/api/account';
 import { useSession } from '@/api/auth';
 import {
-  countActiveEuRepEntities,
-  countActivePolicySites,
-  countActivePolicySubscriptions,
-  listEuRepSubscriptions,
-  resolvePolicySiteCount,
-  resolveSoonestPolicySubscription,
   useOrders,
   useSubscriptions,
   type BillingProductType,
   type Order,
   type Subscription,
 } from '@/api/billing';
-import { calculateGeneratorPolicyQuote } from '@/api/checkout';
+import { useDocuments, useGeneratorPlan } from '@/api/documents';
+import { canUpgradeGeneratorPlan, type GeneratorPlanId } from '@/api/checkout';
 import {
   AcademySessionSummary,
   upcomingEventHref,
@@ -53,6 +49,15 @@ import {
   formatMoney,
   useDateFormatter,
 } from '../account-ui';
+
+type GreetingPeriod = 'morning' | 'afternoon' | 'evening';
+
+function greetingPeriod(date: Date): GreetingPeriod {
+  const hour = date.getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
+}
 
 function calendarDaysBetween(startIso: string, endIso: string): number {
   const start = new Date(`${startIso}T00:00:00`);
@@ -207,32 +212,52 @@ export function DashboardSection({
   onNavigate: (section: AccountSectionId, options?: { tab?: AccountDetailsTab }) => void;
 }) {
   const t = useTranslations('account.dashboard');
-  const tDocuments = useTranslations('account.documents');
+  const tGenerator = useTranslations('account.generatorPlan');
   const tPreview = useTranslations('academy.landing.preview');
   const tFooter = useTranslations('footer');
   const locale = useLocale() as Locale;
   const router = useRouter();
   const formatDate = useDateFormatter();
 
+  const profile = useProfile();
   const session = useSession();
   const snapshot = useAccountSnapshot();
+  const documents = useDocuments();
+  const plan = useGeneratorPlan();
   const subscriptions = useSubscriptions();
   const orders = useOrders();
 
   const isLoading =
-    session.isLoading || snapshot.isLoading || subscriptions.isLoading || orders.isLoading;
+    profile.isLoading ||
+    session.isLoading ||
+    snapshot.isLoading ||
+    documents.isLoading ||
+    plan.isLoading ||
+    subscriptions.isLoading ||
+    orders.isLoading;
 
-  const activePolicyCount = countActivePolicySubscriptions(subscriptions.data ?? []);
-  const activeSiteCount = countActivePolicySites(subscriptions.data ?? []);
+  const firstName = profile.data?.firstName ?? profile.data?.displayName.split(' ')[0] ?? '';
+  const [greetingKey] = useState<GreetingPeriod>(() => greetingPeriod(new Date()));
+
+  const siteAllowance = plan.data?.siteAllowance ?? 0;
+  const usedSites = documents.data?.length ?? 0;
+  const remainingSites = Math.max(0, siteAllowance - usedSites);
   const hasAcademyMembership = session.data?.hasAcademyMembership ?? false;
   const membership = snapshot.data?.membership;
 
-  const policySubscription = resolveSoonestPolicySubscription(subscriptions.data ?? []);
-  const euRepSubscriptions = listEuRepSubscriptions(subscriptions.data ?? []);
-  const euRepSubscription =
-    euRepSubscriptions.find((row) => row.status === 'active') ?? euRepSubscriptions[0];
+  const policySubscription = subscriptions.data?.find((row) => row.productType === 'policy');
+  const euRepSubscription = subscriptions.data?.find((row) => row.productType === 'euRep');
   const academySubscription = subscriptions.data?.find((row) => row.productType === 'academy');
-  const activeEuRepEntities = countActiveEuRepEntities(subscriptions.data ?? []);
+  const inquiryAllowance = snapshot.data?.euRepInquiryAllowance;
+  const currentGeneratorPlanId =
+    plan.data?.planId ?? (policySubscription?.planId as GeneratorPlanId | undefined);
+  const canUpgradeSites =
+    !plan.isLoading &&
+    !subscriptions.isLoading &&
+    canUpgradeGeneratorPlan(currentGeneratorPlanId, usedSites);
+  const showMaxPlanNote = !canUpgradeSites && remainingSites === 0 && plan.data != null;
+  const includedInquiries = inquiryAllowance?.included ?? 0;
+  const remainingInquiries = Math.max(0, includedInquiries - (inquiryAllowance?.used ?? 0));
 
   const featuredEvent = getUpcomingAcademyFeaturedEvent(locale);
   const featuredTitle = featuredEvent ? resolveAcademyEventTitle(locale, featuredEvent) : undefined;
@@ -267,22 +292,15 @@ export function DashboardSection({
   const renewalRows =
     subscriptions.data?.filter((row) => row.status === 'active' && row.nextPaymentDate) ?? [];
 
-  const renewalTotal = renewalRows.reduce((sum, row) => {
-    if (row.productType === 'policy') {
-      return (
-        sum + calculateGeneratorPolicyQuote(activeSiteCount, resolvePolicySiteCount(row)).amountDue
-      );
-    }
-    return sum + row.totals.total;
-  }, 0);
+  const renewalTotal = renewalRows.reduce((sum, row) => sum + row.totals.total, 0);
   const renewalCurrency = renewalRows[0]?.totals.currency ?? 'CHF';
 
   function serviceLabel(productType: BillingProductType) {
     return t(`recentPayments.services.${productType}`);
   }
 
-  function goToScan() {
-    router.push('/scan');
+  function goToCheckout() {
+    router.push('/account/generator/checkout');
   }
 
   if (isLoading) {
@@ -301,6 +319,7 @@ export function DashboardSection({
   return (
     <AccountSectionFrame
       title={t('title')}
+      description={t(`greeting.${greetingKey}`, { name: firstName })}
       content={
         <div className="-mx-4 min-w-0 overflow-x-clip sm:-mx-8">
           <section aria-label={t('productsAriaLabel')} className="border-border border-b">
@@ -329,16 +348,37 @@ export function DashboardSection({
                         : 'flex min-w-0 flex-col gap-3'
                     }
                   >
-                    <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>
-                      {tDocuments('subscriptionCountTitle')}
-                    </p>
-                    <DashboardCountWithAdd addLabel={tDocuments('create')} onAdd={goToScan}>
+                    <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>{tGenerator('title')}</p>
+                    <DashboardCountWithAdd
+                      addLabel={
+                        canUpgradeSites
+                          ? remainingSites === 0
+                            ? tGenerator('upgrade')
+                            : tGenerator('buyMore')
+                          : undefined
+                      }
+                      actionVariant={canUpgradeSites && remainingSites === 0 ? 'upgrade' : 'add'}
+                      onAdd={canUpgradeSites ? goToCheckout : undefined}
+                    >
                       <PriceBlock
-                        amount={String(activePolicyCount)}
-                        animatedAmount={activePolicyCount}
+                        amount={String(remainingSites)}
+                        animatedAmount={remainingSites}
                         className="min-w-0 flex-col items-start gap-1"
                       />
                     </DashboardCountWithAdd>
+                    {showMaxPlanNote ? (
+                      <p className="text-muted text-sm leading-relaxed">
+                        {tGenerator('maxPlanNote')}{' '}
+                        <NavigationLink
+                          href="/contact?subject=generator"
+                          size="sm"
+                          chevron="none"
+                          className="inline-flex"
+                        >
+                          {tGenerator('contactUs')}
+                        </NavigationLink>
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </ProductSummaryCard>
@@ -349,7 +389,7 @@ export function DashboardSection({
                 iconBackground="color-mix(in srgb, var(--feature-red) 12%, transparent)"
                 title={t('products.euRep.title')}
               >
-                {euRepSubscription ? (
+                {euRepSubscription && inquiryAllowance ? (
                   <div className="flex min-w-0 flex-col gap-4">
                     <DashboardSubscriptionPeriodBlock
                       title={t('products.euRep.subscriptionTitle')}
@@ -359,23 +399,31 @@ export function DashboardSection({
 
                     <div className="border-border flex min-w-0 flex-col gap-3 border-t pt-4">
                       <p className={DASHBOARD_SECTION_EYEBROW_CLASS}>
-                        {t('products.euRep.contractsTitle')}
+                        {t('products.euRep.inquiriesTitle')}
                       </p>
                       <DashboardCountWithAdd
-                        addLabel={t('products.euRep.buyMore')}
+                        addLabel={t('products.euRep.addInquiry')}
                         onAdd={() => {
-                          router.push('/account/eu-rep/checkout');
+                          onNavigate('euRep');
                         }}
                       >
-                        <PriceBlock
-                          amount={String(activeEuRepEntities)}
-                          animatedAmount={activeEuRepEntities}
-                          className="min-w-0 flex-col items-start gap-1"
-                        />
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <PriceBlock
+                            amount={String(remainingInquiries)}
+                            animatedAmount={remainingInquiries}
+                            className="min-w-0 shrink-0"
+                          />
+                          <p className="text-muted min-w-0 text-sm leading-snug">
+                            {inquiryAllowance.currency}{' '}
+                            {inquiryAllowance.furtherInquiryAmount.toFixed(0)}{' '}
+                            {t('products.euRep.furtherInquiryNote')}
+                          </p>
+                        </div>
                       </DashboardCountWithAdd>
                     </div>
                   </div>
-                ) : (
+                ) : null}
+                {!euRepSubscription ? (
                   <Button
                     variant="outline"
                     size="md"
@@ -385,7 +433,7 @@ export function DashboardSection({
                   >
                     {t('products.euRep.discover')}
                   </Button>
-                )}
+                ) : null}
               </ProductSummaryCard>
 
               <ProductSummaryCard
@@ -503,19 +551,7 @@ export function DashboardSection({
               <AccountSection size="small" title={t('renewals.title')} contentClassName="gap-4">
                 <ul className="flex flex-col gap-4">
                   {renewalRows.map((row) => (
-                    <RenewalRow
-                      key={row.id}
-                      subscription={row}
-                      formatDate={formatDate}
-                      amount={
-                        row.productType === 'policy'
-                          ? calculateGeneratorPolicyQuote(
-                              activePolicyCount,
-                              resolvePolicySiteCount(row)
-                            ).amountDue
-                          : row.totals.total
-                      }
-                    />
+                    <RenewalRow key={row.id} subscription={row} formatDate={formatDate} />
                   ))}
                 </ul>
                 {renewalRows.length > 0 ? (
@@ -592,18 +628,16 @@ function RecentPaymentRow({
 function RenewalRow({
   subscription,
   formatDate,
-  amount,
 }: {
   subscription: Subscription;
   formatDate: ReturnType<typeof useDateFormatter>;
-  amount: number;
 }) {
   return (
     <li className="flex flex-col gap-1">
       <div className="flex items-start justify-between gap-3">
         <span className="text-foreground text-sm font-semibold">{subscription.product}</span>
         <span className="text-foreground shrink-0 text-sm font-semibold">
-          {formatMoney(amount, subscription.totals.currency)}
+          {formatMoney(subscription.totals.total, subscription.totals.currency)}
         </span>
       </div>
       <p className="text-muted text-sm">

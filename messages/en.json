@@ -22,11 +22,6 @@
     "saved": "Saved",
     "delete": "Delete",
     "back": "Back",
-    "details": "Details",
-    "subscriptionDetails": "Subscription details",
-    "policyDetails": "Policy details",
-    "legalEntityDetails": "Legal entity details",
-    "entityDetails": "{entity} details",
     "continue": "Continue",
     "skip": "Skip"
   },
@@ -511,17 +506,32 @@
       }
     },
     "pricingSection": {
-      "title": "EU representation by legal entity",
-      "subtitle": "One contract covers one legal entity for 12 months.",
-      "includedTitle": "Included with every legal entity",
-      "includedToggle": "See what's included",
-      "selectPlan": "EU representation",
-      "selectOne": "Representation contract",
+      "title": "One protection — three plans",
+      "subtitle": "All plans offer the same EU representation. The only difference: how many inquiries per year are already included.",
+      "includedTitle": "Included in every plan",
+      "selectPlan": "Select your plan",
       "perYear": "per year",
-      "perEntity": "{price} per legal entity / year",
-      "decreaseEntities": "Fewer legal entities",
-      "increaseEntities": "More legal entities",
-      "entityCountLabel": "Legal entities on this order"
+      "includedLabel": "included inquiries",
+      "furtherInquiriesLabel": "per extra inquiry",
+      "plans": {
+        "budget": {
+          "tabLabel": "Budget",
+          "showPerYear": false,
+          "note": "/ per single inquiry"
+        },
+        "standard": {
+          "tabLabel": "Standard",
+          "showPerYear": true,
+          "includedCount": "1",
+          "furtherAmount": "79"
+        },
+        "premium": {
+          "tabLabel": "Premium",
+          "showPerYear": true,
+          "includedCount": "5",
+          "furtherAmount": "59"
+        }
+      }
     },
     "pricePeriod": "/ 12 months",
     "plans": {
@@ -683,7 +693,6 @@
   "result": {
     "steps": {
       "scan": "Scan",
-      "scanning": "Scanning",
       "questionnaire": "Questionnaire",
       "euRep": "EU Representation",
       "summary": "Summary"
@@ -691,31 +700,11 @@
     "euRepStep": {
       "title": "EU data protection representation",
       "requiredIntro": "Based on your <answers>answers</answers>, we assume that you must appoint an EU data protection representative under the GDPR.",
-      "requiredIntroPlain": "Based on your answers, we assume that you must appoint an EU data protection representative under the GDPR.",
       "requiredDisclaimer": "Note: Exceptionally, no representative is required for processing that occurs only occasionally, does not involve large-scale processing of special categories of data, and is unlikely to result in a risk to the rights and freedoms of natural persons. We advise against relying on this exception.",
       "optionalIntro": "Based on your <answers>answers</answers>, you likely do not need an EU data protection representative under the GDPR. You can still use our offer — for example because business partners and customers in the EEA require GDPR compliance, or because you want to be on the safe side.",
-      "optionalIntroPlain": "Based on your answers, you likely do not need an EU data protection representative under the GDPR. You can still add representation below — for example because business partners and customers in the EEA require GDPR compliance.",
-      "alreadyCoveredTitle": "You're already covered",
-      "alreadyCoveredIntro": "Your legal entity already has active EU representation with us — no need to purchase it again.",
-      "alreadyCoveredBody": "We've already got you covered for this legal entity. This policy will be linked to your existing EU representation contract.",
-      "alreadyCoveredHint": "No additional purchase is required. Continue to summary to finish your privacy policy.",
-      "alreadyCoveredLegalEntity": "Legal entity",
-      "alreadyCoveredForwardingEmail": "Forwarding email",
-      "alreadyCoveredLinkedPolicies": "Linked policies",
-      "alreadyCoveredLinkedPoliciesCount": "{count, plural, one {# hosted policy} other {# hosted policies}}",
       "answersLink": "answers",
       "answersDialogTitle": "Your answers",
       "answersDialogDone": "Done",
-      "chooseAdd": "Add EU representation",
-      "chooseAnother": "Buy for another legal entity",
-      "existingTitle": "You already have EU representation",
-      "existingBody": "Select an existing contract to link this policy at no extra charge.",
-      "tabNew": "New legal entity",
-      "tabExisting": "Existing",
-      "tabsAriaLabel": "EU representation option",
-      "selectExistingRequired": "Select a legal entity to continue.",
-      "unnamedEntity": "Unnamed legal entity",
-      "existingCtaNamed": "Link this policy to {entity}",
       "chooseBudget": "Add Budget",
       "chooseStandard": "Add Standard",
       "choosePremium": "Add Premium",
@@ -737,36 +726,9 @@
       "completeTitle": "Scan complete."
     },
     "summary": {
-      "title": "Summary",
-      "trialLabel": "Trial period",
-      "trialBody": "Every new policy starts with a {days}-day free trial. Nothing is charged automatically — you complete payment yourself before the trial ends.",
-      "orderTitle": "Your order",
-      "generatorLine": "Privacy Policy Generator",
-      "generatorLineDetail": "Annual privacy policy hosting for {domain}",
-      "generatorLineSlotDetail": "Uses prepaid capacity on subscription #{id} for {domain}",
-      "slotIncluded": "Prepaid on subscription #{id} — no additional generator charge",
-      "fillSlotTitle": "Publish to your subscription",
-      "fillSlotDescription": "This site uses a prepaid slot on subscription #{id}. Complete the setup to publish.",
-      "publishCta": "Publish policy",
-      "discountLine": "{percent}% volume discount",
-      "euRepLine": "EU representation",
-      "euRepLineDetailNamed": "{entity} · 12 months",
-      "euRepLinkLine": "EU representation",
-      "euRepLinkLineDetail": "Link this policy to {entity}",
-      "subtotalExclVat": "Subtotal (excl. VAT)",
-      "vatLine": "VAT ({rate}%)",
-      "totalInclVat": "Total (incl. VAT)",
-      "dueToday": "Due today",
-      "startTrialCta": "Show policy",
-      "startTrialNote": "By clicking this button, you confirm your order and agree to pay within {days} days.",
-      "payCta": "Continue with payment",
-      "redirecting": "Redirecting to Payrexx…",
-      "processing": "Starting trial…",
-      "trialStarted": "Your trial has started. Your policy is being published.",
-      "trialFailed": "Your trial could not be started. Please try again.",
-      "paymentConfirmed": "Payment confirmed.",
-      "paymentFailed": "Payment could not be completed. Please try again.",
-      "continueToSummary": "Review summary",
+      "title": "Your privacy policy is ready.",
+      "description": "Generated based on your website scan and the details you provided.",
+      "continueToCheckout": "Continue to checkout",
       "regeneratePolicy": "Update policy",
       "updateSuccess": "Your policy has been updated.",
       "updateFailed": "The policy could not be updated. Please try again.",
@@ -818,10 +780,8 @@
         "requiredNotAdded": "Required — not added",
         "declined": "Declined",
         "noEuRepAdded": "No EU representation added",
-        "added": "Included",
-        "addedDetail": "One legal entity · {price} / 12 months",
-        "linkedExisting": "Linked to existing contract",
-        "linkedExistingDetail": "{entity}"
+        "planMonths": "{inquiry} · {price} / 12 months",
+        "planLabel": "{name} plan"
       },
       "euRepSkippedTitle": "EU Representation declined",
       "euRepSkippedDetail": "Not included · CHF 0.00"
@@ -832,64 +792,47 @@
       "continue": "Continue",
       "validationError": "Please complete all required fields.",
       "categories": {
-        "controller": "Data protection responsibility",
-        "internationalization": "Internationalisation",
-        "specialRisks": "Special risks",
-        "artificialIntelligence": "Artificial intelligence",
-        "humanResources": "Human resources (HR)",
-        "videoSurveillance": "Video surveillance"
+        "controllerIdentity": "Controller Identity",
+        "businessModel": "Business Model and Special Data",
+        "jurisdiction": "Jurisdiction and GDPR",
+        "dataUsage": "Data Usage and Compliance"
       },
       "fields": {
-        "companyName": "Legal name",
-        "domain": "Domain name",
+        "companyName": "Who is responsible for processing personal data?",
+        "domain": "Under which domain is the website accessible?",
         "email": "Email address",
-        "postalAddress": "Address",
-        "address": "Address",
-        "hasDpo": "Is there a data protection officer?",
-        "dpoCompanyName": "Company",
-        "dpoOfficer": "Officer",
-        "dpoCountry": "Country",
-        "dpoEmail": "Email address",
-        "gdprApplicable": "Is the European General Data Protection Regulation (GDPR) fully or partly applicable?",
-        "offersToEU": "Is the offering also directed at persons in the European Economic Area (EEA)?",
-        "monitorsEUBehaviour": "Is the behaviour of persons in the European Economic Area (EEA) monitored (tracking)?",
-        "transfersAbroad": "Are data exported to other countries?",
-        "usesProfiling": "Is profiling carried out?",
+        "postalAddress": "Postal address",
+        "generatesRevenue": "Is the website used to generate direct revenue?",
+        "revenueTypes": "How does the website generate direct revenue?",
         "processesSpecialData": "Are special categories of personal data processed?",
         "specialDataCategories": "Which special categories?",
-        "usesAiProcessing": "Are data also processed automatically or with AI?",
-        "acceptsApplications": "Are job applications possible?",
-        "hasTalentPool": "Is there a talent pool?",
-        "usesVideoSurveillance": "Is video surveillance used?",
-        "videoRetention": "How long are recordings stored?",
-        "videoRetentionDuration": "Retention period",
-        "hasThirdPartyEuRep": "Do you already have an EU data protection representative with another provider?",
-        "thirdPartyRepName": "Representative name",
-        "thirdPartyRepAddress": "Address",
-        "thirdPartyRepCountry": "Country",
-        "thirdPartyRepEmail": "Email address"
+        "processesEUData": "Does the company process personal data from the EU/EEA?",
+        "systematically": "Does this happen systematically?",
+        "hasEUEstablishment": "Does the company have an establishment in the EU/EEA?",
+        "transfersToThirdCountry": "Is personal data transferred to a third country outside the EU/EEA?",
+        "usesDataForMarketing": "Is personal data used for direct marketing?",
+        "usesProfiling": "Is profiling or automated decision-making carried out?",
+        "hasEmployeePrivacyNotice": "Is there a separate privacy notice for employees?",
+        "employeePrivacyUrl": "URL of employee privacy notice",
+        "listSupervisoryAuthority": "Should supervisory authority contact details be listed?",
+        "supervisoryAuthority": "Which supervisory authority?"
       },
       "placeholders": {
-        "companyName": "Legal entity name",
+        "companyName": "Company or person name",
         "domain": "mywebsite.ch",
         "email": "info@mywebsite.ch",
         "street": "Street and number",
         "postalCode": "Postal code",
         "city": "City",
         "country": "Country",
-        "dpoCompanyName": "Company",
-        "firstName": "First name",
-        "lastName": "Last name",
-        "dpoEmail": "dpo@company.com",
-        "videoRetentionAmount": "Duration",
-        "thirdPartyRepName": "Representative or company name",
-        "thirdPartyRepEmail": "rep@provider.eu"
+        "employeePrivacyUrl": "https://yourcompany.com/employee-privacy"
       },
       "options": {
-        "transfersAbroad": {
-          "no": "No",
-          "eea": "Yes, to the European Economic Area (EEA)",
-          "worldwide": "Yes, worldwide"
+        "revenueTypes": {
+          "memberships": "Memberships / subscriptions",
+          "products": "Sale of products / services",
+          "advertising": "Advertising",
+          "other": "Other"
         },
         "specialDataCategories": {
           "health": "Health data",
@@ -900,14 +843,11 @@
           "biometric": "Biometric data",
           "sexuality": "Data about sex life / sexual orientation"
         },
-        "videoRetention": {
-          "none": "No storage",
-          "duration": "Fixed duration",
-          "asRequired": "As long as required"
-        },
-        "videoRetentionUnit": {
-          "hours": "Hours",
-          "days": "Days"
+        "supervisoryAuthority": {
+          "edob": "EDÖB (Switzerland)",
+          "bfdi": "BfDI (Germany)",
+          "dsb": "DSB (Austria)",
+          "other": "Other"
         }
       },
       "continueToSummary": "Review summary",
@@ -922,26 +862,13 @@
       }
     },
     "checkout": {
-      "title": "Checkout",
-      "description": "Please, review your subscription. Your privacy policy is generated and published the moment your payment is confirmed.",
-      "selectPlan": "Select how many sites",
-      "planTitle": "Privacy policy for...",
-      "orderTitle": "Your order",
+      "title": "Review & checkout",
+      "description": "Confirm your subscription. Your privacy policy is generated and published the moment your payment is confirmed.",
+      "selectPlan": "Select your plan",
       "generatorLine": "Privacy Policy Generator",
       "generatorLineDetail": "Annual privacy policy hosting for {domain}",
       "generatorLineDetailWithExtra": "Annual privacy policy hosting for {domain} plus {additional, plural, one {# additional site} other {# additional sites}}",
-      "generatorLineSlotDetail": "Uses prepaid capacity on subscription #{id} for {domain}",
-      "slotIncluded": "Prepaid on subscription #{id} — no additional generator charge",
-      "fillSlotTitle": "Publish to your subscription",
-      "fillSlotDescription": "This site uses a prepaid slot on subscription #{id}. Complete the setup to publish.",
-      "fillSlotPlanTitle": "Prepaid site slot",
-      "publishCta": "Publish policy",
-      "discountLine": "{percent}% volume discount",
-      "euRepLine": "EU representation",
-      "euRepLineDetail": "One legal entity for 12 months",
-      "euRepLineDetailNamed": "{entity} · 12 months",
-      "euRepLinkLine": "EU representation",
-      "euRepLinkLineDetail": "Link this policy to {entity}",
+      "euRepLine": "EU representation — {plan} plan",
       "totalDue": "Total due today",
       "renewalNote": "Renews yearly · cancel anytime",
       "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
@@ -963,7 +890,6 @@
     "eyebrow": "Privacy Policy Generator",
     "title": "A compliant privacy policy — in minutes.",
     "heroIntro": "Create a legally reviewed privacy policy that fits your situation in Switzerland — covering the new Swiss <fadp>FADP</fadp> and the EU <gdpr>GDPR</gdpr>, with 300+ third-party services already built in.",
-    "fillSlotScanNote": "You are setting up a prepaid site on subscription #{id}. Scan the website you want to cover.",
     "heroImageAlt": "Privacy policy generator preview",
     "orderCta": "Start",
     "faqNote": "Do you have questions? Our <faq>FAQ on the privacy policy generator</faq> will help you.",
@@ -1009,20 +935,12 @@
       }
     },
     "pricingSection": {
-      "selectPlan": "How many websites?",
-      "includedTitle": "Included with every website",
-      "includedToggle": "See what's included",
-      "sitesIncluded": "{count, plural, one {# policy / year} other {# policies / year}}",
-      "perSite": "{price} per website / year",
-      "pricePeriod": "/ year",
-      "discountApplied": "{percent}% volume discount",
-      "noDiscount": "Volume discount from 4 active sites",
-      "decreaseSites": "Fewer websites",
-      "increaseSites": "More websites",
-      "siteCountLabel": "Websites on this subscription",
+      "selectPlan": "Select your plan",
+      "includedTitle": "Included in every plan",
+      "sitesIncluded": "{count, plural, one {# site included} other {# sites included}}",
       "plans": {
         "single": {
-          "tabLabel": "1 policy"
+          "tabLabel": "1 site"
         },
         "team": {
           "tabLabel": "3 sites"
@@ -1199,7 +1117,6 @@
       "processing": "Processing",
       "updateAvailable": "Update Available",
       "cancelled": "Cancelled",
-      "expired": "Expired",
       "upToDate": "Up to Date"
     },
     "nav": {
@@ -1215,6 +1132,11 @@
       "title": "Overview",
       "loading": "Loading dashboard …",
       "productsAriaLabel": "Your services",
+      "greeting": {
+        "morning": "Good morning, {name}. Here is where your services stand today.",
+        "afternoon": "Good day, {name}. Here is where your services stand today.",
+        "evening": "Good evening, {name}. Here is where your services stand today."
+      },
       "products": {
         "privacyGenerator": {
           "title": "Privacy Policies",
@@ -1234,13 +1156,16 @@
         },
         "euRep": {
           "title": "EU Representation",
-          "contractsTitle": "Legal entities",
-          "buyMore": "Buy more",
+          "inquiriesTitle": "Inquiries Available",
+          "inquiriesRemainingLabel": "{count, plural, one {inquiry available} other {inquiries available}}",
+          "inquiriesUsedOfTotal": "{used} of {total} used",
           "subscriptionTitle": "Subscription",
           "subscriptionPerYear": "/ year",
           "subscriptionPerYearForPlan": "/ year for {plan} plan",
           "daysLeft": "days left",
           "renewsOn": "Renews on {date}",
+          "furtherInquiryNote": "per extra inquiry",
+          "addInquiry": "Add inquiry",
           "discover": "Discover EU Representation"
         }
       },
@@ -1279,52 +1204,39 @@
       }
     },
     "generator": {
-      "title": "Privacy Policy Generator"
+      "title": "Privacy Policy Generator",
+      "tabsAriaLabel": "Privacy Policy Generator sections",
+      "tabs": {
+        "policies": "Policies",
+        "subscription": "Subscription"
+      }
     },
     "generatorCheckout": {
-      "metaTitle": "New policy — Privacy Policy Generator",
-      "title": "New policy",
-      "description": "Buy another yearly subscription. It can cover several websites; volume discount depends on how many sites are already active.",
+      "metaTitle": "Upgrade plan — Privacy Policy Generator",
+      "title": "Upgrade your plan",
+      "description": "Move to a larger site package. Unused time on your current subscription is credited automatically.",
       "backToGenerator": "Back to Privacy Policy Generator",
-      "pricePeriod": "/ 12 months",
       "currentAllowance": "Current allowance",
-      "allowanceNote": "Sites in your current subscription",
-      "selectPlan": "How many websites in the new subscription?",
-      "activeNow": "{count, plural, one {# active subscription} other {# active subscriptions}}",
-      "afterPurchase": "{count, plural, one {# subscription after purchase} other {# subscriptions after purchase}}",
-      "discountLine": "{percent}% volume discount",
-      "discountCurrent": "Volume discount: {percent}% as you have {minSites}+ active sites.",
-      "discountUnlocked": "Volume discount: {percent}% unlocked at {count} sites.",
-      "discountThresholdsLabel": "Volume discount",
-      "discountThresholdsIntro": "The discount depends on how many active sites you currently have.",
-      "discountThresholdNone": "Up to {to} sites: no discount",
-      "discountThresholdRange": "{from}–{to} sites: {percent}%",
-      "discountThresholdPlus": "{from}+ sites: {percent}%",
-      "discountThresholdsDone": "Got it",
-      "listPriceLine": "List price",
+      "allowanceNote": "Sites in your current plan",
+      "selectPlan": "Choose a plan",
+      "currentPlanMessage": "This is your current plan",
+      "unavailableLowerTier": "This plan is lower than your current plan",
+      "unavailableInsufficientSites": "Exceeds your current plan's limit",
+      "renewalResetNote": "After payment your subscription renews for another 12 months. Your site allowance matches the new plan (it does not stack).",
+      "summary": "Order summary",
+      "lineItem": "New allowance: {count, plural, one {# site} other {# sites}}",
+      "lineItemDetail": "Replaces your current plan — does not add on top. Annual hosting & legal updates.",
+      "creditLine": "Credit for unused time",
       "totalDue": "Total due today",
+      "noUpgradeAvailable": "You are already on the largest plan and have used all included sites. Contact us if you need a custom package.",
       "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
       "legalReviewNote": "Reviewed by Swiss data protection lawyers.",
       "redirecting": "Redirecting to Payrexx…",
       "processing": "Processing payment…",
       "failed": "Payment could not be completed. Please try again.",
-      "success": "Subscription added. You now have {allowance, plural, one {# active subscription} other {# active subscriptions}}.",
+      "success": "Plan upgraded. Your allowance is now {allowance, plural, one {# site} other {# sites}}.",
       "cancel": "Cancel",
-      "payCta": "Continue with payment"
-    },
-    "euRepCheckout": {
-      "metaTitle": "EU Representation — checkout",
-      "title": "Add a new legal entity",
-      "selectPlan": "Choose your EU representation plan",
-      "selectQuantity": "How many legal entities?",
-      "entityLabel": "Legal entity {index}",
-      "totalDue": "Total due today",
-      "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
-      "redirecting": "Redirecting to Payrexx…",
-      "processing": "Processing payment…",
-      "failed": "Payment could not be completed. Please try again.",
-      "success": "EU representation is active.",
-      "payCta": "Continue with payment"
+      "payCta": "Continue with Payrexx"
     },
     "academy": {
       "title": "Datenschutz Academy",
@@ -1372,59 +1284,39 @@
     },
     "euRep": {
       "title": "EU Representation",
-      "contract": {
-        "title": "Covered organisation",
-        "countTitle": "Contracts",
-        "linkedCountTitle": "Linked policies",
-        "create": "New Contract",
-        "listEmpty": "You have no EU representation contracts yet.",
-        "add": "Add",
-        "buyCta": "Add",
-        "buyMore": "Buy more contracts",
-        "legalEntity": "Swiss legal entity",
-        "name": "Your Swiss legal entity name",
-        "legalEntityHint": "The Swiss company this contract represents.",
-        "forwardingEmail": "Forwarding email",
-        "forwardingEmailHint": "Where we send supervisory and data-subject inquiries. This address is not published in the policy.",
-        "save": "Save",
-        "saved": "Details saved.",
-        "saveFailed": "Could not save. Please try again.",
-        "detailTitle": "EU representation contract",
-        "notFound": "This contract could not be found.",
-        "tabsAriaLabel": "Legal entity sections",
-        "tabs": {
-          "details": "Details",
-          "subscription": "Subscription"
-        },
-        "sectionContractDetails": "Swiss legal entity",
-        "sectionPublishedAddress": "Address published in the policy",
-        "linkedTitle": "Linked hosted policies",
-        "linkedEmpty": "No hosted policies include the EU representative yet.",
-        "openPolicy": "Open",
-        "linkCta": "Link Policy",
-        "linkTitle": "Add EU representative to hosted policies",
-        "linkTitleForEntity": "Add EU representative to policies of {entity}",
-        "linkBody": "Select the hosted policies that should mention VGS Datenschutzpartner in Hamburg. Policies you host yourself are not updated automatically.",
-        "linkEmpty": "All hosted policies already include the representative.",
-        "linkConfirm": "Update selected",
-        "linkSkip": "Not now",
-        "linked": "Hosted policies updated.",
-        "linkedCount": "{count, plural, one {# hosted policy updated.} other {# hosted policies updated.}}",
-        "linkFailed": "Could not update the selected policies.",
-        "removeCta": "Remove Site",
-        "removeTitle": "Remove EU representative from hosted policy?",
-        "removeBody": "The EU representative block (VGS Datenschutzpartner GmbH, Hamburg) will be removed from the hosted privacy policy for {site}. The policy itself stays online. You can link this website again while your EU representation subscription is active.",
-        "removeConfirm": "Remove",
-        "removeCancel": "Keep linked",
-        "removeSuccess": "EU representative removed from hosted policy.",
-        "removeFailed": "Could not remove the EU representative from this hosted policy.",
-        "lapseNote": "If this subscription lapses, the representative block is removed from hosted policies only."
+      "tabsAriaLabel": "EU Representation sections",
+      "tabs": {
+        "inquiries": "Inquiries",
+        "subscription": "Subscription"
+      },
+      "inquiries": {
+        "allowanceTitle": "Inquiries Available",
+        "countTitle": "Forwarded Inquiries",
+        "countNote": "Handled on your behalf by our EU representative",
+        "furtherInquiryNote": "per extra inquiry",
+        "listTitle": "Inquiries",
+        "addInquiry": "Add inquiry",
+        "searchLabel": "Search inquiries",
+        "searchPlaceholder": "Search inquiries…",
+        "emptySearch": "No inquiries match your search.",
+        "emptyCta": "Forward your first inquiry",
+        "tableLabel": "EU Representation inquiries",
+        "colDate": "Date",
+        "colSubject": "Subject",
+        "colReference": "Reference",
+        "colStatus": "Status",
+        "empty": "No inquiries have been forwarded on your behalf yet.",
+        "status": {
+          "forwarded": "Forwarded",
+          "answered": "Answered",
+          "closed": "Closed"
+        }
       }
     },
     "documents": {
       "title": "Documents",
-      "colSite": "Website",
-      "colLegalEntity": "Legal entity",
+      "colName": "Document",
+      "colSite": "Site",
       "colCreated": "Created",
       "colUpdated": "Updated",
       "colStatus": "Status",
@@ -1438,7 +1330,6 @@
       "create": "New Policy",
       "empty": "You haven't generated any documents yet.",
       "emptyCta": "Create your first document",
-      "euRepBadge": "EU Rep",
       "statusFilterLabel": "Filter by status",
       "statusAll": "All policies",
       "statusUpToDate": "Up to Date",
@@ -1447,62 +1338,36 @@
       "searchPlaceholder": "Search policies…",
       "emptySearch": "No policies match your search.",
       "emptyFiltered": "No policies match this filter.",
-      "listTitle": "Policies",
-      "subscriptionGroup": "Subscription #{id}",
-      "subscriptionGroupUnknown": "—",
-      "subscriptionSites": "{count, plural, one {# website} other {# websites}}",
-      "daysLeft": "{count, plural, one {# day left} other {# days left}}",
-      "subscriptionCountTitle": "Active subscriptions",
-      "buyMoreSites": "Buy More Sites",
-      "buy": "Buy",
-      "addSite": "Add Site",
-      "noSitesInSubscription": "This subscription did not include any websites.",
-      "emptySlotLabel": "Prepaid — not set up yet",
-      "countTitle": "Policies",
-      "availableCountTitle": "Available sites",
+      "listTitle": "Generated Policies",
+      "countTitle": "Generated Policies",
       "countUnit": "{count, plural, one {policy} other {policies}}",
       "countUpToDate": "{count} up to date",
       "countUpdateAvailable": "{count} to update"
     },
     "membershipPanel": {
       "sectionPayment": "Payment",
-      "sectionRenewal": "Renewal",
+      "sectionRenewal": "Automatic renewal",
       "renewalReminder": "We will remind you by email 30 days before renewal.",
-      "renewsOn": "Renews on {date}",
-      "renewalDiscountTooltip": "You have {minSites} or more active sites → {percent}% discount.",
-      "renewalDiscountTooltipLabel": "Why this discount?",
-      "renewalPriceIncreased": "Your volume discount dropped because you now have fewer active sites. This renewal is charged at the higher adjusted price.",
       "readMore": "Read more",
-      "downloadInvoice": "Download",
+      "downloadInvoice": "Download invoice",
       "invoiceDownloadStarted": "Invoice download started.",
       "billingHistory": "Billing history",
       "colInvoice": "Invoice",
-      "colSubscriptionId": "Subscription ID",
-      "subscriptionIdTitle": "Subscription #{id}",
       "colDate": "Date",
       "colAmount": "Amount",
       "colPdf": "PDF",
-      "colLegalEntity": "Legal entity",
       "paidOn": "Paid on {date}",
       "change": "Change",
       "billingDetailsEyebrow": "Billing details",
       "questionsTitle": "Questions?",
       "contactUs": "Contact us",
-      "cancelTitle": "Cancel Subscription",
+      "cancelTitle": "Cancel subscription",
       "cancelBody": "Cancelling takes effect at the end of your paid term ({date}). You keep full access until then, and no further payments will be charged. No reason or notice period required.",
-      "cancelBodyEuRep": "Cancelling takes effect at the end of your paid term ({date}). The EU representative block will then be removed from hosted policies. Policies you host yourself must be updated by you.",
-      "cancelCta": "Cancel Subscription",
-      "cancelConfirm": "Cancel Subscription",
+      "cancelCta": "Cancel subscription",
+      "cancelConfirm": "Cancel subscription",
       "keepSubscription": "Keep",
-      "continueSubscription": "Continue subscription",
       "cancelled": "Subscription cancelled.",
-      "continued": "Subscription continued.",
-      "expiredOn": "Expired on {date}",
-      "cancelledWithAccess": "Your subscription was cancelled, but you still have access until {date}.",
-      "expiredWithAccess": "Your subscription has expired, but you still have access until {date}.",
-      "cancelledOn": "Cancelled on {date}",
       "empty": "You have no active subscription for this product.",
-      "notFound": "This subscription could not be found.",
       "products": {
         "academy": {
           "planTitle": "Annual membership",
@@ -1516,8 +1381,6 @@
         },
         "policy": {
           "planTitle": "Annual subscription",
-          "planTitleWithSite": "{site}",
-          "planTitleWithSites": "{count, plural, one {# website} other {# websites}}",
           "pricePeriod": "/ 12 months",
           "questionsBody": "If you have any questions on your plan, our team will answer within one business day."
         }
@@ -1527,8 +1390,8 @@
       "title": "Sites Available",
       "remainingLabel": "{count, plural, one {site available} other {sites available}}",
       "usedOfTotal": "{used} of {total} used",
-      "buyMore": "Buy more sites",
-      "upgrade": "Buy more sites",
+      "buyMore": "Upgrade plan",
+      "upgrade": "Upgrade",
       "maxPlanNote": "You are on the largest plan and have used all included sites.",
       "billingHistory": "Billing history",
       "colInvoice": "Invoice",
@@ -1536,7 +1399,6 @@
       "colSites": "Sites",
       "colAmount": "Amount",
       "colActions": "Actions",
-      "discountNote": "−{percent}% (−{amount})",
       "vatNote": "incl. 8.1% VAT ({amount})",
       "billingDetailsEyebrow": "Billing details",
       "change": "Change",
@@ -1566,7 +1428,6 @@
     "orders": {
       "title": "Orders",
       "colNumber": "Order",
-      "colSubscriptionId": "Subscription ID",
       "colDate": "Date",
       "colReference": "Type",
       "colSites": "Sites",
@@ -1578,7 +1439,7 @@
       "empty": "You have no orders yet.",
       "siteCount": "{count, plural, one {# site} other {# sites}}",
       "orderKindSubscription": "Annual subscription",
-      "orderKindRenewal": "Renewal",
+      "orderKindExtraInquiry": "Extra inquiry",
       "referenceEmpty": "—"
     },
     "accountDetails": {
@@ -1683,39 +1544,29 @@
       "submit": "Create"
     }
   },
-  "euRepRepresentative": {
-    "previewTitle": "Address published in the policy",
-    "country": "Germany"
-  },
   "policyDocument": {
     "exportHtml": "Export HTML",
+    "sidebarVersion": "Version",
+    "versionsAriaLabel": "Policy versions by year",
+    "archivedNote": "You're viewing an archived version. The latest year is the one live on your site.",
     "effectiveFrom": "Effective from",
     "tabs": {
       "ariaLabel": "Policy detail",
       "policy": "Policy Text",
       "instruction": "Instruction"
     },
-    "hosted": {
-      "loading": "Loading policy…"
-    },
     "implementation": {
-      "title": "Installation instructions",
-      "body": "Your policy is hosted by Datenschutzpartner and kept legally up to date automatically.",
-      "tabs": {
-        "embed": "Embed",
-        "url": "URL"
-      },
-      "tabsAriaLabel": "Installation method",
+      "title": "How to publish this policy on your website",
+      "body": "Your policy is hosted by Datenschutzpartner and kept legally up to date automatically. Add it to your site using the hosted URL or the embed code below.",
       "steps": {
-        "embedIframe": "Copy the iframe code and paste it where the policy should appear on your page.",
-        "embedScript": "Use the JavaScript snippet if your CMS or theme prefers a script tag."
+        "hosted": "Copy the hosted URL and link to it from your website footer or legal page.",
+        "link": "Alternatively, paste the iframe embed code into the page where the policy should appear.",
+        "embed": "Save and publish your site — legal updates will appear automatically without further action."
       },
-      "iframeEmbedLabel": "Iframe embed",
-      "javascriptEmbedLabel": "JavaScript embed",
-      "alternativeBody": "If embedding is not possible, link to the hosted policy URL from your footer or legal page.",
       "hostedUrlLabel": "Hosted policy URL",
-      "copy": "Copy",
-      "open": "Open",
+      "embedCodeLabel": "Embed code",
+      "copyUrl": "Copy URL",
+      "copyEmbed": "Copy embed code",
       "copied": "Copied to clipboard.",
       "copyFailed": "Could not copy. Please copy manually."
     },
@@ -1723,12 +1574,6 @@
       "controller": {
         "title": "Data controller",
         "body": "This privacy policy explains how personal data is processed in connection with {site}. The controller is responsible for the processing described below and for ensuring it complies with the GDPR and the Swiss Federal Act on Data Protection (nFADP)."
-      },
-      "euRepresentative": {
-        "title": "Data protection representation in the European Economic Area (EEA)",
-        "intro": "We have appointed the following data protection representative pursuant to <art27>Art. 27 GDPR</art27>:",
-        "country": "Germany",
-        "closing": "The data protection representative serves as an additional point of contact for data subjects and authorities in the European Union (EU) and in the rest of the European Economic Area (EEA) for inquiries relating to the GDPR."
       },
       "dataWeProcess": {
         "title": "Data we process",

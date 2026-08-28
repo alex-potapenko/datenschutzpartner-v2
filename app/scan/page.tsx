@@ -15,16 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ScanPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ fillSubscription?: string }>;
-}) {
-  const { fillSubscription } = await searchParams;
-
+export default function ScanPage() {
   return (
     <RegularPage activePath="/scan" noPadding>
-      <GeneratorHero fillSubscriptionId={fillSubscription} />
+      <GeneratorHero />
       <GeneratorStatsRow />
       <GeneratorBenefitsSection />
       <GeneratorFaqSection />

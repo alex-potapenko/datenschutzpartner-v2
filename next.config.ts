@@ -36,21 +36,8 @@ const nextConfig: NextConfig = {
       })),
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: '/:id(\\d+)/:site',
-        destination: '/policies/:id/:site',
-      },
-    ];
-  },
   async headers() {
     return [
-      {
-        source:
-          '/:slug((?!account|scan|login|result|eu-rep|contact|about|privacy|terms|imprint|insights|academy|policies)[a-z0-9]+(?:-[a-z0-9]+)+)',
-        headers: [{ key: 'Content-Security-Policy', value: 'frame-ancestors *' }],
-      },
       {
         source: '/(.*)',
         headers: [

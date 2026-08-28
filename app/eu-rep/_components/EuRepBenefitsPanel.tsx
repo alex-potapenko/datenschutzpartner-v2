@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { calculateEuRepQuote, EU_REP_UNIT_PRICE } from '@/api/checkout';
 import { Crosshair, EnvelopeSimple } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from './EuRepPlanCard';
+
+const PLAN_IDS = ['budget', 'standard', 'premium'] as const;
 
 const INCLUDED_KEYS = [
   'establishment',
@@ -22,6 +22,7 @@ const INCLUDED_KEYS = [
 const BENEFIT_KEYS = ['art27', 'contact', 'inquiries'] as const;
 
 type BenefitKey = (typeof BENEFIT_KEYS)[number];
+type EuRepPlanId = (typeof PLAN_IDS)[number];
 
 const BENEFIT_ICONS: Record<BenefitKey, ReactNode> = {
   art27: (
@@ -62,35 +63,35 @@ function BenefitIcon({ benefitKey }: { benefitKey: BenefitKey }) {
 }
 
 type EuRepBenefitsPanelProps = {
-  /** Wizard: add one EU Rep contract for the policy being generated. */
-  onChoose?: () => void;
-  chooseLabel?: string;
+  onChoose?: (planId: EuRepPlanId) => void;
+  chooseLabels?: Partial<Record<EuRepPlanId, string>>;
   showBottomBorder?: boolean;
-  /** Wizard add-on copy for a single policy. */
-  wizardMode?: boolean;
 };
 
 export function EuRepBenefitsPanel({
   onChoose,
-  chooseLabel,
+  chooseLabels,
   showBottomBorder = true,
-  wizardMode = false,
 }: EuRepBenefitsPanelProps) {
   const t = useTranslations('euRepPage');
   const tb = useTranslations('euRepPage.benefitsSection');
   const tp = useTranslations('euRepPage.pricingSection');
-  const router = useRouter();
-  const quote = useMemo(() => calculateEuRepQuote(1), []);
 
-  const plans: EuRepPlan[] = [
-    {
-      id: 'single',
-      tabLabel: '1',
-      showPerYear: false,
-      price: quote.amountDue.toFixed(2),
-      note: tp('perEntity', { price: `CHF ${EU_REP_UNIT_PRICE.toFixed(2)}` }),
-    },
-  ];
+  const plans: EuRepPlan[] = PLAN_IDS.map((id) => ({
+    id,
+    tabLabel: tp(`plans.${id}.tabLabel`),
+    showPerYear: tp.raw(`plans.${id}.showPerYear`) === true,
+    note: tp.has(`plans.${id}.note`) ? tp(`plans.${id}.note`) : undefined,
+    inquiryAllowance: tp.has(`plans.${id}.includedCount`)
+      ? {
+          includedCount: tp(`plans.${id}.includedCount`),
+          includedLabel: tp('includedLabel'),
+          furtherAmount: tp(`plans.${id}.furtherAmount`),
+          furtherLabel: tp('furtherInquiriesLabel'),
+        }
+      : undefined,
+    price: t(`plans.${id}.price`),
+  }));
 
   return (
     <section id={onChoose ? undefined : 'plans'} className={onChoose ? undefined : 'scroll-mt-24'}>
@@ -125,19 +126,19 @@ export function EuRepBenefitsPanel({
 
         <EuRepPlanCard
           plans={plans}
-          defaultPlanId="single"
-          value="single"
-          pricePeriod=""
-          orderCta={chooseLabel ?? t('orderCta')}
-          onChoose={() => {
-            if (onChoose) {
-              onChoose();
-              return;
-            }
-            router.push('/account/eu-rep/checkout');
-          }}
-          tabsAriaLabel={tp('entityCountLabel')}
-          selectPlanTitle={wizardMode ? tp('selectOne') : tp('selectPlan')}
+          defaultPlanId="premium"
+          pricePeriod={t('pricePeriod')}
+          orderCta={t('orderCta')}
+          chooseLabels={chooseLabels}
+          onChoose={
+            onChoose
+              ? (planId) => {
+                  onChoose(planId as EuRepPlanId);
+                }
+              : undefined
+          }
+          tabsAriaLabel={tp('selectPlan')}
+          selectPlanTitle={tp('selectPlan')}
           includedTitle={tp('includedTitle')}
           features={INCLUDED_KEYS.map((key) => t(`features.${key}`))}
           legal={t.rich('legal', {

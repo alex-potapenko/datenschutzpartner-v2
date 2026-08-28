@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { FileText } from '@/components/ui';
 import { ScanForm } from '@/components/shared/ScanForm';
 
-export async function GeneratorHero({ fillSubscriptionId }: { fillSubscriptionId?: string }) {
+export async function GeneratorHero() {
   const t = await getTranslations('generatorPage');
 
   return (
@@ -29,15 +29,10 @@ export async function GeneratorHero({ fillSubscriptionId }: { fillSubscriptionId
                 gdpr: (chunks) => <strong className="font-semibold">{chunks}</strong>,
               })}
             </p>
-            {fillSubscriptionId ? (
-              <p className="text-muted max-w-xl text-sm leading-relaxed">
-                {t('fillSlotScanNote', { id: fillSubscriptionId })}
-              </p>
-            ) : null}
           </div>
 
           <div className="relative z-10 px-4 pb-8 sm:px-8 sm:pb-10 lg:-mx-9 lg:px-0 lg:pl-2">
-            <ScanForm fillSubscriptionId={fillSubscriptionId} />
+            <ScanForm />
           </div>
         </div>
 

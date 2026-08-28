@@ -44,7 +44,6 @@
   --feature-blue: #2563eb;
   --feature-yellow: #ca8a04;
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.12);
-  --color-dot-on: var(--accent);
 }
 
 .dark,

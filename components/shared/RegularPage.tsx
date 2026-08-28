@@ -11,20 +11,11 @@ interface RegularPageProps {
   /** Highlights the matching item in the top navigation. */
   activePath?: string;
   /** Fallback destination when there is no browser history (e.g. direct entry). */
-  backLink?: {
-    href: string;
-    label: string;
-    preferHref?: boolean;
-    iconOnly?: boolean;
-    detailTitle?: string;
-    onPress?: () => void;
-  };
+  backLink?: { href: string; label: string; preferHref?: boolean };
   /** When false, the logo is hidden in the TopBar (e.g. on insight article pages). */
   showLogo?: boolean;
   /** When true, the TopBar shows only the back link. */
   minimal?: boolean;
-  /** When false, the TopBar is omitted (e.g. focused detail views with an inline back control). */
-  showTopBar?: boolean;
   /** Account area: wordmark reads "My Account", no site nav or auth button. */
   topBarVariant?: 'default' | 'account';
   /** When false, the site footer is omitted (e.g. focused flows like questionnaires). */
@@ -48,7 +39,6 @@ export function RegularPage({
   backLink,
   showLogo,
   minimal,
-  showTopBar = true,
   topBarVariant,
   showFooter = true,
   noPadding = false,
@@ -60,15 +50,13 @@ export function RegularPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      {showTopBar ? (
-        <TopBar
-          activePath={activePath}
-          backLink={backLink}
-          showLogo={showLogo}
-          minimal={minimal}
-          variant={topBarVariant}
-        />
-      ) : null}
+      <TopBar
+        activePath={activePath}
+        backLink={backLink}
+        showLogo={showLogo}
+        minimal={minimal}
+        variant={topBarVariant}
+      />
       <main className="border-border flex flex-1 flex-col border-b">
         <Container className="flex flex-1 flex-col">
           <div className="border-border flex flex-1 flex-col border-r border-l">

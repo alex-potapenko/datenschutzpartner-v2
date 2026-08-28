@@ -1,29 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Button,
+  ModalRoot,
   ModalBackdrop,
-  ModalBody,
   ModalContainer,
   ModalDialog,
-  ModalFooter,
   ModalHeader,
+  ModalBody,
+  ModalFooter,
   ModalHeading,
-  ModalRoot,
-  Spinner,
   useOverlayState,
 } from '@/components/ui';
-import { findEuRepContractForLegalEntity, useEuRepContracts } from '@/api/eu-rep';
-import { EuRepWizardAlreadyCovered } from '../components/EuRepWizardAlreadyCovered';
-import { EuRepWizardOffer } from '../components/EuRepWizardOffer';
+import { EuRepBenefitsPanel } from '@/app/eu-rep/_components/EuRepBenefitsPanel';
+import { NavigationLink } from '@/components/shared/NavigationLink';
+import { getVisibleEuRepQuestionFields } from '@/api/generator';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
-import { StepFrame } from '../ui/StepFrame';
 import { Container } from '@/components/shared/Container';
+import { AnswerPill } from '../ui/FormSection';
 import type { ImprovedFormData } from '../content/improved-form';
-import { isEuRepRequired, type EuRepState } from '../wizard-state';
+import { isEuRepRequired, type EuRepPlanId, type EuRepState } from '../wizard-state';
 
 interface EuRepStepProps {
   formData: ImprovedFormData;
@@ -31,136 +29,158 @@ interface EuRepStepProps {
   onBack?: () => void;
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EU_REP_QUESTIONS = [
+  { id: 'q1' as const, field: 'basedInSwitzerland' as const, withUnknown: false },
+  { id: 'q2' as const, field: 'offersToEU' as const, withUnknown: true },
+  { id: 'q3' as const, field: 'monitorsEUBehaviour' as const, withUnknown: true },
+] as const;
+
+function EuRepAnswersDialog({
+  formData,
+  state,
+}: {
+  formData: ImprovedFormData;
+  state: ReturnType<typeof useOverlayState>;
+}) {
+  const t = useTranslations('result.euRepStep');
+  const tEuRepQ = useTranslations('euRepQuestionnaire');
+  const visible = getVisibleEuRepQuestionFields(formData);
+
+  const visibleQuestions = EU_REP_QUESTIONS.filter(({ field }) => {
+    switch (field) {
+      case 'basedInSwitzerland':
+        return true;
+      case 'offersToEU':
+        return visible.offersToEU;
+      case 'monitorsEUBehaviour':
+        return visible.monitorsEUBehaviour;
+    }
+  });
+
+  function answerLabel(value: string, withUnknown: boolean) {
+    if (value === 'yes') return tEuRepQ('yes');
+    if (value === 'no') return tEuRepQ('no');
+    if (withUnknown && value === 'dontknow') return tEuRepQ('dontknow');
+    return '—';
+  }
+
+  return (
+    <ModalRoot state={state}>
+      <ModalBackdrop isDismissable>
+        <ModalContainer size="md">
+          <ModalDialog>
+            <ModalHeader>
+              <ModalHeading>{t('answersDialogTitle')}</ModalHeading>
+            </ModalHeader>
+            <ModalBody>
+              <ul className="divide-border flex flex-col divide-y">
+                {visibleQuestions.map(({ id, field, withUnknown }) => (
+                  <li key={id} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
+                    <p className="text-foreground text-sm font-semibold">
+                      {tEuRepQ(`questions.${id}.title`)}
+                    </p>
+                    <AnswerPill label={answerLabel(formData[field], withUnknown)} />
+                  </li>
+                ))}
+              </ul>
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="primary"
+                onPress={() => {
+                  state.close();
+                }}
+              >
+                {t('answersDialogDone')}
+              </Button>
+            </ModalFooter>
+          </ModalDialog>
+        </ModalContainer>
+      </ModalBackdrop>
+    </ModalRoot>
+  );
+}
 
 export function EuRepStep({ formData, onComplete, onBack }: EuRepStepProps) {
   const t = useTranslations('result.euRepStep');
-  const tCommon = useTranslations('common');
-  const tValidation = useTranslations('validation');
-  const tAccount = useTranslations('account');
   const required = isEuRepRequired(formData);
+  const answersDialog = useOverlayState();
   const skipConfirm = useOverlayState();
-  const contracts = useEuRepContracts();
-  const existing = (contracts.data ?? []).filter((row) => row.status === 'active');
-  const matchedContract = findEuRepContractForLegalEntity(existing, formData.companyName);
 
-  const [legalEntity, setLegalEntity] = useState(formData.companyName);
-  const [forwardingEmail, setForwardingEmail] = useState(formData.email);
-  const [legalEntityError, setLegalEntityError] = useState<string>();
-  const [forwardingEmailError, setForwardingEmailError] = useState<string>();
-
-  function validateNewEntity(): boolean {
-    const entityOk = legalEntity.trim().length > 0;
-    const emailOk = EMAIL_PATTERN.test(forwardingEmail.trim());
-    setLegalEntityError(entityOk ? undefined : tValidation('required'));
-    setForwardingEmailError(emailOk ? undefined : tValidation('email'));
-    return entityOk && emailOk;
+  function choosePlan(plan: EuRepPlanId) {
+    onComplete({ plan, declined: false, done: true });
   }
 
-  function completeSkipped() {
-    onComplete({ declined: true, done: true });
+  function skip() {
+    onComplete({ plan: undefined, declined: true, done: true });
   }
 
-  function handleSkip() {
+  function handleSkipPress() {
     if (required) {
       skipConfirm.open();
       return;
     }
-    completeSkipped();
-  }
-
-  function handleContinue() {
-    if (matchedContract) {
-      onComplete({
-        linkContractId: matchedContract.id,
-        declined: false,
-        done: true,
-      });
-      return;
-    }
-
-    if (!validateNewEntity()) return;
-    onComplete({
-      plan: 'standard',
-      linkContractId: undefined,
-      legalEntity: legalEntity.trim(),
-      forwardingEmail: forwardingEmail.trim(),
-      declined: false,
-      done: true,
-    });
-  }
-
-  if (contracts.isLoading) {
-    return (
-      <StepFrame
-        header={
-          <StepHeader
-            title={t('title')}
-            description={required ? t('requiredIntroPlain') : t('optionalIntroPlain')}
-          />
-        }
-        centerContent
-      >
-        <Container>
-          <div className="border-border flex min-h-32 items-center justify-center border-r border-l py-10">
-            <Spinner aria-label={tAccount('loading')} />
-          </div>
-        </Container>
-      </StepFrame>
-    );
-  }
-
-  if (matchedContract) {
-    return (
-      <StepFrame
-        header={<StepHeader title={t('title')} />}
-        footer={
-          <StepFooter onBack={onBack} onContinue={handleContinue} ctaLabel={tCommon('continue')} />
-        }
-      >
-        <Container className="flex h-full flex-1 flex-col overflow-visible">
-          <div className="border-border flex h-full flex-1 flex-col overflow-visible border-r border-l">
-            <EuRepWizardAlreadyCovered contract={matchedContract} />
-          </div>
-        </Container>
-      </StepFrame>
-    );
+    skip();
   }
 
   const description = required ? (
     <>
-      <p>{t('requiredIntroPlain')}</p>
+      <p>
+        {t.rich('requiredIntro', {
+          answers: (chunks) => (
+            <NavigationLink
+              onPress={() => {
+                answersDialog.open();
+              }}
+              chevron="none"
+              className="font-semibold"
+            >
+              {chunks}
+            </NavigationLink>
+          ),
+        })}
+      </p>
       <p className="text-muted text-sm">{t('requiredDisclaimer')}</p>
     </>
   ) : (
-    <p>{t('optionalIntroPlain')}</p>
+    <p>
+      {t.rich('optionalIntro', {
+        answers: (chunks) => (
+          <NavigationLink
+            onPress={() => {
+              answersDialog.open();
+            }}
+            chevron="none"
+            className="font-semibold"
+          >
+            {chunks}
+          </NavigationLink>
+        ),
+      })}
+    </p>
   );
 
   return (
-    <StepFrame
-      header={<StepHeader title={t('title')} description={description} />}
-      footer={
-        <StepFooter
-          onBack={onBack}
-          onSkip={handleSkip}
-          skipLabel={t('skip')}
-          onContinue={handleContinue}
-          ctaLabel={tCommon('continue')}
-        />
-      }
-    >
-      <Container className="flex h-full flex-1 flex-col">
-        <div className="border-border flex h-full flex-1 flex-col border-r border-l">
-          <EuRepWizardOffer
-            legalEntity={legalEntity}
-            forwardingEmail={forwardingEmail}
-            onLegalEntityChange={setLegalEntity}
-            onForwardingEmailChange={setForwardingEmail}
-            legalEntityError={legalEntityError}
-            forwardingEmailError={forwardingEmailError}
+    <>
+      <StepHeader title={t('title')} description={description} />
+
+      <Container>
+        <div className="border-border flex flex-col border-r border-l">
+          <EuRepBenefitsPanel
+            showBottomBorder={false}
+            onChoose={choosePlan}
+            chooseLabels={{
+              budget: t('chooseBudget'),
+              standard: t('chooseStandard'),
+              premium: t('choosePremium'),
+            }}
           />
         </div>
       </Container>
+
+      <StepFooter onBack={onBack} onSkip={handleSkipPress} skipLabel={t('skip')} />
+
+      <EuRepAnswersDialog formData={formData} state={answersDialog} />
 
       <ModalRoot state={skipConfirm}>
         <ModalBackdrop isDismissable>
@@ -170,7 +190,7 @@ export function EuRepStep({ formData, onComplete, onBack }: EuRepStepProps) {
                 <ModalHeading>{t('skipConfirmTitle')}</ModalHeading>
               </ModalHeader>
               <ModalBody>
-                <p className="text-foreground text-sm leading-relaxed">{t('skipConfirmBody')}</p>
+                <p className="text-muted text-sm">{t('skipConfirmBody')}</p>
               </ModalBody>
               <ModalFooter>
                 <Button
@@ -183,9 +203,10 @@ export function EuRepStep({ formData, onComplete, onBack }: EuRepStepProps) {
                 </Button>
                 <Button
                   variant="primary"
+                  className="text-danger"
                   onPress={() => {
                     skipConfirm.close();
-                    completeSkipped();
+                    skip();
                   }}
                 >
                   {t('skipConfirmProceed')}
@@ -195,6 +216,6 @@ export function EuRepStep({ formData, onComplete, onBack }: EuRepStepProps) {
           </ModalContainer>
         </ModalBackdrop>
       </ModalRoot>
-    </StepFrame>
+    </>
   );
 }

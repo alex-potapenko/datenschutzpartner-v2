@@ -197,9 +197,7 @@ function OutcomeCard({
       ) : null}
 
       {showDisclaimer ? (
-        <p className="text-foreground text-sm leading-relaxed">
-          {t('outcomes.repRequired.disclaimer')}
-        </p>
+        <p className="text-muted text-sm leading-relaxed">{t('outcomes.repRequired.disclaimer')}</p>
       ) : null}
 
       {showNewsletter ? (

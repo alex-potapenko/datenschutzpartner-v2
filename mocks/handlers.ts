@@ -4,24 +4,15 @@ import type { ContactMessage, ContactMessageCreate } from '@/api/contact-message
 import type { ForgotPasswordInput, LoginInput, Session } from '@/api/auth';
 import type { Address, AddressInput, AddressUpdate, AccountSnapshot, Profile } from '@/api/account';
 import type { MembershipRow, Order, Subscription, SubscriptionBillingUpdate } from '@/api/billing';
-import { countActivePolicySites, countActivePolicySubscriptions } from '@/api/billing';
-import type { CheckoutSessionCreate } from '@/api/checkout';
+import type { CheckoutSessionCreate, EuRepCheckoutPlanId, GeneratorPlanId } from '@/api/checkout';
 import {
-  calculateEuRepQuote,
-  calculateGeneratorPolicyQuote,
-  qualifyingSiteCountForCheckout,
+  GENERATOR_PLAN_SITE_COUNTS,
+  calculateGeneratorUpgradeQuote,
+  isGeneratorUpgradeAllowed,
 } from '@/api/checkout';
 import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
-import {
-  buildHostedPolicyPath,
-  countAvailablePolicySlots,
-  formatSiteDomain,
-  normalizeGeneratedDocument,
-  resolveDocumentSite,
-  resolveHostedPolicySlug,
-  uniqueDocumentsBySite,
-} from '@/api/documents';
-import type { EuRepContract, EuRepContractUpdate, EuRepLinkDocuments } from '@/api/eu-rep';
+import { normalizeGeneratedDocument } from '@/api/documents';
+import type { EuRepInquiry } from '@/api/eu-rep-inquiries';
 import type { UidCompany } from '@/api/uid-registry';
 import { createCollection } from './db';
 
@@ -99,39 +90,11 @@ const profile = createCollection<Profile & { id: string }>(
   2
 );
 
-/** Billing-system numbers. Parent subscriptions keep a stable id; each invoice gets its own. */
-const ACADEMY_SUBSCRIPTION_ID = '39104';
-const EU_REP_BAUMGARTNER_SUBSCRIPTION_ID = '56218';
-const EU_REP_ALPENBLICK_SUBSCRIPTION_ID = '57391';
-/** Agency prepaid volume (buy-more) — atypical; most members have siteCount 1. */
-const POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID = '84729';
-const POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID = '86104';
-const POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID = '87215';
-const POLICY_EXPIRED_SUBSCRIPTION_ID = '90341';
-const ACADEMY_INVOICE_2025_ID = '41876';
-const ACADEMY_INVOICE_2024_ID = '27591';
-
-function nextTechnicalSubscriptionId(): string {
-  const used = new Set(
-    [
-      ...subscriptions.all().map((row) => row.id),
-      ...orders.all().map((row) => row.subscriptionId),
-    ].filter((id): id is string => Boolean(id))
-  );
-  const existing = [...used].map(Number).filter((value) => value >= 10_000 && value <= 99_999);
-  let next = existing.length > 0 ? Math.max(...existing) + 17 : 10_000 + (used.size + 1) * 1733;
-  if (next > 99_999) next = 10_000;
-  while (used.has(String(next)) || next < 10_000) {
-    next = next >= 99_999 ? 10_000 : next + 1;
-  }
-  return String(next);
-}
-
 const subscriptions = createCollection<Subscription>(
   'billing-subscriptions',
   [
     {
-      id: ACADEMY_SUBSCRIPTION_ID,
+      id: '1',
       productType: 'academy',
       product: 'Jahresmitgliedschaft',
       planId: 'academy',
@@ -150,18 +113,17 @@ const subscriptions = createCollection<Subscription>(
       relatedOrderIds: ['1', '17', '18'],
     },
     {
-      id: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
+      id: '2',
       productType: 'euRep',
-      product: 'EU-Vertretung — Baumgartner Digital AG',
-      planId: '1',
-      legalEntityCount: 1,
+      product: 'EU-Vertretung — Standard',
+      planId: 'standard',
       status: 'active',
       startDate: '2026-04-02',
       lastOrderDate: '2026-04-02',
       nextPaymentDate: '2027-04-02',
       billingAddressId: '2',
       totals: {
-        product: 'EU-Vertretung — Baumgartner Digital AG (12 Monate)',
+        product: 'EU-Vertretung Standard (12 Monate)',
         subtotal: 249,
         discount: 0,
         total: 249,
@@ -170,136 +132,114 @@ const subscriptions = createCollection<Subscription>(
       relatedOrderIds: ['3'],
     },
     {
-      id: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
-      productType: 'euRep',
-      product: 'EU-Vertretung — Alpenblick Hospitality AG',
-      planId: '1',
-      legalEntityCount: 1,
-      status: 'active',
-      startDate: '2026-05-18',
-      lastOrderDate: '2026-05-18',
-      nextPaymentDate: '2027-05-18',
-      billingAddressId: '2',
-      totals: {
-        product: 'EU-Vertretung — Alpenblick Hospitality AG (12 Monate)',
-        subtotal: 249,
-        discount: 0,
-        total: 249,
-        currency: 'CHF',
-      },
-      relatedOrderIds: ['21'],
-    },
-    {
-      id: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
+      id: '3',
       productType: 'policy',
-      product: 'Privacy Policy Generator — 5 Sites (prepaid)',
-      planId: '5',
-      siteCount: 5,
+      product: 'Privacy Policy Generator — Team',
+      planId: 'team',
       status: 'active',
       startDate: '2026-01-15',
       lastOrderDate: '2026-01-15',
       nextPaymentDate: '2027-01-15',
       billingAddressId: '1',
       totals: {
-        product: 'Privacy Policy Generator — 5 Sites (12 Monate)',
-        subtotal: 445,
+        product: 'Privacy Policy Generator — 3 Sites (12 Monate)',
+        subtotal: 199,
         discount: 0,
-        total: 445,
+        total: 199,
         currency: 'CHF',
       },
       relatedOrderIds: ['2'],
     },
+  ],
+  7
+);
+
+/**
+ * Privacy Policy Generator is a yearly subscription that also grants a site
+ * allowance. Mock narrative: Lucas subscribed to the Team tier (3 sites) on
+ * 2026-01-15 and generated three policies (3 of 3 used). Agency upgrade is
+ * available (Option 1 — see docs/data-layer.md).
+ */
+const generatorPlans = createCollection<{
+  id: string;
+  siteAllowance: number;
+  planId: GeneratorPlanId;
+}>('generator-plan', [{ id: '1', siteAllowance: 3, planId: 'team' }], 8);
+
+const euRepInquiries = createCollection<EuRepInquiry>(
+  'eu-rep-inquiries',
+  [
     {
-      id: POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID,
-      productType: 'policy',
-      product: 'Privacy Policy — alpenblick-hotel.ch',
-      planId: '1',
-      siteCount: 1,
-      status: 'active',
-      startDate: '2025-09-16',
-      lastOrderDate: '2025-09-16',
-      nextPaymentDate: '2026-09-16',
-      billingAddressId: '1',
-      totals: {
-        product: 'Privacy Policy — alpenblick-hotel.ch (12 Monate)',
-        subtotal: 89,
-        discount: 0,
-        total: 89,
-        currency: 'CHF',
-      },
-      relatedOrderIds: ['20'],
+      id: '1',
+      date: '2026-06-18',
+      subject: 'Data subject access request — mueller-consulting.ch',
+      status: 'forwarded',
+      reference: 'DSAR-2026-0412',
     },
     {
-      id: POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID,
-      productType: 'policy',
-      product: 'Privacy Policy — sutter-web.ch',
-      planId: '1',
-      siteCount: 1,
-      status: 'active',
-      startDate: '2026-02-08',
-      lastOrderDate: '2026-02-08',
-      nextPaymentDate: '2027-02-08',
-      billingAddressId: '1',
-      totals: {
-        product: 'Privacy Policy — sutter-web.ch (12 Monate)',
-        subtotal: 89,
-        discount: 0,
-        total: 89,
-        currency: 'CHF',
-      },
-      relatedOrderIds: ['22'],
+      id: '2',
+      date: '2026-05-02',
+      subject: 'Erasure request from French supervisory authority',
+      status: 'answered',
+      reference: 'CNIL-8821',
     },
     {
-      id: POLICY_EXPIRED_SUBSCRIPTION_ID,
-      productType: 'policy',
-      product: 'Privacy Policy Generator — 1 Site',
-      planId: '1',
-      siteCount: 1,
-      status: 'expired',
-      startDate: '2025-07-01',
-      lastOrderDate: '2025-07-01',
-      nextPaymentDate: null,
-      billingAddressId: '1',
-      totals: {
-        product: 'Privacy Policy Generator — 1 Site (12 Monate)',
-        subtotal: 89,
-        discount: 0,
-        total: 89,
-        currency: 'CHF',
-      },
-      relatedOrderIds: ['19'],
+      id: '3',
+      date: '2026-03-21',
+      subject: 'Cookie consent complaint — kreativ-studio.ch',
+      status: 'closed',
+    },
+    {
+      id: '4',
+      date: '2026-07-08',
+      subject: 'Right to object — marketing newsletter',
+      status: 'forwarded',
     },
   ],
-  17
+  5
 );
+
+const EU_REP_CHECKOUT_PRICES: Record<EuRepCheckoutPlanId, number> = {
+  budget: 149,
+  standard: 249,
+  premium: 499,
+};
 
 type CheckoutSessionRecord = {
   id: string;
   status: 'pending' | 'completed';
   kind: CheckoutSessionCreate['kind'];
+  planId: GeneratorPlanId;
   siteCount: number;
   amount: number;
-  generatorAmount: number;
   listPrice: number;
-  discountRate: number;
-  discountAmount: number;
+  creditAmount: number;
   currency: 'CHF';
   domain?: string;
   policyName?: string;
-  legalEntity?: string;
-  euRepEntityCount?: number;
-  euRepEntities?: { legalEntity: string; forwardingEmail: string }[];
-  euRepLinkContractId?: string;
-  subscriptionId?: string;
-  fillSubscriptionId?: string;
-  useAvailableSlot?: boolean;
+  euRepPlanId?: EuRepCheckoutPlanId;
   orderId?: string;
   documentId?: string;
-  euRepContractId?: string;
-  euRepContractIds?: string[];
 };
 
-const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 3);
+const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 1);
+
+function readSiteAllowance(): number {
+  return generatorPlans.all()[0]?.siteAllowance ?? 0;
+}
+
+function readGeneratorPlanId(): GeneratorPlanId | null {
+  return generatorPlans.all()[0]?.planId ?? null;
+}
+
+function setGeneratorPlan(planId: GeneratorPlanId, siteAllowance: number) {
+  const row = generatorPlans.all()[0];
+  if (!row) {
+    generatorPlans.create({ siteAllowance, planId });
+    return;
+  }
+  generatorPlans.update(row.id, { siteAllowance, planId });
+}
 
 function addOneYear(isoDate: string): string {
   const date = new Date(isoDate);
@@ -313,147 +253,6 @@ function nextOrderNumber(): string {
   return `DSP-${year}-${seq}`;
 }
 
-function policyProductLabel(siteCount: number, domain?: string): string {
-  if (domain) {
-    return `Privacy Policy — ${domain.replace(/^www\./, '')}`;
-  }
-  return `Privacy Policy Generator — ${siteCount} ${siteCount === 1 ? 'Site' : 'Sites'}`;
-}
-
-function euRepProductLabel(legalEntity: string): string {
-  return `EU-Vertretung — ${legalEntity}`;
-}
-
-function linkDocumentsToContract(contractId: string, documentIds: string[], today: string) {
-  const contract = euRepContracts.all().find((row) => row.id === contractId);
-  if (!contract) return;
-
-  const linked = new Set(contract.linkedDocumentIds);
-  for (const id of documentIds) {
-    for (const other of euRepContracts.all()) {
-      if (other.id === contractId || !other.linkedDocumentIds.includes(id)) continue;
-      euRepContracts.update(other.id, {
-        linkedDocumentIds: other.linkedDocumentIds.filter((item) => item !== id),
-      });
-    }
-    linked.add(id);
-    documents.update(id, { euRepContractId: contractId, euRepLinked: true, updatedDate: today });
-  }
-
-  euRepContracts.update(contractId, { linkedDocumentIds: [...linked] });
-}
-
-function unlinkDocumentFromContract(contractId: string, documentId: string, today: string) {
-  const contract = euRepContracts.all().find((row) => row.id === contractId);
-  if (!contract) return;
-
-  documents.update(documentId, {
-    euRepContractId: undefined,
-    euRepLinked: false,
-    updatedDate: today,
-  });
-  euRepContracts.update(contractId, {
-    linkedDocumentIds: contract.linkedDocumentIds.filter((id) => id !== documentId),
-  });
-}
-
-function createEuRepPurchase(
-  session: CheckoutSessionRecord,
-  today: string,
-  extraLinkedDocumentIds: string[] = []
-):
-  | { orderId: string; subscriptionId: string; contractId?: string; contractIds: string[] }
-  | undefined {
-  const entityCount = Math.max(1, session.euRepEntityCount ?? session.euRepEntities?.length ?? 0);
-  if (!session.euRepEntityCount && !session.euRepEntities?.length) return undefined;
-
-  const unitQuote = calculateEuRepQuote(1);
-  const nextPaymentDate = addOneYear(today);
-  const entities = session.euRepEntities ?? [];
-  const contractIds: string[] = [];
-  let firstOrderId: string | undefined;
-  let firstSubscriptionId: string | undefined;
-  let firstContractId: string | undefined;
-
-  for (let index = 0; index < entityCount; index += 1) {
-    const details = entities[index];
-    const legalEntity = details?.legalEntity.trim() || `Legal entity ${String(index + 1)}`;
-    const product = euRepProductLabel(legalEntity);
-    const subscriptionId = nextTechnicalSubscriptionId();
-
-    const euOrder = orders.create({
-      productType: 'euRep',
-      number: nextOrderNumber(),
-      date: today,
-      status: 'active',
-      total: unitQuote.amountDue,
-      currency: 'CHF',
-      legalEntityCount: 1,
-      orderKind: 'subscription',
-      subscriptionId,
-    });
-
-    subscriptions.create({
-      id: subscriptionId,
-      productType: 'euRep',
-      product,
-      planId: '1',
-      legalEntityCount: 1,
-      status: 'active',
-      startDate: today,
-      lastOrderDate: today,
-      nextPaymentDate,
-      billingAddressId: '1',
-      totals: {
-        product: `${product} (12 Monate)`,
-        subtotal: unitQuote.amountDue,
-        discount: 0,
-        total: unitQuote.amountDue,
-        currency: 'CHF',
-      },
-      relatedOrderIds: [euOrder.id],
-    });
-
-    const created = euRepContracts.create({
-      subscriptionId,
-      legalEntity,
-      forwardingEmail: details?.forwardingEmail.trim() || MOCK_MEMBER_EMAIL,
-      linkedDocumentIds: [],
-      status: 'active',
-    });
-
-    contractIds.push(created.id);
-    firstOrderId ??= euOrder.id;
-    firstSubscriptionId ??= subscriptionId;
-    firstContractId ??= created.id;
-  }
-
-  if (firstContractId && extraLinkedDocumentIds.length > 0) {
-    linkDocumentsToContract(firstContractId, extraLinkedDocumentIds, today);
-  }
-
-  return {
-    orderId: firstOrderId ?? '',
-    subscriptionId: firstSubscriptionId ?? '',
-    contractId: firstContractId,
-    contractIds,
-  };
-}
-
-function stripEuRepFromHostedPolicies(subscriptionId: string) {
-  const today = new Date().toISOString().slice(0, 10);
-  const contracts = euRepContracts
-    .all()
-    .filter((row) => row.subscriptionId === subscriptionId && row.status === 'active');
-
-  for (const contract of contracts) {
-    for (const id of contract.linkedDocumentIds) {
-      documents.update(id, { euRepContractId: undefined, euRepLinked: false, updatedDate: today });
-    }
-    euRepContracts.update(contract.id, { status: 'cancelled', linkedDocumentIds: [] });
-  }
-}
-
 function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | undefined {
   const session = checkoutSessions.all().find((row) => row.id === sessionId);
   if (!session || session.status === 'completed') {
@@ -461,206 +260,120 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
   }
 
   const today = new Date().toISOString().slice(0, 10);
-
-  if (session.kind === 'euRep') {
-    const euResult = createEuRepPurchase(session, today);
-    if (!euResult) return undefined;
-    return checkoutSessions.update(sessionId, {
-      status: 'completed',
-      orderId: euResult.orderId,
-      subscriptionId: euResult.subscriptionId,
-      euRepContractId: euResult.contractId,
-      euRepContractIds: euResult.contractIds,
-    });
-  }
-
+  const siteAllowance = session.siteCount;
+  setGeneratorPlan(session.planId, siteAllowance);
   const nextPaymentDate = addOneYear(today);
-  const isRenewal = session.kind === 'generatorRenewal';
-  const siteCount = Math.max(1, session.siteCount);
-
-  if (session.fillSubscriptionId && session.domain) {
-    const slotSubscription = subscriptions
-      .all()
-      .find((row) => row.id === session.fillSubscriptionId);
-    if (
-      !slotSubscription ||
-      slotSubscription.productType !== 'policy' ||
-      slotSubscription.status !== 'active' ||
-      countAvailablePolicySlots(slotSubscription, documents.all()) <= 0
-    ) {
-      return undefined;
-    }
-
-    const willBuyEuRep = Boolean(session.euRepEntityCount || session.euRepEntities?.length);
-    const willLinkExisting = Boolean(session.euRepLinkContractId);
-    const linkedContract = willLinkExisting
-      ? euRepContracts.all().find((row) => row.id === session.euRepLinkContractId)
-      : undefined;
-    const swissLegalEntity =
-      session.legalEntity?.trim() ||
-      session.euRepEntities?.[0]?.legalEntity.trim() ||
-      linkedContract?.legalEntity ||
-      undefined;
-
-    const created = documents.create({
-      name: session.policyName ?? 'Privacy Policy',
-      site: session.domain.replace(/^www\./, ''),
-      legalEntity: swissLegalEntity,
-      subscriptionId: slotSubscription.id,
-      createdDate: today,
-      updatedDate: today,
-      versions: buildPolicyVersions(today),
-      euRepLinked: willBuyEuRep || willLinkExisting,
-    });
-
-    let euRepOrderId = '';
-    if (willBuyEuRep) {
-      const euResult = createEuRepPurchase(session, today, [created.id]);
-      euRepOrderId = euResult?.orderId ?? '';
-    } else if (willLinkExisting && session.euRepLinkContractId) {
-      linkDocumentsToContract(session.euRepLinkContractId, [created.id], today);
-    }
-
-    return checkoutSessions.update(sessionId, {
-      status: 'completed',
-      orderId: euRepOrderId,
-      documentId: created.id,
-      subscriptionId: slotSubscription.id,
-    });
-  }
-
-  const productLabel = session.domain
-    ? policyProductLabel(1, session.domain)
-    : policyProductLabel(siteCount);
-
-  let policySubscriptionId = isRenewal ? session.subscriptionId : undefined;
-  if (isRenewal && policySubscriptionId) {
-    const existing = subscriptions.all().find((row) => row.id === policySubscriptionId);
-    if (!existing || existing.productType !== 'policy') {
-      policySubscriptionId = undefined;
-    }
-  }
-
-  const subscriptionSiteCount =
-    session.domain && !session.fillSubscriptionId && !isRenewal ? 1 : siteCount;
-
-  if (!policySubscriptionId) {
-    const createdSub = subscriptions.create({
-      id: nextTechnicalSubscriptionId(),
-      productType: 'policy',
-      product: session.domain ? productLabel : policyProductLabel(subscriptionSiteCount),
-      planId: String(subscriptionSiteCount),
-      siteCount: subscriptionSiteCount,
-      status: 'active',
-      startDate: today,
-      lastOrderDate: today,
-      nextPaymentDate,
-      billingAddressId: '1',
-      totals: {
-        product: `${productLabel} (12 Monate)`,
-        subtotal: session.listPrice,
-        discount: session.discountAmount,
-        total: session.generatorAmount,
-        currency: 'CHF',
-      },
-      relatedOrderIds: [],
-    });
-    policySubscriptionId = createdSub.id;
-  }
 
   const policyOrder = orders.create({
     productType: 'policy',
     number: nextOrderNumber(),
     date: today,
     status: 'active',
-    total: session.generatorAmount,
+    total: session.amount,
     currency: session.currency,
-    siteCount: subscriptionSiteCount,
-    discountAmount: session.discountAmount > 0 ? session.discountAmount : undefined,
-    discountRate: session.discountRate > 0 ? session.discountRate : undefined,
-    subscriptionId: policySubscriptionId,
-    orderKind: isRenewal ? 'renewal' : 'subscription',
+    siteCount: session.siteCount,
+    creditAmount: session.creditAmount > 0 ? session.creditAmount : undefined,
   });
 
-  const policySub = subscriptions.all().find((row) => row.id === policySubscriptionId);
+  const policySub = subscriptions.all().find((row) => row.productType === 'policy');
   if (policySub) {
     subscriptions.update(policySub.id, {
+      planId: session.planId,
       lastOrderDate: today,
       nextPaymentDate,
-      status: 'active',
-      siteCount: isRenewal ? (policySub.siteCount ?? subscriptionSiteCount) : subscriptionSiteCount,
-      planId: String(
-        isRenewal ? (policySub.siteCount ?? subscriptionSiteCount) : subscriptionSiteCount
-      ),
-      product: session.domain ? productLabel : policyProductLabel(subscriptionSiteCount),
       totals: {
         ...policySub.totals,
-        product: `${session.domain ? productLabel : policySub.product} (12 Monate)`,
-        subtotal: session.listPrice,
-        discount: session.discountAmount,
-        total: session.generatorAmount,
+        product: `Privacy Policy Generator — ${siteAllowance} Sites (12 Monate)`,
+        subtotal: policySub.totals.subtotal + session.amount,
+        discount: policySub.totals.discount + session.creditAmount,
+        total: policySub.totals.total + session.amount,
       },
       relatedOrderIds: [...policySub.relatedOrderIds, policyOrder.id],
     });
+  } else {
+    subscriptions.create({
+      productType: 'policy',
+      product: `Privacy Policy Generator — ${session.planId}`,
+      planId: session.planId,
+      status: 'active',
+      startDate: today,
+      lastOrderDate: today,
+      nextPaymentDate,
+      billingAddressId: '1',
+      totals: {
+        product: `Privacy Policy Generator — ${siteAllowance} Sites (12 Monate)`,
+        subtotal: session.amount,
+        discount: session.creditAmount,
+        total: session.amount,
+        currency: 'CHF',
+      },
+      relatedOrderIds: [policyOrder.id],
+    });
   }
-
-  const willBuyEuRep = Boolean(session.euRepEntityCount || session.euRepEntities?.length);
-  const willLinkExisting = Boolean(session.euRepLinkContractId);
-  const linkedContract = willLinkExisting
-    ? euRepContracts.all().find((row) => row.id === session.euRepLinkContractId)
-    : undefined;
-  const swissLegalEntity =
-    session.legalEntity?.trim() ||
-    session.euRepEntities?.[0]?.legalEntity.trim() ||
-    linkedContract?.legalEntity ||
-    undefined;
 
   let documentId: string | undefined;
   if (session.domain) {
     const created = documents.create({
       name: session.policyName ?? 'Privacy Policy',
       site: session.domain.replace(/^www\./, ''),
-      legalEntity: swissLegalEntity,
-      subscriptionId: policySubscriptionId,
       createdDate: today,
       updatedDate: today,
       versions: buildPolicyVersions(today),
-      euRepLinked: willBuyEuRep || willLinkExisting,
     });
     documentId = created.id;
   }
 
-  if (willBuyEuRep) {
-    createEuRepPurchase(session, today, documentId ? [documentId] : []);
-  } else if (willLinkExisting && session.euRepLinkContractId && documentId) {
-    linkDocumentsToContract(session.euRepLinkContractId, [documentId], today);
+  if (session.euRepPlanId) {
+    const euAmount = EU_REP_CHECKOUT_PRICES[session.euRepPlanId];
+    const euOrder = orders.create({
+      productType: 'euRep',
+      number: nextOrderNumber(),
+      date: today,
+      status: 'active',
+      total: euAmount,
+      currency: 'CHF',
+      orderKind: 'subscription',
+    });
+
+    const euSub = subscriptions.all().find((row) => row.productType === 'euRep');
+    if (euSub) {
+      subscriptions.update(euSub.id, {
+        lastOrderDate: today,
+        nextPaymentDate,
+        relatedOrderIds: [...euSub.relatedOrderIds, euOrder.id],
+      });
+    }
   }
 
   const completed = checkoutSessions.update(sessionId, {
     status: 'completed',
     orderId: policyOrder.id,
     documentId,
-    subscriptionId: policySubscriptionId,
   });
 
   return completed;
 }
 
-const memberships = createCollection<MembershipRow>(
-  'billing-memberships',
-  [
-    {
-      id: '1',
-      productType: 'academy',
-      plan: 'Academy',
-      startDate: '2026-01-15',
-      expiresDate: '2027-01-15',
-      status: 'active',
-      nextPaymentDate: '2027-01-15',
-    },
-  ],
-  2
-);
+const memberships = createCollection<MembershipRow>('billing-memberships', [
+  {
+    id: '1',
+    productType: 'academy',
+    plan: 'Academy',
+    startDate: '2026-01-15',
+    expiresDate: '2027-01-15',
+    status: 'active',
+    nextPaymentDate: '2027-01-15',
+  },
+  {
+    id: '2',
+    productType: 'euRep',
+    plan: 'EU-Vertretung — Standard',
+    startDate: '2026-04-02',
+    expiresDate: '2027-04-02',
+    status: 'active',
+    nextPaymentDate: '2027-04-02',
+  },
+]);
 
 const orders = createCollection<Order>(
   'billing-orders',
@@ -674,7 +387,6 @@ const orders = createCollection<Order>(
       total: 290,
       currency: 'CHF',
       orderKind: 'subscription',
-      subscriptionId: ACADEMY_SUBSCRIPTION_ID,
     },
     {
       id: '2',
@@ -682,35 +394,9 @@ const orders = createCollection<Order>(
       number: 'DSP-2026-1005',
       date: '2026-01-15',
       status: 'active',
-      total: 445,
+      total: 199,
       currency: 'CHF',
-      siteCount: 5,
-      orderKind: 'subscription',
-      subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
-    },
-    {
-      id: '20',
-      productType: 'policy',
-      number: 'DSP-2025-1024',
-      date: '2025-09-16',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-      orderKind: 'subscription',
-      subscriptionId: POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID,
-    },
-    {
-      id: '22',
-      productType: 'policy',
-      number: 'DSP-2026-1031',
-      date: '2026-02-08',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-      orderKind: 'subscription',
-      subscriptionId: POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID,
+      siteCount: 3,
     },
     {
       id: '3',
@@ -720,21 +406,7 @@ const orders = createCollection<Order>(
       status: 'active',
       total: 249,
       currency: 'CHF',
-      legalEntityCount: 1,
       orderKind: 'subscription',
-      subscriptionId: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
-    },
-    {
-      id: '21',
-      productType: 'euRep',
-      number: 'DSP-2026-1082',
-      date: '2026-05-18',
-      status: 'active',
-      total: 249,
-      currency: 'CHF',
-      legalEntityCount: 1,
-      orderKind: 'subscription',
-      subscriptionId: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
     },
     {
       id: '17',
@@ -745,7 +417,6 @@ const orders = createCollection<Order>(
       total: 290,
       currency: 'CHF',
       orderKind: 'subscription',
-      subscriptionId: ACADEMY_INVOICE_2025_ID,
     },
     {
       id: '18',
@@ -756,22 +427,9 @@ const orders = createCollection<Order>(
       total: 270,
       currency: 'CHF',
       orderKind: 'subscription',
-      subscriptionId: ACADEMY_INVOICE_2024_ID,
-    },
-    {
-      id: '19',
-      productType: 'policy',
-      number: 'DSP-2025-1102',
-      date: '2025-07-01',
-      status: 'active',
-      total: 89,
-      currency: 'CHF',
-      siteCount: 1,
-      orderKind: 'subscription',
-      subscriptionId: POLICY_EXPIRED_SUBSCRIPTION_ID,
     },
   ],
-  15
+  4
 );
 
 /** Latest legal year the hosted policies have been maintained through. */
@@ -804,138 +462,28 @@ const documents = createCollection<GeneratedDocument>(
         id: '1',
         name: 'Datenschutzerklärung',
         site: 'sutter-web.ch',
-        legalEntity: 'Baumgartner Digital AG',
-        subscriptionId: POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID,
-        createdDate: '2026-02-10',
+        createdDate: '2026-01-20',
         updatedDate: '2026-06-15',
-        euRepContractId: '1',
-        euRepLinked: true,
+      },
+      {
+        id: '2',
+        name: 'Cookie-Richtlinie',
+        site: 'sutter-web.ch',
+        siteUrl: 'www.sutter-web.ch/cookie-policy',
+        createdDate: '2026-01-22',
+        updatedDate: '2026-01-22',
       },
       {
         id: '3',
         name: 'Privacy Policy',
         site: 'alpenblick-hotel.ch',
-        legalEntity: 'Alpenblick Hospitality AG',
-        subscriptionId: POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID,
-        createdDate: '2025-09-20',
+        createdDate: '2026-02-03',
         updatedDate: '2026-05-20',
-        euRepContractId: '2',
-        euRepLinked: true,
-      },
-      {
-        id: '6',
-        name: 'Privacy Policy',
-        site: 'mueller-consulting.ch',
-        legalEntity: 'Müller Consulting GmbH',
-        subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
-        createdDate: '2026-01-22',
-        updatedDate: '2026-04-02',
-        euRepContractId: '1',
-        euRepLinked: true,
-      },
-      {
-        id: '7',
-        name: 'Datenschutzerklärung',
-        site: 'seeblick-apotheke.ch',
-        legalEntity: 'Seeblick Apotheke AG',
-        subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
-        createdDate: '2026-02-05',
-        updatedDate: '2026-02-05',
-      },
-      {
-        id: '8',
-        name: 'Privacy Policy',
-        site: 'atelier-bern.ch',
-        legalEntity: 'Atelier Bern GmbH',
-        subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
-        createdDate: '2026-03-02',
-        updatedDate: '2026-03-02',
-      },
-      {
-        id: '4',
-        name: 'Privacy Policy',
-        site: 'kreativ-studio.ch',
-        legalEntity: 'Kreativ Studio GmbH',
-        subscriptionId: POLICY_EXPIRED_SUBSCRIPTION_ID,
-        createdDate: '2025-07-08',
-        updatedDate: '2026-06-01',
       },
     ] satisfies GeneratedDocument[]
   ).map((doc) => ({ ...doc, versions: buildPolicyVersions(doc.createdDate) })),
-  20
+  7
 );
-
-const euRepContracts = createCollection<EuRepContract>(
-  'eu-rep-contracts',
-  [
-    {
-      id: '1',
-      subscriptionId: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
-      legalEntity: 'Baumgartner Digital AG',
-      forwardingEmail: MOCK_MEMBER_EMAIL,
-      linkedDocumentIds: ['1', '6'],
-      status: 'active',
-    },
-    {
-      id: '2',
-      subscriptionId: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
-      legalEntity: 'Alpenblick Hospitality AG',
-      forwardingEmail: 'privacy@alpenblick-hotel.ch',
-      linkedDocumentIds: ['3'],
-      status: 'active',
-    },
-  ],
-  5
-);
-
-const SWISS_LEGAL_ENTITY_BY_SITE: Record<string, string> = {
-  'sutter-web.ch': 'Baumgartner Digital AG',
-  'alpenblick-hotel.ch': 'Alpenblick Hospitality AG',
-  'mueller-consulting.ch': 'Baumgartner Digital AG',
-  'seeblick-apotheke.ch': 'Baumgartner Digital AG',
-  'atelier-bern.ch': 'Atelier Bern GmbH',
-  'm-p.ch': 'Alpenblick Hospitality AG',
-  'berghotel-grindelwald.ch': 'Berghotel Grindelwald AG',
-  'praxis-luzern.ch': 'Praxis Luzern AG',
-  'kreativ-studio.ch': 'Kreativ Studio GmbH',
-};
-
-function presentDocument(document: GeneratedDocument): GeneratedDocument {
-  const normalized = normalizeGeneratedDocument(document);
-  if (normalized.legalEntity?.trim()) return normalized;
-
-  const fromContract = euRepContracts
-    .all()
-    .find((row) => row.id === normalized.euRepContractId)?.legalEntity;
-  const legalEntity = SWISS_LEGAL_ENTITY_BY_SITE[resolveDocumentSite(normalized)] ?? fromContract;
-  if (!legalEntity) return normalized;
-
-  documents.update(normalized.id, { legalEntity });
-  return { ...normalized, legalEntity };
-}
-
-function listHostedPolicies(): GeneratedDocument[] {
-  const all = documents.all();
-  const keep = uniqueDocumentsBySite(all);
-  const keepIds = new Set(keep.map((row) => row.id));
-  for (const row of all) {
-    if (!keepIds.has(row.id)) {
-      documents.remove(row.id);
-    }
-  }
-  return keep.map((row) => presentDocument(row));
-}
-
-function findHostedPolicyBySlug(slug: string): GeneratedDocument | undefined {
-  return listHostedPolicies().find((row) => resolveHostedPolicySlug(row) === slug);
-}
-
-function findHostedPolicyByLegacy(id: string, site: string): GeneratedDocument | undefined {
-  const normalizedSite = formatSiteDomain(site);
-  return listHostedPolicies().find(
-    (row) => row.id === id && resolveDocumentSite(row) === normalizedSite
-  );
-}
 
 const UID_COMPANIES: UidCompany[] = [
   {
@@ -1067,6 +615,14 @@ export const handlers = [
           : { status: 'none', subscriptionDate: null, renewalDate: null },
       nextLiveSessionAt: member ? '2026-07-15T10:00:00+02:00' : null,
       documentCount: documents.all().length,
+      euRepInquiryAllowance: member
+        ? {
+            included: 4,
+            used: 1,
+            furtherInquiryAmount: 79,
+            currency: 'CHF',
+          }
+        : null,
     } satisfies AccountSnapshot);
   }),
 
@@ -1108,7 +664,7 @@ export const handlers = [
     const existing = profile.all()[0];
     const saved = existing
       ? profile.update(existing.id, input)
-      : profile.create({ ...input, id: '1' });
+      : profile.create({ ...input, id: '1' } as Profile & { id: string });
     return HttpResponse.json(saved);
   }),
 
@@ -1120,45 +676,17 @@ export const handlers = [
     return HttpResponse.json({ changed: true as const });
   }),
 
-  http.get('/api/billing/subscriptions/:id', ({ request, params }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    const subscription = subscriptions.all().find((row) => row.id === String(params.id));
-    if (!subscription) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    return HttpResponse.json(subscription);
-  }),
-
   http.get('/api/billing/subscriptions', ({ request }) =>
     HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? subscriptions.all() : [])
   ),
 
   http.post('/api/billing/subscriptions/:id/cancel', ({ params }) => {
     const updated = subscriptions.update(String(params.id), { status: 'cancelled' });
-    if (updated?.productType === 'academy') {
-      const membership = memberships.all().find((row) => row.productType === 'academy');
-      if (membership) {
-        memberships.update(membership.id, { status: 'cancelled' });
-      }
-    }
-    if (updated?.productType === 'euRep') {
-      stripEuRepFromHostedPolicies(updated.id);
-    }
-    if (!updated) {
-      return new HttpResponse(null, { status: 404 });
-    }
-    return HttpResponse.json(updated);
-  }),
-
-  http.post('/api/billing/subscriptions/:id/continue', ({ params }) => {
-    const updated = subscriptions.update(String(params.id), { status: 'active' });
-    if (updated?.productType === 'academy') {
-      const membership = memberships.all().find((row) => row.productType === 'academy');
-      if (membership) {
-        memberships.update(membership.id, { status: 'active' });
-      }
+    const membership = updated
+      ? memberships.all().find((row) => row.productType === updated.productType)
+      : undefined;
+    if (membership) {
+      memberships.update(membership.id, { status: 'cancelled' });
     }
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
@@ -1183,7 +711,9 @@ export const handlers = [
     HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? orders.all() : [])
   ),
 
-  http.get('/api/documents', () => HttpResponse.json(listHostedPolicies())),
+  http.get('/api/documents', () =>
+    HttpResponse.json(documents.all().map((row) => normalizeGeneratedDocument(row)))
+  ),
 
   http.get('/api/documents/:id', ({ params }) => {
     const id = String(params.id);
@@ -1191,28 +721,7 @@ export const handlers = [
     if (!document) {
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
-    return HttpResponse.json(presentDocument(document));
-  }),
-
-  http.get('/api/hosted-policies/legacy/:id/:site', ({ params }) => {
-    const document = findHostedPolicyByLegacy(String(params.id), String(params.site));
-    if (!document) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    return HttpResponse.json({
-      document,
-      slug: resolveHostedPolicySlug(document),
-      path: buildHostedPolicyPath(document),
-    });
-  }),
-
-  http.get('/api/hosted-policies/:slug', ({ params }) => {
-    const slug = String(params.slug);
-    const document = findHostedPolicyBySlug(slug);
-    if (!document) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    return HttpResponse.json(document);
+    return HttpResponse.json(normalizeGeneratedDocument(document));
   }),
 
   http.post('/api/documents/:id/regenerate', ({ params }) => {
@@ -1227,7 +736,7 @@ export const handlers = [
       updatedDate: today,
     });
 
-    return HttpResponse.json(presentDocument(updated ?? existing));
+    return HttpResponse.json(normalizeGeneratedDocument(updated ?? existing));
   }),
 
   http.get('/api/uid-registry/search', ({ request }) => {
@@ -1248,223 +757,56 @@ export const handlers = [
   }),
 
   http.get('/api/generator/plan', ({ request }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json(null);
-    }
-    const allSubscriptions = subscriptions.all();
-    const allDocuments = documents.all();
-    const policyRows = allSubscriptions.filter(
-      (row) => row.productType === 'policy' && row.status === 'active'
-    );
-    let availableSiteSlots = 0;
-    let slotSubscriptionId: string | undefined;
-    for (const row of policyRows) {
-      const available = countAvailablePolicySlots(row, allDocuments);
-      availableSiteSlots += available;
-      if (!slotSubscriptionId && available > 0) {
-        slotSubscriptionId = row.id;
-      }
-    }
-
-    return HttpResponse.json({
-      activeSubscriptionCount: countActivePolicySubscriptions(allSubscriptions),
-      availableSiteSlots,
-      slotSubscriptionId,
-    });
-  }),
-
-  http.get('/api/eu-rep/contracts', ({ request }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json([]);
-    }
-    return HttpResponse.json(euRepContracts.all());
-  }),
-
-  http.get('/api/eu-rep/contracts/:id', ({ request, params }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    const contract = euRepContracts.all().find((row) => row.id === String(params.id));
-    if (!contract) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    return HttpResponse.json(contract);
-  }),
-
-  http.patch('/api/eu-rep/contracts/:id', async ({ params, request }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    const existing = euRepContracts.all().find((row) => row.id === String(params.id));
-    if (!existing) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    const input = (await request.json()) as EuRepContractUpdate;
-    const legalEntityChanged = input.legalEntity !== existing.legalEntity;
-    const updated = euRepContracts.update(existing.id, {
-      legalEntity: input.legalEntity,
-      forwardingEmail: input.forwardingEmail,
-    });
-    if (legalEntityChanged) {
-      for (const id of existing.linkedDocumentIds) {
-        documents.update(id, { legalEntity: input.legalEntity });
-      }
-    }
-    return HttpResponse.json(updated ?? existing);
-  }),
-
-  http.post('/api/eu-rep/contracts/:id/documents', async ({ params, request }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    const contract = euRepContracts.all().find((row) => row.id === String(params.id));
-    if (!contract || contract.status !== 'active') {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    const input = (await request.json()) as EuRepLinkDocuments;
-    const today = new Date().toISOString().slice(0, 10);
-    linkDocumentsToContract(contract.id, input.documentIds, today);
+    const row = generatorPlans.all()[0];
     return HttpResponse.json(
-      euRepContracts.all().find((row) => row.id === contract.id) ?? contract
+      isMemberToken(tokenFromRequest(request)) && row
+        ? { siteAllowance: row.siteAllowance, planId: row.planId }
+        : null
     );
   }),
 
-  http.delete('/api/eu-rep/contracts/:id/documents/:documentId', ({ params, request }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
-      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    const contract = euRepContracts.all().find((row) => row.id === String(params.id));
-    if (!contract || contract.status !== 'active') {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    const documentId = String(params.documentId);
-    if (!contract.linkedDocumentIds.includes(documentId)) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    unlinkDocumentFromContract(contract.id, documentId, today);
-    return HttpResponse.json(
-      euRepContracts.all().find((row) => row.id === contract.id) ?? contract
-    );
-  }),
+  http.get('/api/eu-rep/inquiries', ({ request }) =>
+    HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? euRepInquiries.all() : [])
+  ),
 
   http.post('/api/checkout/sessions', async ({ request }) => {
     const input = (await request.json()) as CheckoutSessionCreate;
+    const siteCount = GENERATOR_PLAN_SITE_COUNTS[input.planId];
+    const policySub = subscriptions.all().find((row) => row.productType === 'policy');
+    const currentPlanId =
+      readGeneratorPlanId() ?? (policySub?.planId as GeneratorPlanId | undefined);
+    const usedSiteCount = documents.all().length;
 
-    if (input.kind === 'euRep') {
-      const entityCount = Math.max(1, input.euRepEntityCount ?? input.euRepEntities?.length ?? 1);
-      const quote = calculateEuRepQuote(entityCount);
-      const session = checkoutSessions.create({
-        status: 'pending',
-        kind: input.kind,
-        siteCount: entityCount,
-        amount: quote.amountDue,
-        generatorAmount: 0,
-        listPrice: quote.amountDue,
-        discountRate: 0,
-        discountAmount: 0,
-        currency: 'CHF',
-        euRepEntityCount: entityCount,
-        euRepEntities: input.euRepEntities,
-      });
-
-      return HttpResponse.json(
-        {
-          id: session.id,
-          redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
-          amount: session.amount,
-          currency: session.currency,
-          siteCount: session.siteCount,
-          listPrice: session.listPrice,
-          discountRate: session.discountRate,
-          discountAmount: session.discountAmount,
-        },
-        { status: 201 }
-      );
+    if (input.kind === 'generatorTopUp') {
+      if (!isGeneratorUpgradeAllowed(input.planId, currentPlanId ?? null, usedSiteCount)) {
+        return HttpResponse.json({ message: 'upgrade_not_allowed' }, { status: 400 });
+      }
     }
 
-    const activeSites = countActivePolicySites(subscriptions.all());
-    const siteCount = Math.max(1, input.siteCount ?? 1);
-
-    if (input.fillSubscriptionId && input.domain && input.kind === 'generator') {
-      const slotSubscription = subscriptions
-        .all()
-        .find((row) => row.id === input.fillSubscriptionId);
-      if (
-        !slotSubscription ||
-        slotSubscription.productType !== 'policy' ||
-        slotSubscription.status !== 'active' ||
-        countAvailablePolicySlots(slotSubscription, documents.all()) <= 0
-      ) {
-        return HttpResponse.json({ message: 'No subscription slot available' }, { status: 400 });
-      }
-
-      const euRepEntityCount = input.euRepEntityCount ?? input.euRepEntities?.length;
-      let amount = 0;
-      if (euRepEntityCount) {
-        amount += calculateEuRepQuote(euRepEntityCount).amountDue;
-      }
-
-      const session = checkoutSessions.create({
-        status: 'pending',
-        kind: input.kind,
-        siteCount: 1,
-        amount,
-        generatorAmount: 0,
-        listPrice: 0,
-        discountRate: 0,
-        discountAmount: 0,
-        currency: 'CHF',
-        domain: input.domain,
-        policyName: input.policyName,
-        legalEntity: input.legalEntity,
-        euRepEntityCount,
-        euRepEntities: input.euRepEntities,
-        euRepLinkContractId: input.euRepLinkContractId,
-        fillSubscriptionId: input.fillSubscriptionId,
-      });
-
-      return HttpResponse.json(
-        {
-          id: session.id,
-          redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
-          amount: session.amount,
-          currency: session.currency,
-          siteCount: session.siteCount,
-          listPrice: session.listPrice,
-          discountRate: session.discountRate,
-          discountAmount: session.discountAmount,
-        },
-        { status: 201 }
-      );
-    }
-
-    const qualifyingSites = qualifyingSiteCountForCheckout(activeSites, input.kind, siteCount);
-    const quote = calculateGeneratorPolicyQuote(qualifyingSites, siteCount);
+    const quote = calculateGeneratorUpgradeQuote({
+      targetPlanId: input.planId,
+      currentPlanId: input.kind === 'generator' ? null : currentPlanId,
+      lastOrderDate: policySub?.lastOrderDate,
+      nextPaymentDate: policySub?.nextPaymentDate,
+    });
 
     let amount = quote.amountDue;
-    const euRepEntityCount = input.euRepEntityCount ?? input.euRepEntities?.length;
-    if (euRepEntityCount) {
-      amount += calculateEuRepQuote(euRepEntityCount).amountDue;
+    if (input.euRepPlanId) {
+      amount += EU_REP_CHECKOUT_PRICES[input.euRepPlanId];
     }
 
     const session = checkoutSessions.create({
       status: 'pending',
       kind: input.kind,
+      planId: input.planId,
       siteCount,
       amount,
-      generatorAmount: quote.amountDue,
       listPrice: quote.listPrice,
-      discountRate: quote.discountRate,
-      discountAmount: quote.discountAmount,
+      creditAmount: quote.creditAmount,
       currency: 'CHF',
       domain: input.domain,
       policyName: input.policyName,
-      legalEntity: input.legalEntity,
-      euRepEntityCount,
-      euRepEntities: input.euRepEntities,
-      euRepLinkContractId: input.euRepLinkContractId,
-      subscriptionId: input.subscriptionId,
+      euRepPlanId: input.euRepPlanId,
     });
 
     return HttpResponse.json(
@@ -1475,8 +817,7 @@ export const handlers = [
         currency: session.currency,
         siteCount: session.siteCount,
         listPrice: session.listPrice,
-        discountRate: session.discountRate,
-        discountAmount: session.discountAmount,
+        creditAmount: session.creditAmount,
       },
       { status: 201 }
     );
@@ -1488,32 +829,19 @@ export const handlers = [
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
 
-    const policySub = completed.subscriptionId
-      ? subscriptions.all().find((row) => row.id === completed.subscriptionId)
-      : subscriptions.all().find((row) => row.productType === 'policy' && row.status === 'active');
+    const policySub = subscriptions.all().find((row) => row.productType === 'policy');
     const document = completed.documentId
       ? documents.all().find((row) => row.id === completed.documentId)
       : undefined;
 
-    const createdContractIds =
-      completed.euRepContractIds ?? (completed.euRepContractId ? [completed.euRepContractId] : []);
-    const unlinkedHosted = documents
-      .all()
-      .filter((row) => !row.euRepContractId && !row.euRepLinked);
-    const needsPolicyLinking =
-      completed.kind === 'euRep' && createdContractIds.length > 0 && unlinkedHosted.length > 0;
-
     return HttpResponse.json({
       sessionId: completed.id,
       orderId: completed.orderId,
-      document: document ? presentDocument(document) : undefined,
-      activeSubscriptionCount: countActivePolicySubscriptions(subscriptions.all()),
+      document: document ? normalizeGeneratedDocument(document) : undefined,
+      siteAllowance: readSiteAllowance(),
+      planId: readGeneratorPlanId() ?? undefined,
       nextPaymentDate: policySub?.nextPaymentDate ?? null,
-      discountRate: completed.discountRate > 0 ? completed.discountRate : undefined,
-      discountAmount: completed.discountAmount > 0 ? completed.discountAmount : undefined,
-      needsPolicyLinking,
-      euRepContractId: createdContractIds[0],
-      euRepContractIds: createdContractIds,
+      creditAmount: completed.creditAmount > 0 ? completed.creditAmount : undefined,
     });
   }),
 

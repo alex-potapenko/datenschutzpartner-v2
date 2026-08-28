@@ -13,11 +13,9 @@ const scanBorderGradientConic = `conic-gradient(from 0deg, ${SCAN_BORDER_GRADIEN
 interface ScanFormProps {
   dark?: boolean;
   className?: string;
-  /** Prepaid policy subscription slot to fill after scan. */
-  fillSubscriptionId?: string;
 }
 
-export function ScanForm({ dark, className, fillSubscriptionId }: ScanFormProps) {
+export function ScanForm({ dark, className }: ScanFormProps) {
   const router = useRouter();
   const t = useTranslations('landing');
   const [url, setUrl] = useState('');
@@ -27,11 +25,7 @@ export function ScanForm({ dark, className, fillSubscriptionId }: ScanFormProps)
     if (!url.trim()) return;
     let normalized = url.trim();
     if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
-    const params = new URLSearchParams({ url: normalized });
-    if (fillSubscriptionId) {
-      params.set('fillSubscription', fillSubscriptionId);
-    }
-    router.push(`/result?${params.toString()}`);
+    router.push(`/result?url=${encodeURIComponent(normalized)}`);
   }
 
   return (

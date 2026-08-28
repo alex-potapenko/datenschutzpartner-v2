@@ -1,265 +1,240 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   useDocuments,
-  groupDocumentsBySubscription,
-  resolveDocumentLegalEntity,
-  resolveDocumentSite,
   useGeneratorPlan,
+  resolveDocumentSite,
+  type GeneratedDocument,
 } from '@/api/documents';
-import {
-  countActivePolicySubscriptions,
-  listPolicySubscriptions,
-  resolvePolicySiteCount,
-  useSubscriptions,
-} from '@/api/billing';
-import { fillPolicySlotScanHref } from '@/app/account/_components/account-sections';
-import { useEuRepContracts } from '@/api/eu-rep';
-import { Globe, Plus, ShoppingCart, Button, Table } from '@/components/ui';
+import { canUpgradeGeneratorPlan, type GeneratorPlanId } from '@/api/checkout';
+import { useSubscriptions } from '@/api/billing';
+import { buildPolicyUpdateUrl } from '@/app/result/wizard-state';
+import { FileText, Plus, Button, SearchField, Table } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { PriceBlock } from '@/components/shared/PriceBlock';
-import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import {
   AccountSection,
   AccountTable,
   DataState,
-  DaysLeftDonut,
   EmptyState,
-  PolicyDetailTableRow,
-  PolicyTableRowCaret,
-  SubscriptionIdLink,
-  TableRowAction,
-  subscriptionDaysLeft,
   useDateFormatter,
 } from '../account-ui';
 
-function EmptySlotRow({ subscriptionId }: { subscriptionId: string }) {
-  const t = useTranslations('account.documents');
-  const router = useRouter();
-
+function CountWithAdd({
+  addLabel,
+  onAdd,
+  actionVariant = 'add',
+  children,
+}: {
+  addLabel?: string;
+  onAdd?: () => void;
+  actionVariant?: 'add' | 'upgrade';
+  children: ReactNode;
+}) {
   return (
-    <Table.Row className="[&_.table__cell]:!bg-surface">
-      <Table.Cell colSpan={5} className="p-1.5">
-        <button
-          type="button"
-          onClick={() => {
-            router.push(fillPolicySlotScanHref(subscriptionId));
-          }}
-          className="border-border text-accent hover:border-accent/50 hover:bg-accent/5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed p-1.5 text-sm font-medium no-underline transition-colors"
-        >
-          <Plus size={16} weight="bold" aria-hidden className="text-accent shrink-0" />
-          {t('addSite')}
-        </button>
-      </Table.Cell>
-    </Table.Row>
-  );
-}
-
-function NoSitesPlaceholderRow() {
-  const t = useTranslations('account.documents');
-
-  return (
-    <Table.Row className="[&_.table__cell]:!bg-surface">
-      <Table.Cell colSpan={5} className="p-1.5">
-        <div
-          role="status"
-          className="border-border text-muted flex w-full items-center justify-center rounded-lg border border-dashed p-1.5 text-sm font-medium"
-        >
-          {t('noSitesInSubscription')}
-        </div>
-      </Table.Cell>
-    </Table.Row>
-  );
-}
-
-function DocumentTable({ tableLabel }: { tableLabel: string }) {
-  const t = useTranslations('account.documents');
-  const ts = useTranslations('account.status');
-  const formatDate = useDateFormatter();
-  const documents = useDocuments();
-  const subscriptions = useSubscriptions();
-  const contracts = useEuRepContracts();
-
-  const groups = useMemo(
-    () => groupDocumentsBySubscription(documents.data ?? [], subscriptions.data ?? []),
-    [documents.data, subscriptions.data]
-  );
-
-  return (
-    <div className="flex flex-col gap-8">
-      {groups.map((group) => {
-        const period =
-          group.subscription?.startDate && group.subscription.nextPaymentDate
-            ? subscriptionDaysLeft(group.subscription.startDate, group.subscription.nextPaymentDate)
-            : null;
-        const daysLeftLabel = period ? t('daysLeft', { count: period.remainingDays }) : null;
-        const isInactiveSubscription =
-          group.subscription?.status === 'cancelled' || group.subscription?.status === 'expired';
-        const showNoSitesPlaceholder = isInactiveSubscription && group.documents.length === 0;
-
-        return (
-          <div key={group.subscriptionId || 'none'} className="flex flex-col gap-3">
-            <div className="flex min-w-0 items-center justify-between gap-3 px-5">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                {group.subscriptionId ? (
-                  <SubscriptionIdLink
-                    id={group.subscriptionId}
-                    className="text-foreground font-semibold"
-                  >
-                    {t('subscriptionGroup', { id: group.subscriptionId })}
-                  </SubscriptionIdLink>
-                ) : (
-                  <p className="text-foreground text-sm font-semibold">
-                    {t('subscriptionGroupUnknown')}
-                  </p>
-                )}
-                {group.subscription ? (
-                  <StatusPill tone={statusTone(group.subscription.status)}>
-                    {ts(group.subscription.status)}
-                  </StatusPill>
-                ) : null}
-              </div>
-              {group.subscription ? (
-                <div className="flex shrink-0 items-center gap-2">
-                  <p className="text-muted text-sm">
-                    {t('subscriptionSites', { count: resolvePolicySiteCount(group.subscription) })}
-                  </p>
-                  {period && daysLeftLabel ? (
-                    <>
-                      <span className="text-muted text-sm" aria-hidden>
-                        ·
-                      </span>
-                      <p className="text-muted text-sm">{daysLeftLabel}</p>
-                      <DaysLeftDonut
-                        remaining={period.remainingDays}
-                        total={period.totalDays}
-                        label={daysLeftLabel}
-                      />
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-            <AccountTable
-              aria-label={`${tableLabel} ${group.subscriptionId || t('subscriptionGroupUnknown')}`}
-            >
-              <Table.Header>
-                <Table.Column isRowHeader>{t('colSite')}</Table.Column>
-                <Table.Column>{t('colLegalEntity')}</Table.Column>
-                <Table.Column className="text-right">{t('colCreated')}</Table.Column>
-                <Table.Column className="text-right">{t('colUpdated')}</Table.Column>
-                <Table.Column className="text-right">
-                  <span className="sr-only">{t('colActions')}</span>
-                </Table.Column>
-              </Table.Header>
-              <Table.Body>
-                {group.documents.map((doc) => {
-                  const site = resolveDocumentSite(doc);
-                  const legalEntity = resolveDocumentLegalEntity(doc, contracts.data ?? []);
-                  const hasEuRep = Boolean(doc.euRepContractId || doc.euRepLinked);
-                  return (
-                    <PolicyDetailTableRow key={doc.id} documentId={doc.id} openLabel={t('open')}>
-                      <Table.Cell>
-                        <TableRowAction>
-                          <NavigationLink
-                            href={`https://${site}`}
-                            size="sm"
-                            chevron="none"
-                            className="inline-flex items-center gap-2 font-medium"
-                          >
-                            <Globe size={18} className="text-accent shrink-0" aria-hidden />
-                            {site}
-                          </NavigationLink>
-                        </TableRowAction>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-foreground">{legalEntity || '—'}</span>
-                          {hasEuRep ? (
-                            <StatusPill
-                              tone="neutral"
-                              className="[--chip-bg:color-mix(in_srgb,var(--feature-purple)_14%,var(--background))] [--chip-fg:var(--feature-purple)]"
-                            >
-                              {t('euRepBadge')}
-                            </StatusPill>
-                          ) : null}
-                        </div>
-                      </Table.Cell>
-                      <Table.Cell className="text-right">{formatDate(doc.createdDate)}</Table.Cell>
-                      <Table.Cell className="text-right">{formatDate(doc.updatedDate)}</Table.Cell>
-                      <Table.Cell className="text-right">
-                        <PolicyTableRowCaret label={t('open')} />
-                      </Table.Cell>
-                    </PolicyDetailTableRow>
-                  );
-                })}
-                {showNoSitesPlaceholder ? (
-                  <NoSitesPlaceholderRow />
-                ) : (
-                  Array.from({ length: group.emptySlotCount }, (_, index) => (
-                    <EmptySlotRow
-                      key={`${group.subscriptionId}-empty-${index}`}
-                      subscriptionId={group.subscriptionId}
-                    />
-                  ))
-                )}
-              </Table.Body>
-            </AccountTable>
-          </div>
-        );
-      })}
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">{children}</div>
+      {onAdd ? (
+        actionVariant === 'upgrade' ? (
+          <Button variant="outline" size="sm" className="shrink-0" onPress={onAdd}>
+            {addLabel}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            isIconOnly
+            aria-label={addLabel}
+            className="size-9 shrink-0 rounded-full"
+            onPress={onAdd}
+          >
+            <Plus size={14} weight="bold" aria-hidden />
+          </Button>
+        )
+      ) : null}
     </div>
   );
 }
 
-function StatsCountSection({
-  title,
-  count,
-  action,
-}: {
-  title: string;
-  count: number;
-  action?: ReactNode;
-}) {
+function matchesDocumentSearch(document: GeneratedDocument, query: string): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
   return (
-    <AccountSection title={title} className="min-w-0 flex-1 gap-4" contentClassName="gap-3">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <PriceBlock amount={String(count)} animatedAmount={count} className="min-w-0" />
-        {action}
-      </div>
+    document.name.toLowerCase().includes(normalized) ||
+    resolveDocumentSite(document).toLowerCase().includes(normalized)
+  );
+}
+
+function DocumentTable({
+  documents,
+  searchQuery,
+  emptySearch,
+  tableLabel,
+}: {
+  documents: GeneratedDocument[];
+  searchQuery: string;
+  emptySearch: string;
+  tableLabel: string;
+}) {
+  const t = useTranslations('account.documents');
+  const formatDate = useDateFormatter();
+
+  const filtered = useMemo(() => {
+    return documents.filter((doc) => matchesDocumentSearch(doc, searchQuery));
+  }, [documents, searchQuery]);
+
+  if (filtered.length === 0) {
+    return <EmptyState message={emptySearch} />;
+  }
+
+  return (
+    <AccountTable aria-label={tableLabel}>
+      <Table.Header>
+        <Table.Column isRowHeader>{t('colName')}</Table.Column>
+        <Table.Column>{t('colSite')}</Table.Column>
+        <Table.Column>{t('colCreated')}</Table.Column>
+        <Table.Column>{t('colUpdated')}</Table.Column>
+        <Table.Column className="text-right">{t('colActions')}</Table.Column>
+      </Table.Header>
+      <Table.Body>
+        {filtered.map((doc) => (
+          <Table.Row key={doc.id}>
+            <Table.Cell>
+              <span className="text-foreground flex items-center gap-2 font-medium">
+                <FileText size={18} className="text-accent shrink-0" />
+                {doc.name}
+              </span>
+            </Table.Cell>
+            <Table.Cell>
+              <span className="text-muted">{resolveDocumentSite(doc)}</span>
+            </Table.Cell>
+            <Table.Cell>{formatDate(doc.createdDate)}</Table.Cell>
+            <Table.Cell>{formatDate(doc.updatedDate)}</Table.Cell>
+            <Table.Cell className="text-right">
+              <div className="flex items-center justify-end gap-3">
+                <NavigationLink
+                  href={buildPolicyUpdateUrl(doc.id, resolveDocumentSite(doc))}
+                  size="sm"
+                >
+                  {t('update')}
+                </NavigationLink>
+                <NavigationLink href={`/account/policies/${doc.id}`} size="sm" chevron="right">
+                  {t('open')}
+                </NavigationLink>
+              </div>
+            </Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </AccountTable>
+  );
+}
+
+function AllowanceSection({
+  used,
+  total,
+  onAdd,
+  addLabel,
+  showMaxPlanNote,
+}: {
+  used: number;
+  total: number;
+  onAdd?: () => void;
+  addLabel?: string;
+  showMaxPlanNote?: boolean;
+}) {
+  const t = useTranslations('account.generatorPlan');
+  const remaining = Math.max(0, total - used);
+
+  return (
+    <AccountSection title={t('title')} className="min-w-0 flex-1 gap-4" contentClassName="gap-3">
+      <CountWithAdd
+        addLabel={addLabel}
+        onAdd={onAdd}
+        actionVariant={onAdd && remaining === 0 ? 'upgrade' : 'add'}
+      >
+        <PriceBlock amount={String(remaining)} animatedAmount={remaining} className="min-w-0" />
+      </CountWithAdd>
+      {showMaxPlanNote ? (
+        <p className="text-muted text-sm leading-relaxed">
+          {t('maxPlanNote')}{' '}
+          <NavigationLink
+            href="/contact?subject=generator"
+            size="sm"
+            chevron="none"
+            className="inline-flex"
+          >
+            {t('contactUs')}
+          </NavigationLink>
+        </p>
+      ) : null}
+    </AccountSection>
+  );
+}
+
+function GeneratedCountSection({
+  documents,
+  onAdd,
+  addLabel,
+}: {
+  documents: GeneratedDocument[];
+  onAdd: () => void;
+  addLabel: string;
+}) {
+  const t = useTranslations('account.documents');
+
+  return (
+    <AccountSection
+      title={t('countTitle')}
+      className="min-w-0 flex-1 gap-4"
+      contentClassName="gap-3"
+    >
+      <CountWithAdd addLabel={addLabel} onAdd={onAdd}>
+        <PriceBlock
+          amount={String(documents.length)}
+          animatedAmount={documents.length}
+          className="min-w-0"
+        />
+      </CountWithAdd>
     </AccountSection>
   );
 }
 
 function PolicyStatsRow({
-  createdCount,
-  availableCount,
-  subscriptionCount,
-  onBuy,
+  documents,
+  siteAllowance,
+  onAddSites,
+  onAddPolicies,
+  sitesAddLabel,
+  policiesAddLabel,
+  showMaxPlanNote,
 }: {
-  createdCount: number;
-  availableCount: number;
-  subscriptionCount: number;
-  onBuy: () => void;
+  documents: GeneratedDocument[];
+  siteAllowance?: number;
+  onAddSites?: () => void;
+  onAddPolicies: () => void;
+  sitesAddLabel?: string;
+  policiesAddLabel: string;
+  showMaxPlanNote?: boolean;
 }) {
-  const t = useTranslations('account.documents');
-
   return (
     <div className="border-border divide-border flex flex-col divide-y border-b sm:flex-row sm:divide-x sm:divide-y-0">
-      <StatsCountSection title={t('countTitle')} count={createdCount} />
-      <StatsCountSection title={t('subscriptionCountTitle')} count={subscriptionCount} />
-      <StatsCountSection
-        title={t('availableCountTitle')}
-        count={availableCount}
-        action={
-          <Button variant="outline" size="sm" className="shrink-0 gap-2" onPress={onBuy}>
-            <ShoppingCart size={14} weight="bold" aria-hidden />
-            {t('buy')}
-          </Button>
-        }
+      {siteAllowance != null ? (
+        <AllowanceSection
+          used={documents.length}
+          total={siteAllowance}
+          onAdd={onAddSites}
+          addLabel={sitesAddLabel}
+          showMaxPlanNote={showMaxPlanNote}
+        />
+      ) : null}
+      <GeneratedCountSection
+        documents={documents}
+        onAdd={onAddPolicies}
+        addLabel={policiesAddLabel}
       />
     </div>
   );
@@ -267,44 +242,59 @@ function PolicyStatsRow({
 
 export function DocumentsSection() {
   const t = useTranslations('account.documents');
+  const tGenerator = useTranslations('account.generatorPlan');
   const router = useRouter();
   const documents = useDocuments();
+  const plan = useGeneratorPlan();
   const subscriptions = useSubscriptions();
-  const generatorPlan = useGeneratorPlan();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const policySubscriptionCount = countActivePolicySubscriptions(subscriptions.data ?? []);
-  const hasPolicySubscriptions = listPolicySubscriptions(subscriptions.data ?? []).length > 0;
-  const availableSiteSlots = generatorPlan.data?.availableSiteSlots ?? 0;
+  const policySub = subscriptions.data?.find((row) => row.productType === 'policy');
+  const currentPlanId = plan.data?.planId ?? (policySub?.planId as GeneratorPlanId | undefined);
+  const usedSiteCount = documents.data?.length ?? 0;
+  const siteAllowance = plan.data?.siteAllowance ?? 0;
+  const remainingSites = Math.max(0, siteAllowance - usedSiteCount);
+  const upgradeStateReady = !plan.isLoading && !subscriptions.isLoading;
+  const canUpgradeSites =
+    upgradeStateReady && canUpgradeGeneratorPlan(currentPlanId, usedSiteCount);
+  const showMaxPlanNote = upgradeStateReady && !canUpgradeSites && remainingSites === 0;
+
+  const goToCheckout = () => {
+    router.push('/account/generator/checkout');
+  };
 
   const goToScan = () => {
     router.push('/scan');
   };
 
-  const goToBuyMoreSites = () => {
-    router.push('/account/generator/checkout');
-  };
-
   return (
     <DataState
-      isLoading={documents.isLoading || subscriptions.isLoading || generatorPlan.isLoading}
+      isLoading={documents.isLoading || plan.isLoading || subscriptions.isLoading}
       isError={documents.isError}
-      onRetry={() => {
-        void documents.refetch();
-        void subscriptions.refetch();
-        void generatorPlan.refetch();
-      }}
+      onRetry={() => void documents.refetch()}
     >
-      {documents.data && subscriptions.data ? (
+      {documents.data ? (
         <div className="divide-border flex flex-col divide-y">
           <PolicyStatsRow
-            createdCount={documents.data.length}
-            availableCount={availableSiteSlots}
-            subscriptionCount={policySubscriptionCount}
-            onBuy={goToBuyMoreSites}
+            documents={documents.data}
+            siteAllowance={plan.data?.siteAllowance}
+            onAddSites={canUpgradeSites ? goToCheckout : undefined}
+            onAddPolicies={remainingSites === 0 && canUpgradeSites ? goToCheckout : goToScan}
+            sitesAddLabel={
+              canUpgradeSites
+                ? remainingSites === 0
+                  ? tGenerator('upgrade')
+                  : tGenerator('buyMore')
+                : undefined
+            }
+            policiesAddLabel={
+              remainingSites === 0 && canUpgradeSites ? tGenerator('upgrade') : t('create')
+            }
+            showMaxPlanNote={showMaxPlanNote}
           />
 
-          <AccountSection contentClassName="gap-8">
-            {!hasPolicySubscriptions ? (
+          <AccountSection title={t('listTitle')} contentClassName="gap-8">
+            {documents.data.length === 0 ? (
               <EmptyState
                 message={t('empty')}
                 action={
@@ -315,7 +305,42 @@ export function DocumentsSection() {
                 }
               />
             ) : (
-              <DocumentTable tableLabel={t('listTitle')} />
+              <>
+                <div className="flex min-w-0 items-center gap-4 overflow-x-auto">
+                  <div className="w-64 min-w-48 shrink-0">
+                    <SearchField
+                      aria-label={t('searchLabel')}
+                      name="document-search"
+                      variant="secondary"
+                      fullWidth
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                    >
+                      <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder={t('searchPlaceholder')} />
+                        <SearchField.ClearButton />
+                      </SearchField.Group>
+                    </SearchField>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto shrink-0 gap-2"
+                    onPress={goToScan}
+                  >
+                    <Plus size={14} weight="bold" />
+                    {t('create')}
+                  </Button>
+                </div>
+
+                <DocumentTable
+                  documents={documents.data}
+                  searchQuery={searchQuery}
+                  emptySearch={t('emptySearch')}
+                  tableLabel={t('listTitle')}
+                />
+              </>
             )}
           </AccountSection>
         </div>

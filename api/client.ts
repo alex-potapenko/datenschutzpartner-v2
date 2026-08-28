@@ -1,6 +1,5 @@
 import { env } from '@/env';
 import { getAuthToken } from '@/lib/auth-session';
-import { waitForMsw } from '@/lib/msw-ready';
 
 export class ApiError extends Error {
   constructor(
@@ -21,8 +20,6 @@ export class ApiError extends Error {
  * no component changes.
  */
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  await waitForMsw();
-
   const headers = new Headers(init?.headers);
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');

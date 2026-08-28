@@ -21,6 +21,15 @@ export const accountSnapshotSchema = z.object({
   membership: membershipSummarySchema,
   nextLiveSessionAt: z.string().nullable(),
   documentCount: z.number(),
+  /** EU Rep included inquiry allowance — null when the member has no EU Rep plan. */
+  euRepInquiryAllowance: z
+    .object({
+      included: z.number().int().nonnegative(),
+      used: z.number().int().nonnegative(),
+      furtherInquiryAmount: z.number().nonnegative(),
+      currency: z.string(),
+    })
+    .nullable(),
 });
 export type AccountSnapshot = z.infer<typeof accountSnapshotSchema>;
 
