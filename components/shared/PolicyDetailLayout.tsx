@@ -66,7 +66,7 @@ export function PolicyDetailPageShell({
       showTopBar={hasTopBar}
       minimal
       backLink={
-        backHref && backLabel
+        hasTopBar
           ? {
               href: backHref,
               label: backLabel,
