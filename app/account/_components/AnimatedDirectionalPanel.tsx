@@ -55,30 +55,16 @@ export function AnimatedDirectionalPanel({
 }) {
   const shouldReduceMotion = useReducedMotion();
   const direction = useSlideDirection(activeKey, order);
+  const offset = shouldReduceMotion ? 0 : SLIDE_OFFSET_PX;
 
   return (
-    <AnimatePresence mode="wait" initial={false} custom={direction}>
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={activeKey}
-        custom={direction}
-        initial={
-          shouldReduceMotion
-            ? false
-            : (dir: number) => ({
-                opacity: 0,
-                ...slideOffset(axis, SLIDE_OFFSET_PX * dir),
-              })
-        }
+        initial={{ opacity: shouldReduceMotion ? 1 : 0, ...slideOffset(axis, offset * direction) }}
         animate={{ opacity: 1, x: 0, y: 0 }}
-        exit={
-          shouldReduceMotion
-            ? undefined
-            : (dir: number) => ({
-                opacity: 0,
-                ...slideOffset(axis, -SLIDE_OFFSET_PX * dir),
-              })
-        }
-        transition={{ duration: 0.1, ease: 'easeOut' }}
+        exit={{ opacity: shouldReduceMotion ? 1 : 0, ...slideOffset(axis, -offset * direction) }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.1, ease: 'easeOut' }}
         className={cn('w-full min-w-0', className)}
       >
         {children}
