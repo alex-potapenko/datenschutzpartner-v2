@@ -4,7 +4,7 @@ import { useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { calculateEuRepQuote, EU_REP_UNIT_PRICE } from '@/api/checkout';
+import { calculateEuRepQuote, EU_REP_PLANS, type EuRepPlanId } from '@/api/checkout';
 import { Crosshair, EnvelopeSimple } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from './EuRepPlanCard';
 
@@ -39,8 +39,8 @@ const BENEFIT_ICON_STYLES: Record<BenefitKey, { color: string; background: strin
     background: 'color-mix(in srgb, var(--feature-purple) 12%, transparent)',
   },
   contact: {
-    color: 'var(--feature-red)',
-    background: 'color-mix(in srgb, var(--feature-red) 12%, transparent)',
+    color: 'var(--feature-fuchsia)',
+    background: 'color-mix(in oklab, var(--feature-fuchsia) 12%, transparent)',
   },
   inquiries: {
     color: 'var(--success)',
@@ -68,6 +68,8 @@ type EuRepBenefitsPanelProps = {
   showBottomBorder?: boolean;
   /** Wizard add-on copy for a single policy. */
   wizardMode?: boolean;
+  /** After checkout, back navigation returns here (embedded account landing). */
+  checkoutReturnTo?: string;
 };
 
 export function EuRepBenefitsPanel({
@@ -75,22 +77,36 @@ export function EuRepBenefitsPanel({
   chooseLabel,
   showBottomBorder = true,
   wizardMode = false,
+  checkoutReturnTo,
 }: EuRepBenefitsPanelProps) {
   const t = useTranslations('euRepPage');
   const tb = useTranslations('euRepPage.benefitsSection');
   const tp = useTranslations('euRepPage.pricingSection');
   const router = useRouter();
-  const quote = useMemo(() => calculateEuRepQuote(1), []);
+  const quote = useMemo(() => calculateEuRepQuote('basis'), []);
 
-  const plans: EuRepPlan[] = [
-    {
-      id: 'single',
-      tabLabel: '1',
-      showPerYear: false,
-      price: quote.amountDue.toFixed(2),
-      note: tp('perEntity', { price: `CHF ${EU_REP_UNIT_PRICE.toFixed(2)}` }),
-    },
-  ];
+  const plans: EuRepPlan[] = wizardMode
+    ? [
+        {
+          id: 'basis',
+          tabLabel: t('plans.basis.name'),
+          showPerYear: true,
+          price: quote.amountDue.toFixed(2),
+          note: t('plans.basis.requests'),
+        },
+      ]
+    : EU_REP_PLANS.map((plan) => {
+        const priced = calculateEuRepQuote(plan.id);
+        return {
+          id: plan.id,
+          tabLabel: t(`plans.${plan.id}.name`),
+          showPerYear: true,
+          price: priced.amountDue.toFixed(2),
+          note: t(`plans.${plan.id}.requests`),
+        };
+      });
+
+  const defaultPlanId: EuRepPlanId = 'basis';
 
   return (
     <section id={onChoose ? undefined : 'plans'} className={onChoose ? undefined : 'scroll-mt-24'}>
@@ -125,16 +141,24 @@ export function EuRepBenefitsPanel({
 
         <EuRepPlanCard
           plans={plans}
-          defaultPlanId="single"
-          value="single"
-          pricePeriod=""
+          defaultPlanId={defaultPlanId}
+          value={wizardMode ? 'basis' : undefined}
+          pricePeriod={t('pricePeriod')}
           orderCta={chooseLabel ?? t('orderCta')}
-          onChoose={() => {
+          onChoose={(planId) => {
             if (onChoose) {
               onChoose();
               return;
             }
-            router.push('/account/eu-rep/checkout');
+            const params = new URLSearchParams();
+            if (planId && planId !== 'basis') {
+              params.set('plan', planId);
+            }
+            if (checkoutReturnTo) {
+              params.set('returnTo', checkoutReturnTo);
+            }
+            const query = params.toString();
+            router.push(`/account/eu-rep/checkout${query ? `?${query}` : ''}`);
           }}
           tabsAriaLabel={tp('entityCountLabel')}
           selectPlanTitle={wizardMode ? tp('selectOne') : tp('selectPlan')}

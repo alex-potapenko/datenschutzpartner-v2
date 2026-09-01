@@ -87,7 +87,7 @@ interface PolicyDocumentProps {
   embedInPage?: boolean;
 }
 
-/** Page-level title block — pass to `RegularPage` `header` on `/account/policies/[id]`. */
+/** Page-level title block for the generated-policy step. */
 export function PolicyDocumentHeader({ document }: { document: GeneratedDocument }) {
   const site = resolveDocumentSite(document);
 

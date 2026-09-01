@@ -1,37 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { request } from './client';
+import { accountRoleSchema } from './account-role';
 
 /**
- * Account domain — profile, addresses, and the membership snapshot shown on
+ * Account domain — profile, billing address, and the membership snapshot shown on
  * the member-area dashboard. Server data only; UI state stays out of here.
  */
 
-export const membershipStatusEnum = z.enum(['active', 'processing', 'cancelled', 'none']);
-export type MembershipStatus = z.infer<typeof membershipStatusEnum>;
-
-export const membershipSummarySchema = z.object({
-  status: membershipStatusEnum,
-  subscriptionDate: z.string().nullable(),
-  renewalDate: z.string().nullable(),
-});
-export type MembershipSummary = z.infer<typeof membershipSummarySchema>;
-
 export const accountSnapshotSchema = z.object({
-  membership: membershipSummarySchema,
-  nextLiveSessionAt: z.string().nullable(),
   documentCount: z.number(),
 });
 export type AccountSnapshot = z.infer<typeof accountSnapshotSchema>;
 
-export const addressTypeEnum = z.enum(['billing', 'shipping']);
-export type AddressType = z.infer<typeof addressTypeEnum>;
-
-export const addressSchema = z.object({
-  id: z.string(),
-  type: addressTypeEnum,
-  /** Optional label shown in address lists — e.g. "Head office". */
-  label: z.string().optional(),
+/** One billing address per account — used for all invoices and subscriptions. */
+export const billingAddressSchema = z.object({
   firstName: z.string().min(1, 'validation.required'),
   lastName: z.string().min(1, 'validation.required'),
   company: z.string().optional(),
@@ -40,20 +23,38 @@ export const addressSchema = z.object({
   postalCode: z.string().min(1, 'validation.required'),
   city: z.string().min(1, 'validation.required'),
   country: z.string().min(1, 'validation.required'),
-  /** Swiss VAT number shown on invoices and in the billing sidebar. */
   vatId: z.string().optional(),
+  billingEmail: z.email('validation.email'),
 });
-export const addressInputSchema = addressSchema.omit({ id: true });
-export const addressUpdateSchema = addressInputSchema.partial();
+export type BillingAddress = z.infer<typeof billingAddressSchema>;
+
+/** @deprecated Legacy list shape — use {@link BillingAddress} via useBillingAddress. */
+export const addressTypeEnum = z.enum(['billing', 'shipping']);
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- self-reference for the legacy export
+export type AddressType = z.infer<typeof addressTypeEnum>;
+
+/** @deprecated Legacy list shape — use {@link BillingAddress}. */
+export const addressSchema = billingAddressSchema.extend({
+  id: z.string(),
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- self-reference for the legacy export
+  type: addressTypeEnum,
+  label: z.string().optional(),
+});
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- self-reference for the legacy export
 export type Address = z.infer<typeof addressSchema>;
-export type AddressInput = z.infer<typeof addressInputSchema>;
-export type AddressUpdate = z.infer<typeof addressUpdateSchema>;
+
+export { accountRoleSchema, type AccountRole } from './account-role';
 
 export const profileSchema = z.object({
   firstName: z.string().min(1, 'validation.required'),
   lastName: z.string().min(1, 'validation.required'),
   displayName: z.string().min(1, 'validation.required'),
   email: z.email('validation.email'),
+  newsletterOptIn: z.boolean().optional(),
+  /** Read-only — drives login and security UI. */
+  role: accountRoleSchema,
+  /** Read-only — admins always sign in with 2FA in the prototype. */
+  twoFactorEnabled: z.boolean().optional(),
 });
 export type Profile = z.infer<typeof profileSchema>;
 
@@ -71,7 +72,7 @@ export type PasswordChange = z.infer<typeof passwordChangeSchema>;
 
 export const accountKeys = {
   snapshot: ['account', 'snapshot'] as const,
-  addresses: ['account', 'addresses'] as const,
+  billingAddress: ['account', 'billing-address'] as const,
   profile: ['account', 'profile'] as const,
 };
 
@@ -82,40 +83,22 @@ export function useAccountSnapshot() {
   });
 }
 
-export function useAddresses() {
+export function useBillingAddress() {
   return useQuery({
-    queryKey: accountKeys.addresses,
-    queryFn: () => request<Address[]>('/account/addresses'),
+    queryKey: accountKeys.billingAddress,
+    queryFn: () => request<BillingAddress | null>('/account/billing-address'),
   });
 }
 
-export function useCreateAddress() {
+export function useUpdateBillingAddress() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: AddressInput) =>
-      request<Address>('/account/addresses', { method: 'POST', body: JSON.stringify(input) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.addresses }),
-  });
-}
-
-export function useUpdateAddress() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: AddressUpdate }) =>
-      request<Address>(`/account/addresses/${id}`, {
+    mutationFn: (input: BillingAddress) =>
+      request<BillingAddress>('/account/billing-address', {
         method: 'PUT',
         body: JSON.stringify(input),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.addresses }),
-  });
-}
-
-export function useDeleteAddress() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      request<undefined>(`/account/addresses/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.addresses }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.billingAddress }),
   });
 }
 

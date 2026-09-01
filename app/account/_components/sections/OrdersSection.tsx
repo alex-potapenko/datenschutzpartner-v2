@@ -10,7 +10,6 @@ import {
   EmptyState,
   OrderAmount,
   SectionHeader,
-  SubscriptionIdLink,
   useDateFormatter,
 } from '../account-ui';
 
@@ -55,7 +54,6 @@ export function OrdersSection({ embedded = false, productType }: OrdersSectionPr
             <AccountTable aria-label={t('title')}>
               <Table.Header>
                 <Table.Column isRowHeader>{t('colNumber')}</Table.Column>
-                <Table.Column>{t('colSubscriptionId')}</Table.Column>
                 <Table.Column>{t('colDate')}</Table.Column>
                 {showReferenceColumn ? <Table.Column>{t('colReference')}</Table.Column> : null}
                 <Table.Column className="text-right">{t('colTotal')}</Table.Column>
@@ -64,13 +62,6 @@ export function OrdersSection({ embedded = false, productType }: OrdersSectionPr
                 {rows.map((order) => (
                   <Table.Row key={order.id}>
                     <Table.Cell className="font-mono font-semibold">{order.number}</Table.Cell>
-                    <Table.Cell>
-                      {order.subscriptionId ? (
-                        <SubscriptionIdLink id={order.subscriptionId} className="font-mono" />
-                      ) : (
-                        <span className="text-muted font-mono text-sm">{t('referenceEmpty')}</span>
-                      )}
-                    </Table.Cell>
                     <Table.Cell>{formatDate(order.date)}</Table.Cell>
                     {showReferenceColumn ? (
                       <Table.Cell>{orderKindLabel(order, t) ?? t('referenceEmpty')}</Table.Cell>

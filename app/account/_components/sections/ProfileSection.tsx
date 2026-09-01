@@ -1,10 +1,14 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useTransition, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { z } from 'zod';
+import { setLocale } from '@/app/actions/locale';
+import { locales, type Locale } from '@/i18n/config';
 import { ApiError } from '@/api/client';
 import {
   passwordChangeSchema,
@@ -26,13 +30,16 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeading,
+  cn,
   useOverlayState,
 } from '@/components/ui';
+import { StatusPill } from '@/components/shared/StatusPill';
 import { DataState, AccountSection } from '../account-ui';
 
-type OverlayState = ReturnType<typeof useOverlayState>;
+const profileFormSchema = profileSchema.omit({ role: true, twoFactorEnabled: true });
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-const MASKED_PASSWORD = '••••••••••••';
+type OverlayState = ReturnType<typeof useOverlayState>;
 
 function Field({
   id,
@@ -53,119 +60,6 @@ function Field({
       {children}
       {error ? <p className="text-danger text-xs">{error}</p> : null}
     </div>
-  );
-}
-
-function ProfileDetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-muted text-sm">{label}</p>
-      <p className="text-foreground text-sm font-medium">{value}</p>
-    </div>
-  );
-}
-
-function EditProfileDialog({ state, profile }: { state: OverlayState; profile: Profile }) {
-  const t = useTranslations('account.accountDetails');
-  const tRoot = useTranslations();
-  const update = useUpdateProfile();
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<Profile>({
-    resolver: zodResolver(profileSchema),
-    values: profile,
-  });
-
-  function onSubmit(values: Profile) {
-    update.mutate(
-      {
-        ...values,
-        displayName: `${values.firstName} ${values.lastName}`.trim(),
-      },
-      {
-        onSuccess: () => {
-          toast.success(t('profileSaved'));
-          state.close();
-        },
-      }
-    );
-  }
-
-  const err = (key: keyof Profile) => {
-    const message = errors[key]?.message;
-    return message ? tRoot(message) : undefined;
-  };
-
-  return (
-    <ModalRoot state={state}>
-      <ModalBackdrop isDismissable>
-        <ModalContainer size="md">
-          <ModalDialog>
-            <ModalHeader>
-              <ModalHeading>{t('editProfileTitle')}</ModalHeading>
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-6">
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <Field id="editFirstName" label={t('firstName')} error={err('firstName')}>
-                    <Input
-                      id="editFirstName"
-                      variant="secondary"
-                      fullWidth
-                      autoComplete="given-name"
-                      {...register('firstName')}
-                    />
-                  </Field>
-                  <Field id="editLastName" label={t('lastName')} error={err('lastName')}>
-                    <Input
-                      id="editLastName"
-                      variant="secondary"
-                      fullWidth
-                      autoComplete="family-name"
-                      {...register('lastName')}
-                    />
-                  </Field>
-                </div>
-                <Field id="editEmail" label={t('email')} error={err('email')}>
-                  <Input
-                    id="editEmail"
-                    type="email"
-                    variant="secondary"
-                    fullWidth
-                    autoComplete="email"
-                    {...register('email')}
-                  />
-                </Field>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="outline"
-                onPress={() => {
-                  reset(profile);
-                  state.close();
-                }}
-              >
-                {t('dialogCancel')}
-              </Button>
-              <Button
-                variant="primary"
-                isDisabled={update.isPending}
-                onPress={() => {
-                  void handleSubmit(onSubmit)();
-                }}
-              >
-                {t('dialogSave')}
-              </Button>
-            </ModalFooter>
-          </ModalDialog>
-        </ModalContainer>
-      </ModalBackdrop>
-    </ModalRoot>
   );
 }
 
@@ -284,15 +178,185 @@ function ChangePasswordDialog({ state }: { state: OverlayState }) {
   );
 }
 
-function ProfileDetails({ profile }: { profile: Profile }) {
+function PersonalDetailsForm({ profile }: { profile: Profile }) {
   const t = useTranslations('account.accountDetails');
+  const tRoot = useTranslations();
+  const update = useUpdateProfile();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    values: {
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      displayName: profile.displayName,
+      email: profile.email,
+      newsletterOptIn: profile.newsletterOptIn,
+    },
+  });
+
+  function onSubmit(values: ProfileFormValues) {
+    update.mutate(
+      {
+        ...values,
+        displayName: `${values.firstName} ${values.lastName}`.trim(),
+        role: profile.role,
+        twoFactorEnabled: profile.twoFactorEnabled,
+      },
+      {
+        onSuccess: (saved) => {
+          toast.success(t('profileSaved'));
+          reset(saved);
+        },
+      }
+    );
+  }
+
+  const err = (key: keyof ProfileFormValues) => {
+    const message = errors[key]?.message;
+    return message ? tRoot(message) : undefined;
+  };
+
+  return (
+    <form
+      className="flex flex-col gap-6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSubmit(onSubmit)();
+      }}
+      noValidate
+    >
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field id="profileFirstName" label={t('firstName')} error={err('firstName')}>
+          <Input
+            id="profileFirstName"
+            variant="secondary"
+            fullWidth
+            autoComplete="given-name"
+            {...register('firstName')}
+          />
+        </Field>
+        <Field id="profileLastName" label={t('lastName')} error={err('lastName')}>
+          <Input
+            id="profileLastName"
+            variant="secondary"
+            fullWidth
+            autoComplete="family-name"
+            {...register('lastName')}
+          />
+        </Field>
+      </div>
+
+      <Field id="profileEmail" label={t('email')} error={err('email')}>
+        <Input
+          id="profileEmail"
+          type="email"
+          variant="secondary"
+          fullWidth
+          autoComplete="email"
+          {...register('email')}
+        />
+      </Field>
+
+      <div className="flex justify-end">
+        <Button type="submit" variant="primary" size="md" isDisabled={!isDirty || update.isPending}>
+          {t('dialogSave')}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function LanguagePreference() {
+  const t = useTranslations('account.accountDetails');
+  const locale = useLocale() as Locale;
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function selectLocale(next: Locale) {
+    if (next === locale) return;
+    startTransition(async () => {
+      await setLocale(next);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-foreground text-sm font-medium">{t('languageTitle')}</p>
+        <p className="text-muted text-sm">{t('languageDescription')}</p>
+      </div>
+      <div
+        role="group"
+        aria-label={t('languageTitle')}
+        className="border-border inline-flex shrink-0 items-center gap-1 rounded-full border p-1"
+      >
+        {locales.map((code) => {
+          const isActive = code === locale;
+          return (
+            <button
+              key={code}
+              type="button"
+              disabled={pending}
+              aria-pressed={isActive}
+              onClick={() => {
+                selectLocale(code);
+              }}
+              className={cn(
+                'font-display cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-accent text-white'
+                  : 'text-muted hover:text-foreground hover:bg-key-50'
+              )}
+            >
+              {t(`languageNames.${code}` as 'languageNames.de')}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SecuritySection({ profile }: { profile: Profile }) {
+  const t = useTranslations('account.accountDetails');
+  const passwordDialog = useOverlayState();
+
+  if (profile.role === 'admin') {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-muted text-sm leading-relaxed">{t('adminTwoFactorHint')}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="text-foreground text-sm font-medium">{t('twoFactorTitle')}</p>
+            <p className="text-muted text-sm">{t('twoFactorDescription')}</p>
+          </div>
+          <StatusPill tone="success">{t('twoFactorEnabled')}</StatusPill>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <ProfileDetailRow label={t('firstName')} value={profile.firstName} />
-      <ProfileDetailRow label={t('lastName')} value={profile.lastName} />
-      <ProfileDetailRow label={t('email')} value={profile.email} />
-      <ProfileDetailRow label={t('password')} value={MASKED_PASSWORD} />
+      <p className="text-muted text-sm leading-relaxed">{t('memberPasswordHint')}</p>
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          onPress={() => {
+            passwordDialog.open();
+          }}
+        >
+          {t('changePassword')}
+        </Button>
+      </div>
+      <ChangePasswordDialog state={passwordDialog} />
     </div>
   );
 }
@@ -300,8 +364,6 @@ function ProfileDetails({ profile }: { profile: Profile }) {
 export function ProfileSection() {
   const t = useTranslations('account.accountDetails');
   const profile = useProfile();
-  const editDialog = useOverlayState();
-  const passwordDialog = useOverlayState();
 
   return (
     <div className="divide-border flex min-h-0 flex-1 flex-col divide-y">
@@ -311,37 +373,19 @@ export function ProfileSection() {
         onRetry={() => void profile.refetch()}
       >
         {profile.data ? (
-          <AccountSection
-            title={t('profileTitle')}
-            className="gap-6"
-            contentClassName="gap-6"
-            action={
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onPress={() => {
-                    editDialog.open();
-                  }}
-                >
-                  {t('editProfile')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onPress={() => {
-                    passwordDialog.open();
-                  }}
-                >
-                  {t('changePassword')}
-                </Button>
+          <>
+            <AccountSection title={t('profileTitle')} className="gap-6" contentClassName="gap-6">
+              <p className="text-muted text-sm leading-relaxed">{t('aboutIntro')}</p>
+              <PersonalDetailsForm profile={profile.data} />
+            </AccountSection>
+
+            <AccountSection title={t('settingsTitle')} className="gap-6" contentClassName="gap-6">
+              <LanguagePreference />
+              <div className="border-border border-t pt-6">
+                <SecuritySection profile={profile.data} />
               </div>
-            }
-          >
-            <ProfileDetails profile={profile.data} />
-            <EditProfileDialog state={editDialog} profile={profile.data} />
-            <ChangePasswordDialog state={passwordDialog} />
-          </AccountSection>
+            </AccountSection>
+          </>
         ) : null}
       </DataState>
     </div>

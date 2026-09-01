@@ -3,6 +3,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
+import { cn } from '@/lib/utils';
 import { RegularPage } from '@/components/shared/RegularPage';
 
 const DETAIL_TRANSITION = { duration: 0.24, ease: 'easeOut' } as const;
@@ -11,21 +12,25 @@ const DETAIL_TRANSITION = { duration: 0.24, ease: 'easeOut' } as const;
 export function PolicyDetailScreenHeader({
   children,
   action,
+  below,
   bordered = true,
 }: {
   children?: ReactNode;
   action?: ReactNode;
+  /** Content below the title row — e.g. section tabs inside the header. */
+  below?: ReactNode;
   bordered?: boolean;
 }) {
   return (
     <div className={bordered ? 'border-border shrink-0 border-b' : 'shrink-0'}>
-      <div className="flex flex-col gap-8 px-4 pt-8 pb-6 sm:px-8 sm:pt-10 sm:pb-8">
+      <div className={cn('flex flex-col px-4 sm:px-8', below ? 'gap-8 pt-8' : 'gap-6 py-8')}>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           {children ? (
             <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
           ) : null}
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
+        {below}
       </div>
     </div>
   );

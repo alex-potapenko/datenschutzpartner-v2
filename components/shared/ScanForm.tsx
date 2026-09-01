@@ -15,12 +15,14 @@ interface ScanFormProps {
   className?: string;
   /** Prepaid policy subscription slot to fill after scan. */
   fillSubscriptionId?: string;
+  /** Pre-filled website URL shown in the input. */
+  initialUrl?: string;
 }
 
-export function ScanForm({ dark, className, fillSubscriptionId }: ScanFormProps) {
+export function ScanForm({ dark, className, fillSubscriptionId, initialUrl }: ScanFormProps) {
   const router = useRouter();
   const t = useTranslations('landing');
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState(initialUrl ?? '');
 
   function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();

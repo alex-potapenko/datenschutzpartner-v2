@@ -1,71 +1,56 @@
 'use client';
 
-import Image from 'next/image';
+import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { useProfile } from '@/api/account';
-import { SignOut, Spinner, cn } from '@/components/ui';
-import { ACCOUNT_SECTION_IDS, SECTION_ICON, type AccountSectionId } from './account-sections';
-
-const MEMBER_AVATAR_PHOTO = '/member-avatar.jpg';
+import { isPolicySubscriptionOnTrial, useSubscriptions } from '@/api/billing';
+import { MetaBadge } from '@/components/shared/MetaBadge';
+import { NavigationLink } from '@/components/shared/NavigationLink';
+import { useAccountScope, isEuRepAccountScope } from '@/components/shared/AccountScopeSwitcher';
+import { SiteSwitcher } from '@/components/shared/SiteSwitcher';
+import { useSiteScope } from '@/components/shared/site-scope';
+import { cn } from '@/components/ui';
+import { AnimatedDirectionalPanel } from './AnimatedDirectionalPanel';
+import { EuRepContractSidebarNav } from './EuRepContractSidebarNav';
+import {
+  ACCOUNT_SCOPE_IDS,
+  SECTION_ACCENT,
+  SECTION_ICON,
+  WEBSITE_SECTION_IDS,
+  isComingSoonSection,
+  type WebsiteSectionId,
+} from './account-sections';
 
 type AccountSidebarProps = {
-  active: AccountSectionId;
-  onNavigate: (section: AccountSectionId) => void;
-  onLogout: () => void;
+  active: WebsiteSectionId;
+  onNavigate: (section: WebsiteSectionId) => void;
 };
 
-export function SidebarUser() {
+export function SidebarNav({ active, onNavigate }: AccountSidebarProps) {
   const t = useTranslations('account');
-  const profile = useProfile();
+  const accountScope = useAccountScope();
+  const { activeSite } = useSiteScope();
+  const subscriptions = useSubscriptions();
 
-  const email = profile.data?.email ?? '';
-  const displayName = profile.data?.displayName ?? '';
-  const firstName = profile.data?.firstName ?? displayName.split(' ')[0] ?? '';
-  const lastName = profile.data?.lastName ?? displayName.split(' ').slice(1).join(' ');
-  const avatarLabel = displayName.trim() || `${firstName} ${lastName}`.trim() || email;
+  const activeSiteOnPolicyTrial = useMemo(() => {
+    const subscriptionId = activeSite?.document?.subscriptionId;
+    if (!subscriptionId) return false;
+    const subscription = subscriptions.data?.find((row) => row.id === subscriptionId);
+    return isPolicySubscriptionOnTrial(subscription);
+  }, [activeSite?.document?.subscriptionId, subscriptions.data]);
 
-  return (
-    <div className="flex items-center gap-4 px-6 py-8">
-      <div className="relative size-16 shrink-0 overflow-hidden rounded-full">
-        {profile.isLoading ? (
-          <div className="bg-accent-soft flex size-full items-center justify-center">
-            <Spinner aria-label={t('loading')} className="size-8" />
-          </div>
-        ) : (
-          <Image
-            src={MEMBER_AVATAR_PHOTO}
-            alt={avatarLabel}
-            width={64}
-            height={64}
-            className="size-full object-cover object-top"
-          />
-        )}
-      </div>
-      <div className="font-display flex min-w-0 flex-col">
-        <span className="text-foreground text-base leading-tight font-semibold">{firstName}</span>
-        <span className="text-foreground text-base leading-tight font-semibold">{lastName}</span>
-      </div>
-    </div>
+  const visibleSections = WEBSITE_SECTION_IDS.filter((section) =>
+    isEuRepAccountScope(accountScope) ? section === 'euRep' : true
   );
-}
-
-export function SidebarNav({
-  active,
-  onNavigate,
-  onLogout,
-}: {
-  active: AccountSectionId;
-  onNavigate: (section: AccountSectionId) => void;
-  onLogout: () => void;
-}) {
-  const t = useTranslations('account');
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col">
-        {ACCOUNT_SECTION_IDS.map((section) => {
+      <div className="flex flex-col">
+        {visibleSections.map((section) => {
           const Icon = SECTION_ICON[section];
+          const accent = SECTION_ACCENT[section];
           const isActive = section === active;
+          const comingSoon = isComingSoonSection(section);
+
           return (
             <button
               key={section}
@@ -75,40 +60,90 @@ export function SidebarNav({
                 onNavigate(section);
               }}
               className={cn(
-                'flex min-h-12 w-full cursor-pointer items-center gap-3 px-4 text-left text-sm font-medium transition-colors sm:px-6',
+                'flex min-h-12 w-full cursor-pointer items-center gap-3 px-5 text-left text-sm font-medium transition-[color,background-color,box-shadow] duration-200',
                 isActive
-                  ? 'bg-key-50 text-accent shadow-[inset_2px_0_0_0_var(--accent)]'
-                  : 'text-foreground hover:bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                  ? 'text-foreground'
+                  : comingSoon
+                    ? 'text-muted hover:bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]'
+                    : 'text-foreground hover:bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]'
               )}
+              style={
+                isActive
+                  ? {
+                      background: `color-mix(in oklab, ${accent} 10%, transparent)`,
+                      boxShadow: `inset 2px 0 0 0 ${accent}`,
+                    }
+                  : undefined
+              }
             >
-              <Icon size={20} weight={isActive ? 'fill' : 'regular'} className="shrink-0" />
-              <span className="truncate">{t(`nav.${section}`)}</span>
+              <Icon
+                size={20}
+                weight={isActive ? 'fill' : 'regular'}
+                className="shrink-0"
+                style={isActive ? { color: accent } : undefined}
+              />
+              <span className="min-w-0 flex-1 truncate">{t(`nav.${section}`)}</span>
+              {section === 'privacyPolicy' && activeSiteOnPolicyTrial ? (
+                <MetaBadge kind="trial" className="shrink-0">
+                  {t('nav.trial')}
+                </MetaBadge>
+              ) : comingSoon ? (
+                <MetaBadge kind="soon" className="shrink-0">
+                  {t('nav.soon')}
+                </MetaBadge>
+              ) : null}
             </button>
           );
         })}
-      </div>
-
-      <div className="border-border shrink-0 border-t">
-        <button
-          type="button"
-          onClick={onLogout}
-          className="text-danger flex min-h-12 w-full cursor-pointer items-center gap-3 px-4 text-left text-sm font-medium transition-colors hover:bg-[color-mix(in_srgb,var(--feature-red)_8%,transparent)] sm:px-6"
-        >
-          <SignOut size={20} className="shrink-0" />
-          <span className="truncate">{t('nav.logout')}</span>
-        </button>
       </div>
     </div>
   );
 }
 
-export function AccountSidebar({ active, onNavigate, onLogout }: AccountSidebarProps) {
+function AccountSidebarFooter() {
+  const t = useTranslations('account.sidebarLinks');
+
+  return (
+    <div className="flex flex-col gap-1.5 px-5 py-4">
+      <NavigationLink href="/contact" size="sm" chevron="none">
+        {t('help')}
+      </NavigationLink>
+      <NavigationLink href="/terms" size="sm" chevron="none">
+        {t('termsOfService')}
+      </NavigationLink>
+      <NavigationLink href="/privacy" size="sm" chevron="none">
+        {t('privacyPolicy')}
+      </NavigationLink>
+    </div>
+  );
+}
+
+export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
   const t = useTranslations('account');
+  const accountScope = useAccountScope();
+  const isEuRepScope = isEuRepAccountScope(accountScope);
+  const scopeKey = isEuRepScope ? 'euRep' : 'websites';
 
   return (
     <nav className="flex h-full min-h-0 flex-1 flex-col" aria-label={t('title')}>
-      <SidebarUser />
-      <SidebarNav active={active} onNavigate={onNavigate} onLogout={onLogout} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <AnimatedDirectionalPanel
+          activeKey={scopeKey}
+          order={ACCOUNT_SCOPE_IDS}
+          axis="y"
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {isEuRepScope ? (
+            <EuRepContractSidebarNav />
+          ) : (
+            <>
+              <SiteSwitcher />
+              <SidebarNav active={active} onNavigate={onNavigate} />
+            </>
+          )}
+        </AnimatedDirectionalPanel>
+      </div>
+      <AccountSidebarFooter />
     </nav>
   );
 }

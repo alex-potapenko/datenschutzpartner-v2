@@ -41,8 +41,11 @@
   --warning: #d97706;
   --feature-purple: #7c3aed;
   --feature-red: #dc2626;
-  --feature-blue: #2563eb;
-  --feature-yellow: #ca8a04;
+  /* Tailwind v4 defaults (theme.css) — literal OKLCH so tree-shaking cannot drop them */
+  --feature-indigo: oklch(58.5% 0.233 277.117); /* indigo-500 */
+  --feature-yellow: oklch(79.5% 0.184 86.047); /* yellow-500 */
+  --feature-teal: oklch(70.4% 0.14 182.503); /* teal-500 */
+  --feature-fuchsia: oklch(66.7% 0.295 322.15); /* fuchsia-500 */
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.12);
   --color-dot-on: var(--accent);
 }

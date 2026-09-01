@@ -1,20 +1,20 @@
-import type { ImprovedFormData } from './content/improved-form';
+import type { QuestionnaireFormData } from './content/questionnaire-form';
 import { isGdprApplicable } from '@/api/generator';
+import type { EuRepPlanId } from '@/api/checkout';
 
 export { isGdprApplicable } from '@/api/generator';
+export type { EuRepPlanId } from '@/api/checkout';
 
-export type WizardStep = 'scanning' | 'improved' | 'eu-rep' | 'summary';
-
-export type EuRepPlanId = 'budget' | 'standard' | 'premium';
+export type WizardStep = 'scanning' | 'questionnaire' | 'eu-rep' | 'summary' | 'confirm';
 
 /**
  * EU representation decision captured on the conditional `eu-rep` step. The step
  * only appears when {@link shouldShowEuRepStep} is true (GDPR applies and the
  * user has no third-party representative). Otherwise the step is skipped after
- * the questionnaire.
+ * the questionnaire. Wizard purchases always use Basis.
  */
 export type EuRepState = {
-  /** Buying a new representation contract with this checkout. */
+  /** Buying a new representation contract with this checkout (always `basis` in wizard). */
   plan?: EuRepPlanId;
   /** Link the new hosted policy to this existing contract (no extra charge). */
   linkContractId?: string;
@@ -38,21 +38,30 @@ export function isLinkingExistingEuRep(euRep: EuRepState): boolean {
 
 export type WizardProgress = {
   scanDone: boolean;
-  formData?: ImprovedFormData;
+  formData?: QuestionnaireFormData;
   euRep: EuRepState;
   /** Re-run the questionnaire only — skips scan (policy update flow). */
   questionnaireOnly?: boolean;
   updateDocumentId?: string;
   /** Prepaid slot on an existing policy subscription. */
   fillSubscriptionId?: string;
+  /**
+   * Guest-only Account step. Logged-in members skip it and go to the
+   * confirmation screen instead. Defaults to true when omitted.
+   */
+  includeAccountStep?: boolean;
+  /** The confirmation screen is reachable (logged-in finish or verified email). */
+  confirmReady?: boolean;
 };
+
+export type WizardConfirmPhase = 'confirm' | 'ready';
 
 export type WizardPersistedState = WizardProgress & {
   step: WizardStep;
   visitedSteps: WizardStep[];
   /** Hostname the persisted run belongs to — prevents cross-site state bleed. */
   domain?: string;
-  checkoutPhase?: 'ready';
+  checkoutPhase?: WizardConfirmPhase;
   checkoutDocumentId?: string;
 };
 
@@ -88,11 +97,18 @@ export function shouldRestoreWizardState(
 
 const WIZARD_STORAGE_KEY = 'datenschutzpartner-result-wizard';
 
-const VALID_STEPS = new Set<WizardStep>(['scanning', 'improved', 'eu-rep', 'summary']);
+const VALID_STEPS = new Set<WizardStep>([
+  'scanning',
+  'questionnaire',
+  'eu-rep',
+  'summary',
+  'confirm',
+]);
 
 function normalizeWizardStep(value: string | null | undefined): WizardStep | null {
   if (value === 'scan') return 'scanning';
   if (value === 'checkout') return 'summary';
+  if (value === 'improved') return 'questionnaire';
   if (!value || !isWizardStep(value)) return null;
   return value;
 }
@@ -113,7 +129,7 @@ export function emptyEuRepState(): EuRepState {
  * Whether the EU representation wizard step should appear.
  * Skipped when GDPR does not apply or the user has a third-party representative.
  */
-export function shouldShowEuRepStep(formData?: ImprovedFormData): boolean {
+export function shouldShowEuRepStep(formData?: QuestionnaireFormData): boolean {
   if (!isGdprApplicable(formData)) return false;
   return formData?.hasThirdPartyEuRep !== 'yes';
 }
@@ -122,31 +138,43 @@ export function shouldShowEuRepStep(formData?: ImprovedFormData): boolean {
  * @deprecated Swiss controllers only — kept for legacy persisted state.
  * Use {@link isGdprApplicable} for GDPR applicability.
  */
-export function isEuRepApplicable(formData?: ImprovedFormData): boolean {
+export function isEuRepApplicable(formData?: QuestionnaireFormData): boolean {
   return shouldShowEuRepStep(formData);
 }
 
 /**
  * Verdict: EU representation is likely required when GDPR applies.
  */
-export function isEuRepRequired(formData?: ImprovedFormData): boolean {
+export function isEuRepRequired(formData?: QuestionnaireFormData): boolean {
   return isGdprApplicable(formData);
 }
 
-/** The ordered steps for the current run — `eu-rep` is conditional. */
+/** The ordered screens for the current run — `eu-rep` and Account are conditional. */
 export function wizardStepOrder(progress: WizardProgress): WizardStep[] {
-  const steps: WizardStep[] = progress.questionnaireOnly ? ['improved'] : ['scanning', 'improved'];
+  const steps: WizardStep[] = progress.questionnaireOnly
+    ? ['questionnaire']
+    : ['scanning', 'questionnaire'];
   if (shouldShowEuRepStep(progress.formData)) steps.push('eu-rep');
-  if (!progress.questionnaireOnly) steps.push('summary');
+  if (!progress.questionnaireOnly) {
+    if (progress.includeAccountStep !== false) steps.push('summary');
+    steps.push('confirm');
+  }
   return steps;
+}
+
+export function lastContentStep(progress: Pick<WizardProgress, 'formData'>): WizardStep {
+  return shouldShowEuRepStep(progress.formData) ? 'eu-rep' : 'questionnaire';
 }
 
 export function maxAccessibleStep(progress: WizardProgress): WizardStep {
   if (!progress.questionnaireOnly && !progress.scanDone) return 'scanning';
-  if (!progress.formData) return 'improved';
+  if (!progress.formData) return 'questionnaire';
   if (shouldShowEuRepStep(progress.formData) && !progress.euRep.done) return 'eu-rep';
   if (progress.questionnaireOnly) {
-    return shouldShowEuRepStep(progress.formData) ? 'eu-rep' : 'improved';
+    return shouldShowEuRepStep(progress.formData) ? 'eu-rep' : 'questionnaire';
+  }
+  if (progress.includeAccountStep === false || progress.confirmReady) {
+    return 'confirm';
   }
   return 'summary';
 }
@@ -217,6 +245,12 @@ export function readWizardState(stepFromUrl?: string | null): WizardPersistedSta
     const migratedStep = normalizeWizardStep(parsed.step ?? null);
     if (!migratedStep) return null;
 
+    const legacyCheckoutPhase = parsed.checkoutPhase as string | undefined;
+    const confirmReady =
+      Boolean(parsed.confirmReady) ||
+      legacyCheckoutPhase === 'confirm' ||
+      migratedStep === 'confirm';
+
     const progress: WizardProgress = {
       scanDone: Boolean(parsed.scanDone),
       formData: parsed.formData,
@@ -224,14 +258,18 @@ export function readWizardState(stepFromUrl?: string | null): WizardPersistedSta
       questionnaireOnly: Boolean(parsed.questionnaireOnly),
       updateDocumentId: parsed.updateDocumentId,
       fillSubscriptionId: parsed.fillSubscriptionId,
+      includeAccountStep: parsed.includeAccountStep,
+      confirmReady,
     };
 
     const stepParam = normalizeWizardStep(stepFromUrl ?? null);
     const stepCandidate = stepParam ?? migratedStep;
     let step = resolveWizardStep(stepCandidate, progress);
-    const legacyCheckoutPhase = parsed.checkoutPhase as string | undefined;
     if (legacyCheckoutPhase === 'payment' && !progress.questionnaireOnly) {
       step = 'summary';
+    }
+    if (legacyCheckoutPhase === 'confirm' && !progress.questionnaireOnly) {
+      step = 'confirm';
     }
 
     return {
@@ -239,7 +277,10 @@ export function readWizardState(stepFromUrl?: string | null): WizardPersistedSta
       domain: parsed.domain,
       step,
       visitedSteps: buildVisitedSteps({ ...progress, step }),
-      checkoutPhase: legacyCheckoutPhase === 'ready' ? 'ready' : undefined,
+      checkoutPhase:
+        legacyCheckoutPhase === 'ready' || legacyCheckoutPhase === 'confirm'
+          ? legacyCheckoutPhase
+          : undefined,
       checkoutDocumentId: parsed.checkoutDocumentId,
     };
   } catch {
@@ -278,7 +319,7 @@ export function buildPolicyUpdateUrl(documentId: string, site: string): string {
     url: site.startsWith('http') ? site : `https://${site}`,
     mode: 'update',
     documentId,
-    step: 'improved',
+    step: 'questionnaire',
   });
   return `/result?${params.toString()}`;
 }

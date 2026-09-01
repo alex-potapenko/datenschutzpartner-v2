@@ -13,4 +13,5 @@ export const RESERVED_HOSTED_POLICY_SLUGS = new Set([
   'result',
   'scan',
   'terms',
+  'verify-email',
 ]);

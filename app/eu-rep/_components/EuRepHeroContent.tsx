@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { NavigationLink } from '@/components/shared/NavigationLink';
+import { cn } from '@/components/ui';
 import { EuRepQuestionnaireCta } from './EuRepQuestionnaireCta';
 
 const ARTICLE_27_URL = 'https://steigerlegal.ch/dsgvo/dsgvo-27/';
@@ -21,18 +22,20 @@ export function EuRepHeroContent({
 
   return (
     <div
-      className={
-        showImage ? 'border-border grid items-stretch lg:grid-cols-2' : 'border-border w-full'
-      }
+      className={cn('border-border', showImage ? 'grid items-stretch lg:grid-cols-2' : 'w-full')}
     >
       <div
-        className={
-          showImage
-            ? 'border-border order-2 flex w-full min-w-0 flex-col border-t lg:order-1 lg:border-t-0 lg:border-r'
-            : 'flex w-full min-w-0 flex-col'
-        }
+        className={cn(
+          'flex w-full min-w-0 flex-col',
+          showImage && 'border-border order-2 border-t lg:order-1 lg:border-t-0 lg:border-r'
+        )}
       >
-        <div className="flex w-full flex-col gap-6 px-4 pt-12 pb-12 sm:gap-10 sm:px-8 sm:pt-20 sm:pb-20">
+        <div
+          className={cn(
+            'flex w-full flex-col px-4 sm:px-8',
+            showImage ? 'gap-6 pt-12 pb-12 sm:gap-10 sm:pt-20 sm:pb-20' : 'gap-8 py-8'
+          )}
+        >
           <h1 className="text-foreground text-2xl leading-tight font-bold sm:text-3xl lg:text-4xl">
             {t('title')}
           </h1>

@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { useSubscriptions, type Subscription } from '@/api/billing';
+import { EU_REP_EXTRA_REQUEST_PRICE, resolveEuRepPlan } from '@/api/checkout';
+import { useCreateEuRepExtraRequest, useSubscriptions, type Subscription } from '@/api/billing';
 import { resolveDocumentSite, useDocuments, type GeneratedDocument } from '@/api/documents';
 import {
   groupEuRepContractsBySubscription,
@@ -12,8 +13,13 @@ import {
   useUnlinkEuRepDocument,
   type EuRepContract,
 } from '@/api/eu-rep';
-import { euRepContractDetailHref } from '@/app/account/_components/account-sections';
 import {
+  euRepContractDetailHref,
+  subscriptionDetailHref,
+} from '@/app/account/_components/account-sections';
+import {
+  CaretDown,
+  CaretUp,
   Globe,
   LinkSimple,
   Plus,
@@ -26,6 +32,9 @@ import { NavigationLink } from '@/components/shared/NavigationLink';
 import { PriceBlock } from '@/components/shared/PriceBlock';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { EuRepLinkPoliciesDialog } from '../EuRepLinkPoliciesDialog';
+import { useEuRepScope } from '@/components/shared/eu-rep-scope';
+import { useSiteScope, resolveSiteEuRepContract } from '@/components/shared/site-scope';
+import { cn } from '@/lib/utils';
 import {
   AccountSection,
   AccountTable,
@@ -33,12 +42,13 @@ import {
   DataState,
   DaysLeftDonut,
   EmptyState,
-  PolicyDetailTableRow,
-  PolicyTableRowCaret,
   TableRowAction,
   subscriptionDaysLeft,
   useDateFormatter,
 } from '../account-ui';
+
+type SortKey = 'legalEntity' | 'remainingDays';
+type SortDir = 'asc' | 'desc';
 
 function LinkHostedPoliciesRow({ onLink }: { onLink: () => void }) {
   const t = useTranslations('account.euRep.contract');
@@ -108,7 +118,7 @@ function LinkedPolicyTable({
           {documents.map((doc) => {
             const site = resolveDocumentSite(doc);
             return (
-              <PolicyDetailTableRow key={doc.id} documentId={doc.id} openLabel={t('open')}>
+              <Table.Row key={doc.id}>
                 <Table.Cell>
                   <TableRowAction>
                     <NavigationLink
@@ -140,10 +150,9 @@ function LinkedPolicyTable({
                         </NavigationLink>
                       </TableRowAction>
                     ) : null}
-                    <PolicyTableRowCaret label={t('open')} />
                   </div>
                 </Table.Cell>
-              </PolicyDetailTableRow>
+              </Table.Row>
             );
           })}
           {canLink ? <LinkHostedPoliciesRow onLink={onLink} /> : null}
@@ -169,105 +178,83 @@ function LinkedPolicyTable({
   );
 }
 
-function ContractGroup({
-  contract,
-  documents,
-  subscription,
+function LinkedPoliciesSecondary({
+  groups,
   unlinkedCount,
 }: {
-  contract: EuRepContract;
-  documents: GeneratedDocument[];
-  subscription?: Subscription;
+  groups: Array<{
+    contract: EuRepContract;
+    documents: GeneratedDocument[];
+    subscription?: Subscription;
+  }>;
   unlinkedCount: number;
 }) {
   const t = useTranslations('account.euRep.contract');
-  const td = useTranslations('account.documents');
-  const ts = useTranslations('account.status');
+  const [open, setOpen] = useState(false);
   const linkDialog = useOverlayState();
-  const isActive = contract.status === 'active';
+  const [linkContractId, setLinkContractId] = useState<string | null>(null);
 
-  const period =
-    subscription?.startDate && subscription.nextPaymentDate
-      ? subscriptionDaysLeft(subscription.startDate, subscription.nextPaymentDate)
-      : null;
-  const daysLeftLabel = period ? td('daysLeft', { count: period.remainingDays }) : null;
-  const canLink = isActive && unlinkedCount > 0;
-  const showLinkedTable = documents.length > 0 || canLink;
+  const activeGroup = groups.find((group) => group.contract.id === linkContractId);
+
+  if (groups.length === 0) return null;
 
   return (
-    <>
-      <div className="flex flex-col gap-3">
-        <div className="flex min-w-0 items-center justify-between gap-3 px-5">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <NavigationLink
-              href={euRepContractDetailHref(contract.id)}
-              size="sm"
-              chevron="right"
-              className="text-foreground font-semibold"
-            >
-              {contract.legalEntity || t('title')}
-            </NavigationLink>
-            <StatusPill tone={statusTone(subscription?.status ?? contract.status)}>
-              {ts(subscription?.status ?? contract.status)}
-            </StatusPill>
-          </div>
-          {subscription ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <p className="text-muted text-sm">
-                {td('subscriptionSites', { count: documents.length })}
-              </p>
-              {period && daysLeftLabel ? (
-                <>
-                  <span className="text-muted text-sm" aria-hidden>
-                    ·
-                  </span>
-                  <p className="text-muted text-sm">{daysLeftLabel}</p>
-                  <DaysLeftDonut
-                    remaining={period.remainingDays}
-                    total={period.totalDays}
-                    label={daysLeftLabel}
-                  />
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        {showLinkedTable ? (
-          <LinkedPolicyTable
-            contractId={contract.id}
-            documents={documents}
-            tableLabel={`${td('listTitle')} ${contract.legalEntity || t('title')}`}
-            canRemove={isActive}
-            canLink={canLink}
-            onLink={() => {
-              linkDialog.open();
-            }}
-          />
+    <AccountSection contentClassName="gap-4">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((value) => !value);
+        }}
+        className="text-foreground hover:bg-key-50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-2 text-left text-sm font-semibold transition-colors"
+        aria-expanded={open}
+      >
+        <span>{t('linkedSecondaryTitle')}</span>
+        {open ? (
+          <CaretUp size={16} weight="bold" aria-hidden className="text-muted shrink-0" />
         ) : (
-          <p className="text-muted text-sm">{t('linkedEmpty')}</p>
+          <CaretDown size={16} weight="bold" aria-hidden className="text-muted shrink-0" />
         )}
-      </div>
+      </button>
+      {open ? (
+        <div className="flex flex-col gap-8">
+          <p className="text-muted text-sm">{t('linkedSecondaryBody')}</p>
+          {groups.map((group) => {
+            const isActive = group.contract.status === 'active';
+            const canLink = isActive && unlinkedCount > 0;
+            const showLinkedTable = group.documents.length > 0 || canLink;
+            return (
+              <div key={group.contract.id} className="flex flex-col gap-3">
+                <p className="text-foreground px-1 text-sm font-medium">
+                  {group.contract.legalEntity || t('title')}
+                </p>
+                {showLinkedTable ? (
+                  <LinkedPolicyTable
+                    contractId={group.contract.id}
+                    documents={group.documents}
+                    tableLabel={`${t('linkedTitle')} ${group.contract.legalEntity || t('title')}`}
+                    canRemove={isActive}
+                    canLink={canLink}
+                    onLink={() => {
+                      setLinkContractId(group.contract.id);
+                      linkDialog.open();
+                    }}
+                  />
+                ) : (
+                  <p className="text-muted text-sm">{t('linkedEmpty')}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <EuRepLinkPoliciesDialog
-        state={linkDialog}
-        contractId={contract.id}
-        linkedDocumentIds={contract.linkedDocumentIds}
-      />
-    </>
-  );
-}
-
-function LinkedPoliciesCountSection({ count }: { count: number }) {
-  const t = useTranslations('account.euRep.contract');
-
-  return (
-    <AccountSection
-      title={t('linkedCountTitle')}
-      className="min-w-0 flex-1 gap-4"
-      contentClassName="gap-3"
-    >
-      <PriceBlock amount={String(count)} animatedAmount={count} className="min-w-0" />
+      {activeGroup ? (
+        <EuRepLinkPoliciesDialog
+          state={linkDialog}
+          contractId={activeGroup.contract.id}
+          linkedDocumentIds={activeGroup.contract.linkedDocumentIds}
+        />
+      ) : null}
     </AccountSection>
   );
 }
@@ -292,30 +279,188 @@ function ContractsCountSection({ count, onAdd }: { count: number; onAdd: () => v
   );
 }
 
-export function EuRepContractPanel() {
+function RequestsSection({
+  subscription,
+  onPaymentRequest,
+  isPending,
+}: {
+  subscription?: Subscription;
+  onPaymentRequest: () => void;
+  isPending: boolean;
+}) {
   const t = useTranslations('account.euRep.contract');
+  const included =
+    subscription?.includedRequests ?? resolveEuRepPlan(subscription?.planId).includedRequests;
+  const used = subscription?.usedRequests ?? 0;
+
+  return (
+    <AccountSection
+      title={t('requestsTitle')}
+      className="min-w-0 flex-1 gap-4"
+      contentClassName="gap-3"
+    >
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <PriceBlock amount={`${used}/${included}`} className="min-w-0" />
+          <p className="text-muted text-xs">
+            {t('requestsHint', { price: EU_REP_EXTRA_REQUEST_PRICE })}
+          </p>
+        </div>
+        {subscription ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            isDisabled={isPending}
+            onPress={onPaymentRequest}
+          >
+            {t('paymentRequestCta')}
+          </Button>
+        ) : null}
+      </div>
+    </AccountSection>
+  );
+}
+
+function SortableHeader({
+  label,
+  active,
+  direction,
+  onSort,
+  align = 'left',
+}: {
+  label: string;
+  active: boolean;
+  direction: SortDir;
+  onSort: () => void;
+  align?: 'left' | 'right';
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSort}
+      className={`text-muted hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-sm font-medium ${
+        align === 'right' ? 'ml-auto' : ''
+      }`}
+    >
+      {label}
+      {active ? (
+        direction === 'asc' ? (
+          <CaretUp size={12} weight="bold" aria-hidden />
+        ) : (
+          <CaretDown size={12} weight="bold" aria-hidden />
+        )
+      ) : (
+        <CaretDown size={12} weight="bold" aria-hidden className="opacity-30" />
+      )}
+    </button>
+  );
+}
+
+export function EuRepContractPanel({ scope = 'site' }: { scope?: 'site' | 'all' }) {
+  const t = useTranslations('account.euRep.contract');
+  const ts = useTranslations('account.status');
+  const td = useTranslations('account.documents');
   const router = useRouter();
+  const { activeSite } = useSiteScope();
+  const { activeContract: scopedContract } = useEuRepScope();
   const contracts = useEuRepContracts();
   const documents = useDocuments();
   const subscriptions = useSubscriptions();
+  const createExtraRequest = useCreateEuRepExtraRequest();
 
-  const groups = useMemo(
-    () =>
-      groupEuRepContractsBySubscription(
-        contracts.data ?? [],
-        subscriptions.data ?? [],
-        documents.data ?? []
-      ),
-    [contracts.data, subscriptions.data, documents.data]
+  const siteContract = useMemo(
+    () => (activeSite ? resolveSiteEuRepContract(activeSite, contracts.data ?? []) : undefined),
+    [activeSite, contracts.data]
   );
 
-  const linkedPolicyCount = groups.reduce((sum, group) => sum + group.documents.length, 0);
-  const contractCount = groups.length;
-  const unlinkedCount = (documents.data ?? []).filter((doc) => !doc.euRepContractId).length;
+  const [sortKey, setSortKey] = useState<SortKey>('legalEntity');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const groups = useMemo(() => {
+    const all = groupEuRepContractsBySubscription(
+      contracts.data ?? [],
+      subscriptions.data ?? [],
+      documents.data ?? []
+    );
+    if (scope === 'all') return all;
+    if (!siteContract) return [];
+    return all.filter((group) => group.contract.id === siteContract.id);
+  }, [contracts.data, subscriptions.data, documents.data, siteContract, scope]);
+
+  const sortedGroups = useMemo(() => {
+    const next = groups.slice();
+    next.sort((a, b) => {
+      if (sortKey === 'legalEntity') {
+        const left = (a.contract.legalEntity || '').localeCompare(
+          b.contract.legalEntity || '',
+          undefined,
+          {
+            sensitivity: 'base',
+          }
+        );
+        return sortDir === 'asc' ? left : -left;
+      }
+      const periodA =
+        a.subscription?.startDate && a.subscription.nextPaymentDate
+          ? subscriptionDaysLeft(a.subscription.startDate, a.subscription.nextPaymentDate)
+              .remainingDays
+          : -1;
+      const periodB =
+        b.subscription?.startDate && b.subscription.nextPaymentDate
+          ? subscriptionDaysLeft(b.subscription.startDate, b.subscription.nextPaymentDate)
+              .remainingDays
+          : -1;
+      const diff = periodA - periodB;
+      return sortDir === 'asc' ? diff : -diff;
+    });
+    return next;
+  }, [groups, sortKey, sortDir]);
+
+  const primaryEuSubscription = useMemo(() => {
+    if (scope === 'site' && siteContract) {
+      return (subscriptions.data ?? []).find((row) => row.id === siteContract.subscriptionId);
+    }
+    if (scopedContract?.subscriptionId) {
+      const matched = (subscriptions.data ?? []).find(
+        (row) => row.id === scopedContract.subscriptionId
+      );
+      if (matched) return matched;
+    }
+    const euSubs = (subscriptions.data ?? []).filter((row) => row.productType === 'euRep');
+    return euSubs.find((row) => row.status === 'active') ?? euSubs[0];
+  }, [subscriptions.data, siteContract, scopedContract, scope]);
+
+  const selectedContractId = scope === 'all' ? scopedContract?.id : siteContract?.id;
+
+  const unlinkedCount = (documents.data ?? []).filter((doc) => {
+    if (doc.euRepContractId) return false;
+    if (scope === 'site' && activeSite) return doc.site === activeSite.domain;
+    return true;
+  }).length;
 
   const goToCheckout = () => {
     router.push('/account/eu-rep/checkout');
   };
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(key);
+    setSortDir('asc');
+  }
+
+  async function handlePaymentRequest() {
+    if (!primaryEuSubscription) return;
+    try {
+      await createExtraRequest.mutateAsync({ subscriptionId: primaryEuSubscription.id });
+      toast.success(t('paymentRequestSuccess', { price: EU_REP_EXTRA_REQUEST_PRICE }));
+    } catch {
+      toast.error(t('paymentRequestFailed'));
+    }
+  }
 
   return (
     <DataState
@@ -329,12 +474,18 @@ export function EuRepContractPanel() {
     >
       <div className="divide-border flex flex-col divide-y">
         <div className="border-border divide-border flex flex-col divide-y sm:flex-row sm:divide-x sm:divide-y-0">
-          <ContractsCountSection count={contractCount} onAdd={goToCheckout} />
-          <LinkedPoliciesCountSection count={linkedPolicyCount} />
+          <ContractsCountSection count={groups.length} onAdd={goToCheckout} />
+          <RequestsSection
+            subscription={primaryEuSubscription}
+            isPending={createExtraRequest.isPending}
+            onPaymentRequest={() => {
+              void handlePaymentRequest();
+            }}
+          />
         </div>
 
-        <AccountSection contentClassName="gap-8">
-          {groups.length === 0 ? (
+        <AccountSection contentClassName="gap-6">
+          {sortedGroups.length === 0 ? (
             <EmptyState
               message={t('listEmpty')}
               action={
@@ -345,19 +496,122 @@ export function EuRepContractPanel() {
               }
             />
           ) : (
-            <div className="flex flex-col gap-8">
-              {groups.map((group) => (
-                <ContractGroup
-                  key={group.contract.id}
-                  contract={group.contract}
-                  documents={group.documents}
-                  subscription={group.subscription}
-                  unlinkedCount={unlinkedCount}
-                />
-              ))}
-            </div>
+            <AccountTable aria-label={t('listTitle')}>
+              <Table.Header>
+                <Table.Column isRowHeader>
+                  <SortableHeader
+                    label={t('colLegalEntity')}
+                    active={sortKey === 'legalEntity'}
+                    direction={sortDir}
+                    onSort={() => {
+                      toggleSort('legalEntity');
+                    }}
+                  />
+                </Table.Column>
+                <Table.Column>{t('colPlan')}</Table.Column>
+                <Table.Column className="text-right">
+                  <SortableHeader
+                    label={t('colDays')}
+                    active={sortKey === 'remainingDays'}
+                    direction={sortDir}
+                    onSort={() => {
+                      toggleSort('remainingDays');
+                    }}
+                    align="right"
+                  />
+                </Table.Column>
+                <Table.Column className="text-right">
+                  <span className="sr-only">{t('colActions')}</span>
+                </Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {sortedGroups.map((group) => {
+                  const groupSubscription = group.subscription;
+                  const period =
+                    groupSubscription?.startDate && groupSubscription.nextPaymentDate
+                      ? subscriptionDaysLeft(
+                          groupSubscription.startDate,
+                          groupSubscription.nextPaymentDate
+                        )
+                      : null;
+                  const daysLeftLabel = period
+                    ? td('daysLeft', { count: period.remainingDays })
+                    : null;
+                  const planId = groupSubscription?.planId ?? 'basis';
+                  const planLabel = t(`plans.${planId}` as 'plans.basis');
+                  const isSelected = group.contract.id === selectedContractId;
+
+                  return (
+                    <Table.Row
+                      key={group.contract.id}
+                      aria-current={isSelected ? 'true' : undefined}
+                      className={cn(
+                        '[&_.table__cell]:!bg-surface',
+                        isSelected && '[&_.table__cell]:!bg-key-50'
+                      )}
+                    >
+                      <Table.Cell>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="text-foreground font-medium">
+                            {group.contract.legalEntity || t('title')}
+                          </span>
+                          <StatusPill
+                            tone={statusTone(group.subscription?.status ?? group.contract.status)}
+                          >
+                            {ts(group.subscription?.status ?? group.contract.status)}
+                          </StatusPill>
+                        </div>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <span className="text-muted text-sm">{planLabel}</span>
+                      </Table.Cell>
+                      <Table.Cell className="text-right">
+                        {period && daysLeftLabel ? (
+                          <div className="inline-flex items-center justify-end gap-2">
+                            <span className="text-muted text-sm">{daysLeftLabel}</span>
+                            <DaysLeftDonut
+                              remaining={period.remainingDays}
+                              total={period.totalDays}
+                              label={daysLeftLabel}
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-muted text-sm">—</span>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onPress={() => {
+                              router.push(euRepContractDetailHref(group.contract.id));
+                            }}
+                          >
+                            {t('edit')}
+                          </Button>
+                          {groupSubscription ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onPress={() => {
+                                router.push(subscriptionDetailHref(groupSubscription.id));
+                              }}
+                            >
+                              {t('manageSubscription')}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </AccountTable>
           )}
         </AccountSection>
+
+        <LinkedPoliciesSecondary groups={groups} unlinkedCount={unlinkedCount} />
       </div>
     </DataState>
   );

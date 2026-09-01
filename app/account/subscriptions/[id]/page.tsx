@@ -6,12 +6,11 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
-  const t = await getTranslations('account.documents');
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('common');
 
   return {
-    title: t('subscriptionGroup', { id }),
+    title: t('subscriptionDetails'),
     robots: { index: false, follow: false },
   };
 }

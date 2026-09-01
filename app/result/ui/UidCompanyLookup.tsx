@@ -11,7 +11,7 @@ interface UidCompanyLookupProps {
 }
 
 export function UidCompanyLookup({ onSelect }: UidCompanyLookupProps) {
-  const t = useTranslations('result.improvedStep.uidLookup');
+  const t = useTranslations('result.questionnaireStep.uidLookup');
   const [query, setQuery] = useState('');
   const search = useUidCompanySearch(query);
   const results = search.data ?? [];

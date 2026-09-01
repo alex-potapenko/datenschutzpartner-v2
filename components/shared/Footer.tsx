@@ -64,7 +64,7 @@ export function Footer() {
   const tc = useTranslations('common');
 
   return (
-    <footer id="site-footer">
+    <footer id="site-footer" className="border-t-2" style={{ borderTopColor: 'var(--accent)' }}>
       <Container>
         <div className="border-border relative border-r border-l">
           <div className="border-border flex flex-col-reverse lg:grid lg:grid-cols-2">
@@ -102,10 +102,6 @@ export function Footer() {
                   </Button>
                 ))}
               </div>
-
-              <p className="text-foreground text-sm">
-                {t('copyright', { year: new Date().getFullYear() })}
-              </p>
             </div>
 
             <div className="border-border grid grid-cols-3 gap-8 border-b p-4 pt-20 sm:p-8 lg:border-b-0">

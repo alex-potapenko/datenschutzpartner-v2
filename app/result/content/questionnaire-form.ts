@@ -1,15 +1,15 @@
-export interface ImprovedFormData {
+export interface QuestionnaireFormData {
   companyName: string;
   domain: string;
   email: string;
   street: string;
+  streetLine2: string;
   postalCode: string;
   city: string;
   country: string;
   hasDpo: string;
   dpoCompanyName: string;
-  dpoFirstName: string;
-  dpoLastName: string;
+  dpoDesignation: string;
   dpoStreet: string;
   dpoPostalCode: string;
   dpoCity: string;

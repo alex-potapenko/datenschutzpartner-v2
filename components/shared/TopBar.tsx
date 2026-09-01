@@ -1,13 +1,16 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { useEffect, useState, startTransition } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
+  Buildings,
   CaretDown,
   CaretLeft,
   CaretRight,
+  Cookie,
   FileText,
   GlobeHemisphereEast,
   GraduationCap,
@@ -16,6 +19,7 @@ import {
   UserCircle,
   X,
 } from '@/components/ui';
+import { MetaBadge } from '@/components/shared/MetaBadge';
 import { useSession } from '@/api/auth';
 import {
   Button,
@@ -32,16 +36,56 @@ import {
   DrawerBody,
   useOverlayState,
 } from '@/components/ui';
+import { AccountAddMenu } from './AccountAddMenu';
+import { AccountProfileMenu } from './AccountProfileMenu';
+import { AccountScopeSwitcher } from './AccountScopeSwitcher';
 import { Container } from './Container';
 import { HistoryBackLink } from './HistoryBackLink';
 import { Logo } from './Logo';
 import { LocaleSwitcher } from './LocaleSwitcher';
 
-const SERVICE_IDS = [
-  { id: '/scan', key: 'privacyGenerator', icon: <FileText size={20} weight="fill" /> },
-  { id: '/eu-rep', key: 'euRep', icon: <GlobeHemisphereEast size={20} weight="fill" /> },
-  { id: '/academy', key: 'academy', icon: <GraduationCap size={20} weight="fill" /> },
-] as const;
+type ServiceEntry = {
+  id: string;
+  key: string;
+  icon: ReactNode;
+  accent: string;
+  comingSoon?: boolean;
+};
+
+const SERVICE_IDS: ServiceEntry[] = [
+  {
+    id: '/scan',
+    key: 'privacyGenerator',
+    icon: <FileText size={20} weight="fill" />,
+    accent: 'var(--feature-indigo)',
+  },
+  {
+    id: '/eu-rep',
+    key: 'euRep',
+    icon: <GlobeHemisphereEast size={20} weight="fill" />,
+    accent: 'var(--feature-fuchsia)',
+  },
+  {
+    id: '/account?section=cookieBanner',
+    key: 'cookieBanner',
+    icon: <Cookie size={20} weight="fill" />,
+    accent: 'var(--feature-yellow)',
+    comingSoon: true,
+  },
+  {
+    id: '/account?section=imprint',
+    key: 'imprintGenerator',
+    icon: <Buildings size={20} weight="fill" />,
+    accent: 'var(--feature-teal)',
+    comingSoon: true,
+  },
+  {
+    id: '/academy',
+    key: 'academy',
+    icon: <GraduationCap size={20} weight="fill" />,
+    accent: 'var(--feature-purple)',
+  },
+];
 
 const NAV_LINKS = [
   { key: 'insights', href: '/insights' },
@@ -56,38 +100,86 @@ const barOutlineButtonClass = 'inline-flex shrink-0 border-white/20 text-white h
 
 const drawerMenuItemClass = 'rounded-xl px-4 transition-colors';
 
+function ServiceItemContent({
+  serviceKey,
+  icon,
+  accent,
+  comingSoon,
+  showCaret = false,
+  showDescription = true,
+}: {
+  serviceKey: string;
+  icon: ReactNode;
+  accent: string;
+  comingSoon?: boolean;
+  showCaret?: boolean;
+  showDescription?: boolean;
+}) {
+  const t = useTranslations('nav');
+  const ts = useTranslations('services');
+
+  return (
+    <>
+      <div className="flex min-w-0 items-start gap-3">
+        <div
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+          style={{
+            background: `color-mix(in oklab, ${accent} 12%, transparent)`,
+            color: accent,
+          }}
+          aria-hidden
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="inline-flex flex-wrap items-center gap-1">
+            <span className="font-display text-foreground text-sm font-semibold">
+              {ts(`${serviceKey}.label`)}
+            </span>
+            {comingSoon ? (
+              <MetaBadge kind="soon" className="shrink-0">
+                {t('soon')}
+              </MetaBadge>
+            ) : null}
+          </div>
+          {showDescription ? (
+            <p className="text-muted mt-0.5 text-xs leading-relaxed">
+              {ts(`${serviceKey}.description`)}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      {showCaret ? <CaretRight size={14} className="shrink-0" /> : null}
+    </>
+  );
+}
+
 function ServicesDropdown() {
   const t = useTranslations('nav');
   const ts = useTranslations('services');
 
   return (
     <DropdownRoot>
-      <DropdownTrigger className={`${navTriggerClass} text-white/75 hover:text-white`}>
+      <DropdownTrigger className={`${navTriggerClass} text-white/55 hover:text-white`}>
         {t('services')}
         <CaretDown size={14} />
       </DropdownTrigger>
-      <DropdownPopover placement="bottom start" className="mt-1 w-72">
-        <DropdownMenu>
-          {SERVICE_IDS.map(({ id, key, icon }) => (
+      <DropdownPopover placement="bottom start" className="mt-1 w-[min(100vw-2rem,42rem)]">
+        <DropdownMenu className="!grid grid-cols-2 gap-1 p-2">
+          {SERVICE_IDS.map(({ id, key, icon, accent, comingSoon }) => (
             <DropdownItem
               key={id}
               id={id}
               href={id}
               textValue={ts(`${key}.label`)}
-              className="px-4 py-3.5"
+              className="h-full items-start px-3 py-3"
             >
-              <div className="flex items-start gap-3">
-                <div
-                  className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: 'rgba(47,84,134,0.08)', color: 'var(--accent)' }}
-                >
-                  {icon}
-                </div>
-                <div>
-                  <p className="text-foreground text-sm font-semibold">{ts(`${key}.label`)}</p>
-                  <p className="text-muted mt-0.5 text-xs">{ts(`${key}.description`)}</p>
-                </div>
-              </div>
+              <ServiceItemContent
+                serviceKey={key}
+                icon={icon}
+                accent={accent}
+                comingSoon={comingSoon}
+              />
             </DropdownItem>
           ))}
         </DropdownMenu>
@@ -113,7 +205,7 @@ function NavPageLinks({
         href={href}
         className={[
           'font-display text-sm font-medium whitespace-nowrap transition-colors',
-          isActive ? 'text-white' : 'text-white/75 hover:text-white',
+          isActive ? 'text-white' : 'text-white/55 hover:text-white',
           linkClassName,
         ]
           .filter(Boolean)
@@ -135,7 +227,7 @@ function NavPagesDropdown({ activePath, className }: { activePath?: string; clas
         <DropdownTrigger
           className={[
             navTriggerClass,
-            isActive ? 'text-white' : 'text-white/75 hover:text-white',
+            isActive ? 'text-white' : 'text-white/55 hover:text-white',
           ].join(' ')}
         >
           {t('company')}
@@ -213,7 +305,6 @@ export function TopBar({
 }: TopBarProps) {
   const router = useRouter();
   const t = useTranslations('nav');
-  const ts = useTranslations('services');
   const tc = useTranslations('common');
   const session = useSession();
   const isAuthenticated = Boolean(session.data?.email);
@@ -223,6 +314,26 @@ export function TopBar({
   const AuthIcon = isAuthenticated ? UserCircle : SignIn;
   const [hidden, setHidden] = useState(false);
   const mobileMenu = useOverlayState();
+  const headerRef = useRef<HTMLElement>(null);
+
+  /** Sticky layouts below the bar (e.g. the account sidebar) offset by `--topbar-height`. */
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const height = entry?.contentRect.height;
+      if (height) {
+        document.documentElement.style.setProperty('--topbar-height', `${height}px`);
+      }
+    });
+
+    observer.observe(header);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const footer = document.getElementById('site-footer');
@@ -255,6 +366,7 @@ export function TopBar({
 
   return (
     <header
+      ref={headerRef}
       className="sticky top-0 z-50 text-white transition-transform duration-300"
       style={{
         backgroundColor: 'var(--accent)',
@@ -312,7 +424,7 @@ export function TopBar({
           </div>
         ) : isAccount ? (
           <div className="flex items-stretch border-r border-l border-white/20">
-            <div className="flex shrink-0 items-center border-r border-white/20 px-4 py-5 sm:px-8 lg:w-[280px]">
+            <div className="flex shrink-0 items-center border-r border-white/20 px-4 py-5 lg:w-[280px]">
               {showLogo ? (
                 <Link
                   href="/"
@@ -324,28 +436,10 @@ export function TopBar({
               ) : null}
             </div>
             <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-5 sm:px-8">
-              <span className="font-display text-sm font-medium tracking-tight text-white lowercase">
-                {t('myAccount')}
-              </span>
-              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <LocaleSwitcher className="shrink-0" />
-                <Button
-                  variant="outline"
-                  size="md"
-                  className={`${barOutlineButtonClass} gap-2`}
-                  aria-label={tc('close')}
-                  onPress={() => {
-                    if (window.history.length > 1) {
-                      router.back();
-                      return;
-                    }
-
-                    router.push('/');
-                  }}
-                >
-                  <X size={16} weight="bold" />
-                  {tc('close')}
-                </Button>
+              <AccountScopeSwitcher className="min-w-0" />
+              <div className="flex shrink-0 items-center gap-3">
+                <AccountAddMenu />
+                <AccountProfileMenu />
               </div>
             </div>
           </div>
@@ -356,7 +450,7 @@ export function TopBar({
                 <HistoryBackLink
                   fallbackHref={backLink.href}
                   label={backLink.label}
-                  className="font-display inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-white/75 transition-colors hover:text-white"
+                  className="font-display inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-white/55 transition-colors hover:text-white"
                 >
                   <CaretLeft size={14} weight="bold" />
                   <span className="hidden sm:inline">{backLink.label}</span>
@@ -478,7 +572,7 @@ export function TopBar({
                         <p className="font-display text-foreground px-4 text-sm font-medium">
                           {t('services')}
                         </p>
-                        {SERVICE_IDS.map(({ id, key, icon }) => (
+                        {SERVICE_IDS.map(({ id, key, icon, accent, comingSoon }) => (
                           <Link
                             key={id}
                             href={id}
@@ -487,26 +581,13 @@ export function TopBar({
                             }}
                             className={`hover:bg-surface flex items-center justify-between gap-3 ${drawerMenuItemClass}`}
                           >
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full"
-                                style={{
-                                  background: 'rgba(47,84,134,0.08)',
-                                  color: 'var(--accent)',
-                                }}
-                              >
-                                {icon}
-                              </div>
-                              <div>
-                                <p className="text-foreground text-sm font-semibold">
-                                  {ts(`${key}.label`)}
-                                </p>
-                                <p className="text-muted mt-0.5 text-xs">
-                                  {ts(`${key}.description`)}
-                                </p>
-                              </div>
-                            </div>
-                            <CaretRight size={14} className="shrink-0" />
+                            <ServiceItemContent
+                              serviceKey={key}
+                              icon={icon}
+                              accent={accent}
+                              comingSoon={comingSoon}
+                              showCaret
+                            />
                           </Link>
                         ))}
                       </div>

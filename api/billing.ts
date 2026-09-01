@@ -12,14 +12,8 @@ import { request } from './client';
 export const billingStatusEnum = z.enum(['active', 'processing', 'cancelled', 'expired']);
 export type BillingStatus = z.infer<typeof billingStatusEnum>;
 
-/**
- * Which of the three monetized products a billing record belongs to. Every
- * subscription, membership row and order is tagged so the member area can
- * show billing/payment details scoped to the product the member is looking
- * at (Privacy Policy Generator, Datenschutz Academy, EU Rep) instead of one
- * undifferentiated billing cluster.
- */
-export const billingProductTypeEnum = z.enum(['policy', 'academy', 'euRep']);
+/** Billing billing records for Privacy Policy Generator and EU Rep in the member area. */
+export const billingProductTypeEnum = z.enum(['policy', 'euRep']);
 export type BillingProductType = z.infer<typeof billingProductTypeEnum>;
 
 export const subscriptionTotalsSchema = z.object({
@@ -34,34 +28,29 @@ export const subscriptionSchema = z.object({
   id: z.string(),
   productType: billingProductTypeEnum,
   product: z.string(),
-  /** Product-specific plan identifier — e.g. academy membership or eu-rep standard. */
+  /** Product-specific plan identifier — e.g. policy site count or EU plan `basis`/`plus`/`plus5`. */
   planId: z.string().optional(),
   /** Privacy Policy Generator — websites covered by this one subscription. */
   siteCount: z.number().int().positive().optional(),
-  /** EU Representation — always 1; one subscription per legal-entity contract. */
+  /** EU Representation — number of legal entities currently on this plan subscription. */
   legalEntityCount: z.number().int().positive().optional(),
+  /** EU Representation — included payable inquiries per year (from plan). */
+  includedRequests: z.number().int().nonnegative().optional(),
+  /** EU Representation — inquiries already billed / used this term. */
+  usedRequests: z.number().int().nonnegative().optional(),
   status: billingStatusEnum,
   startDate: z.string(),
   lastOrderDate: z.string().nullable(),
   nextPaymentDate: z.string().nullable(),
+  /** ISO date the free policy trial ends. Absent when the subscription is already paid. */
+  trialEndsAt: z.string().optional(),
   billingAddressId: z.string().optional(),
   totals: subscriptionTotalsSchema,
   relatedOrderIds: z.array(z.string()),
 });
 export type Subscription = z.infer<typeof subscriptionSchema>;
 
-export const membershipRowSchema = z.object({
-  id: z.string(),
-  productType: billingProductTypeEnum,
-  plan: z.string(),
-  startDate: z.string(),
-  expiresDate: z.string().nullable(),
-  status: billingStatusEnum,
-  nextPaymentDate: z.string().nullable(),
-});
-export type MembershipRow = z.infer<typeof membershipRowSchema>;
-
-export const orderKindEnum = z.enum(['subscription', 'renewal']);
+export const orderKindEnum = z.enum(['subscription', 'renewal', 'extraRequest']);
 export type OrderKind = z.infer<typeof orderKindEnum>;
 
 export const orderSchema = z.object({
@@ -77,15 +66,17 @@ export const orderSchema = z.object({
    * subscription share one rate; the discount is never split inside the order).
    */
   siteCount: z.number().int().positive().optional(),
-  /** EU Representation — legal entities in this order (always 1 per contract). */
+  /** EU Representation — legal entities in this order. */
   legalEntityCount: z.number().int().positive().optional(),
+  /** EU Representation plan id when this is a plan subscription / extra-request invoice. */
+  planId: z.string().optional(),
   /** Volume discount amount applied to this order. */
   discountAmount: z.number().nonnegative().optional(),
   /** Volume discount rate applied to this order (0–0.1). */
   discountRate: z.number().nonnegative().optional(),
   /** Unique 5-digit billing id for this invoice. Never reused across invoices. */
   subscriptionId: z.string().optional(),
-  /** Distinguishes a new subscription from a renewal invoice. */
+  /** Distinguishes a new subscription, renewal, or payable inquiry invoice. */
   orderKind: orderKindEnum.optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
@@ -101,10 +92,16 @@ export const subscriptionBillingUpdateSchema = z.object({
 });
 export type SubscriptionBillingUpdate = z.infer<typeof subscriptionBillingUpdateSchema>;
 
+export const euRepExtraRequestCreateSchema = z.object({
+  subscriptionId: z.string().min(1),
+  /** Optional representation this inquiry relates to. */
+  contractId: z.string().min(1).optional(),
+});
+export type EuRepExtraRequestCreate = z.infer<typeof euRepExtraRequestCreateSchema>;
+
 export const billingKeys = {
   subscriptions: ['billing', 'subscriptions'] as const,
   subscription: (id: string) => ['billing', 'subscriptions', id] as const,
-  memberships: ['billing', 'memberships'] as const,
   orders: ['billing', 'orders'] as const,
 };
 
@@ -131,13 +128,6 @@ export function useSubscription(id: string) {
   });
 }
 
-export function useMemberships() {
-  return useQuery({
-    queryKey: billingKeys.memberships,
-    queryFn: () => request<MembershipRow[]>('/billing/memberships'),
-  });
-}
-
 export function useOrders() {
   return useQuery({
     queryKey: billingKeys.orders,
@@ -152,7 +142,6 @@ export function useCancelSubscription() {
       request<Subscription>(`/billing/subscriptions/${id}/cancel`, { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
-      void queryClient.invalidateQueries({ queryKey: billingKeys.memberships });
       void queryClient.invalidateQueries({ queryKey: documentKeys.all });
       void queryClient.invalidateQueries({ queryKey: euRepKeys.contracts });
     },
@@ -166,7 +155,6 @@ export function useContinueSubscription() {
       request<Subscription>(`/billing/subscriptions/${id}/continue`, { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
-      void queryClient.invalidateQueries({ queryKey: billingKeys.memberships });
       void queryClient.invalidateQueries({ queryKey: documentKeys.all });
       void queryClient.invalidateQueries({ queryKey: euRepKeys.contracts });
     },
@@ -182,6 +170,22 @@ export function useUpdateSubscriptionBilling() {
         body: JSON.stringify(input),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
+  });
+}
+
+/** Bill CHF 99 for a payable EU Rep inquiry beyond the plan allowance. */
+export function useCreateEuRepExtraRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EuRepExtraRequestCreate) =>
+      request<Order>('/billing/eu-rep/extra-request', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: billingKeys.orders });
+      void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
+    },
   });
 }
 
@@ -257,11 +261,53 @@ export function countActiveEuRepEntities(subscriptions: Subscription[]): number 
     .reduce((sum, row) => sum + resolveEuRepEntityCount(row), 0);
 }
 
-/** Legal entities covered by one EU Rep subscription. */
+/** Legal entities covered by one EU Rep subscription (count of linked contracts wins). */
 export function resolveEuRepEntityCount(subscription: Subscription): number {
   if (subscription.legalEntityCount && subscription.legalEntityCount > 0) {
     return subscription.legalEntityCount;
   }
-  const fromPlan = Number(subscription.planId);
-  return Number.isFinite(fromPlan) && fromPlan > 0 ? fromPlan : 1;
+  return 1;
+}
+
+/** Remaining included inquiries on an EU Rep plan this term. */
+export function resolveEuRepRemainingRequests(subscription: Subscription): number {
+  const included = subscription.includedRequests ?? 0;
+  const used = subscription.usedRequests ?? 0;
+  return Math.max(0, included - used);
+}
+
+function todayIsoDate(now = new Date()): string {
+  return now.toISOString().slice(0, 10);
+}
+
+/** Active billing records that still grant product access (trial counts as active). */
+export function isActiveSubscription(subscription: Subscription | null | undefined): boolean {
+  return subscription?.status === 'active' || subscription?.status === 'processing';
+}
+
+/** Whether a single policy subscription is still in its unpaid trial window. */
+export function isPolicySubscriptionOnTrial(
+  subscription: Subscription | undefined,
+  now = new Date()
+): boolean {
+  if (!subscription) return false;
+  const today = todayIsoDate(now);
+  return (
+    subscription.productType === 'policy' &&
+    subscription.status === 'active' &&
+    Boolean(subscription.trialEndsAt) &&
+    (subscription.trialEndsAt ?? '') >= today
+  );
+}
+
+/** Active policy subscriptions that are still in the unpaid trial window. */
+export function listTrialPolicySubscriptions(
+  subscriptions: Subscription[],
+  now = new Date()
+): Subscription[] {
+  return subscriptions.filter((row) => isPolicySubscriptionOnTrial(row, now));
+}
+
+export function hasActivePolicyTrial(subscriptions: Subscription[], now = new Date()): boolean {
+  return listTrialPolicySubscriptions(subscriptions, now).length > 0;
 }

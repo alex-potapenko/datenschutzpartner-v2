@@ -92,17 +92,7 @@ export function PolicyImplementationGuide({ document, className }: PolicyImpleme
   }
 
   return (
-    <section
-      className={cn('flex flex-col gap-6 px-8 py-8 sm:py-10', className)}
-      aria-labelledby="policy-implementation-title"
-    >
-      <div className="flex flex-col gap-2">
-        <h2 id="policy-implementation-title" className="text-foreground text-lg font-semibold">
-          {t('title')}
-        </h2>
-        <p className="text-foreground text-sm leading-relaxed">{t('body')}</p>
-      </div>
-
+    <section className={cn('flex flex-col gap-6 px-8 py-8 sm:py-10', className)}>
       <Tabs
         selectedKey={activeTab}
         onSelectionChange={(key) => {
@@ -111,13 +101,13 @@ export function PolicyImplementationGuide({ document, className }: PolicyImpleme
         className="gap-6"
       >
         <Tabs.ListContainer>
-          <Tabs.List aria-label={t('tabsAriaLabel')} className="!w-full">
-            <Tabs.Tab id="embed" className="!flex-1 justify-center">
-              <span className="text-base font-medium">{t('tabs.embed')}</span>
+          <Tabs.List aria-label={t('tabsAriaLabel')} className="!w-auto max-w-full">
+            <Tabs.Tab id="embed" className="!h-auto !w-auto shrink-0">
+              <span className="text-base font-medium whitespace-nowrap">{t('tabs.embed')}</span>
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="url" className="!flex-1 justify-center">
-              <span className="text-base font-medium">{t('tabs.url')}</span>
+            <Tabs.Tab id="url" className="!h-auto !w-auto shrink-0">
+              <span className="text-base font-medium whitespace-nowrap">{t('tabs.url')}</span>
               <Tabs.Indicator />
             </Tabs.Tab>
           </Tabs.List>

@@ -107,6 +107,17 @@ li a.academy-preview-list-row-link:hover {
     }
   }
 
+  .squircle-md {
+    border-radius: 16px;
+  }
+
+  @supports (corner-shape: squircle) {
+    .squircle-md {
+      corner-shape: squircle;
+      border-radius: 24px;
+    }
+  }
+
   /* Squircle — CSS fallback */
   .squircle {
     border-radius: 20px;
@@ -125,13 +136,55 @@ li a.academy-preview-list-row-link:hover {
   }
 }
 
+/* Unlayered — beats HeroUI button/dropdown press scale on sidebar list selectors */
+.list-selector-trigger,
+.list-selector-trigger:active,
+.list-selector-trigger[data-pressed='true'] {
+  transform: none !important;
+}
+
+.list-selector-trigger {
+  transition:
+    background-color 100ms var(--ease-out),
+    box-shadow 100ms var(--ease-out) !important;
+}
+
+/* Account section / service tab enter — CSS only (avoids React Aria + Motion detach bugs) */
+@keyframes account-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.account-panel-enter {
+  animation: account-panel-enter 100ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-panel-enter {
+    animation: none;
+  }
+}
+
 /* Unlayered so these beat HeroUI's unlayered border-radius on overlays. */
 .modal__dialog,
 [data-slot='modal-dialog'],
 .alert-dialog__dialog,
 .alert,
-[data-sonner-toast] {
+[data-sonner-toast],
+.dropdown__popover,
+[data-slot='dropdown-popover'] {
   border-radius: 20px;
+}
+
+.dropdown__popover .menu-item,
+.dropdown__popover [data-slot='menu-item'] {
+  border-radius: 16px;
 }
 
 @supports (corner-shape: squircle) {
@@ -139,9 +192,17 @@ li a.academy-preview-list-row-link:hover {
   [data-slot='modal-dialog'],
   .alert-dialog__dialog,
   .alert,
-  [data-sonner-toast] {
+  [data-sonner-toast],
+  .dropdown__popover,
+  [data-slot='dropdown-popover'] {
     corner-shape: squircle;
     border-radius: 37px;
+  }
+
+  .dropdown__popover .menu-item,
+  .dropdown__popover [data-slot='menu-item'] {
+    corner-shape: squircle;
+    border-radius: 24px;
   }
 }
 

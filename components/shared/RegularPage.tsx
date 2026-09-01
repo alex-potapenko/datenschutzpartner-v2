@@ -69,7 +69,7 @@ export function RegularPage({
           variant={topBarVariant}
         />
       ) : null}
-      <main className="border-border flex flex-1 flex-col border-b">
+      <main className="border-border flex flex-1 flex-col">
         <Container className="flex flex-1 flex-col">
           <div className="border-border flex flex-1 flex-col border-r border-l">
             {media}

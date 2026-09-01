@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui';
 import { EnvelopeSimple } from '@/components/ui';
+import { BrandGlowBackdrop } from './BrandGlowBackdrop';
 import { Container } from './Container';
 
 export function NewsletterSection() {
@@ -12,7 +13,7 @@ export function NewsletterSection() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  function handleSubmit(e: React.SyntheticEvent) {
+  function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!email.trim()) return;
     setSubmitted(true);
@@ -22,76 +23,7 @@ export function NewsletterSection() {
     <section className="border-border bg-background border-b">
       <Container>
         <div className="border-border relative flex flex-col items-center gap-8 overflow-hidden border-r border-l px-4 py-12 text-center sm:gap-12 sm:px-8 sm:py-20">
-          <img
-            src="/dsp-mark-outline.svg"
-            alt=""
-            aria-hidden
-            className="pointer-events-none absolute w-[480px] max-w-none select-none sm:w-[720px] lg:w-[960px]"
-            style={{
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, calc(-50% + 10px))',
-              aspectRatio: '1 / 1',
-              opacity: 0.5,
-              zIndex: 1,
-            }}
-          />
-          <div
-            className="pointer-events-none absolute"
-            style={{
-              top: '-20%',
-              left: '-5%',
-              width: 480,
-              height: 480,
-              borderRadius: '50%',
-              background: '#ef4444',
-              opacity: 0.08,
-              filter: 'blur(96px)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            className="pointer-events-none absolute"
-            style={{
-              bottom: '-20%',
-              left: '20%',
-              width: 480,
-              height: 480,
-              borderRadius: '50%',
-              background: '#7c3aed',
-              opacity: 0.08,
-              filter: 'blur(96px)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            className="pointer-events-none absolute"
-            style={{
-              top: '-20%',
-              right: '15%',
-              width: 480,
-              height: 480,
-              borderRadius: '50%',
-              background: '#3b82f6',
-              opacity: 0.08,
-              filter: 'blur(96px)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            className="pointer-events-none absolute"
-            style={{
-              bottom: '-20%',
-              right: '-5%',
-              width: 480,
-              height: 480,
-              borderRadius: '50%',
-              background: '#16a34a',
-              opacity: 0.08,
-              filter: 'blur(96px)',
-              zIndex: 0,
-            }}
-          />
+          <BrandGlowBackdrop />
 
           <div className="relative z-10 flex max-w-2xl flex-col gap-4">
             <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">

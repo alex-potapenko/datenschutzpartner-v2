@@ -38,7 +38,7 @@ export function EuRepWizardOffer({
 }: EuRepWizardOfferProps) {
   const t = useTranslations('euRepPage');
   const tp = useTranslations('euRepPage.pricingSection');
-  const quote = useMemo(() => calculateEuRepQuote(1), []);
+  const quote = useMemo(() => calculateEuRepQuote('basis'), []);
 
   const plans: EuRepPlan[] = [
     {

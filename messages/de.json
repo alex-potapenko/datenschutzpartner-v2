@@ -41,7 +41,9 @@
     "contact": "Kontakt",
     "company": "Unternehmen",
     "logIn": "Anmelden",
-    "myAccount": "Mein Konto"
+    "myAccount": "Mein Konto",
+    "soon": "Bald",
+    "comingSoon": "Demnächst"
   },
   "services": {
     "privacyGenerator": {
@@ -49,12 +51,16 @@
       "description": "Erstelle in Minuten eine konforme Datenschutzerklärung"
     },
     "cookieBanner": {
-      "label": "Cookie-Banner-Generator",
+      "label": "Cookie-Banner",
       "description": "Erstelle in Minuten ein konformes Cookie-Consent-Banner"
     },
     "euRep": {
       "label": "EU-Vertretung",
       "description": "Benenne Deinen GDPR-Art.-27-Vertreter"
+    },
+    "imprintGenerator": {
+      "label": "Impressum-Generator",
+      "description": "Eine konforme Impressumsseite, gehostet neben Deiner Datenschutzerklärung"
     },
     "academy": {
       "label": "Academy",
@@ -64,7 +70,6 @@
   "footer": {
     "tagline": "Schweizer Rechtsexpertise für Deine Datenschutz-Compliance.",
     "address": "Datenschutzpartner AG, Hauptstrasse 19, 5742 Kölliken, Schweiz",
-    "copyright": "© {year} Datenschutzpartner AG",
     "products": "Produkte",
     "company": "Unternehmen",
     "legal": "Rechtliches",
@@ -141,14 +146,27 @@
     "marcBio": "Digital Business & Operations Manager bei Datenschutzpartner und handhabt das Tagesgeschäft. Er steuert die Online-Präsenz und kümmert sich um die Buchhaltung und die Kundenkommunikation.",
     "martinBio": "Anwalt und Unternehmer für Recht im digitalen Raum. Er ist Geschäftsführer und Mitgründer von Datenschutzpartner. Die Anwaltskanzlei von Martin Steiger ist die <steiger>Steiger Legal AG</steiger>."
   },
+  "verifyEmail": {
+    "metaTitle": "E-Mail bestätigen — Datenschutzpartner",
+    "title": "E-Mail wird bestätigt",
+    "processing": "Wir bestätigen Deine E-Mail und schalten die Richtlinie frei…",
+    "success": "E-Mail bestätigt. Deine Richtlinie ist jetzt verfügbar.",
+    "failed": "Dieser Bestätigungslink ist ungültig oder abgelaufen.",
+    "failedBody": "Fordere im Generator eine neue Bestätigung an oder melde Dich an, wenn Du bereits bestätigt hast.",
+    "missingToken": "Dieser Bestätigungslink ist unvollständig.",
+    "backToLogin": "Anmelden"
+  },
   "login": {
     "metaTitle": "Anmelden — Datenschutzpartner",
     "metaDescription": "Melde Dich bei Deinem Datenschutzpartner-Konto an.",
     "title": "Anmelden",
     "email": "E-Mail",
     "emailPlaceholder": "maria@muster.ch",
+    "continue": "Weiter",
     "password": "Passwort",
     "passwordPlaceholder": "Dein Passwort",
+    "twoFactorCode": "Authentifizierungscode",
+    "twoFactorPlaceholder": "6-stelliger Code",
     "submit": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "showPassword": "Passwort anzeigen",
@@ -156,6 +174,8 @@
     "success": "Erfolgreich angemeldet.",
     "errors": {
       "invalidCredentials": "E-Mail oder Passwort ist falsch.",
+      "invalidCredentialsOr2fa": "Passwort oder Authentifizierungscode ist falsch.",
+      "unknownEmail": "Für diese E-Mail wurde kein Konto gefunden.",
       "generic": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
     }
   },
@@ -525,14 +545,20 @@
     },
     "pricePeriod": "/ 12 Monate",
     "plans": {
-      "budget": {
-        "price": "149"
+      "basis": {
+        "name": "Basis",
+        "price": "149",
+        "requests": "CHF 99 pro zusätzlicher Anfrage"
       },
-      "standard": {
-        "price": "249"
+      "plus": {
+        "name": "Plus",
+        "price": "229",
+        "requests": "1 Anfrage inklusive · danach CHF 99"
       },
-      "premium": {
-        "price": "499"
+      "plus5": {
+        "name": "Plus 5",
+        "price": "499",
+        "requests": "5 Anfragen inklusive · danach CHF 99"
       }
     },
     "faqNote": "Bei Fragen hilft Ihnen unsere <faq>FAQ zur EU-Datenschutz-Vertretung</faq> weiter.",
@@ -686,7 +712,7 @@
       "scanning": "Scan läuft",
       "questionnaire": "Fragebogen",
       "euRep": "EU-Vertretung",
-      "summary": "Zusammenfassung"
+      "summary": "Konto"
     },
     "euRepStep": {
       "title": "EU-Datenschutzvertretung",
@@ -733,11 +759,29 @@
     },
     "scanStep": {
       "scanningTitle": "Scanne {domain}…",
-      "scanningDescription": "Deine Website wird auf Datenverarbeitungs-Tools und Technologien analysiert.",
-      "completeTitle": "Scan abgeschlossen."
+      "scanningDescription": "Deine Website wird auf Datenverarbeitungs-Tools und Technologien analysiert."
     },
     "summary": {
-      "title": "Zusammenfassung",
+      "title": "Willkommen",
+      "welcomeTitle": "Konto erstellen",
+      "welcomeBody": "Bestätige Deine E-Mail, um die gehostete Datenschutzerklärung freizuschalten. Der Zugriff bleibt gesperrt, bis Du den Bestätigungslink öffnest.",
+      "welcomeBackTitle": "Konto bestätigen",
+      "welcomeBackBody": "Akzeptiere die AGB, um diese Richtlinie in Deinem Konto zu veröffentlichen. Die Zahlung kannst Du später im Profil abschliessen.",
+      "emailLabel": "Konto-E-Mail",
+      "emailHint": "An diese Adresse senden wir den Bestätigungslink. Die Richtlinie wird erst nach der Bestätigung freigeschaltet.",
+      "emailHintSignedIn": "Das ist die E-Mail Deines Kontos. Die Richtlinie wird in diesem Konto veröffentlicht.",
+      "acceptTerms": "Ich akzeptiere die <terms>Allgemeinen Geschäftsbedingungen</terms>",
+      "newsletter": "Newsletter zu Datenschutz (optional)",
+      "sendConfirmationCta": "Bestätigung senden",
+      "continueCta": "Weiter zum Konto",
+      "inboxTitle": "E-Mail bestätigen",
+      "inboxBody": "Wir haben einen Bestätigungslink an {email} gesendet.",
+      "inboxHint": "Öffne die E-Mail und bestätige Deine Adresse. Der Zugriff auf die Richtlinie ist erst nach diesem Double Opt-in möglich.",
+      "inboxPrototypePassword": "Prototyp: Nach der Bestätigung melde Dich mit dem Passwort «{password}» an.",
+      "openConfirmation": "Bestätigungs-E-Mail öffnen",
+      "accountReady": "Dein Konto ist bereit. Die Richtlinie ist jetzt verfügbar.",
+      "accountFailed": "Das Konto konnte nicht eingerichtet werden. Bitte erneut versuchen.",
+      "verificationFailed": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte erneut versuchen.",
       "trialLabel": "Testphase",
       "trialBody": "Jede neue Richtlinie startet mit einer {days}-tägigen Testphase. Es erfolgt keine automatische Abbuchung — Du schliesst die Zahlung selbst ab, bevor die Testphase endet.",
       "orderTitle": "Deine Bestellung",
@@ -826,11 +870,31 @@
       "euRepSkippedTitle": "EU-Vertretung abgelehnt",
       "euRepSkippedDetail": "Nicht enthalten · CHF 0.00"
     },
-    "improvedStep": {
+    "policyReady": {
+      "title": "Deine Datenschutzerklärung ist bereit",
+      "body": "Wir haben die gehostete Datenschutzerklärung aus Deinen Antworten vorbereitet. Öffne sie, um den Text zu prüfen.",
+      "showPolicy": "Richtlinie anzeigen",
+      "loading": "Richtlinie wird vorbereitet…",
+      "failed": "Die Richtlinie konnte nicht geöffnet werden. Bitte erneut versuchen."
+    },
+    "questionnaireStep": {
       "title": "Vervollständige Deine Datenschutzerklärung.",
       "scanAgain": "Erneut scannen",
       "continue": "Weiter",
       "validationError": "Bitte fülle alle Pflichtfelder aus.",
+      "optionalBadge": "Optional",
+      "requiredBadge": "Pflichtfeld",
+      "defaults": {
+        "dpoDesignation": "Datenschutzbeauftragter",
+        "country": "Schweiz"
+      },
+      "fieldInfo": {
+        "hasDpo": "Ein Datenschutzbeauftragter ist für einige Organisationen nach Schweizer Recht und DSGVO vorgesehen — etwa für Behörden, umfangreiche Überwachung oder die Bearbeitung besonders schützenswerter Daten.",
+        "gdprApplicable": "Die DSGVO kann anwendbar sein, wenn Du Waren oder Dienstleistungen für Personen in der EU/im EWR anbietest oder deren Verhalten beobachtest — auch wenn Dein Unternehmen in der Schweiz ansässig ist.",
+        "usesProfiling": "Profiling ist jede automatisierte Auswertung persönlicher Aspekte — zum Beispiel personalisierte Werbung, Scoring oder Verhaltensanalyse.",
+        "processesSpecialData": "Besonders schützenswerte Daten umfassen Gesundheitsdaten, religiöse oder politische Ansichten, Gewerkschaftszugehörigkeit, genetische oder biometrische Daten sowie Angaben zum Sexualleben oder zur sexuellen Orientierung.",
+        "dpoDesignation": "Funktionsbezeichnung (z. B. «Datenschutzbeauftragter»), namentliche Person oder leer lassen, wenn nur eine externe Firma angegeben ist. Die Bezeichnung wird in die Datenschutzerklärung übernommen und für andere Sprachversionen übersetzt, sofern ein Standardbegriff existiert."
+      },
       "categories": {
         "controller": "Datenschutzrechtliche Verantwortung",
         "internationalization": "Internationalisierung",
@@ -840,14 +904,18 @@
         "videoSurveillance": "Videoüberwachung"
       },
       "fields": {
-        "companyName": "Juristischer Name",
+        "companyName": "Juristische Person",
         "domain": "Domainname",
         "email": "E‑Mail-Adresse",
         "postalAddress": "Adresse",
+        "streetLine1": "Adresszeile 1",
+        "streetLine2": "Adresszeile 2",
         "address": "Adresse",
         "hasDpo": "Gibt es einen Datenschutzbeaufragten?",
-        "dpoCompanyName": "Firma",
-        "dpoOfficer": "Beauftragter",
+        "dpoCompanyName": "Juristische Person",
+        "dpoOfficerType": "Beauftragter",
+        "dpoOfficerName": "Name",
+        "dpoDesignation": "Funktionsbezeichnung",
         "dpoCountry": "Land",
         "dpoEmail": "E‑Mail-Adresse",
         "gdprApplicable": "Ist die europäische Datenschutz-Grundverordnung (DSGVO) ganz oder teilweise anwendbar?",
@@ -867,23 +935,24 @@
         "thirdPartyRepName": "Name der Vertretung",
         "thirdPartyRepAddress": "Adresse",
         "thirdPartyRepCountry": "Land",
-        "thirdPartyRepEmail": "E‑Mail-Adresse"
+        "thirdPartyRepEmail": "E‑Mail"
       },
       "placeholders": {
         "companyName": "Name der juristischen Person",
         "domain": "meinewebsite.ch",
         "email": "info@meinewebsite.ch",
         "street": "Strasse und Hausnummer",
+        "streetLine2": "z. H., Zusatzzeile",
         "postalCode": "PLZ",
         "city": "Ort",
         "country": "Land",
-        "dpoCompanyName": "Firma",
-        "firstName": "Vorname",
-        "lastName": "Nachname",
+        "dpoCompanyName": "Juristische Person",
+        "dpoDesignation": "Datenschutzbeauftragter",
+        "dpoOfficerName": "Name des Beauftragten",
         "dpoEmail": "dpo@firma.ch",
         "videoRetentionAmount": "Dauer",
         "thirdPartyRepName": "Name der Vertretung oder Firma",
-        "thirdPartyRepEmail": "vertretung@anbieter.eu"
+        "select": "Auswählen"
       },
       "options": {
         "transfersAbroad": {
@@ -908,6 +977,12 @@
         "videoRetentionUnit": {
           "hours": "Stunden",
           "days": "Tage"
+        },
+        "dpoOfficerType": {
+          "entityGeneric": "Verantwortliche juristische Person · Datenschutzbeauftragter (Funktion)",
+          "entityNamed": "Verantwortliche juristische Person · namentliche Person",
+          "thirdPartyOnly": "Nur externe Firma",
+          "thirdPartyNamed": "Externe Firma · namentliche Person"
         }
       },
       "continueToSummary": "Zusammenfassung prüfen",
@@ -919,6 +994,10 @@
         "searching": "Register wird durchsucht…",
         "resultsLabel": "Passende Unternehmen",
         "empty": "Keine passenden Unternehmen gefunden."
+      },
+      "countryLookup": {
+        "resultsLabel": "Passende Länder",
+        "empty": "Keine passenden Länder gefunden."
       }
     },
     "checkout": {
@@ -1202,46 +1281,98 @@
       "expired": "Abgelaufen",
       "upToDate": "Aktuell"
     },
+    "serviceTabs": {
+      "ariaLabel": "Servicebereiche",
+      "instructions": "Anleitung",
+      "legalEntity": "Juristische Person",
+      "preview": "Vorschau",
+      "subscription": "Abonnement",
+      "faq": "FAQ"
+    },
+    "areaNavAriaLabel": "Kontobereiche",
     "nav": {
-      "dashboard": "Übersicht",
-      "generator": "Datenschutzerklärungs-Generator",
-      "academy": "Datenschutz Academy",
+      "websites": "Meine Websites",
+      "euRepresentation": "EU-Vertretung",
+      "privacyPolicy": "Datenschutzerklärung",
       "euRep": "EU-Vertretung",
+      "cookieBanner": "Cookie-Banner",
+      "imprint": "Impressum-Generator",
+      "overview": "Übersicht",
       "accountDetails": "Kontodaten",
+      "allSubscriptions": "Alle Abonnements",
+      "soon": "Bald",
+      "comingSoon": "Demnächst",
+      "trial": "Test",
       "logout": "Abmelden",
-      "openMenu": "Kontomenü öffnen"
+      "openMenu": "Kontomenü öffnen",
+      "profileMenu": "Profilmenü öffnen"
+    },
+    "scope": {
+      "ariaLabel": "Kontobereich",
+      "websites": "Meine Websites",
+      "euRep": "EU-Vertretung"
+    },
+    "siteSwitcher": {
+      "switchWebsite": "Website wechseln",
+      "addWebsite": "Website hinzufügen",
+      "loading": "Websites werden geladen …",
+      "empty": "Noch keine Website",
+      "emptyProducts": "Keine aktiven Produkte",
+      "productPolicy": "Datenschutzerklärung",
+      "productEuRep": "EU-Vertretung"
+    },
+    "addMenu": {
+      "ariaLabel": "Hinzufügen",
+      "addWebsite": "Website hinzufügen",
+      "addEuRep": "EU-Vertretung hinzufügen"
+    },
+    "sidebarLinks": {
+      "help": "Hilfe",
+      "termsOfService": "AGB",
+      "privacyPolicy": "Datenschutzerklärung"
+    },
+    "contractSwitcher": {
+      "listTitle": "Deine juristischen Personen",
+      "switchContract": "Rechtsträger wechseln",
+      "addContract": "EU-Vertretung hinzufügen",
+      "loading": "Verträge werden geladen …",
+      "empty": "Noch kein Vertrag",
+      "standalone": "Eigenständiger Vertrag",
+      "linkedPolicies": "{count, plural, one {# verknüpfte Richtlinie} other {# verknüpfte Richtlinien}}"
     },
     "dashboard": {
       "title": "Übersicht",
       "loading": "Dashboard wird geladen …",
       "productsAriaLabel": "Deine Services",
+      "empty": {
+        "title": "Füge Deine erste Website hinzu",
+        "body": "Wir scannen Deine Website und erstellen in Minuten eine rechtlich geprüfte Datenschutzerklärung. Alles Weitere — EU-Vertretung, Cookie-Banner, Impressum — läuft im selben Konto.",
+        "cta": "Website hinzufügen"
+      },
+      "addSite": {
+        "eyebrow": "Weitere Websites",
+        "title": "Noch eine Website? In Minuten hinzugefügt.",
+        "cta": "Website hinzufügen"
+      },
       "products": {
-        "privacyGenerator": {
-          "title": "Datenschutzerklärungen",
-          "updatesBadge": "{count} zu aktualisieren",
-          "subscriptionTitle": "Abonnement",
-          "subscriptionPerYear": "/ Jahr",
-          "daysLeft": "Tage übrig"
-        },
-        "academy": {
-          "title": "Datenschutz Academy",
-          "active": "Aktiv",
-          "membershipTitle": "Mitgliedschaft",
-          "daysLeft": "Tage übrig",
-          "comingUpTitle": "Demnächst",
-          "renewsOn": "Verlängerung am {date}",
-          "getMembership": "Mitgliedschaft holen"
+        "open": "Öffnen",
+        "learnMore": "Mehr erfahren",
+        "daysLeft": "{count, plural, one {noch # Tag} other {noch # Tage}}",
+        "privacyPolicy": {
+          "body": "Gehostet, immer aktuell und auf Deiner Website eingebunden.",
+          "statusLive": "Live"
         },
         "euRep": {
-          "title": "EU-Vertretung",
-          "contractsTitle": "Juristische Personen",
-          "buyMore": "Weitere kaufen",
-          "subscriptionTitle": "Abonnement",
-          "subscriptionPerYear": "/ Jahr",
-          "subscriptionPerYearForPlan": "/ Jahr, Plan {plan}",
-          "daysLeft": "Tage übrig",
-          "renewsOn": "Verlängerung am {date}",
+          "bodyActive": "Vertreten durch VGS Datenschutzpartner in Hamburg für {entity}.",
+          "bodyInactive": "Nach Art. 27 DSGVO nötig, wenn Du Personen im EWR ansprichst.",
+          "statusActive": "Aktiv",
           "discover": "EU-Vertretung entdecken"
+        },
+        "cookieBanner": {
+          "body": "Consent, der zu Deiner Erklärung passt."
+        },
+        "imprint": {
+          "body": "Ein konformes Impressum, gehostet neben Deiner Datenschutzerklärung."
         }
       },
       "attention": {
@@ -1278,8 +1409,114 @@
         "exportData": "Meine Daten exportieren"
       }
     },
-    "generator": {
-      "title": "Datenschutzerklärungs-Generator"
+    "privacyPolicy": {
+      "title": "Datenschutzerklärung",
+      "loading": "Erklärung wird geladen …",
+      "subscriptionTitle": "Abonnement",
+      "subscriptionId": "Abonnement",
+      "sitesIncluded": "Enthaltene Websites",
+      "renewsOn": "Verlängerung am",
+      "manageSubscription": "Abo verwalten",
+      "noSubscription": "Diese Erklärung ist noch keinem Abonnement zugeordnet.",
+      "empty": {
+        "title": "Keine Website ausgewählt",
+        "body": "Füge eine Website hinzu, um ihre Datenschutzerklärung zu erstellen.",
+        "cta": "Website hinzufügen"
+      },
+      "noPolicy": {
+        "title": "Noch keine Datenschutzerklärung",
+        "body": "Für diese Website gibt es noch keine gehostete Datenschutzerklärung. Erstelle sie, wenn Du bereit bist.",
+        "cta": "Datenschutzerklärung erstellen"
+      }
+    },
+    "comingSoon": {
+      "notify": "Benachrichtigen, sobald verfügbar",
+      "notifySuccess": "Wir melden uns per E-Mail, sobald das für {site} verfügbar ist.",
+      "yourAccount": "Dein Konto",
+      "cookieBanner": {
+        "headline": "Ein Banner. Passend zu Deiner Erklärung.",
+        "body": "Ein Cookie-Banner, das die bereits erkannten Dienste Deiner Website nutzt — kein zweites Tool, keine widersprüchlichen Texte, kein manueller Aufwand.",
+        "benefits": {
+          "one": "Erstellt aus Deinem bestehenden Website-Scan",
+          "two": "Consent-Protokollierung nach DSGVO und nDSG",
+          "three": "Bleibt synchron, wenn Deine Erklärung aktualisiert wird"
+        }
+      },
+      "imprint": {
+        "headline": "Dein Impressum, immer korrekt.",
+        "body": "Eine gehostete Impressumsseite aus den juristischen Angaben, die wir bereits führen — veröffentlicht neben Deiner Datenschutzerklärung und aktualisiert, sobald sich Deine Daten ändern.",
+        "benefits": {
+          "one": "Vorausgefüllt aus Deinen Angaben zur juristischen Person",
+          "two": "Erfüllt Anforderungen in der Schweiz, Deutschland und Österreich",
+          "three": "Gehostet und versioniert wie Deine Datenschutzerklärung"
+        }
+      }
+    },
+    "siteSubscriptions": {
+      "title": "Abonnement",
+      "perYear": "/ Jahr",
+      "notSubscribed": "Nicht abonniert",
+      "daysLeftSuffix": "{count, plural, one {Tag übrig} other {Tage übrig}}",
+      "coverage": "Umfang",
+      "euRepEntities": "{count, plural, one {# Rechtsträger} other {# Rechtsträger}}",
+      "renewsOn": "Verlängerung am",
+      "noneForSite": "Für diese Website besteht noch kein Abonnement.",
+      "noPayments": "Für diese Website gibt es noch keine Zahlungen.",
+      "allSubscriptionsHint": "Alle Websites im Überblick?",
+      "allSubscriptionsCta": "Alle Abonnements",
+      "paidLabel": "Bezahlt",
+      "renewalLabel": "Verlängerung",
+      "duePaymentLabel": "Fällige Zahlung",
+      "renewalAfterPaymentNote": "Wird nach der Zahlung angezeigt",
+      "notifyWhenAvailable": "Benachrichtigen",
+      "enable": "Aktivieren"
+    },
+    "allSubscriptions": {
+      "title": "Alle Abonnements",
+      "colWebsite": "Website",
+      "colLegalEntity": "Juristische Person",
+      "serviceEmpty": "Noch auf keiner Website aktiv.",
+      "comingSoonBody": "Noch nicht verfügbar — wir arbeiten daran.",
+      "comingSoonCta": "Mehr erfahren"
+    },
+    "subscriptions": {
+      "title": "Abo-Übersicht",
+      "loading": "Abonnements werden geladen …",
+      "listTitle": "Alle Abonnements",
+      "colProduct": "Produkt",
+      "colPlan": "ID",
+      "colCoverage": "Umfang",
+      "colDays": "Verbleibend",
+      "colAmount": "Betrag / Jahr",
+      "colActions": "Aktionen",
+      "daysLeft": "{count, plural, one {# Tag} other {# Tage}}",
+      "sitesCovered": "{count, plural, one {# Website} other {# Websites}}",
+      "entitiesCovered": "{count, plural, one {# juristische Person} other {# juristische Personen}}",
+      "manage": "Verwalten",
+      "empty": "Noch keine Abonnements.",
+      "billingDetails": "Rechnungsdaten"
+    },
+    "checkout": {
+      "metaTitle": "Checkout — Datenschutzpartner",
+      "title": "Bestellung abschliessen",
+      "trialBody": "Deine Richtlinie läuft bereits in einer {days}-tägigen Testphase. Schliesse die Zahlung hier ab, damit das Hosting nach der Testphase weiterläuft.",
+      "emptyTitle": "Keine offene Zahlung",
+      "emptyBody": "Für Dein Konto gibt es gerade keinen offenen Trial-Checkout.",
+      "redirecting": "Weiterleitung zu Payrexx…",
+      "processing": "Zahlung wird verarbeitet…",
+      "payCta": "Weiter zur Zahlung",
+      "paymentConfirmed": "Zahlung bestätigt.",
+      "paymentFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "checkoutBanner": {
+      "sectionTitle": "Testphase",
+      "title": "Checkout abschliessen",
+      "body": "Deine Richtlinie läuft in einer Testphase. Hinterlege eine Zahlung, damit sie nach dem Ende der Testphase weiter gehostet wird.",
+      "trialLabel": "Kostenlose Testphase",
+      "trialEndsOn": "Testphase endet am {date}",
+      "trialExplainerLead": "Deine Datenschutzerklärung ist während deiner Testphase vollständig verfügbar.",
+      "trialExplainerBody": "Damit deine Erklärung aktiv bleibt und auf deiner Website gehostet wird, schliesse die Zahlung vor Ende der Testphase ab. Erhalten wir deine Zahlung nicht rechtzeitig, wird der Zugriff auf deine Erklärung pausiert.",
+      "cta": "Zum Checkout"
     },
     "generatorCheckout": {
       "metaTitle": "Neue Richtlinie — Datenschutz-Generator",
@@ -1315,6 +1552,7 @@
     "euRepCheckout": {
       "metaTitle": "EU-Vertretung — Bestellung",
       "title": "Neue juristische Person hinzufügen",
+      "entityIntro": "Gib die Details der juristischen Person ein, die Du in der EU vertreten lassen möchtest.",
       "selectPlan": "Wähle Deinen EU-Vertretungsplan",
       "selectQuantity": "Wie viele juristische Personen?",
       "entityLabel": "Juristische Person {index}",
@@ -1372,19 +1610,52 @@
     },
     "euRep": {
       "title": "EU-Vertretung",
+      "instructions": {
+        "title": "So nutzt Du die EU-Vertretung",
+        "intro": "Veröffentliche die Angaben zur Vertretung in Deiner Datenschutzerklärung und halte die Weiterleitungs-E-Mail aktuell, damit wir Dich erreichen, wenn Behörden oder betroffene Personen uns kontaktieren.",
+        "stepMention": "Nenne VGS Datenschutzpartner GmbH (Hamburg) als EU-Vertretung in der Datenschutzerklärung — und im Verzeichnis von Verarbeitungstätigkeiten, soweit erforderlich.",
+        "stepGenerator": "Wenn Du die Richtlinie bei uns hostest, verknüpfe die Website unter «Verknüpfte Richtlinien», damit der Vertretungsblock mit Deinem Abo synchron bleibt.",
+        "stepForwarding": "Halte die Weiterleitungs-E-Mail je juristischer Person aktuell. Anfragen gehen dorthin; die Adresse erscheint nicht in der Richtlinie.",
+        "stepLink": "Übersteigt eine Anfrage das Plan-Kontingent, erstelle unter Vertretungen eine Zahlungsanforderung (CHF 99)."
+      },
       "contract": {
         "title": "Vertretene Organisation",
-        "countTitle": "Verträge",
+        "countTitle": "Vertretungen",
+        "listTitle": "Juristische Personen",
+        "requestsTitle": "Enthaltene Anfragen",
+        "requestsHint": "Zusätzliche Anfrage: CHF {price}",
+        "paymentRequestCta": "Zahlungsanforderung erstellen",
+        "paymentRequestSuccess": "Zahlungsanforderung über CHF {price} erstellt.",
+        "paymentRequestFailed": "Zahlungsanforderung konnte nicht erstellt werden. Bitte erneut versuchen.",
+        "colLegalEntity": "Juristische Person",
+        "colPlan": "Plan",
+        "colDays": "Verbleibend",
+        "colActions": "Aktionen",
+        "edit": "Bearbeiten",
+        "manageSubscription": "Kündigen / Verlängern",
+        "plans": {
+          "basis": "Basis",
+          "plus": "Plus",
+          "plus5": "Plus 5"
+        },
+        "linkedSecondaryTitle": "Verknüpfte Richtlinien",
+        "linkedSecondaryBody": "Optional kannst Du gehostete Datenschutzerklärungen verknüpfen, damit sie Deine EU-Vertretung nennen. Das ist eine Komfortfunktion — die Vertretung selbst braucht keine verknüpfte Website.",
         "linkedCountTitle": "Verknüpfte Richtlinien",
         "create": "Neuer Vertrag",
         "listEmpty": "Du hast noch keine Verträge zur EU-Vertretung.",
-        "buyCta": "EU-Vertretung kaufen",
+        "add": "Hinzufügen",
+        "buyCta": "Hinzufügen",
         "buyMore": "Weitere Verträge kaufen",
         "legalEntity": "Schweizerische juristische Person",
-        "name": "Name Deiner Schweizer juristischen Person",
+        "name": "Name",
         "legalEntityHint": "Die Schweizer Firma, die dieser Vertrag vertritt.",
         "forwardingEmail": "Weiterleitungs-E-Mail",
         "forwardingEmailHint": "An diese Adresse leiten wir Anfragen von Aufsichtsbehörden und betroffenen Personen weiter. Sie erscheint nicht in der Datenschutzerklärung.",
+        "postalLine1": "Strasse und Nr.",
+        "postalLine2": "Adresszeile 2 (optional)",
+        "postalCode": "PLZ",
+        "city": "Ort",
+        "country": "Land",
         "save": "Speichern",
         "saved": "Angaben gespeichert.",
         "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
@@ -1396,7 +1667,7 @@
           "subscription": "Abo"
         },
         "sectionContractDetails": "Schweizerische juristische Person",
-        "sectionPublishedAddress": "Adresse in der Datenschutzerklärung",
+        "sectionPublishedAddress": "Deine EU-Vertretung",
         "linkedTitle": "Verknüpfte gehostete Richtlinien",
         "linkedEmpty": "Noch keine gehostete Richtlinie enthält die EU-Vertretung.",
         "openPolicy": "Öffnen",
@@ -1423,6 +1694,9 @@
     "documents": {
       "title": "Dokumente",
       "colSite": "Website",
+      "colPolicy": "Datenschutzerklärung",
+      "colCookieBanner": "Cookie-Banner",
+      "colRepresentation": "EU-Vertretung",
       "colLegalEntity": "Juristische Person",
       "colCreated": "Erstellt",
       "colUpdated": "Aktualisiert",
@@ -1430,6 +1704,12 @@
       "colActions": "Aktionen",
       "retrieve": "Abrufen",
       "open": "Öffnen",
+      "edit": "Bearbeiten",
+      "rescan": "Neu scannen",
+      "addServices": "Dienste hinzufügen",
+      "policyReady": "Veröffentlicht",
+      "cookieNotSetup": "Nicht eingerichtet",
+      "representationNone": "—",
       "detailTitle": "Datenschutzerklärung",
       "backToList": "Zurück zu den Richtlinien",
       "exportStarted": "Export gestartet. Dein HTML-Download beginnt in Kürze.",
@@ -1504,17 +1784,17 @@
       "notFound": "Dieses Abo wurde nicht gefunden.",
       "products": {
         "academy": {
-          "planTitle": "Jahresmitgliedschaft",
+          "planTitle": "Mitgliedschaft",
           "pricePeriod": "/ 12 Monate",
           "questionsBody": "Bei Fragen zu Deiner Mitgliedschaft antwortet unser Team innerhalb eines Werktags."
         },
         "euRep": {
-          "planTitle": "Jahresabo",
+          "planTitle": "Abo-Status",
           "pricePeriod": "/ 12 Monate",
           "questionsBody": "Bei Fragen zu Deiner EU-Vertretung antwortet unser Team innerhalb eines Werktags."
         },
         "policy": {
-          "planTitle": "Jahresabo",
+          "planTitle": "Abo-Status",
           "planTitleWithSite": "{site}",
           "planTitleWithSites": "{count, plural, one {# Website} other {# Websites}}",
           "pricePeriod": "/ 12 Monate",
@@ -1545,6 +1825,15 @@
       "paymentsEmpty": "Noch keine Zahlungen.",
       "downloadInvoice": "Rechnung herunterladen",
       "invoiceDownloadStarted": "Rechnungs-Download gestartet."
+    },
+    "billingHistory": {
+      "colInvoice": "Rechnung",
+      "colService": "Service",
+      "colDate": "Datum",
+      "colAmount": "Betrag",
+      "colActions": "Aktionen",
+      "downloadInvoice": "Rechnung herunterladen",
+      "downloadStarted": "Rechnungs-Download gestartet."
     },
     "billingSelection": {
       "addressTitle": "Rechnungsadresse wählen",
@@ -1582,10 +1871,11 @@
     },
     "accountDetails": {
       "title": "Kontodaten",
+      "lead": "Dein Profil, Sprache, Sicherheit und Rechnungsdaten.",
       "tabsAriaLabel": "Kontodaten-Bereiche",
       "tabs": {
         "profile": "Profil",
-        "paymentDetails": "Rechnungsadressen"
+        "paymentDetails": "Rechnung"
       },
       "profileTitle": "Profil",
       "firstName": "Vorname",
@@ -1608,29 +1898,31 @@
       "savePassword": "Passwort ändern",
       "passwordSaved": "Passwort geändert.",
       "passwordError": "Das aktuelle Passwort ist nicht korrekt.",
+      "memberPasswordHint": "Du meldest Dich mit E-Mail und Passwort an.",
+      "adminTwoFactorHint": "Admin-Konten benötigen bei der Anmeldung immer eine Zwei-Faktor-Authentifizierung.",
+      "twoFactorTitle": "Zwei-Faktor-Authentifizierung",
+      "twoFactorDescription": "Schütze Dein Konto mit einem Einmalcode bei der Anmeldung.",
+      "twoFactorEnabled": "Aktiv",
+      "twoFactorDisabled": "Nicht aktiv",
       "aboutEyebrow": "Über Dein Konto",
       "aboutIntro": "Verwalte die persönlichen Daten, die mit Deinem Login im Mitgliederbereich verknüpft sind:",
       "aboutPersonalDetails": "Persönliche Daten",
-      "aboutPassword": "Passwort & Sicherheit",
+      "settingsTitle": "Einstellungen",
+      "languageTitle": "Sprache",
+      "languageDescription": "Gilt für den Mitgliederbereich und alle Dokumente, die wir erstellen.",
+      "languageNames": {
+        "de": "Deutsch",
+        "en": "English"
+      },
       "questionsTitle": "Fragen?",
       "questionsBody": "Wenn Du Hilfe zu Deinem Konto brauchst, antwortet unser Team innerhalb eines Werktags.",
       "contactUs": "Kontakt"
     },
     "paymentDetails": {
-      "addressesTitle": "Rechnungsadressen",
-      "addAddress": "Neue Adresse",
-      "addressesEmpty": "Noch keine gespeicherten Rechnungsadressen. Füge eine hinzu, um sie für Deine Abonnements zu nutzen.",
-      "editAddress": "Adresse bearbeiten",
-      "deleteAddress": "Adresse löschen",
-      "aboutEyebrow": "Über Zahlungsdaten",
-      "aboutIntro": "Rechnungsadressen, die Du hier speicherst, können separat jedem Abonnement zugewiesen werden:",
-      "questionsTitle": "Fragen?",
-      "questionsBody": "Bei Fragen zur Abrechnung antwortet unser Team innerhalb eines Werktags.",
-      "contactUs": "Kontakt aufnehmen",
-      "addAddressTitle": "Rechnungsadresse hinzufügen",
-      "editAddressTitle": "Rechnungsadresse bearbeiten",
-      "addressLabelField": "Bezeichnung (optional)",
-      "addressLabelPlaceholder": "z. B. Hauptsitz",
+      "addressesTitle": "Rechnungsadresse",
+      "aboutIntro": "Diese Rechnungsadresse und E-Mail werden für alle Rechnungen und Abonnements auf Deinem Konto verwendet.",
+      "billingEmail": "Rechnungs-E-Mail-Adresse",
+      "save": "Rechnungsdaten speichern",
       "firstName": "Vorname",
       "lastName": "Nachname",
       "company": "Firma (optional)",
@@ -1640,14 +1932,7 @@
       "city": "Ort",
       "country": "Land",
       "vatId": "MWST-Nummer (optional)",
-      "drawerCancel": "Abbrechen",
-      "drawerSave": "Speichern",
-      "addressCreated": "Rechnungsadresse hinzugefügt.",
-      "addressUpdated": "Rechnungsadresse aktualisiert.",
-      "addressDeleted": "Rechnungsadresse gelöscht.",
-      "deleteAddressTitle": "Adresse löschen?",
-      "deleteAddressBody": "Diese Rechnungsadresse wird entfernt. Abonnements, die sie verwenden, behalten ihre zuletzt abgerechneten Angaben, bis Du eine neue Adresse zuweist.",
-      "deleteAddressConfirm": "Adresse löschen"
+      "addressUpdated": "Rechnungsdaten aktualisiert."
     },
     "logout": {
       "confirmTitle": "Abmelden?",
@@ -1663,6 +1948,7 @@
   },
   "validation": {
     "required": "Pflichtfeld",
+    "terms": "Bitte akzeptiere die Allgemeinen Geschäftsbedingungen",
     "email": "Ungültige E-Mail-Adresse",
     "passwordMin": "Das Passwort muss mindestens 8 Zeichen lang sein",
     "passwordMatch": "Die Passwörter stimmen nicht überein"
@@ -1683,7 +1969,7 @@
     }
   },
   "euRepRepresentative": {
-    "previewTitle": "Adresse in der Datenschutzerklärung",
+    "previewTitle": "Deine EU-Vertretung",
     "country": "Deutschland"
   },
   "policyDocument": {
@@ -1698,11 +1984,9 @@
       "loading": "Richtlinie wird geladen…"
     },
     "implementation": {
-      "title": "Installationsanleitung",
-      "body": "Ihre Richtlinie wird von Datenschutzpartner gehostet und automatisch rechtlich aktuell gehalten.",
       "tabs": {
-        "embed": "Einbetten",
-        "url": "URL"
+        "embed": "Auf Ihrer Website einbetten",
+        "url": "Link zur gehosteten Erklärung"
       },
       "tabsAriaLabel": "Installationsmethode",
       "steps": {

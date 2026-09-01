@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -7,29 +8,18 @@ import {
   countActivePolicySites,
   listEuRepSubscriptions,
   listPolicySubscriptions,
-  resolveEuRepEntityCount,
   resolvePolicySiteCount,
   useCancelSubscription,
   useContinueSubscription,
   useOrders,
   useSubscriptions,
   type BillingProductType,
-  type Order,
   type Subscription,
 } from '@/api/billing';
-import {
-  calculateEuRepQuote,
-  calculateGeneratorPolicyQuote,
-  downloadOrderInvoice,
-  generatorVolumeDiscountExplanation,
-} from '@/api/checkout';
-import { useAddresses } from '@/api/account';
+import { calculateGeneratorPolicyQuote, downloadOrderInvoice } from '@/api/checkout';
+import { useBillingAddress } from '@/api/account';
 import { useDocuments } from '@/api/documents';
-import {
-  useEuRepContracts,
-  resolveEuRepContractForSubscription,
-  type EuRepContract,
-} from '@/api/eu-rep';
+import { useEuRepContracts } from '@/api/eu-rep';
 import {
   ArrowsClockwise,
   Button,
@@ -38,34 +28,34 @@ import {
   Info,
   MapPin,
   Question,
-  Table,
   Tooltip,
   useOverlayState,
   cn,
 } from '@/components/ui';
-import { BillingSelectionDialog } from '../BillingSelectionDialog';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
+import { ACCOUNT_BILLING_DETAILS_HREF } from '@/lib/account-routes';
+import {
+  buildSubscriptionPricing,
+  lastOrderFor,
+  type SubscriptionPricing,
+} from '../SubscriptionPricingMetadata';
 import {
   AccountSection,
-  AccountTable,
   ConfirmDialog,
   DataState,
   DaysLeftDonut,
   EmptyState,
-  InvoiceDownloadButton,
-  OrderAmount,
-  SubscriptionIdLink,
   subscriptionDaysLeft,
   useDateFormatter,
 } from '../account-ui';
+import { BillingHistoryTable } from '../BillingHistoryTable';
 
 /** Anchor for AGB §5 Vertragslaufzeit — must match `LegalMarkdown` heading ids in `terms.de.md`. */
 const TERMS_CONTRACT_DURATION_SECTION_ID = '5-vertragslaufzeit';
 
 const CONTACT_SUBJECT: Record<BillingProductType, string> = {
-  academy: 'academy',
   euRep: 'eu-rep',
   policy: 'generator',
 };
@@ -139,30 +129,20 @@ export function SubscriptionPlanActions({
 function CurrentPlanPanel({
   subscription,
   planTitle,
-  pricePeriod,
+  pricing,
   onCancel,
   onContinue,
   isContinuing = false,
-  lastPaidAmount,
-  paidSiteLabel,
-  renewalAmount,
-  renewalListPrice,
-  discountExplanation,
   priceIncreased,
   hideHeader = false,
   hideDownload = false,
 }: {
   subscription: Subscription;
   planTitle: string;
-  pricePeriod: string;
+  pricing: SubscriptionPricing;
   onCancel?: () => void;
   onContinue?: () => void;
   isContinuing?: boolean;
-  lastPaidAmount: number;
-  paidSiteLabel?: string;
-  renewalAmount: number;
-  renewalListPrice?: number;
-  discountExplanation?: { minSites: number; percent: string } | null;
   priceIncreased?: boolean;
   /** Policy subscription detail — title and actions live in the page header. */
   hideHeader?: boolean;
@@ -173,10 +153,9 @@ function CurrentPlanPanel({
   const tDocuments = useTranslations('account.documents');
   const ts = useTranslations('account.status');
   const formatDate = useDateFormatter();
+  const { currency } = subscription.totals;
   const [isDiscountTooltipOpen, setIsDiscountTooltipOpen] = useState(false);
   const [isRenewalReminderTooltipOpen, setIsRenewalReminderTooltipOpen] = useState(false);
-
-  const { currency } = subscription.totals;
   const isRenewalInactive =
     subscription.status === 'cancelled' || subscription.status === 'expired';
   const showRenewalBlock =
@@ -186,7 +165,9 @@ function CurrentPlanPanel({
       (subscription.status === 'active' || subscription.status === 'processing')
     );
   const hasDiscount = Boolean(
-    discountExplanation && renewalListPrice != null && renewalListPrice > renewalAmount
+    pricing.discountExplanation &&
+    pricing.renewalListPrice != null &&
+    pricing.renewalListPrice > pricing.renewalAmount
   );
   const renewalPeriod =
     subscription.startDate && subscription.nextPaymentDate
@@ -277,24 +258,14 @@ function CurrentPlanPanel({
           <div className="flex flex-col gap-2">
             <PriceBlock
               currency={currency}
-              amount={lastPaidAmount.toFixed(2)}
-              animatedAmount={lastPaidAmount}
-              notes={[pricePeriod]}
+              amount={pricing.annualAmount.toFixed(2)}
+              animatedAmount={pricing.annualAmount}
+              notes={[pricing.pricePeriod]}
               size="sm"
             />
             <div className="flex flex-wrap items-center gap-2">
-              {paidSiteLabel ? (
-                <>
-                  <p className="text-muted text-sm">{paidSiteLabel}</p>
-                  <span className="text-muted text-sm" aria-hidden>
-                    ·
-                  </span>
-                </>
-              ) : null}
               <p className="text-muted text-sm">
-                {t('paidOn', {
-                  date: formatDate(subscription.lastOrderDate ?? subscription.startDate),
-                })}
+                {t('paidOn', { date: formatDate(pricing.paidDate) })}
               </p>
             </div>
           </div>
@@ -310,8 +281,11 @@ function CurrentPlanPanel({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span
-                    className="text-success-soft-foreground flex size-8 shrink-0 items-center justify-center rounded-lg"
-                    style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)' }}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      color: 'var(--accent)',
+                      background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+                    }}
                     aria-hidden
                   >
                     <ArrowsClockwise size={16} weight="bold" />
@@ -343,7 +317,9 @@ function CurrentPlanPanel({
                 </div>
               ) : (
                 <div className="flex min-w-0 flex-col gap-2">
-                  {hasDiscount && renewalListPrice != null && discountExplanation ? (
+                  {hasDiscount &&
+                  pricing.renewalListPrice != null &&
+                  pricing.discountExplanation ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-display text-foreground text-sm leading-none font-bold">
                         {currency}
@@ -351,11 +327,11 @@ function CurrentPlanPanel({
                       <span
                         className={`${priceBlockAmountClassName('sm')} text-muted/70 line-through decoration-from-font`}
                       >
-                        {renewalListPrice.toFixed(2)}
+                        {pricing.renewalListPrice.toFixed(2)}
                       </span>
                       <div className="flex items-center gap-1">
                         <span className={`${priceBlockAmountClassName('sm')} text-danger`}>
-                          {renewalAmount.toFixed(2)}
+                          {pricing.renewalAmount.toFixed(2)}
                         </span>
                         <Tooltip
                           delay={0}
@@ -377,22 +353,22 @@ function CurrentPlanPanel({
                           </Tooltip.Trigger>
                           <Tooltip.Content className="w-max max-w-none p-3 text-sm break-normal whitespace-nowrap">
                             {t('renewalDiscountTooltip', {
-                              minSites: discountExplanation.minSites,
-                              percent: discountExplanation.percent,
+                              minSites: pricing.discountExplanation.minSites,
+                              percent: pricing.discountExplanation.percent,
                             })}
                           </Tooltip.Content>
                         </Tooltip>
                       </div>
                       <span className="text-muted text-xs leading-snug whitespace-nowrap">
-                        {pricePeriod}
+                        {pricing.pricePeriod}
                       </span>
                     </div>
                   ) : (
                     <PriceBlock
                       currency={currency}
-                      amount={renewalAmount.toFixed(2)}
-                      animatedAmount={renewalAmount}
-                      notes={[pricePeriod]}
+                      amount={pricing.renewalAmount.toFixed(2)}
+                      animatedAmount={pricing.renewalAmount}
+                      notes={[pricing.pricePeriod]}
                       size="sm"
                     />
                   )}
@@ -433,87 +409,52 @@ function CurrentPlanPanel({
  * Billing detail for a yearly subscription — Academy membership, or a single
  * policy / EU Rep subscription on its detail screen.
  */
-function lastOrderFor(subscription: Subscription, orders: Order[]): Order | undefined {
-  return orders
-    .filter((order) => subscription.relatedOrderIds.includes(order.id))
-    .slice()
-    .sort((a, b) => b.date.localeCompare(a.date))[0];
-}
-
-function legalEntityForEuRepOrder(
-  order: Order,
-  subscriptions: Subscription[],
-  contracts: readonly EuRepContract[]
-): string {
-  const subscription =
-    subscriptions.find((row) => row.relatedOrderIds.includes(order.id)) ??
-    subscriptions.find((row) => row.id === order.subscriptionId);
-  if (!subscription) return '—';
-  return resolveEuRepContractForSubscription(contracts, subscription.id)?.legalEntity ?? '—';
-}
-
 export function MembershipPanel({
   productType,
-  onManagePayment,
   subscriptionId,
+  hideSidebar = false,
+  sidebar,
+  hidePlanHeader = true,
 }: {
   productType: BillingProductType;
-  onManagePayment: () => void;
   /** When set, only this billing record is shown (policy / EU Rep detail). */
   subscriptionId?: string;
+  /** Omit the default billing-details sidebar (service section tabs). */
+  hideSidebar?: boolean;
+  /** Custom right column — replaces the default sidebar when provided. */
+  sidebar?: ReactNode;
+  /** Hide the plan title row in focused policy subscription views (standalone detail pages). */
+  hidePlanHeader?: boolean;
 }) {
   const t = useTranslations('account.membershipPanel');
   const tFooter = useTranslations('footer');
-  const tOrders = useTranslations('account.orders');
   const tGeneratorPlan = useTranslations('account.generatorPlan');
   const subscriptions = useSubscriptions();
   const orders = useOrders();
   const documents = useDocuments();
   const euRepContracts = useEuRepContracts();
-  const addresses = useAddresses();
+  const billingAddress = useBillingAddress();
   const cancel = useCancelSubscription();
   const continueSubscription = useContinueSubscription();
   const confirm = useOverlayState();
-  const billingSelection = useOverlayState();
   const formatDate = useDateFormatter();
   const [cancelTarget, setCancelTarget] = useState<Subscription | null>(null);
-  const [billingTarget, setBillingTarget] = useState<Subscription | null>(null);
   const isDetailView = Boolean(subscriptionId);
 
   const policySubscriptions = listPolicySubscriptions(subscriptions.data ?? []);
   const euRepSubscriptions = listEuRepSubscriptions(subscriptions.data ?? []);
   const activeSiteCount = countActivePolicySites(subscriptions.data ?? []);
-  const discountExplanation = generatorVolumeDiscountExplanation(activeSiteCount);
 
-  const singleSubscription =
-    productType === 'policy' || productType === 'euRep'
-      ? undefined
-      : subscriptions.data?.find((row) => row.productType === productType);
-  const listedSubscriptions =
-    productType === 'policy'
-      ? policySubscriptions
-      : productType === 'euRep'
-        ? euRepSubscriptions
-        : singleSubscription
-          ? [singleSubscription]
-          : [];
+  const listedSubscriptions = productType === 'policy' ? policySubscriptions : euRepSubscriptions;
+  const isServiceScopedView = hideSidebar || isDetailView;
   const displayedSubscriptions = subscriptionId
     ? listedSubscriptions.filter((row) => row.id === subscriptionId)
-    : listedSubscriptions;
-  const sidebarSubscription = billingTarget ?? displayedSubscriptions[0];
-
-  const billing = sidebarSubscription?.billingAddressId
-    ? addresses.data?.find((address) => address.id === sidebarSubscription.billingAddressId)
-    : addresses.data?.find((address) => address.type === 'billing');
+    : isServiceScopedView
+      ? []
+      : listedSubscriptions;
+  const billing = billingAddress.data;
 
   const focusedSubscription = displayedSubscriptions[0];
-
-  const billingHistory =
-    focusedSubscription && orders.data && productType === 'academy'
-      ? orders.data
-          .filter((order) => focusedSubscription.relatedOrderIds.includes(order.id))
-          .sort((a, b) => b.date.localeCompare(a.date))
-      : [];
 
   const policyBillingHistory =
     productType === 'policy' && orders.data
@@ -537,6 +478,10 @@ export function MembershipPanel({
           .sort((a, b) => b.date.localeCompare(a.date))
       : [];
 
+  const billingHistory = productType === 'policy' ? policyBillingHistory : euRepBillingHistory;
+  const billingHistoryTitle =
+    productType === 'policy' ? tGeneratorPlan('billingHistory') : t('billingHistory');
+
   function handleCancel() {
     if (!cancelTarget) return;
     cancel.mutate(cancelTarget.id, {
@@ -547,6 +492,9 @@ export function MembershipPanel({
       },
     });
   }
+
+  const showDefaultSidebar = !hideSidebar && sidebar === undefined;
+  const showRightColumn = showDefaultSidebar || sidebar != null;
 
   return (
     <>
@@ -580,7 +528,8 @@ export function MembershipPanel({
         {displayedSubscriptions.length > 0 ? (
           <div
             className={cn(
-              'divide-border flex flex-col divide-y lg:flex-row lg:divide-x lg:divide-y-0',
+              'divide-border flex flex-col divide-y',
+              showRightColumn && 'lg:flex-row lg:divide-x lg:divide-y-0',
               isDetailView && 'min-h-0 flex-1 lg:items-stretch'
             )}
           >
@@ -592,55 +541,31 @@ export function MembershipPanel({
             >
               {displayedSubscriptions.map((subscription) => {
                 const lastOrder = lastOrderFor(subscription, orders.data ?? []);
-                const lastPaid = lastOrder?.total ?? subscription.totals.total;
                 const isPolicy = productType === 'policy';
                 const isEuRep = productType === 'euRep';
                 const siteCount = isPolicy ? resolvePolicySiteCount(subscription) : 1;
-                const euRepContract = isEuRep
-                  ? resolveEuRepContractForSubscription(euRepContracts.data ?? [], subscription.id)
-                  : undefined;
                 const policyRenewalQuote = calculateGeneratorPolicyQuote(
                   activeSiteCount,
                   siteCount
-                );
-                const euRepRenewalQuote = calculateEuRepQuote(
-                  isEuRep ? resolveEuRepEntityCount(subscription) : 1
                 );
                 const previousRate = lastOrder?.discountRate ?? 0;
                 const priceIncreased =
                   isPolicy &&
                   subscription.status === 'active' &&
                   policyRenewalQuote.discountRate < previousRate;
+                const pricing: SubscriptionPricing = {
+                  ...buildSubscriptionPricing(subscription, orders.data ?? [], activeSiteCount),
+                  pricePeriod: t(`products.${productType}.pricePeriod`),
+                };
 
                 return (
                   <CurrentPlanPanel
                     key={subscription.id}
                     subscription={subscription}
-                    hideHeader={Boolean(subscriptionId && isPolicy)}
+                    hideHeader={Boolean(subscriptionId && isPolicy && hidePlanHeader)}
                     hideDownload={Boolean(subscriptionId && (isPolicy || isEuRep))}
-                    planTitle={
-                      isPolicy || isEuRep
-                        ? t('subscriptionIdTitle', { id: subscription.id })
-                        : t(`products.${productType}.planTitle`)
-                    }
-                    pricePeriod={t(`products.${productType}.pricePeriod`)}
-                    lastPaidAmount={lastPaid}
-                    paidSiteLabel={
-                      isPolicy
-                        ? t('products.policy.planTitleWithSites', { count: siteCount })
-                        : isEuRep
-                          ? (euRepContract?.legalEntity ?? t('products.euRep.planTitle'))
-                          : undefined
-                    }
-                    renewalAmount={
-                      isPolicy
-                        ? policyRenewalQuote.amountDue
-                        : isEuRep
-                          ? euRepRenewalQuote.amountDue
-                          : subscription.totals.total
-                    }
-                    renewalListPrice={isPolicy ? policyRenewalQuote.listPrice : undefined}
-                    discountExplanation={isPolicy ? discountExplanation : null}
+                    planTitle={t(`products.${productType}.planTitle`)}
+                    pricing={pricing}
                     priceIncreased={priceIncreased}
                     onCancel={
                       subscription.status === 'active'
@@ -666,237 +591,88 @@ export function MembershipPanel({
                 );
               })}
 
-              {productType === 'policy' && policyBillingHistory.length > 0 ? (
-                <AccountSection title={tGeneratorPlan('billingHistory')} contentClassName="gap-0">
-                  <AccountTable aria-label={tGeneratorPlan('billingHistory')}>
-                    <Table.Header>
-                      <Table.Column isRowHeader>{t('colInvoice')}</Table.Column>
-                      <Table.Column className="w-32 max-w-32 shrink-0 text-right whitespace-nowrap">
-                        {t('colDate')}
-                      </Table.Column>
-                      <Table.Column className="w-32 max-w-32 shrink-0 text-right whitespace-nowrap">
-                        {t('colAmount')}
-                      </Table.Column>
-                      <Table.Column className="w-0 shrink-0 whitespace-nowrap">
-                        <span className="sr-only">{tGeneratorPlan('colActions')}</span>
-                      </Table.Column>
-                    </Table.Header>
-                    <Table.Body>
-                      {policyBillingHistory.map((order) => (
-                        <Table.Row key={order.id}>
-                          <Table.Cell>
-                            <span className="font-mono text-sm font-semibold">{order.number}</span>
-                          </Table.Cell>
-                          <Table.Cell className="w-32 max-w-32 shrink-0 text-right whitespace-nowrap">
-                            {formatDate(order.date)}
-                          </Table.Cell>
-                          <Table.Cell className="w-32 max-w-32 shrink-0 text-right whitespace-nowrap">
-                            <OrderAmount
-                              total={order.total}
-                              currency={order.currency}
-                              discountRate={order.discountRate}
-                              discountAmount={order.discountAmount}
-                            />
-                          </Table.Cell>
-                          <Table.Cell className="w-0 shrink-0 whitespace-nowrap">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5"
-                              aria-label={tGeneratorPlan('downloadInvoice')}
-                              onPress={() => {
-                                void handleInvoiceDownload(order.id, () => {
-                                  toast.success(t('invoiceDownloadStarted'));
-                                });
-                              }}
-                            >
-                              <FileText size={14} aria-hidden />
-                              {tGeneratorPlan('colInvoice')}
-                            </Button>
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </AccountTable>
-                </AccountSection>
-              ) : null}
-
-              {productType === 'euRep' && euRepBillingHistory.length > 0 ? (
-                <AccountSection title={t('billingHistory')} contentClassName="gap-0">
-                  <AccountTable aria-label={t('billingHistory')}>
-                    <Table.Header>
-                      <Table.Column isRowHeader>{t('colInvoice')}</Table.Column>
-                      <Table.Column>{t('colSubscriptionId')}</Table.Column>
-                      <Table.Column>{t('colDate')}</Table.Column>
-                      <Table.Column>{t('colLegalEntity')}</Table.Column>
-                      <Table.Column className="text-right">{t('colAmount')}</Table.Column>
-                      <Table.Column className="w-0 shrink-0 whitespace-nowrap">
-                        <span className="sr-only">{t('colPdf')}</span>
-                      </Table.Column>
-                    </Table.Header>
-                    <Table.Body>
-                      {euRepBillingHistory.map((order) => (
-                        <Table.Row key={order.id}>
-                          <Table.Cell>
-                            <span className="font-mono text-sm font-semibold">{order.number}</span>
-                          </Table.Cell>
-                          <Table.Cell>
-                            {order.subscriptionId ? (
-                              <SubscriptionIdLink id={order.subscriptionId} className="font-mono" />
-                            ) : (
-                              <span className="text-muted font-mono text-sm">—</span>
-                            )}
-                          </Table.Cell>
-                          <Table.Cell>{formatDate(order.date)}</Table.Cell>
-                          <Table.Cell>
-                            {legalEntityForEuRepOrder(
-                              order,
-                              subscriptions.data ?? [],
-                              euRepContracts.data ?? []
-                            )}
-                          </Table.Cell>
-                          <Table.Cell className="text-right">
-                            <OrderAmount
-                              total={order.total}
-                              currency={order.currency}
-                              discountRate={order.discountRate}
-                              discountAmount={order.discountAmount}
-                            />
-                          </Table.Cell>
-                          <Table.Cell className="w-0 shrink-0 whitespace-nowrap">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5"
-                              aria-label={tOrders('downloadInvoice')}
-                              onPress={() => {
-                                void handleInvoiceDownload(order.id, () => {
-                                  toast.success(t('invoiceDownloadStarted'));
-                                });
-                              }}
-                            >
-                              <FileText size={14} aria-hidden />
-                              {t('colInvoice')}
-                            </Button>
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </AccountTable>
-                </AccountSection>
-              ) : null}
-
-              {productType === 'academy' && billingHistory.length > 0 ? (
-                <AccountSection title={t('billingHistory')} contentClassName="gap-0">
-                  <AccountTable aria-label={t('billingHistory')}>
-                    <Table.Header>
-                      <Table.Column isRowHeader>{t('colInvoice')}</Table.Column>
-                      <Table.Column>{t('colSubscriptionId')}</Table.Column>
-                      <Table.Column>{t('colDate')}</Table.Column>
-                      <Table.Column className="text-right">{t('colAmount')}</Table.Column>
-                      <Table.Column className="text-right">
-                        <span className="sr-only">{t('colPdf')}</span>
-                      </Table.Column>
-                    </Table.Header>
-                    <Table.Body>
-                      {billingHistory.map((order) => (
-                        <Table.Row key={order.id}>
-                          <Table.Cell>
-                            <span className="font-mono text-sm font-semibold">{order.number}</span>
-                          </Table.Cell>
-                          <Table.Cell>
-                            {order.subscriptionId ? (
-                              <SubscriptionIdLink id={order.subscriptionId} className="font-mono" />
-                            ) : (
-                              <span className="text-muted font-mono text-sm">—</span>
-                            )}
-                          </Table.Cell>
-                          <Table.Cell>{formatDate(order.date)}</Table.Cell>
-                          <Table.Cell className="text-right">
-                            <OrderAmount
-                              total={order.total}
-                              currency={order.currency}
-                              discountRate={order.discountRate}
-                              discountAmount={order.discountAmount}
-                            />
-                          </Table.Cell>
-                          <Table.Cell className="text-right">
-                            <InvoiceDownloadButton
-                              label={tOrders('downloadInvoice')}
-                              onPress={() => {
-                                void handleInvoiceDownload(order.id, () => {
-                                  toast.success(t('invoiceDownloadStarted'));
-                                });
-                              }}
-                            />
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </AccountTable>
+              {billingHistory.length > 0 ? (
+                <AccountSection title={billingHistoryTitle} contentClassName="gap-0">
+                  <BillingHistoryTable orders={billingHistory} ariaLabel={billingHistoryTitle} />
                 </AccountSection>
               ) : null}
             </div>
 
-            <div className="divide-border flex w-full shrink-0 flex-col divide-y lg:w-[320px]">
-              {billing ? (
-                <AccountSection
-                  size="small"
-                  title={t('billingDetailsEyebrow')}
-                  icon={<MapPin size={14} weight="fill" className="shrink-0" aria-hidden />}
-                >
-                  <address className="text-foreground text-sm leading-relaxed not-italic">
-                    {billing.firstName} {billing.lastName}
-                    <br />
-                    {billing.company ? (
-                      <>
-                        {billing.company}
+            {showRightColumn ? (
+              sidebar != null ? (
+                <div className="border-border w-full shrink-0 lg:w-[320px] lg:border-l">
+                  {sidebar}
+                </div>
+              ) : (
+                <div className="divide-border flex w-full shrink-0 flex-col divide-y lg:w-[320px]">
+                  {billing ? (
+                    <AccountSection
+                      size="small"
+                      title={t('billingDetailsEyebrow')}
+                      icon={<MapPin size={14} weight="fill" className="shrink-0" aria-hidden />}
+                    >
+                      <address className="text-foreground text-sm leading-relaxed not-italic">
+                        {billing.billingEmail}
                         <br />
-                      </>
-                    ) : null}
-                    {billing.line1}
-                    <br />
-                    {billing.postalCode} {billing.city}
-                    <br />
-                    {billing.country}
-                  </address>
-                  <NavigationLink
-                    onPress={() => {
-                      if (sidebarSubscription) {
-                        setBillingTarget(sidebarSubscription);
-                        billingSelection.open();
-                      }
-                    }}
-                    size="sm"
-                    chevron="none"
+                        {billing.firstName} {billing.lastName}
+                        <br />
+                        {billing.company ? (
+                          <>
+                            {billing.company}
+                            <br />
+                          </>
+                        ) : null}
+                        {billing.line1}
+                        <br />
+                        {billing.line2 ? (
+                          <>
+                            {billing.line2}
+                            <br />
+                          </>
+                        ) : null}
+                        {billing.postalCode} {billing.city}
+                        <br />
+                        {billing.country}
+                        {billing.vatId ? (
+                          <>
+                            <br />
+                            {billing.vatId}
+                          </>
+                        ) : null}
+                      </address>
+                      <NavigationLink href={ACCOUNT_BILLING_DETAILS_HREF} size="sm" chevron="none">
+                        {t('change')}
+                      </NavigationLink>
+                    </AccountSection>
+                  ) : null}
+
+                  <AccountSection
+                    size="small"
+                    title={t('questionsTitle')}
+                    icon={<Question size={14} weight="fill" className="shrink-0" aria-hidden />}
                   >
-                    {t('change')}
-                  </NavigationLink>
-                </AccountSection>
-              ) : null}
+                    <p className="text-foreground text-sm leading-relaxed">
+                      {t(`products.${productType}.questionsBody`)}
+                    </p>
+                    <NavigationLink
+                      href={`/contact?subject=${CONTACT_SUBJECT[productType]}`}
+                      size="sm"
+                    >
+                      {t('contactUs')}
+                    </NavigationLink>
+                  </AccountSection>
 
-              <AccountSection
-                size="small"
-                title={t('questionsTitle')}
-                icon={<Question size={14} weight="fill" className="shrink-0" aria-hidden />}
-              >
-                <p className="text-foreground text-sm leading-relaxed">
-                  {t(`products.${productType}.questionsBody`)}
-                </p>
-                <NavigationLink href={`/contact?subject=${CONTACT_SUBJECT[productType]}`} size="sm">
-                  {t('contactUs')}
-                </NavigationLink>
-              </AccountSection>
-
-              <AccountSection size="small" className="gap-1.5" contentClassName="gap-1.5">
-                <NavigationLink href="/terms" size="sm">
-                  {tFooter('termsOfService')}
-                </NavigationLink>
-                <NavigationLink href="/privacy" size="sm">
-                  {tFooter('privacyPolicy')}
-                </NavigationLink>
-              </AccountSection>
-            </div>
+                  <AccountSection size="small" className="gap-1.5" contentClassName="gap-1.5">
+                    <NavigationLink href="/terms" size="sm">
+                      {tFooter('termsOfService')}
+                    </NavigationLink>
+                    <NavigationLink href="/privacy" size="sm">
+                      {tFooter('privacyPolicy')}
+                    </NavigationLink>
+                  </AccountSection>
+                </div>
+              )
+            ) : null}
           </div>
         ) : null}
       </DataState>
@@ -918,14 +694,6 @@ export function MembershipPanel({
         onConfirm={handleCancel}
         isPending={cancel.isPending}
       />
-
-      {sidebarSubscription ? (
-        <BillingSelectionDialog
-          state={billingSelection}
-          subscription={sidebarSubscription}
-          onManage={onManagePayment}
-        />
-      ) : null}
     </>
   );
 }

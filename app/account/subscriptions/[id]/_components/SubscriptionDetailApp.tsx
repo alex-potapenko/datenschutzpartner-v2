@@ -1,14 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRequireSession } from '@/api/auth';
-import { useSubscription, useSubscriptions, type BillingProductType } from '@/api/billing';
-import {
-  ACADEMY_ACCOUNT_HREF,
-  EU_REP_ACCOUNT_HREF,
-  GENERATOR_POLICIES_HREF,
-} from '@/app/account/_components/account-sections';
+import { useSubscription, useSubscriptions } from '@/api/billing';
+import { ALL_SUBSCRIPTIONS_ACCOUNT_HREF } from '@/lib/account-routes';
 import { MembershipPanel } from '@/app/account/_components/sections/MembershipPanel';
 import { DataState, EmptyState } from '@/app/account/_components/account-ui';
 import { Spinner } from '@/components/ui';
@@ -18,19 +13,11 @@ import {
 } from '@/components/shared/PolicyDetailLayout';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 
-function backHrefForProduct(productType: BillingProductType): string {
-  if (productType === 'euRep') return EU_REP_ACCOUNT_HREF;
-  if (productType === 'academy') return ACADEMY_ACCOUNT_HREF;
-  return GENERATOR_POLICIES_HREF;
-}
-
 export function SubscriptionDetailApp({ subscriptionId }: { subscriptionId: string }) {
   const t = useTranslations('account.membershipPanel');
-  const tDocuments = useTranslations('account.documents');
   const ts = useTranslations('account.status');
   const tCommon = useTranslations('common');
   const tAccount = useTranslations('account');
-  const router = useRouter();
   const returnTo = `/account/subscriptions/${subscriptionId}`;
   const { isChecking } = useRequireSession(returnTo);
   const listQuery = useSubscriptions();
@@ -40,7 +27,7 @@ export function SubscriptionDetailApp({ subscriptionId }: { subscriptionId: stri
     subscriptionQuery.data?.id === subscriptionId ? subscriptionQuery.data : fromList;
   const isLoading = !subscription && (subscriptionQuery.isPending || listQuery.isPending);
   const isError = !subscription && (subscriptionQuery.isError || listQuery.isError) && !isLoading;
-  const backHref = subscription ? backHrefForProduct(subscription.productType) : '/account';
+  const backHref = ALL_SUBSCRIPTIONS_ACCOUNT_HREF;
   const detailTitle = tCommon('subscriptionDetails');
 
   if (isChecking) {
@@ -76,7 +63,7 @@ export function SubscriptionDetailApp({ subscriptionId }: { subscriptionId: stri
             <>
               <PolicyDetailScreenHeader>
                 <h1 className="text-foreground text-2xl font-bold sm:text-3xl">
-                  {tDocuments('subscriptionGroup', { id: subscription.id })}
+                  {t(`products.${subscription.productType}.planTitle`)}
                 </h1>
                 <StatusPill tone={statusTone(subscription.status)}>
                   {ts(subscription.status)}
@@ -86,9 +73,6 @@ export function SubscriptionDetailApp({ subscriptionId }: { subscriptionId: stri
               <MembershipPanel
                 productType={subscription.productType}
                 subscriptionId={subscription.id}
-                onManagePayment={() => {
-                  router.push('/account?section=accountDetails&tab=paymentDetails');
-                }}
               />
             </>
           ) : (

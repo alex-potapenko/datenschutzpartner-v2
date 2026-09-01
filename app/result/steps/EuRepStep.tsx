@@ -22,11 +22,11 @@ import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
 import { StepFrame } from '../ui/StepFrame';
 import { Container } from '@/components/shared/Container';
-import type { ImprovedFormData } from '../content/improved-form';
+import type { QuestionnaireFormData } from '../content/questionnaire-form';
 import { isEuRepRequired, type EuRepState } from '../wizard-state';
 
 interface EuRepStepProps {
-  formData: ImprovedFormData;
+  formData: QuestionnaireFormData;
   onComplete: (next: EuRepState) => void;
   onBack?: () => void;
 }
@@ -81,7 +81,7 @@ export function EuRepStep({ formData, onComplete, onBack }: EuRepStepProps) {
 
     if (!validateNewEntity()) return;
     onComplete({
-      plan: 'standard',
+      plan: 'basis',
       linkContractId: undefined,
       legalEntity: legalEntity.trim(),
       forwardingEmail: forwardingEmail.trim(),

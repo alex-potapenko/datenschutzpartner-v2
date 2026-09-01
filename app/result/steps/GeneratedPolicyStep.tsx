@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { GENERATOR_POLICIES_HREF } from '@/app/account/_components/account-sections';
+import { PRIVACY_POLICY_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
 import { PolicyDetailTabs } from '@/components/shared/PolicyDetailTabs';
 import { PolicyDetailPageShell } from '@/components/shared/PolicyDetailLayout';
 import type { GeneratedDocument } from '@/api/documents';
@@ -15,7 +15,7 @@ export function GeneratedPolicyStep({ document }: GeneratedPolicyStepProps) {
 
   return (
     <PolicyDetailPageShell
-      backHref={GENERATOR_POLICIES_HREF}
+      backHref={PRIVACY_POLICY_ACCOUNT_HREF}
       backLabel={tCommon('back')}
       detailTitle={tCommon('policyDetails')}
     >

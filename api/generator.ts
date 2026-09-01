@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import type { ImprovedFormData } from '@/app/result/content/improved-form';
+import type { QuestionnaireFormData } from '@/app/result/content/questionnaire-form';
 
-export type { ImprovedFormData } from '@/app/result/content/improved-form';
+export type { QuestionnaireFormData } from '@/app/result/content/questionnaire-form';
 
 const yesNo = z.enum(['yes', 'no', '']);
 const yesNoDontKnow = z.enum(['yes', 'no', 'dontknow', '']);
@@ -9,19 +9,19 @@ const transfersAbroad = z.enum(['no', 'eea', 'worldwide', '']);
 const videoRetention = z.enum(['none', 'duration', 'asRequired', '']);
 const videoRetentionUnit = z.enum(['hours', 'days', '']);
 
-export const improvedFormSchema = z
+export const questionnaireFormSchema = z
   .object({
     companyName: z.string().min(1, 'validation.required'),
     domain: z.string().min(1, 'validation.required'),
     email: z.email('validation.email'),
     street: z.string().min(1, 'validation.required'),
+    streetLine2: z.string(),
     postalCode: z.string().min(1, 'validation.required'),
     city: z.string().min(1, 'validation.required'),
     country: z.string().min(1, 'validation.required'),
     hasDpo: yesNo,
     dpoCompanyName: z.string(),
-    dpoFirstName: z.string(),
-    dpoLastName: z.string(),
+    dpoDesignation: z.string(),
     dpoStreet: z.string(),
     dpoPostalCode: z.string(),
     dpoCity: z.string(),
@@ -31,8 +31,8 @@ export const improvedFormSchema = z
     offersToEU: yesNoDontKnow,
     monitorsEUBehaviour: yesNoDontKnow,
     transfersAbroad: transfersAbroad,
-    usesProfiling: yesNo,
-    processesSpecialData: yesNo,
+    usesProfiling: yesNoDontKnow,
+    processesSpecialData: yesNoDontKnow,
     specialDataCategories: z.array(z.string()),
     usesAiProcessing: yesNo,
     acceptsApplications: yesNo,
@@ -60,7 +60,7 @@ export const improvedFormSchema = z
       'usesAiProcessing',
       'acceptsApplications',
       'usesVideoSurveillance',
-    ] as const satisfies readonly (keyof ImprovedFormData)[];
+    ] as const satisfies readonly (keyof QuestionnaireFormData)[];
 
     for (const field of requiredYesNo) {
       if (!data[field]) {
@@ -86,12 +86,6 @@ export const improvedFormSchema = z
       if (!data.dpoCompanyName.trim()) {
         ctx.addIssue({ code: 'custom', path: ['dpoCompanyName'], message: 'validation.required' });
       }
-      if (!data.dpoFirstName.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoFirstName'], message: 'validation.required' });
-      }
-      if (!data.dpoLastName.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoLastName'], message: 'validation.required' });
-      }
       if (!data.dpoStreet.trim()) {
         ctx.addIssue({ code: 'custom', path: ['dpoStreet'], message: 'validation.required' });
       }
@@ -104,18 +98,6 @@ export const improvedFormSchema = z
       if (!data.dpoCountry.trim()) {
         ctx.addIssue({ code: 'custom', path: ['dpoCountry'], message: 'validation.required' });
       }
-    }
-
-    if (data.processesSpecialData === 'yes' && data.specialDataCategories.length === 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['specialDataCategories'],
-        message: 'validation.required',
-      });
-    }
-
-    if (data.acceptsApplications === 'yes' && !data.hasTalentPool) {
-      ctx.addIssue({ code: 'custom', path: ['hasTalentPool'], message: 'validation.required' });
     }
 
     if (data.usesVideoSurveillance === 'yes' && !data.videoRetention) {
@@ -194,7 +176,7 @@ export const improvedFormSchema = z
   });
 
 export function getGdprBranchVisibility(
-  form: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU'>
+  form: Pick<QuestionnaireFormData, 'gdprApplicable' | 'offersToEU'>
 ): { showEeaOffer: boolean; showEeaMonitoring: boolean } {
   const showEeaOffer = form.gdprApplicable === 'dontknow';
   const showEeaMonitoring = showEeaOffer && form.offersToEU === 'no';
@@ -203,7 +185,7 @@ export function getGdprBranchVisibility(
 
 /** Whether GDPR applies to this controller based on questionnaire answers. */
 export function isGdprApplicable(
-  form?: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU' | 'monitorsEUBehaviour'>
+  form?: Pick<QuestionnaireFormData, 'gdprApplicable' | 'offersToEU' | 'monitorsEUBehaviour'>
 ): boolean {
   if (!form?.gdprApplicable) return false;
   if (form.gdprApplicable === 'yes') return true;
@@ -213,14 +195,14 @@ export function isGdprApplicable(
 
 /** Show the third-party EU representative question once GDPR applicability is known. */
 export function showThirdPartyEuRepQuestion(
-  form: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU' | 'monitorsEUBehaviour'>
+  form: Pick<QuestionnaireFormData, 'gdprApplicable' | 'offersToEU' | 'monitorsEUBehaviour'>
 ): boolean {
   return isGdprApplicable(form);
 }
 
 /** Matches EU-rep questionnaire branching when GDPR applicability is unknown. */
 export function getVisibleEuRepQuestionFields(
-  form: Pick<ImprovedFormData, 'gdprApplicable' | 'offersToEU'>
+  form: Pick<QuestionnaireFormData, 'gdprApplicable' | 'offersToEU'>
 ): { offersToEU: boolean; monitorsEUBehaviour: boolean } {
   const { showEeaOffer, showEeaMonitoring } = getGdprBranchVisibility(form);
   return {

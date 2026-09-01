@@ -22,8 +22,8 @@ export const GENERATOR_POLICY_UNIT_PRICE = 89;
 /** Swiss statutory VAT rate applied to checkout totals. */
 export const SWISS_VAT_RATE = 0.081;
 
-/** Free trial length for every new hosted privacy policy. */
-export const POLICY_TRIAL_DAYS = 10;
+/** Free trial length for wizard purchases (policy + bundled EU Basis). */
+export const POLICY_TRIAL_DAYS = 14;
 
 export function calculateVatAmount(amountExclVat: number): number {
   return roundMoney(amountExclVat * SWISS_VAT_RATE);
@@ -163,30 +163,77 @@ export const checkoutKindEnum = z.enum([
 ]);
 export type CheckoutKind = z.infer<typeof checkoutKindEnum>;
 
-/** Yearly price per legal entity (CHF, excl. VAT). */
-export const EU_REP_UNIT_PRICE = 249;
-export const EU_REP_ENTITY_QUANTITY_MIN = 1;
-export const EU_REP_ENTITY_QUANTITY_MAX = 1;
+/** Extra supervisory / data-subject inquiry beyond the plan allowance (CHF, excl. VAT). */
+export const EU_REP_EXTRA_REQUEST_PRICE = 99;
 
-export function calculateEuRepQuote(entityCount = 1): {
-  entityCount: number;
+export const euRepPlanIdSchema = z.enum(['basis', 'plus', 'plus5']);
+export type EuRepPlanId = z.infer<typeof euRepPlanIdSchema>;
+
+export type EuRepPlanDefinition = {
+  id: EuRepPlanId;
+  /** Yearly subscription price (CHF, excl. VAT). */
+  yearlyPrice: number;
+  /** Included payable inquiries per year. */
+  includedRequests: number;
+};
+
+/** Entry plan — the wizard always sells this one, and it backs every fallback. */
+export const EU_REP_BASIS_PLAN: EuRepPlanDefinition = {
+  id: 'basis',
+  yearlyPrice: 149,
+  includedRequests: 0,
+};
+
+export const EU_REP_PLANS: readonly EuRepPlanDefinition[] = [
+  EU_REP_BASIS_PLAN,
+  { id: 'plus', yearlyPrice: 229, includedRequests: 1 },
+  { id: 'plus5', yearlyPrice: 499, includedRequests: 5 },
+] as const;
+
+/** Plan ids arrive as plain strings from the API — unknown ids fall back to Basis. */
+export function resolveEuRepPlan(planId: string | undefined): EuRepPlanDefinition {
+  return EU_REP_PLANS.find((plan) => plan.id === planId) ?? EU_REP_BASIS_PLAN;
+}
+
+export const EU_REP_ENTITY_QUANTITY_MIN = 1;
+export const EU_REP_ENTITY_QUANTITY_MAX = 99;
+
+export type EuRepQuote = {
+  planId: EuRepPlanId;
+  includedRequests: number;
   unitPrice: number;
+  entityCount: number;
   amountDue: number;
-} {
+};
+
+/**
+ * Price an EU Representation plan subscription. Standalone checkout picks any
+ * plan; the generator wizard always uses Basis. `entityCount` is informational
+ * for first-entity setup — the yearly fee is per plan, not per entity.
+ */
+export function calculateEuRepQuote(planId: string = 'basis', entityCount = 1): EuRepQuote {
+  const plan = resolveEuRepPlan(planId);
   const count = Math.min(
     EU_REP_ENTITY_QUANTITY_MAX,
     Math.max(EU_REP_ENTITY_QUANTITY_MIN, Math.floor(entityCount))
   );
   return {
+    planId: plan.id,
+    includedRequests: plan.includedRequests,
+    unitPrice: plan.yearlyPrice,
     entityCount: count,
-    unitPrice: EU_REP_UNIT_PRICE,
-    amountDue: roundMoney(count * EU_REP_UNIT_PRICE),
+    amountDue: plan.yearlyPrice,
   };
 }
 
 export const euRepCheckoutEntitySchema = z.object({
   legalEntity: z.string().min(1),
   forwardingEmail: z.email(),
+  postalLine1: z.string().min(1).optional(),
+  postalLine2: z.string().optional(),
+  postalCode: z.string().min(1).optional(),
+  city: z.string().min(1).optional(),
+  country: z.string().min(1).optional(),
 });
 export type EuRepCheckoutEntity = z.infer<typeof euRepCheckoutEntitySchema>;
 
@@ -199,6 +246,8 @@ export const checkoutSessionCreateSchema = z.object({
   policyName: z.string().min(1).optional(),
   /** Swiss controller of the generated policy (from the questionnaire). */
   legalEntity: z.string().min(1).optional(),
+  /** EU Rep plan — standalone only; wizard always bills Basis. */
+  euRepPlanId: euRepPlanIdSchema.optional(),
   /** How many Swiss legal-entity slots to buy (`euRep`, or bundled on a generator checkout). */
   euRepEntityCount: z.number().int().positive().optional(),
   /** Details for each new EU Rep contract created by this checkout. */
@@ -253,9 +302,103 @@ export const invoiceDownloadSchema = z.object({
 });
 export type InvoiceDownload = z.infer<typeof invoiceDownloadSchema>;
 
+export const pendingCheckoutSchema = z.object({
+  needed: z.boolean(),
+  trialEndsAt: z.string().optional(),
+  domain: z.string().optional(),
+  legalEntity: z.string().optional(),
+  fillSubscriptionId: z.string().optional(),
+  documentId: z.string().optional(),
+  subscriptionId: z.string().optional(),
+  euRepEntityCount: z.number().int().positive().optional(),
+  euRepEntities: z.array(euRepCheckoutEntitySchema).optional(),
+  euRepLinkContractId: z.string().optional(),
+});
+export type PendingCheckout = z.infer<typeof pendingCheckoutSchema>;
+
+export const startPolicyTrialResultSchema = z.object({
+  document: documentSchema.optional(),
+  subscriptionId: z.string().optional(),
+  trialEndsAt: z.string().optional(),
+  documentId: z.string().optional(),
+});
+export type StartPolicyTrialResult = z.infer<typeof startPolicyTrialResultSchema>;
+
 export const checkoutKeys = {
   payrexxPortal: ['checkout', 'payrexx-portal'] as const,
+  pending: ['checkout', 'pending'] as const,
 };
+
+export function usePendingCheckout(site?: string | null) {
+  const normalizedSite =
+    site
+      ?.replace(/^www\./, '')
+      .trim()
+      .toLowerCase() ?? '';
+
+  return useQuery({
+    queryKey: [...checkoutKeys.pending, normalizedSite],
+    queryFn: () =>
+      request<PendingCheckout>(
+        normalizedSite
+          ? `/checkout/pending?site=${encodeURIComponent(normalizedSite)}`
+          : '/checkout/pending'
+      ),
+    enabled: Boolean(normalizedSite),
+  });
+}
+
+export function useStartPolicyTrial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CheckoutSessionCreate) =>
+      request<StartPolicyTrialResult>('/checkout/trial', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
+        queryClient.invalidateQueries({ queryKey: checkoutKeys.pending }),
+        queryClient.invalidateQueries({ queryKey: accountKeys.snapshot }),
+      ]);
+    },
+  });
+}
+
+export function useCompletePendingCheckout(site?: string | null) {
+  const normalizedSite =
+    site
+      ?.replace(/^www\./, '')
+      .trim()
+      .toLowerCase() ?? '';
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      request<CheckoutCompleteResult>(
+        normalizedSite
+          ? `/checkout/pending/complete?site=${encodeURIComponent(normalizedSite)}`
+          : '/checkout/pending/complete',
+        { method: 'POST' }
+      ),
+    onSuccess: async (result) => {
+      queryClient.setQueryData(documentKeys.plan, {
+        activeSubscriptionCount: result.activeSubscriptionCount,
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: documentKeys.plan }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.orders }),
+        queryClient.invalidateQueries({ queryKey: accountKeys.snapshot }),
+        queryClient.invalidateQueries({ queryKey: euRepKeys.contracts }),
+        queryClient.invalidateQueries({ queryKey: checkoutKeys.pending }),
+      ]);
+    },
+  });
+}
 
 export function useCreateCheckoutSession() {
   return useMutation({

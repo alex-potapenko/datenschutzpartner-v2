@@ -18,7 +18,7 @@ import {
   generatorVolumeDiscountRate,
   qualifyingSiteCountForCheckout,
 } from '@/api/checkout';
-import { GENERATOR_POLICIES_HREF } from '@/app/account/_components/account-sections';
+import { PRIVACY_POLICY_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
 import {
   Button,
@@ -138,7 +138,7 @@ function GeneratorUpgradePageShell({
       noPadding
       minimal
       backLink={{
-        href: '/account?section=generator',
+        href: PRIVACY_POLICY_ACCOUNT_HREF,
         label: backLabel,
         preferHref: true,
       }}
@@ -241,7 +241,7 @@ export function GeneratorCheckoutApp() {
           allowance: result.activeSubscriptionCount,
         })
       );
-      router.push(GENERATOR_POLICIES_HREF);
+      router.push(PRIVACY_POLICY_ACCOUNT_HREF);
     } catch {
       toast.error(t('failed'));
     }

@@ -56,23 +56,20 @@ export function ScanStep({ domain, onContinue, skipLoading }: ScanStepProps) {
       <Container className="flex h-full flex-1 flex-col">
         <div className="border-border flex h-full flex-1 flex-col items-center justify-center overflow-x-hidden border-r border-l px-4 py-16 sm:px-8 sm:py-24">
           <div className="flex w-full max-w-2xl flex-col items-center gap-4 text-center">
-            {!isComplete && (
-              <div className="text-accent" role="status" aria-live="polite">
-                <span className="sr-only">{t('scanningDescription')}</span>
-                <DotmCircular12 size={48} dotSize={6} aria-hidden />
-              </div>
-            )}
-
-            <div className="flex flex-col items-center gap-4">
-              <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
-                {isComplete ? t('completeTitle') : t('scanningTitle', { domain })}
-              </h1>
-              {!isComplete && (
+            {!isComplete ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="text-accent" role="status" aria-live="polite">
+                  <span className="sr-only">{t('scanningDescription')}</span>
+                  <DotmCircular12 size={48} dotSize={6} aria-hidden />
+                </div>
+                <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
+                  {t('scanningTitle', { domain })}
+                </h1>
                 <p className="text-muted max-w-lg text-base leading-relaxed">
                   {t('scanningDescription')}
                 </p>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </Container>

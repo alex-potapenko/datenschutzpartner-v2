@@ -24,8 +24,8 @@ const BENEFIT_ICON_STYLES: Record<BenefitKey, { color: string; background: strin
     background: 'color-mix(in srgb, var(--feature-purple) 12%, transparent)',
   },
   contact: {
-    color: 'var(--feature-red)',
-    background: 'color-mix(in srgb, var(--feature-red) 12%, transparent)',
+    color: 'var(--feature-fuchsia)',
+    background: 'color-mix(in oklab, var(--feature-fuchsia) 12%, transparent)',
   },
   inquiries: {
     color: 'var(--success)',

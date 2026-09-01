@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
@@ -23,11 +24,13 @@ export default async function LoginPage() {
         <Link
           href="/"
           aria-label={tc('home')}
-          className="mb-8 cursor-pointer self-center text-[var(--accent)] transition-opacity hover:opacity-80"
+          className="mb-2 cursor-pointer self-center text-[var(--accent)] transition-opacity hover:opacity-80"
         >
           <Logo inverse={false} />
         </Link>
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
         <NavigationLink href="/" chevron="left" className="self-center">
           {tc('backHome')}
         </NavigationLink>

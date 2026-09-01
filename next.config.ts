@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source:
-          '/:slug((?!account|scan|login|result|eu-rep|contact|about|privacy|terms|imprint|insights|academy|policies)[a-z0-9]+(?:-[a-z0-9]+)+)',
+          '/:slug((?!account|scan|login|result|eu-rep|contact|about|privacy|terms|imprint|insights|academy|policies|verify-email)[a-z0-9]+(?:-[a-z0-9]+)+)',
         headers: [{ key: 'Content-Security-Policy', value: 'frame-ancestors *' }],
       },
       {

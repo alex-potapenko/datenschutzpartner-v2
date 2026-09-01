@@ -1,15 +1,35 @@
 import { http, HttpResponse } from 'msw';
 import type { Contact, ContactCreate } from '@/api/contacts';
 import type { ContactMessage, ContactMessageCreate } from '@/api/contact-messages';
-import type { ForgotPasswordInput, LoginInput, Session } from '@/api/auth';
-import type { Address, AddressInput, AddressUpdate, AccountSnapshot, Profile } from '@/api/account';
-import type { MembershipRow, Order, Subscription, SubscriptionBillingUpdate } from '@/api/billing';
-import { countActivePolicySites, countActivePolicySubscriptions } from '@/api/billing';
-import type { CheckoutSessionCreate } from '@/api/checkout';
+import type {
+  AccountRole,
+  ForgotPasswordInput,
+  LoginIdentifyInput,
+  LoginInput,
+  RegisterInput,
+  Session,
+  VerifyEmailInput,
+} from '@/api/auth';
+import type { BillingAddress, AccountSnapshot, PasswordChange, Profile } from '@/api/account';
+import type {
+  Order,
+  Subscription,
+  SubscriptionBillingUpdate,
+  EuRepExtraRequestCreate,
+} from '@/api/billing';
+import {
+  countActivePolicySites,
+  countActivePolicySubscriptions,
+  isPolicySubscriptionOnTrial,
+} from '@/api/billing';
+import type { CheckoutSessionCreate, EuRepPlanId } from '@/api/checkout';
 import {
   calculateEuRepQuote,
   calculateGeneratorPolicyQuote,
+  EU_REP_EXTRA_REQUEST_PRICE,
+  POLICY_TRIAL_DAYS,
   qualifyingSiteCountForCheckout,
+  resolveEuRepPlan,
 } from '@/api/checkout';
 import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
 import {
@@ -21,7 +41,12 @@ import {
   resolveHostedPolicySlug,
   uniqueDocumentsBySite,
 } from '@/api/documents';
-import type { EuRepContract, EuRepContractUpdate, EuRepLinkDocuments } from '@/api/eu-rep';
+import type {
+  EuRepContract,
+  EuRepContractCreate,
+  EuRepContractUpdate,
+  EuRepLinkDocuments,
+} from '@/api/eu-rep';
 import type { UidCompany } from '@/api/uid-registry';
 import { createCollection } from './db';
 
@@ -34,10 +59,97 @@ function isMemberToken(token: string | null): boolean {
   return token === 'mock-member-token';
 }
 
+function isVerifiedAccount(token: string | null): boolean {
+  return Boolean(emailFromLoginToken(token));
+}
+
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 const MOCK_MEMBER_EMAIL = 'lucas.baumgartner@gmail.com';
 const MOCK_MEMBER_PASSWORD = 'dspmp';
 const MOCK_DEMO_EMAIL = 'demo@datenschutzpartner.ch';
 const MOCK_DEMO_PASSWORD = 'demo';
+const MOCK_TWO_FACTOR_CODE = '123456';
+/** Default password for accounts created after email verification in the prototype. */
+const PROTOTYPE_REGISTERED_PASSWORD = 'welcome';
+
+type AuthAccountRecord = {
+  id: string;
+  email: string;
+  password: string;
+  role: AccountRole;
+};
+
+const authAccounts = createCollection<AuthAccountRecord>(
+  'auth-accounts',
+  [
+    {
+      id: '1',
+      email: MOCK_MEMBER_EMAIL,
+      password: MOCK_MEMBER_PASSWORD,
+      role: 'member',
+    },
+    {
+      id: '2',
+      email: MOCK_DEMO_EMAIL,
+      password: MOCK_DEMO_PASSWORD,
+      role: 'admin',
+    },
+  ],
+  1
+);
+
+function findAuthAccountByEmail(email: string): AuthAccountRecord | undefined {
+  const normalized = email.trim().toLowerCase();
+  return authAccounts.all().find((row) => row.email === normalized);
+}
+
+function accountRole(email: string): AccountRole | null {
+  return findAuthAccountByEmail(email)?.role ?? null;
+}
+
+function ensureAuthAccount(
+  email: string,
+  role: AccountRole = 'member',
+  password = PROTOTYPE_REGISTERED_PASSWORD
+): AuthAccountRecord {
+  const normalized = email.trim().toLowerCase();
+  const existing = findAuthAccountByEmail(normalized);
+  if (existing) return existing;
+
+  return authAccounts.create({
+    email: normalized,
+    password,
+    role,
+  });
+}
+
+function loginTokenForEmail(email: string): string {
+  const normalized = email.trim().toLowerCase();
+  if (normalized === MOCK_MEMBER_EMAIL) return 'mock-member-token';
+  if (normalized === MOCK_DEMO_EMAIL) return 'mock-token';
+  return `mock-email-${encodeURIComponent(normalized)}`;
+}
+
+function emailFromLoginToken(token: string | null): string | null {
+  if (!token) return null;
+  if (token === 'mock-member-token') return MOCK_MEMBER_EMAIL;
+  if (token === 'mock-token') return MOCK_DEMO_EMAIL;
+  if (token.startsWith('mock-email-')) {
+    return decodeURIComponent(token.slice('mock-email-'.length));
+  }
+  if (token.startsWith('mock-verified-')) {
+    const pending = pendingRegistrations
+      .all()
+      .find((row) => `mock-verified-${row.verificationToken}` === token);
+    return pending?.email ?? null;
+  }
+  return null;
+}
 
 /**
  * Mock API — this is the draft API contract the prototype designs.
@@ -54,13 +166,11 @@ const contacts = createCollection<Contact>('contacts', [
 
 const contactMessages = createCollection<ContactMessage>('contact-messages', []);
 
-const addresses = createCollection<Address>(
-  'account-addresses',
+const billingAddress = createCollection<BillingAddress & { id: string }>(
+  'account-billing-address',
   [
     {
       id: '1',
-      type: 'billing',
-      label: 'Baumgartner Digital AG',
       firstName: 'Lucas',
       lastName: 'Baumgartner',
       company: 'Baumgartner Digital AG',
@@ -69,20 +179,10 @@ const addresses = createCollection<Address>(
       city: 'Zürich',
       country: 'Schweiz',
       vatId: 'CHE-123.456.789 MWST',
-    },
-    {
-      id: '2',
-      type: 'billing',
-      label: 'Privatadresse',
-      firstName: 'Lucas',
-      lastName: 'Baumgartner',
-      line1: 'Seefeldstrasse 45',
-      postalCode: '8008',
-      city: 'Zürich',
-      country: 'Schweiz',
+      billingEmail: MOCK_MEMBER_EMAIL,
     },
   ],
-  4
+  1
 );
 
 const profile = createCollection<Profile & { id: string }>(
@@ -94,22 +194,23 @@ const profile = createCollection<Profile & { id: string }>(
       lastName: 'Baumgartner',
       displayName: 'Lucas Baumgartner',
       email: MOCK_MEMBER_EMAIL,
+      role: 'member',
     },
   ],
   2
 );
 
 /** Billing-system numbers. Parent subscriptions keep a stable id; each invoice gets its own. */
-const ACADEMY_SUBSCRIPTION_ID = '39104';
 const EU_REP_BAUMGARTNER_SUBSCRIPTION_ID = '56218';
 const EU_REP_ALPENBLICK_SUBSCRIPTION_ID = '57391';
+const EU_REP_BERGHOTEL_SUBSCRIPTION_ID = '58402';
 /** Agency prepaid volume (buy-more) — atypical; most members have siteCount 1. */
 const POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID = '84729';
 const POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID = '86104';
 const POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID = '87215';
 const POLICY_EXPIRED_SUBSCRIPTION_ID = '90341';
-const ACADEMY_INVOICE_2025_ID = '41876';
-const ACADEMY_INVOICE_2024_ID = '27591';
+const POLICY_TRIAL_SEEBLICK_SUBSCRIPTION_ID = '91452';
+const POLICY_TRIAL_ATELIER_SUBSCRIPTION_ID = '91453';
 
 function nextTechnicalSubscriptionId(): string {
   const used = new Set(
@@ -131,40 +232,23 @@ const subscriptions = createCollection<Subscription>(
   'billing-subscriptions',
   [
     {
-      id: ACADEMY_SUBSCRIPTION_ID,
-      productType: 'academy',
-      product: 'Jahresmitgliedschaft',
-      planId: 'academy',
-      status: 'active',
-      startDate: '2026-01-15',
-      lastOrderDate: '2026-01-15',
-      nextPaymentDate: '2027-01-15',
-      billingAddressId: '1',
-      totals: {
-        product: 'Jahresmitgliedschaft',
-        subtotal: 290,
-        discount: 0,
-        total: 290,
-        currency: 'CHF',
-      },
-      relatedOrderIds: ['1', '17', '18'],
-    },
-    {
       id: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
       productType: 'euRep',
-      product: 'EU-Vertretung — Baumgartner Digital AG',
-      planId: '1',
+      product: 'EU Representation — Plus',
+      planId: 'plus',
       legalEntityCount: 1,
+      includedRequests: 1,
+      usedRequests: 0,
       status: 'active',
       startDate: '2026-04-02',
       lastOrderDate: '2026-04-02',
       nextPaymentDate: '2027-04-02',
-      billingAddressId: '2',
+      billingAddressId: '1',
       totals: {
-        product: 'EU-Vertretung — Baumgartner Digital AG (12 Monate)',
-        subtotal: 249,
+        product: 'EU Representation — Plus (12 Monate)',
+        subtotal: 229,
         discount: 0,
-        total: 249,
+        total: 229,
         currency: 'CHF',
       },
       relatedOrderIds: ['3'],
@@ -172,22 +256,46 @@ const subscriptions = createCollection<Subscription>(
     {
       id: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
       productType: 'euRep',
-      product: 'EU-Vertretung — Alpenblick Hospitality AG',
-      planId: '1',
+      product: 'EU Representation — Basis',
+      planId: 'basis',
       legalEntityCount: 1,
+      includedRequests: 0,
+      usedRequests: 0,
       status: 'active',
       startDate: '2026-05-18',
       lastOrderDate: '2026-05-18',
       nextPaymentDate: '2027-05-18',
-      billingAddressId: '2',
+      billingAddressId: '1',
       totals: {
-        product: 'EU-Vertretung — Alpenblick Hospitality AG (12 Monate)',
-        subtotal: 249,
+        product: 'EU Representation — Basis (12 Monate)',
+        subtotal: 149,
         discount: 0,
-        total: 249,
+        total: 149,
         currency: 'CHF',
       },
       relatedOrderIds: ['21'],
+    },
+    {
+      id: EU_REP_BERGHOTEL_SUBSCRIPTION_ID,
+      productType: 'euRep',
+      product: 'EU Representation — Basis',
+      planId: 'basis',
+      legalEntityCount: 1,
+      includedRequests: 0,
+      usedRequests: 0,
+      status: 'active',
+      startDate: '2026-06-01',
+      lastOrderDate: '2026-06-01',
+      nextPaymentDate: '2027-06-01',
+      billingAddressId: '1',
+      totals: {
+        product: 'EU Representation — Basis (12 Monate)',
+        subtotal: 149,
+        discount: 0,
+        total: 149,
+        currency: 'CHF',
+      },
+      relatedOrderIds: ['23'],
     },
     {
       id: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
@@ -269,8 +377,50 @@ const subscriptions = createCollection<Subscription>(
       },
       relatedOrderIds: ['19'],
     },
+    {
+      id: POLICY_TRIAL_SEEBLICK_SUBSCRIPTION_ID,
+      productType: 'policy',
+      product: 'Privacy Policy — seeblick-apotheke.ch',
+      planId: '1',
+      siteCount: 1,
+      status: 'active',
+      startDate: '2026-08-17',
+      lastOrderDate: '2026-08-17',
+      nextPaymentDate: '2026-09-14',
+      trialEndsAt: '2026-09-14',
+      billingAddressId: '1',
+      totals: {
+        product: 'Privacy Policy — seeblick-apotheke.ch (12 Monate)',
+        subtotal: 0,
+        discount: 0,
+        total: 0,
+        currency: 'CHF',
+      },
+      relatedOrderIds: [],
+    },
+    {
+      id: POLICY_TRIAL_ATELIER_SUBSCRIPTION_ID,
+      productType: 'policy',
+      product: 'Privacy Policy — atelier-bern.ch',
+      planId: '1',
+      siteCount: 1,
+      status: 'active',
+      startDate: '2026-08-24',
+      lastOrderDate: '2026-08-24',
+      nextPaymentDate: '2026-09-14',
+      trialEndsAt: '2026-09-14',
+      billingAddressId: '1',
+      totals: {
+        product: 'Privacy Policy — atelier-bern.ch (12 Monate)',
+        subtotal: 0,
+        discount: 0,
+        total: 0,
+        currency: 'CHF',
+      },
+      relatedOrderIds: [],
+    },
   ],
-  17
+  19
 );
 
 type CheckoutSessionRecord = {
@@ -287,8 +437,9 @@ type CheckoutSessionRecord = {
   domain?: string;
   policyName?: string;
   legalEntity?: string;
+  euRepPlanId?: EuRepPlanId;
   euRepEntityCount?: number;
-  euRepEntities?: { legalEntity: string; forwardingEmail: string }[];
+  euRepEntities?: CheckoutSessionCreate['euRepEntities'];
   euRepLinkContractId?: string;
   subscriptionId?: string;
   fillSubscriptionId?: string;
@@ -300,6 +451,28 @@ type CheckoutSessionRecord = {
 };
 
 const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 3);
+
+type PendingRegistration = RegisterInput & {
+  id: string;
+  verificationToken: string;
+};
+
+type PendingCheckoutRecord = {
+  id: string;
+  domain: string;
+  legalEntity?: string;
+  fillSubscriptionId?: string;
+  documentId?: string;
+  subscriptionId?: string;
+  trialEndsAt?: string;
+  euRepPlanId?: EuRepPlanId;
+  euRepEntityCount?: number;
+  euRepEntities?: CheckoutSessionCreate['euRepEntities'];
+  euRepLinkContractId?: string;
+};
+
+const pendingRegistrations = createCollection<PendingRegistration>('pending-registrations', [], 3);
+const pendingCheckouts = createCollection<PendingCheckoutRecord>('pending-checkouts', [], 3);
 
 function addOneYear(isoDate: string): string {
   const date = new Date(isoDate);
@@ -320,8 +493,122 @@ function policyProductLabel(siteCount: number, domain?: string): string {
   return `Privacy Policy Generator — ${siteCount} ${siteCount === 1 ? 'Site' : 'Sites'}`;
 }
 
-function euRepProductLabel(legalEntity: string): string {
-  return `EU-Vertretung — ${legalEntity}`;
+function euRepProductLabel(planId: string): string {
+  const plan = resolveEuRepPlan(planId);
+  const titles: Record<string, string> = {
+    basis: 'EU Representation — Basis',
+    plus: 'EU Representation — Plus',
+    plus5: 'EU Representation — Plus 5',
+  };
+  return titles[plan.id] ?? `EU Representation — ${plan.id}`;
+}
+
+function defaultPostalForEntity(legalEntity: string) {
+  return {
+    postalLine1: 'Bahnhofstrasse 1',
+    postalCode: '8001',
+    city: 'Zürich',
+    country: 'Schweiz',
+    legalEntity,
+  };
+}
+
+/**
+ * One EU Rep plan subscription covering `entityCount` legal entities.
+ * Wizard always uses Basis; standalone passes `euRepPlanId`.
+ */
+function createEuRepPurchase(
+  session: CheckoutSessionRecord,
+  today: string,
+  extraLinkedDocumentIds: string[] = [],
+  options?: { trialEndsAt?: string }
+):
+  | { orderId: string; subscriptionId: string; contractId?: string; contractIds: string[] }
+  | undefined {
+  const entityCount = Math.max(1, session.euRepEntityCount ?? session.euRepEntities?.length ?? 0);
+  if (!session.euRepEntityCount && !session.euRepEntities?.length) return undefined;
+
+  const planId = session.euRepPlanId ?? 'basis';
+  const quote = calculateEuRepQuote(planId, entityCount);
+  const plan = resolveEuRepPlan(planId);
+  const nextPaymentDate = addOneYear(today);
+  const entities = session.euRepEntities ?? [];
+  const product = euRepProductLabel(planId);
+  const subscriptionId = nextTechnicalSubscriptionId();
+  const isTrial = Boolean(options?.trialEndsAt);
+
+  const euOrder = isTrial
+    ? undefined
+    : orders.create({
+        productType: 'euRep',
+        number: nextOrderNumber(),
+        date: today,
+        status: 'active',
+        total: quote.amountDue,
+        currency: 'CHF',
+        legalEntityCount: entityCount,
+        planId: plan.id,
+        orderKind: 'subscription',
+        subscriptionId,
+      });
+
+  subscriptions.create({
+    id: subscriptionId,
+    productType: 'euRep',
+    product,
+    planId: plan.id,
+    legalEntityCount: entityCount,
+    includedRequests: plan.includedRequests,
+    usedRequests: 0,
+    status: 'active',
+    startDate: today,
+    lastOrderDate: isTrial ? null : today,
+    nextPaymentDate: isTrial ? null : nextPaymentDate,
+    trialEndsAt: options?.trialEndsAt,
+    billingAddressId: '1',
+    totals: {
+      product: `${product} (12 Monate)`,
+      subtotal: quote.amountDue,
+      discount: 0,
+      total: quote.amountDue,
+      currency: 'CHF',
+    },
+    relatedOrderIds: euOrder ? [euOrder.id] : [],
+  });
+
+  const contractIds: string[] = [];
+  let firstContractId: string | undefined;
+
+  for (let index = 0; index < entityCount; index += 1) {
+    const details = entities[index];
+    const legalEntity = details?.legalEntity.trim() || `Legal entity ${String(index + 1)}`;
+    const defaults = defaultPostalForEntity(legalEntity);
+    const created = euRepContracts.create({
+      subscriptionId,
+      legalEntity,
+      forwardingEmail: details?.forwardingEmail.trim() || MOCK_MEMBER_EMAIL,
+      postalLine1: details?.postalLine1?.trim() || defaults.postalLine1,
+      postalLine2: details?.postalLine2?.trim() || undefined,
+      postalCode: details?.postalCode?.trim() || defaults.postalCode,
+      city: details?.city?.trim() || defaults.city,
+      country: details?.country?.trim() || defaults.country,
+      linkedDocumentIds: [],
+      status: 'active',
+    });
+    contractIds.push(created.id);
+    firstContractId ??= created.id;
+  }
+
+  if (firstContractId && extraLinkedDocumentIds.length > 0) {
+    linkDocumentsToContract(firstContractId, extraLinkedDocumentIds, today);
+  }
+
+  return {
+    orderId: euOrder?.id ?? '',
+    subscriptionId,
+    contractId: firstContractId,
+    contractIds,
+  };
 }
 
 function linkDocumentsToContract(contractId: string, documentIds: string[], today: string) {
@@ -355,89 +642,6 @@ function unlinkDocumentFromContract(contractId: string, documentId: string, toda
   euRepContracts.update(contractId, {
     linkedDocumentIds: contract.linkedDocumentIds.filter((id) => id !== documentId),
   });
-}
-
-function createEuRepPurchase(
-  session: CheckoutSessionRecord,
-  today: string,
-  extraLinkedDocumentIds: string[] = []
-):
-  | { orderId: string; subscriptionId: string; contractId?: string; contractIds: string[] }
-  | undefined {
-  const entityCount = Math.max(1, session.euRepEntityCount ?? session.euRepEntities?.length ?? 0);
-  if (!session.euRepEntityCount && !session.euRepEntities?.length) return undefined;
-
-  const unitQuote = calculateEuRepQuote(1);
-  const nextPaymentDate = addOneYear(today);
-  const entities = session.euRepEntities ?? [];
-  const contractIds: string[] = [];
-  let firstOrderId: string | undefined;
-  let firstSubscriptionId: string | undefined;
-  let firstContractId: string | undefined;
-
-  for (let index = 0; index < entityCount; index += 1) {
-    const details = entities[index];
-    const legalEntity = details?.legalEntity.trim() || `Legal entity ${String(index + 1)}`;
-    const product = euRepProductLabel(legalEntity);
-    const subscriptionId = nextTechnicalSubscriptionId();
-
-    const euOrder = orders.create({
-      productType: 'euRep',
-      number: nextOrderNumber(),
-      date: today,
-      status: 'active',
-      total: unitQuote.amountDue,
-      currency: 'CHF',
-      legalEntityCount: 1,
-      orderKind: 'subscription',
-      subscriptionId,
-    });
-
-    subscriptions.create({
-      id: subscriptionId,
-      productType: 'euRep',
-      product,
-      planId: '1',
-      legalEntityCount: 1,
-      status: 'active',
-      startDate: today,
-      lastOrderDate: today,
-      nextPaymentDate,
-      billingAddressId: '1',
-      totals: {
-        product: `${product} (12 Monate)`,
-        subtotal: unitQuote.amountDue,
-        discount: 0,
-        total: unitQuote.amountDue,
-        currency: 'CHF',
-      },
-      relatedOrderIds: [euOrder.id],
-    });
-
-    const created = euRepContracts.create({
-      subscriptionId,
-      legalEntity,
-      forwardingEmail: details?.forwardingEmail.trim() || MOCK_MEMBER_EMAIL,
-      linkedDocumentIds: [],
-      status: 'active',
-    });
-
-    contractIds.push(created.id);
-    firstOrderId ??= euOrder.id;
-    firstSubscriptionId ??= subscriptionId;
-    firstContractId ??= created.id;
-  }
-
-  if (firstContractId && extraLinkedDocumentIds.length > 0) {
-    linkDocumentsToContract(firstContractId, extraLinkedDocumentIds, today);
-  }
-
-  return {
-    orderId: firstOrderId ?? '',
-    subscriptionId: firstSubscriptionId ?? '',
-    contractId: firstContractId,
-    contractIds,
-  };
 }
 
 function stripEuRepFromHostedPolicies(subscriptionId: string) {
@@ -646,36 +850,171 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
   return completed;
 }
 
-const memberships = createCollection<MembershipRow>(
-  'billing-memberships',
-  [
-    {
-      id: '1',
-      productType: 'academy',
-      plan: 'Academy',
-      startDate: '2026-01-15',
-      expiresDate: '2027-01-15',
-      status: 'active',
-      nextPaymentDate: '2027-01-15',
+function startPolicyTrial(input: CheckoutSessionCreate):
+  | {
+      document?: GeneratedDocument;
+      subscriptionId?: string;
+      trialEndsAt?: string;
+      documentId?: string;
+    }
+  | undefined {
+  const today = new Date().toISOString().slice(0, 10);
+  const domain = input.domain?.replace(/^www\./, '');
+  if (!domain) return undefined;
+
+  const willBuyEuRep = Boolean(input.euRepEntityCount || input.euRepEntities?.length);
+  const willLinkExisting = Boolean(input.euRepLinkContractId);
+  const linkedContract = willLinkExisting
+    ? euRepContracts.all().find((row) => row.id === input.euRepLinkContractId)
+    : undefined;
+  const swissLegalEntity =
+    input.legalEntity?.trim() ||
+    input.euRepEntities?.[0]?.legalEntity.trim() ||
+    linkedContract?.legalEntity ||
+    undefined;
+
+  if (input.fillSubscriptionId) {
+    const slotSubscription = subscriptions.all().find((row) => row.id === input.fillSubscriptionId);
+    if (
+      !slotSubscription ||
+      slotSubscription.productType !== 'policy' ||
+      slotSubscription.status !== 'active' ||
+      countAvailablePolicySlots(slotSubscription, documents.all()) <= 0
+    ) {
+      return undefined;
+    }
+
+    const created = documents.create({
+      name: input.policyName ?? 'Privacy Policy',
+      site: domain,
+      legalEntity: swissLegalEntity,
+      subscriptionId: slotSubscription.id,
+      createdDate: today,
+      updatedDate: today,
+      versions: buildPolicyVersions(today),
+      euRepLinked: willLinkExisting,
+    });
+
+    if (willLinkExisting && input.euRepLinkContractId) {
+      linkDocumentsToContract(input.euRepLinkContractId, [created.id], today);
+    }
+
+    if (willBuyEuRep) {
+      const existing = pendingCheckouts
+        .all()
+        .find((row) => formatSiteDomain(row.domain) === formatSiteDomain(domain));
+      const record = {
+        domain,
+        legalEntity: swissLegalEntity,
+        fillSubscriptionId: input.fillSubscriptionId,
+        documentId: created.id,
+        subscriptionId: slotSubscription.id,
+        euRepPlanId: 'basis' as const,
+        euRepEntityCount: input.euRepEntityCount,
+        euRepEntities: input.euRepEntities,
+        euRepLinkContractId: input.euRepLinkContractId,
+      };
+      if (existing) pendingCheckouts.update(existing.id, record);
+      else pendingCheckouts.create(record);
+    }
+
+    return {
+      document: created,
+      documentId: created.id,
+      subscriptionId: slotSubscription.id,
+    };
+  }
+
+  const trialEndsAt = addDays(today, POLICY_TRIAL_DAYS);
+  const productLabel = policyProductLabel(1, domain);
+  const createdSub = subscriptions.create({
+    id: nextTechnicalSubscriptionId(),
+    productType: 'policy',
+    product: productLabel,
+    planId: '1',
+    siteCount: 1,
+    status: 'active',
+    startDate: today,
+    lastOrderDate: today,
+    nextPaymentDate: trialEndsAt,
+    trialEndsAt,
+    billingAddressId: '1',
+    totals: {
+      product: `${productLabel} (12 Monate)`,
+      subtotal: 0,
+      discount: 0,
+      total: 0,
+      currency: 'CHF',
     },
-  ],
-  2
-);
+    relatedOrderIds: [],
+  });
+
+  const created = documents.create({
+    name: input.policyName ?? 'Privacy Policy',
+    site: domain,
+    legalEntity: swissLegalEntity,
+    subscriptionId: createdSub.id,
+    createdDate: today,
+    updatedDate: today,
+    versions: buildPolicyVersions(today),
+    euRepLinked: willLinkExisting,
+  });
+
+  if (willLinkExisting && input.euRepLinkContractId) {
+    linkDocumentsToContract(input.euRepLinkContractId, [created.id], today);
+  }
+
+  if (willBuyEuRep) {
+    createEuRepPurchase(
+      {
+        id: 'trial-eu-rep',
+        status: 'pending',
+        kind: 'euRep',
+        siteCount: 1,
+        amount: 0,
+        generatorAmount: 0,
+        listPrice: 0,
+        discountRate: 0,
+        discountAmount: 0,
+        currency: 'CHF',
+        euRepPlanId: 'basis',
+        euRepEntityCount: input.euRepEntityCount ?? 1,
+        euRepEntities: input.euRepEntities,
+      },
+      today,
+      [created.id],
+      { trialEndsAt }
+    );
+  }
+
+  const existingPending = pendingCheckouts
+    .all()
+    .find((row) => formatSiteDomain(row.domain) === formatSiteDomain(domain));
+  const pendingRecord = {
+    domain,
+    legalEntity: swissLegalEntity,
+    documentId: created.id,
+    subscriptionId: createdSub.id,
+    trialEndsAt,
+    euRepPlanId: willBuyEuRep ? ('basis' as const) : undefined,
+    euRepEntityCount: input.euRepEntityCount,
+    euRepEntities: input.euRepEntities,
+    euRepLinkContractId: input.euRepLinkContractId,
+  };
+  if (existingPending) pendingCheckouts.update(existingPending.id, pendingRecord);
+  else pendingCheckouts.create(pendingRecord);
+
+  return {
+    document: created,
+    documentId: created.id,
+    subscriptionId: createdSub.id,
+    trialEndsAt,
+  };
+}
 
 const orders = createCollection<Order>(
   'billing-orders',
   [
-    {
-      id: '1',
-      productType: 'academy',
-      number: 'DSP-2026-1001',
-      date: '2026-01-15',
-      status: 'active',
-      total: 290,
-      currency: 'CHF',
-      orderKind: 'subscription',
-      subscriptionId: ACADEMY_SUBSCRIPTION_ID,
-    },
     {
       id: '2',
       productType: 'policy',
@@ -718,9 +1057,10 @@ const orders = createCollection<Order>(
       number: 'DSP-2026-1077',
       date: '2026-04-02',
       status: 'active',
-      total: 249,
+      total: 229,
       currency: 'CHF',
       legalEntityCount: 1,
+      planId: 'plus',
       orderKind: 'subscription',
       subscriptionId: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
     },
@@ -730,33 +1070,25 @@ const orders = createCollection<Order>(
       number: 'DSP-2026-1082',
       date: '2026-05-18',
       status: 'active',
-      total: 249,
+      total: 149,
       currency: 'CHF',
       legalEntityCount: 1,
+      planId: 'basis',
       orderKind: 'subscription',
       subscriptionId: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
     },
     {
-      id: '17',
-      productType: 'academy',
-      number: 'DSP-2025-1001',
-      date: '2025-01-15',
+      id: '23',
+      productType: 'euRep',
+      number: 'DSP-2026-1091',
+      date: '2026-06-01',
       status: 'active',
-      total: 290,
+      total: 149,
       currency: 'CHF',
+      legalEntityCount: 1,
+      planId: 'basis',
       orderKind: 'subscription',
-      subscriptionId: ACADEMY_INVOICE_2025_ID,
-    },
-    {
-      id: '18',
-      productType: 'academy',
-      number: 'DSP-2024-1001',
-      date: '2024-01-15',
-      status: 'active',
-      total: 270,
-      currency: 'CHF',
-      orderKind: 'subscription',
-      subscriptionId: ACADEMY_INVOICE_2024_ID,
+      subscriptionId: EU_REP_BERGHOTEL_SUBSCRIPTION_ID,
     },
     {
       id: '19',
@@ -771,7 +1103,7 @@ const orders = createCollection<Order>(
       subscriptionId: POLICY_EXPIRED_SUBSCRIPTION_ID,
     },
   ],
-  15
+  16
 );
 
 /** Latest legal year the hosted policies have been maintained through. */
@@ -838,7 +1170,7 @@ const documents = createCollection<GeneratedDocument>(
         name: 'Datenschutzerklärung',
         site: 'seeblick-apotheke.ch',
         legalEntity: 'Seeblick Apotheke AG',
-        subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
+        subscriptionId: POLICY_TRIAL_SEEBLICK_SUBSCRIPTION_ID,
         createdDate: '2026-02-05',
         updatedDate: '2026-02-05',
       },
@@ -847,7 +1179,7 @@ const documents = createCollection<GeneratedDocument>(
         name: 'Privacy Policy',
         site: 'atelier-bern.ch',
         legalEntity: 'Atelier Bern GmbH',
-        subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
+        subscriptionId: POLICY_TRIAL_ATELIER_SUBSCRIPTION_ID,
         createdDate: '2026-03-02',
         updatedDate: '2026-03-02',
       },
@@ -862,8 +1194,69 @@ const documents = createCollection<GeneratedDocument>(
       },
     ] satisfies GeneratedDocument[]
   ).map((doc) => ({ ...doc, versions: buildPolicyVersions(doc.createdDate) })),
-  20
+  21
 );
+
+function findDocumentBySite(site: string): GeneratedDocument | undefined {
+  const normalized = formatSiteDomain(site);
+  return documents.all().find((doc) => formatSiteDomain(resolveDocumentSite(doc)) === normalized);
+}
+
+function resolvePendingCheckoutForSite(site: string) {
+  const doc = findDocumentBySite(site);
+  if (!doc?.subscriptionId) {
+    return { needed: false as const };
+  }
+
+  const subscription = subscriptions.all().find((row) => row.id === doc.subscriptionId);
+  if (!subscription || !isPolicySubscriptionOnTrial(subscription)) {
+    return { needed: false as const };
+  }
+
+  const normalized = formatSiteDomain(site);
+  const pending = pendingCheckouts.all().find((row) => formatSiteDomain(row.domain) === normalized);
+
+  return {
+    needed: true as const,
+    trialEndsAt: subscription.trialEndsAt,
+    domain: resolveDocumentSite(doc),
+    legalEntity: doc.legalEntity ?? pending?.legalEntity,
+    fillSubscriptionId: pending?.fillSubscriptionId,
+    documentId: doc.id,
+    subscriptionId: doc.subscriptionId,
+    euRepEntityCount: pending?.euRepEntityCount,
+    euRepEntities: pending?.euRepEntities,
+    euRepLinkContractId: pending?.euRepLinkContractId,
+  };
+}
+
+function findPendingCheckoutRecord(site?: string | null): PendingCheckoutRecord | undefined {
+  if (site) {
+    const normalized = formatSiteDomain(site);
+    const fromCollection = pendingCheckouts
+      .all()
+      .find((row) => formatSiteDomain(row.domain) === normalized);
+    if (fromCollection) return fromCollection;
+
+    const resolved = resolvePendingCheckoutForSite(site);
+    if (!resolved.needed) return undefined;
+
+    return {
+      id: '__synthetic__',
+      domain: resolved.domain,
+      legalEntity: resolved.legalEntity,
+      documentId: resolved.documentId,
+      subscriptionId: resolved.subscriptionId,
+      trialEndsAt: resolved.trialEndsAt,
+      fillSubscriptionId: resolved.fillSubscriptionId,
+      euRepEntityCount: resolved.euRepEntityCount,
+      euRepEntities: resolved.euRepEntities,
+      euRepLinkContractId: resolved.euRepLinkContractId,
+    };
+  }
+
+  return pendingCheckouts.all()[0];
+}
 
 const euRepContracts = createCollection<EuRepContract>(
   'eu-rep-contracts',
@@ -873,6 +1266,10 @@ const euRepContracts = createCollection<EuRepContract>(
       subscriptionId: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
       legalEntity: 'Baumgartner Digital AG',
       forwardingEmail: MOCK_MEMBER_EMAIL,
+      postalLine1: 'Bahnhofstrasse 12',
+      postalCode: '8001',
+      city: 'Zürich',
+      country: 'Schweiz',
       linkedDocumentIds: ['1', '6'],
       status: 'active',
     },
@@ -881,11 +1278,28 @@ const euRepContracts = createCollection<EuRepContract>(
       subscriptionId: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
       legalEntity: 'Alpenblick Hospitality AG',
       forwardingEmail: 'privacy@alpenblick-hotel.ch',
+      postalLine1: 'Seestrasse 8',
+      postalCode: '3800',
+      city: 'Interlaken',
+      country: 'Schweiz',
       linkedDocumentIds: ['3'],
       status: 'active',
     },
+    {
+      id: '3',
+      subscriptionId: EU_REP_BERGHOTEL_SUBSCRIPTION_ID,
+      legalEntity: 'Berghotel Grindelwald AG',
+      website: 'berghotel-grindelwald.ch',
+      forwardingEmail: 'privacy@berghotel-grindelwald.ch',
+      postalLine1: 'Dorfstrasse 18',
+      postalCode: '3818',
+      city: 'Grindelwald',
+      country: 'Schweiz',
+      linkedDocumentIds: [],
+      status: 'active',
+    },
   ],
-  5
+  6
 );
 
 const SWISS_LEGAL_ENTITY_BY_SITE: Record<string, string> = {
@@ -1004,42 +1418,102 @@ export const handlers = [
     );
   }),
 
+  http.post('/api/auth/login/identify', async ({ request }) => {
+    const input = (await request.json()) as LoginIdentifyInput;
+    const email = input.email.trim().toLowerCase();
+    const role = accountRole(email);
+
+    if (!role) {
+      return HttpResponse.json({ message: 'unknown_email' }, { status: 404 });
+    }
+
+    return HttpResponse.json({ role });
+  }),
+
   http.post('/api/auth/login', async ({ request }) => {
     const input = (await request.json()) as LoginInput;
+    const email = input.email.trim().toLowerCase();
+    const account = findAuthAccountByEmail(email);
 
-    if (input.email === MOCK_DEMO_EMAIL && input.password === MOCK_DEMO_PASSWORD) {
-      return HttpResponse.json({ token: 'mock-token', email: input.email });
+    if (!account || input.password !== account.password) {
+      return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
     }
 
-    if (input.email === MOCK_MEMBER_EMAIL && input.password === MOCK_MEMBER_PASSWORD) {
-      return HttpResponse.json({ token: 'mock-member-token', email: input.email });
+    if (account.role === 'admin') {
+      if (!input.twoFactorCode || input.twoFactorCode !== MOCK_TWO_FACTOR_CODE) {
+        return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 401 });
+      }
     }
 
-    return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
+    return HttpResponse.json({ token: loginTokenForEmail(email), email });
   }),
 
   http.get('/api/auth/session', ({ request }) => {
-    const auth = request.headers.get('Authorization');
-    const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+    const token = tokenFromRequest(request);
+    const email = emailFromLoginToken(token);
 
-    if (token === 'mock-member-token') {
+    if (!email) {
       return HttpResponse.json({
-        email: MOCK_MEMBER_EMAIL,
-        hasAcademyMembership: true,
-      } satisfies Session);
-    }
-
-    if (token === 'mock-token') {
-      return HttpResponse.json({
-        email: MOCK_DEMO_EMAIL,
-        hasAcademyMembership: false,
+        email: null,
+        emailVerified: false,
       } satisfies Session);
     }
 
     return HttpResponse.json({
-      email: null,
-      hasAcademyMembership: false,
+      email,
+      emailVerified: true,
+      role: accountRole(email) ?? 'member',
     } satisfies Session);
+  }),
+
+  http.post('/api/auth/register', async ({ request }) => {
+    const input = (await request.json()) as RegisterInput;
+    if (!input.email || !input.acceptTerms || !input.domain) {
+      return HttpResponse.json({ message: 'invalid_registration' }, { status: 400 });
+    }
+
+    const verificationToken = `verify-${input.email.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`;
+    const existing = pendingRegistrations.all().find((row) => row.email === input.email);
+    const saved = existing
+      ? pendingRegistrations.update(existing.id, { ...input, verificationToken })
+      : pendingRegistrations.create({ ...input, verificationToken });
+
+    return HttpResponse.json({
+      status: 'pending_verification' as const,
+      email: saved?.email ?? input.email,
+      verificationUrl: `/verify-email?token=${verificationToken}`,
+    });
+  }),
+
+  http.post('/api/auth/verify-email', async ({ request }) => {
+    const input = (await request.json()) as VerifyEmailInput;
+    const pending = pendingRegistrations.all().find((row) => row.verificationToken === input.token);
+    if (!pending) {
+      return HttpResponse.json({ message: 'invalid_token' }, { status: 400 });
+    }
+
+    const trial = startPolicyTrial({
+      kind: 'generator',
+      siteCount: 1,
+      domain: pending.domain,
+      policyName: pending.policyName,
+      legalEntity: pending.legalEntity,
+      fillSubscriptionId: pending.fillSubscriptionId,
+      euRepEntityCount: pending.euRepEntityCount,
+      euRepEntities: pending.euRepEntities,
+      euRepLinkContractId: pending.euRepLinkContractId,
+    });
+
+    const email = pending.email.trim().toLowerCase();
+    ensureAuthAccount(email, 'member');
+
+    return HttpResponse.json({
+      token: loginTokenForEmail(email),
+      email,
+      documentId: trial?.documentId,
+      domain: pending.domain,
+      prototypePassword: PROTOTYPE_REGISTERED_PASSWORD,
+    });
   }),
 
   http.post('/api/auth/forgot-password', async ({ request }) => {
@@ -1051,77 +1525,90 @@ export const handlers = [
   }),
 
   http.get('/api/account/snapshot', ({ request }) => {
-    const member = isMemberToken(tokenFromRequest(request));
-    const activeMembership = memberships
-      .all()
-      .find((row) => row.status === 'active' && row.productType === 'academy');
+    const member = isVerifiedAccount(tokenFromRequest(request));
 
     return HttpResponse.json({
-      membership:
-        member && activeMembership
-          ? {
-              status: activeMembership.status === 'active' ? 'active' : 'processing',
-              subscriptionDate: activeMembership.startDate,
-              renewalDate: activeMembership.nextPaymentDate,
-            }
-          : { status: 'none', subscriptionDate: null, renewalDate: null },
-      nextLiveSessionAt: member ? '2026-07-15T10:00:00+02:00' : null,
-      documentCount: documents.all().length,
+      documentCount: member ? documents.all().length : 0,
     } satisfies AccountSnapshot);
   }),
 
-  http.get('/api/account/addresses', () => HttpResponse.json(addresses.all())),
-
-  http.post('/api/account/addresses', async ({ request }) => {
-    const input = (await request.json()) as AddressInput;
-    return HttpResponse.json(addresses.create(input), { status: 201 });
-  }),
-
-  http.put('/api/account/addresses/:id', async ({ params, request }) => {
-    const input = (await request.json()) as AddressUpdate;
-    const updated = addresses.update(String(params.id), input);
-    if (!updated) {
-      return new HttpResponse(null, { status: 404 });
+  http.get('/api/account/billing-address', () => {
+    const stored = billingAddress.all()[0];
+    if (!stored) {
+      return HttpResponse.json(null);
     }
-    return HttpResponse.json(updated);
+    const { id: storedId, ...address } = stored;
+    void storedId;
+    return HttpResponse.json(address satisfies BillingAddress);
   }),
 
-  http.delete('/api/account/addresses/:id', ({ params }) => {
-    const removed = addresses.remove(String(params.id));
-    return new HttpResponse(null, { status: removed ? 204 : 404 });
+  http.put('/api/account/billing-address', async ({ request }) => {
+    const input = (await request.json()) as BillingAddress;
+    const existing = billingAddress.all()[0];
+    const saved = existing
+      ? billingAddress.update(existing.id, input)
+      : billingAddress.create({ ...input, id: '1' });
+    if (!saved) {
+      return new HttpResponse(null, { status: 500 });
+    }
+    const { id: savedId, ...address } = saved;
+    void savedId;
+    return HttpResponse.json(address satisfies BillingAddress);
   }),
 
   http.get('/api/account/profile', ({ request }) => {
     const stored = profile.all()[0];
     const token = tokenFromRequest(request);
-    const email = isMemberToken(token) ? MOCK_MEMBER_EMAIL : MOCK_DEMO_EMAIL;
+    const email = emailFromLoginToken(token) ?? stored?.email ?? MOCK_MEMBER_EMAIL;
+    const resolvedEmail = stored?.email ?? email;
+    const role = accountRole(resolvedEmail) ?? 'member';
     return HttpResponse.json({
       firstName: stored?.firstName ?? '',
       lastName: stored?.lastName ?? '',
       displayName: stored?.displayName ?? '',
-      email: stored?.email ?? email,
+      email: resolvedEmail,
+      role,
+      twoFactorEnabled: role === 'admin',
     } satisfies Profile);
   }),
 
   http.put('/api/account/profile', async ({ request }) => {
     const input = (await request.json()) as Profile;
     const existing = profile.all()[0];
+    const email = input.email.trim().toLowerCase();
+    const role = accountRole(email) ?? 'member';
+    const payload: Profile = {
+      firstName: input.firstName,
+      lastName: input.lastName,
+      displayName: input.displayName,
+      email,
+      newsletterOptIn: input.newsletterOptIn,
+      role,
+      twoFactorEnabled: role === 'admin',
+    };
     const saved = existing
-      ? profile.update(existing.id, input)
-      : profile.create({ ...input, id: '1' });
-    return HttpResponse.json(saved);
+      ? profile.update(existing.id, payload)
+      : profile.create({ ...payload, id: '1' });
+    void saved;
+    return HttpResponse.json(payload);
   }),
 
   http.put('/api/account/password', async ({ request }) => {
-    const body = (await request.json()) as { currentPassword: string };
-    if (body.currentPassword !== MOCK_MEMBER_PASSWORD) {
+    const body = (await request.json()) as PasswordChange;
+    const token = tokenFromRequest(request);
+    const email = emailFromLoginToken(token);
+    const account = email ? findAuthAccountByEmail(email) : undefined;
+
+    if (!account || body.currentPassword !== account.password) {
       return HttpResponse.json({ message: 'invalid_password' }, { status: 400 });
     }
+
+    authAccounts.update(account.id, { password: body.newPassword });
     return HttpResponse.json({ changed: true as const });
   }),
 
   http.get('/api/billing/subscriptions/:id', ({ request, params }) => {
-    if (!isMemberToken(tokenFromRequest(request))) {
+    if (!isVerifiedAccount(tokenFromRequest(request))) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
     const subscription = subscriptions.all().find((row) => row.id === String(params.id));
@@ -1132,17 +1619,11 @@ export const handlers = [
   }),
 
   http.get('/api/billing/subscriptions', ({ request }) =>
-    HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? subscriptions.all() : [])
+    HttpResponse.json(isVerifiedAccount(tokenFromRequest(request)) ? subscriptions.all() : [])
   ),
 
   http.post('/api/billing/subscriptions/:id/cancel', ({ params }) => {
     const updated = subscriptions.update(String(params.id), { status: 'cancelled' });
-    if (updated?.productType === 'academy') {
-      const membership = memberships.all().find((row) => row.productType === 'academy');
-      if (membership) {
-        memberships.update(membership.id, { status: 'cancelled' });
-      }
-    }
     if (updated?.productType === 'euRep') {
       stripEuRepFromHostedPolicies(updated.id);
     }
@@ -1154,12 +1635,6 @@ export const handlers = [
 
   http.post('/api/billing/subscriptions/:id/continue', ({ params }) => {
     const updated = subscriptions.update(String(params.id), { status: 'active' });
-    if (updated?.productType === 'academy') {
-      const membership = memberships.all().find((row) => row.productType === 'academy');
-      if (membership) {
-        memberships.update(membership.id, { status: 'active' });
-      }
-    }
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
     }
@@ -1175,13 +1650,43 @@ export const handlers = [
     return HttpResponse.json(updated);
   }),
 
-  http.get('/api/billing/memberships', ({ request }) =>
-    HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? memberships.all() : [])
+  http.get('/api/billing/orders', ({ request }) =>
+    HttpResponse.json(isVerifiedAccount(tokenFromRequest(request)) ? orders.all() : [])
   ),
 
-  http.get('/api/billing/orders', ({ request }) =>
-    HttpResponse.json(isMemberToken(tokenFromRequest(request)) ? orders.all() : [])
-  ),
+  http.post('/api/billing/eu-rep/extra-request', async ({ request }) => {
+    if (!isVerifiedAccount(tokenFromRequest(request))) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    const input = (await request.json()) as EuRepExtraRequestCreate;
+    const subscription = subscriptions
+      .all()
+      .find((row) => row.id === input.subscriptionId && row.productType === 'euRep');
+    if (!subscription || subscription.status !== 'active') {
+      return HttpResponse.json({ message: 'Subscription not found' }, { status: 404 });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const order = orders.create({
+      productType: 'euRep',
+      number: nextOrderNumber(),
+      date: today,
+      status: 'active',
+      total: EU_REP_EXTRA_REQUEST_PRICE,
+      currency: 'CHF',
+      planId: subscription.planId,
+      orderKind: 'extraRequest',
+      subscriptionId: subscription.id,
+    });
+
+    subscriptions.update(subscription.id, {
+      usedRequests: (subscription.usedRequests ?? 0) + 1,
+      lastOrderDate: today,
+      relatedOrderIds: [...subscription.relatedOrderIds, order.id],
+    });
+
+    return HttpResponse.json(order, { status: 201 });
+  }),
 
   http.get('/api/documents', () => HttpResponse.json(listHostedPolicies())),
 
@@ -1280,6 +1785,41 @@ export const handlers = [
     return HttpResponse.json(euRepContracts.all());
   }),
 
+  http.post('/api/eu-rep/contracts', async ({ request }) => {
+    if (!isMemberToken(tokenFromRequest(request))) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    const input = (await request.json()) as EuRepContractCreate;
+    const subscription = subscriptions
+      .all()
+      .find((row) => row.id === input.subscriptionId && row.productType === 'euRep');
+    if (!subscription || subscription.status !== 'active') {
+      return HttpResponse.json({ message: 'Subscription not found' }, { status: 404 });
+    }
+
+    const created = euRepContracts.create({
+      subscriptionId: input.subscriptionId,
+      legalEntity: input.legalEntity,
+      forwardingEmail: input.forwardingEmail,
+      postalLine1: input.postalLine1,
+      postalLine2: input.postalLine2,
+      postalCode: input.postalCode,
+      city: input.city,
+      country: input.country,
+      linkedDocumentIds: [],
+      status: 'active',
+    });
+
+    const entityCount = euRepContracts
+      .all()
+      .filter(
+        (row) => row.subscriptionId === input.subscriptionId && row.status === 'active'
+      ).length;
+    subscriptions.update(subscription.id, { legalEntityCount: entityCount });
+
+    return HttpResponse.json(created, { status: 201 });
+  }),
+
   http.get('/api/eu-rep/contracts/:id', ({ request, params }) => {
     if (!isMemberToken(tokenFromRequest(request))) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -1304,6 +1844,11 @@ export const handlers = [
     const updated = euRepContracts.update(existing.id, {
       legalEntity: input.legalEntity,
       forwardingEmail: input.forwardingEmail,
+      postalLine1: input.postalLine1,
+      postalLine2: input.postalLine2,
+      postalCode: input.postalCode,
+      city: input.city,
+      country: input.country,
     });
     if (legalEntityChanged) {
       for (const id of existing.linkedDocumentIds) {
@@ -1348,12 +1893,185 @@ export const handlers = [
     );
   }),
 
+  http.get('/api/checkout/pending', ({ request }) => {
+    const url = new URL(request.url);
+    const site = url.searchParams.get('site');
+    if (!site) {
+      return HttpResponse.json({ needed: false });
+    }
+    return HttpResponse.json(resolvePendingCheckoutForSite(site));
+  }),
+
+  http.post('/api/checkout/trial', async ({ request }) => {
+    const input = (await request.json()) as CheckoutSessionCreate;
+    const trial = startPolicyTrial(input);
+    if (!trial) {
+      return HttpResponse.json({ message: 'trial_failed' }, { status: 400 });
+    }
+    return HttpResponse.json(trial, { status: 201 });
+  }),
+
+  http.post('/api/checkout/pending/complete', ({ request }) => {
+    const url = new URL(request.url);
+    const site = url.searchParams.get('site');
+    const pending = findPendingCheckoutRecord(site);
+    if (!pending) {
+      return HttpResponse.json({ message: 'not_found' }, { status: 404 });
+    }
+
+    const session = checkoutSessions.create({
+      status: 'pending',
+      kind: 'generator',
+      siteCount: 1,
+      amount: 0,
+      generatorAmount: 0,
+      listPrice: 0,
+      discountRate: 0,
+      discountAmount: 0,
+      currency: 'CHF',
+      domain: pending.domain,
+      legalEntity: pending.legalEntity,
+      fillSubscriptionId: pending.fillSubscriptionId,
+      euRepEntityCount: pending.euRepEntityCount,
+      euRepEntities: pending.euRepEntities,
+      euRepLinkContractId: pending.euRepLinkContractId,
+      subscriptionId: pending.subscriptionId,
+      documentId: pending.documentId,
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const nextPaymentDate = addOneYear(today);
+    const activeSites = countActivePolicySites(subscriptions.all());
+    const quote = pending.fillSubscriptionId
+      ? {
+          listPrice: 0,
+          discountRate: 0,
+          discountAmount: 0,
+          amountDue: 0,
+        }
+      : calculateGeneratorPolicyQuote(
+          qualifyingSiteCountForCheckout(activeSites, 'generator', 1),
+          1
+        );
+    const euRepQuote =
+      pending.euRepEntityCount || pending.euRepEntities?.length
+        ? calculateEuRepQuote(pending.euRepPlanId ?? 'basis')
+        : null;
+    const generatorAmount = quote.amountDue;
+    const totalAmount = generatorAmount + (euRepQuote?.amountDue ?? 0);
+
+    if (pending.subscriptionId && !pending.fillSubscriptionId) {
+      const policySub = subscriptions.all().find((row) => row.id === pending.subscriptionId);
+      if (policySub) {
+        const policyOrder = orders.create({
+          productType: 'policy',
+          number: nextOrderNumber(),
+          date: today,
+          status: 'active',
+          total: generatorAmount,
+          currency: 'CHF',
+          siteCount: 1,
+          discountAmount: quote.discountAmount > 0 ? quote.discountAmount : undefined,
+          discountRate: quote.discountRate > 0 ? quote.discountRate : undefined,
+          subscriptionId: policySub.id,
+          orderKind: 'subscription',
+        });
+        subscriptions.update(policySub.id, {
+          trialEndsAt: undefined,
+          lastOrderDate: today,
+          nextPaymentDate,
+          totals: {
+            ...policySub.totals,
+            subtotal: quote.listPrice,
+            discount: quote.discountAmount,
+            total: generatorAmount,
+          },
+          relatedOrderIds: [...policySub.relatedOrderIds, policyOrder.id],
+        });
+        checkoutSessions.update(session.id, {
+          status: 'completed',
+          orderId: policyOrder.id,
+          amount: totalAmount,
+          generatorAmount,
+          listPrice: quote.listPrice,
+          discountRate: quote.discountRate,
+          discountAmount: quote.discountAmount,
+        });
+      }
+    }
+
+    if (pending.euRepEntityCount || pending.euRepEntities?.length) {
+      const existingEuTrial = subscriptions
+        .all()
+        .find(
+          (row) =>
+            row.productType === 'euRep' && row.status === 'active' && Boolean(row.trialEndsAt)
+        );
+
+      if (existingEuTrial) {
+        const euOrder = orders.create({
+          productType: 'euRep',
+          number: nextOrderNumber(),
+          date: today,
+          status: 'active',
+          total: euRepQuote?.amountDue ?? 149,
+          currency: 'CHF',
+          legalEntityCount: existingEuTrial.legalEntityCount ?? 1,
+          planId: existingEuTrial.planId,
+          orderKind: 'subscription',
+          subscriptionId: existingEuTrial.id,
+        });
+        subscriptions.update(existingEuTrial.id, {
+          trialEndsAt: undefined,
+          lastOrderDate: today,
+          nextPaymentDate,
+          totals: {
+            ...existingEuTrial.totals,
+            subtotal: euRepQuote?.amountDue ?? existingEuTrial.totals.total,
+            total: euRepQuote?.amountDue ?? existingEuTrial.totals.total,
+          },
+          relatedOrderIds: [...existingEuTrial.relatedOrderIds, euOrder.id],
+        });
+      } else {
+        createEuRepPurchase(
+          {
+            ...session,
+            amount: totalAmount,
+            generatorAmount,
+            euRepPlanId: pending.euRepPlanId ?? 'basis',
+            euRepEntityCount: pending.euRepEntityCount,
+            euRepEntities: pending.euRepEntities,
+          },
+          today,
+          pending.documentId ? [pending.documentId] : []
+        );
+      }
+    } else if (pending.euRepLinkContractId && pending.documentId) {
+      linkDocumentsToContract(pending.euRepLinkContractId, [pending.documentId], today);
+    }
+
+    if (pending.id !== '__synthetic__') {
+      pendingCheckouts.remove(pending.id);
+    }
+
+    return HttpResponse.json({
+      sessionId: session.id,
+      orderId: session.orderId ?? pending.subscriptionId ?? pending.documentId ?? session.id,
+      document: pending.documentId
+        ? documents.all().find((row) => row.id === pending.documentId)
+        : undefined,
+      activeSubscriptionCount: countActivePolicySubscriptions(subscriptions.all()),
+      nextPaymentDate,
+    });
+  }),
+
   http.post('/api/checkout/sessions', async ({ request }) => {
     const input = (await request.json()) as CheckoutSessionCreate;
 
     if (input.kind === 'euRep') {
       const entityCount = Math.max(1, input.euRepEntityCount ?? input.euRepEntities?.length ?? 1);
-      const quote = calculateEuRepQuote(entityCount);
+      const planId = input.euRepPlanId ?? 'basis';
+      const quote = calculateEuRepQuote(planId, entityCount);
       const session = checkoutSessions.create({
         status: 'pending',
         kind: input.kind,
@@ -1364,6 +2082,7 @@ export const handlers = [
         discountRate: 0,
         discountAmount: 0,
         currency: 'CHF',
+        euRepPlanId: planId,
         euRepEntityCount: entityCount,
         euRepEntities: input.euRepEntities,
       });
@@ -1402,7 +2121,7 @@ export const handlers = [
       const euRepEntityCount = input.euRepEntityCount ?? input.euRepEntities?.length;
       let amount = 0;
       if (euRepEntityCount) {
-        amount += calculateEuRepQuote(euRepEntityCount).amountDue;
+        amount += calculateEuRepQuote(input.euRepPlanId ?? 'basis').amountDue;
       }
 
       const session = checkoutSessions.create({
@@ -1418,6 +2137,7 @@ export const handlers = [
         domain: input.domain,
         policyName: input.policyName,
         legalEntity: input.legalEntity,
+        euRepPlanId: euRepEntityCount ? (input.euRepPlanId ?? 'basis') : undefined,
         euRepEntityCount,
         euRepEntities: input.euRepEntities,
         euRepLinkContractId: input.euRepLinkContractId,
@@ -1445,7 +2165,7 @@ export const handlers = [
     let amount = quote.amountDue;
     const euRepEntityCount = input.euRepEntityCount ?? input.euRepEntities?.length;
     if (euRepEntityCount) {
-      amount += calculateEuRepQuote(euRepEntityCount).amountDue;
+      amount += calculateEuRepQuote(input.euRepPlanId ?? 'basis').amountDue;
     }
 
     const session = checkoutSessions.create({
@@ -1461,6 +2181,7 @@ export const handlers = [
       domain: input.domain,
       policyName: input.policyName,
       legalEntity: input.legalEntity,
+      euRepPlanId: euRepEntityCount ? (input.euRepPlanId ?? 'basis') : undefined,
       euRepEntityCount,
       euRepEntities: input.euRepEntities,
       euRepLinkContractId: input.euRepLinkContractId,

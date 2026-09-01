@@ -6,8 +6,7 @@
     "env": {
       "LEFTHOOK": "0",
       "NEXT_PUBLIC_API_MOCKING": "enabled",
-      "NEXT_PUBLIC_API_BASE_URL": "/api",
-      "NEXT_PUBLIC_WIZARD_SKIP_VALIDATION": "enabled"
+      "NEXT_PUBLIC_API_BASE_URL": "/api"
     }
   }
 }

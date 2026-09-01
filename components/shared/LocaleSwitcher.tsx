@@ -38,7 +38,7 @@ export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
       aria-label={t('switchTo', { locale: nextLocale.toUpperCase() })}
       onPress={switchLocale}
       className={cn(
-        'font-display text-sm font-medium text-white/75 uppercase hover:bg-white/10 hover:text-white',
+        'font-display text-sm font-medium text-white/55 uppercase hover:bg-white/10 hover:text-white',
         className
       )}
     >

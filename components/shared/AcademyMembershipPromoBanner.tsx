@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useSession } from '@/api/auth';
 import { CaretRight, GraduationCap } from '@/components/ui';
 import { AcademyOverviewFeatureIcon } from '@/components/shared/AcademyOverviewFeatureIcon';
 import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
@@ -23,7 +22,6 @@ export type AcademyMembershipPromoBannerProps = {
   variant: 'horizontal' | 'vertical';
   sessionType: AcademyMembershipPromoSessionType;
   className?: string;
-  hideWhenMember?: boolean;
 };
 
 function titleKeyFor(sessionType: AcademyMembershipPromoSessionType) {
@@ -111,14 +109,8 @@ export function AcademyMembershipPromoBanner({
   variant,
   sessionType,
   className,
-  hideWhenMember = true,
 }: AcademyMembershipPromoBannerProps) {
-  const { data: session } = useSession();
   const titleKey = titleKeyFor(sessionType);
-
-  if (hideWhenMember && session?.hasAcademyMembership) {
-    return null;
-  }
 
   return (
     <div className={cn('relative overflow-visible', className)}>

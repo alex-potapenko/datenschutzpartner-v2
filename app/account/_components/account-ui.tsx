@@ -2,15 +2,18 @@
 
 import type { ReactNode, SyntheticEvent } from 'react';
 import { createContext, useContext } from 'react';
-import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDiscountPercent } from '@/api/checkout';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-import { policyDetailHref, subscriptionDetailHref } from './account-sections';
+import {
+  SECONDARY_TABS_INDICATOR_CLASS,
+  SECONDARY_TABS_LIST_CLASS,
+  SECONDARY_TABS_TAB_CLASS,
+} from '@/components/shared/secondary-tab-styles';
+import { subscriptionDetailHref } from './account-sections';
 import {
   Button,
   CaretDown,
-  CaretRight,
   Check,
   DropdownItem,
   DropdownMenu,
@@ -18,23 +21,12 @@ import {
   DropdownRoot,
   DropdownTrigger,
   FileText,
-  ModalRoot,
-  ModalBackdrop,
-  ModalContainer,
-  ModalDialog,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalHeading,
   Plus,
   Spinner,
   Table,
   Tabs,
   cn,
-  useOverlayState,
 } from '@/components/ui';
-
-type OverlayState = ReturnType<typeof useOverlayState>;
 
 type AccountLayoutMode = 'split' | 'stack';
 
@@ -54,27 +46,27 @@ function useAccountLayout() {
   return useContext(AccountLayoutContext);
 }
 
-const ACCOUNT_SECTION_TITLE_SLOT = 'lg:col-start-2 lg:row-start-1';
-const ACCOUNT_SECTION_TABS_SLOT = 'lg:col-start-2 lg:row-start-2';
-const ACCOUNT_SECTION_BODY_SLOT =
-  'lg:col-start-2 lg:row-start-4 lg:flex lg:min-h-0 lg:min-w-0 lg:flex-col lg:self-stretch';
+const ACCOUNT_SECTION_BODY_PADDING = 'px-4 pb-8 sm:px-8';
 
-/** Full-viewport header divider — sits below the sidebar + section header row. */
-export function AccountHeaderRule({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        '[margin-left:calc(50%-50vw)] h-px w-screen max-w-none shrink-0 [box-shadow:inset_0_-1px_0_0_var(--border)]',
-        className
-      )}
-    />
-  );
-}
+/** Bottom edge rule for section headers — applied on the header itself, not a sibling. */
+export const ACCOUNT_SECTION_HEADER_SHADOW = '[box-shadow:inset_0_-1px_0_0_var(--border)]';
+
+/*
+ * HeroUI only applies its `secondary` tab styling to a `.tabs__list-container` that is a direct
+ * child of the `Tabs` root. Account headers nest the list inside the title block, so the look is
+ * applied explicitly here instead of relying on the variant.
+ */
+export {
+  SECONDARY_TABS_INDICATOR_CLASS,
+  SECONDARY_TABS_LIST_CLASS,
+  SECONDARY_TABS_TAB_CLASS,
+} from '@/components/shared/secondary-tab-styles';
 
 /** Page heading + optional secondary tabs — matches the Insights archive layout. */
 export function AccountSectionFrame({
   title,
+  hideTitle = false,
+  flush = false,
   action,
   description,
   tabsAriaLabel,
@@ -84,7 +76,11 @@ export function AccountSectionFrame({
   children,
   content,
 }: {
-  title: string;
+  title?: string;
+  /** When true, omits the page heading (and split-layout divider) — e.g. embedded service landings. */
+  hideTitle?: boolean;
+  /** Full-bleed body — no bottom padding (e.g. coming-soon hero). */
+  flush?: boolean;
   action?: ReactNode;
   /** Optional lead line under the page title — e.g. a personalised dashboard greeting. */
   description?: ReactNode;
@@ -102,92 +98,123 @@ export function AccountSectionFrame({
     onTabChange !== undefined;
 
   const layout = useAccountLayout();
+  const bodyPadding = flush ? 'px-4 sm:px-8' : ACCOUNT_SECTION_BODY_PADDING;
 
-  const titleBlock = (
-    <div className="flex h-full flex-col justify-center px-4 sm:px-8">
-      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <div className="flex min-w-0 flex-col gap-2">
-          <h1 className="text-foreground text-2xl font-bold sm:text-3xl lg:text-4xl">{title}</h1>
-          {description ? (
-            <p className="text-muted max-w-2xl text-base leading-relaxed">{description}</p>
-          ) : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
-    </div>
-  );
+  function renderTabList(className?: string) {
+    if (!hasTabs) return null;
 
-  if (hasTabs) {
-    if (layout === 'split') {
-      return (
-        <Tabs
-          variant="secondary"
-          selectedKey={selectedTab}
-          onSelectionChange={onTabChange}
-          className="w-full gap-0 lg:contents"
-        >
-          <div className={cn('w-full', ACCOUNT_SECTION_TITLE_SLOT)}>{titleBlock}</div>
-          <Tabs.ListContainer
-            className={cn('overflow-x-auto px-4 sm:px-8', ACCOUNT_SECTION_TABS_SLOT)}
-          >
-            <Tabs.List aria-label={tabsAriaLabel} className="!w-auto max-w-full !border-b-0">
-              {tabs.map((tab) => (
-                <Tabs.Tab key={tab.id} id={tab.id} className="!h-auto !w-auto shrink-0 pb-4">
-                  <span className="text-base font-medium whitespace-nowrap">{tab.label}</span>
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-              ))}
-            </Tabs.List>
-          </Tabs.ListContainer>
-          <div className={cn('w-full min-w-0', ACCOUNT_SECTION_BODY_SLOT)}>{children}</div>
-        </Tabs>
-      );
-    }
-
-    const tabList = (
-      <Tabs.ListContainer className="border-border overflow-x-auto border-b px-4 sm:px-8">
-        <Tabs.List aria-label={tabsAriaLabel} className="!w-auto max-w-full !border-b-0">
+    return (
+      <Tabs.ListContainer className={cn('overflow-x-auto px-4 sm:px-8', className)}>
+        <Tabs.List aria-label={tabsAriaLabel} className={SECONDARY_TABS_LIST_CLASS}>
           {tabs.map((tab) => (
-            <Tabs.Tab key={tab.id} id={tab.id} className="!h-auto !w-auto shrink-0 pb-4">
+            <Tabs.Tab key={tab.id} id={tab.id} className={SECONDARY_TABS_TAB_CLASS}>
               <span className="text-base font-medium whitespace-nowrap">{tab.label}</span>
-              <Tabs.Indicator />
+              <Tabs.Indicator className={SECONDARY_TABS_INDICATOR_CLASS} />
             </Tabs.Tab>
           ))}
         </Tabs.List>
       </Tabs.ListContainer>
     );
+  }
+
+  const titleRow = (
+    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="flex min-w-0 flex-col gap-2">
+        <h1 className="text-foreground text-2xl font-bold sm:text-3xl lg:text-4xl">{title}</h1>
+        {description ? (
+          <p className="text-muted max-w-2xl text-base leading-relaxed">{description}</p>
+        ) : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+
+  const titleBlock = (
+    <div
+      className={cn(
+        'flex h-full flex-col justify-center px-4 sm:px-8',
+        ACCOUNT_SECTION_HEADER_SHADOW,
+        hasTabs ? 'pt-10' : 'pt-10 pb-8'
+      )}
+    >
+      {titleRow}
+    </div>
+  );
+
+  if (hasTabs) {
+    const tabList = (
+      <Tabs
+        variant="secondary"
+        selectedKey={selectedTab}
+        onSelectionChange={onTabChange}
+        className="w-full gap-0"
+      >
+        {renderTabList('!px-0')}
+      </Tabs>
+    );
+
+    if (layout === 'split') {
+      return (
+        <div className="flex w-full flex-col gap-0">
+          <div
+            className={cn(
+              'flex w-full flex-col justify-center gap-10 px-4 pt-10 sm:px-8',
+              ACCOUNT_SECTION_HEADER_SHADOW
+            )}
+          >
+            {titleRow}
+            {tabList}
+          </div>
+          <div className={cn('w-full min-w-0 overflow-x-clip', ACCOUNT_SECTION_BODY_PADDING)}>
+            {children}
+          </div>
+        </div>
+      );
+    }
 
     return (
-      <>
-        {titleBlock}
-        <Tabs
-          variant="secondary"
-          selectedKey={selectedTab}
-          onSelectionChange={onTabChange}
-          className="w-full gap-0"
+      <div className="flex w-full flex-col gap-0">
+        <div
+          className={cn('flex flex-col gap-10 px-4 pt-10 sm:px-8', ACCOUNT_SECTION_HEADER_SHADOW)}
         >
+          {titleRow}
           {tabList}
+        </div>
+        <div className={cn('min-w-0 overflow-x-clip', ACCOUNT_SECTION_BODY_PADDING)}>
           {children}
-        </Tabs>
-      </>
+        </div>
+      </div>
     );
   }
 
   if (layout === 'split') {
-    return (
-      <>
-        <div className={cn('w-full', ACCOUNT_SECTION_TITLE_SLOT)}>{titleBlock}</div>
-        <div className={cn('w-full px-4 pb-8 sm:px-8', ACCOUNT_SECTION_BODY_SLOT)}>
+    if (hideTitle) {
+      return (
+        <div className={cn('w-full min-w-0 overflow-visible', bodyPadding)}>
           {content ?? children}
         </div>
-      </>
+      );
+    }
+
+    return (
+      <div className="flex w-full flex-col">
+        {titleBlock}
+        <div className={cn('w-full min-w-0 overflow-x-clip', ACCOUNT_SECTION_BODY_PADDING)}>
+          {content ?? children}
+        </div>
+      </div>
+    );
+  }
+
+  if (hideTitle) {
+    return (
+      <div className={flush ? 'px-4 sm:px-8' : 'px-4 pb-8 sm:px-8'}>{content ?? children}</div>
     );
   }
 
   return (
     <>
       {titleBlock}
-      <AccountHeaderRule />
       <div className="px-4 pb-8 sm:px-8">{content ?? children}</div>
     </>
   );
@@ -354,6 +381,39 @@ export function DaysLeftDonut({
   );
 }
 
+export function DaysLeftBar({
+  remaining,
+  total,
+  label,
+}: {
+  remaining: number;
+  total: number;
+  label: string;
+}) {
+  const remainingFraction = total > 0 ? Math.min(1, Math.max(0, remaining / total)) : 0;
+  const isUrgent = remaining < 30;
+  const percent = Math.round(remainingFraction * 100);
+
+  return (
+    <div
+      className="bg-border h-1.5 w-full overflow-hidden rounded-full"
+      role="progressbar"
+      aria-valuenow={remaining}
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-label={label}
+    >
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: `${percent}%`,
+          background: isUrgent ? 'var(--feature-red)' : 'var(--accent)',
+        }}
+      />
+    </div>
+  );
+}
+
 export function CountWithAdd({
   addLabel,
   onAdd,
@@ -394,43 +454,6 @@ export function AccountTable({
         <Table.Content>{children}</Table.Content>
       </Table.ScrollContainer>
     </Table>
-  );
-}
-
-/** Clickable policy row — navigates to `/account/policies/:id`. Nested links use `TableRowAction`. */
-export function PolicyDetailTableRow({
-  documentId,
-  openLabel,
-  children,
-  className,
-}: {
-  documentId: string;
-  openLabel: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  const router = useRouter();
-
-  return (
-    <Table.Row
-      className={cn('cursor-pointer', className)}
-      aria-label={openLabel}
-      onAction={() => {
-        router.push(policyDetailHref(documentId));
-      }}
-    >
-      {children}
-    </Table.Row>
-  );
-}
-
-/** Caret-only affordance for policy detail rows (replaces an explicit Open link). */
-export function PolicyTableRowCaret({ label }: { label: string }) {
-  return (
-    <span className="text-muted inline-flex items-center justify-end">
-      <CaretRight size={14} weight="bold" aria-hidden />
-      <span className="sr-only">{label}</span>
-    </span>
   );
 }
 
@@ -709,56 +732,4 @@ export function OrderAmount({
   );
 }
 
-/** Confirmation dialog for destructive actions (cancel subscription, log out). */
-export function ConfirmDialog({
-  state,
-  title,
-  body,
-  confirmLabel,
-  cancelLabel,
-  onConfirm,
-  isPending,
-}: {
-  state: OverlayState;
-  title: string;
-  body: string;
-  confirmLabel: string;
-  cancelLabel: string;
-  onConfirm: () => void;
-  isPending?: boolean;
-}) {
-  return (
-    <ModalRoot state={state}>
-      <ModalBackdrop isDismissable>
-        <ModalContainer size="sm">
-          <ModalDialog>
-            <ModalHeader>
-              <ModalHeading>{title}</ModalHeading>
-            </ModalHeader>
-            <ModalBody>
-              <p className="text-foreground text-sm leading-relaxed">{body}</p>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="outline"
-                onPress={() => {
-                  state.close();
-                }}
-              >
-                {cancelLabel}
-              </Button>
-              <Button
-                variant="primary"
-                className="bg-[var(--feature-red)]"
-                isDisabled={isPending}
-                onPress={onConfirm}
-              >
-                {confirmLabel}
-              </Button>
-            </ModalFooter>
-          </ModalDialog>
-        </ModalContainer>
-      </ModalBackdrop>
-    </ModalRoot>
-  );
-}
+export { ConfirmDialog } from '@/components/shared/ConfirmDialog';

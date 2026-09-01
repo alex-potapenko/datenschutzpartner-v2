@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { Subscription } from './billing';
+import { billingKeys } from './billing';
 import { documentKeys, uniqueDocumentsBySite, type GeneratedDocument } from './documents';
 import { request } from './client';
 
 /**
- * EU Representation contracts — coverage for one **Swiss** legal entity per
- * year. The EU representative itself is always
- * {@link EU_REP_REPRESENTATIVE} (VGS Datenschutzpartner GmbH, Hamburg).
- * A member may hold several contracts (an agency with two Swiss clients =
- * two contracts). `legalEntity` is the represented Swiss company, not an
- * EU-side entity. `forwardingEmail` is operational only; it is never printed
- * in the policy.
+ * EU Representation contracts — coverage for one **Swiss** legal entity.
+ * The EU representative itself is always {@link EU_REP_REPRESENTATIVE}
+ * (VGS Datenschutzpartner GmbH, Hamburg). Several entities can sit on one
+ * plan subscription (`basis` / `plus` / `plus5`). `legalEntity` is the
+ * represented Swiss company. `forwardingEmail` and the postal address are
+ * operational; the Hamburg block is what appears in linked policies.
  */
 
 /** Public Art. 27 address inserted into linked hosted policies (AGB §2.3). */
@@ -29,14 +29,22 @@ export type EuRepContractStatus = z.infer<typeof euRepContractStatusEnum>;
 
 export const euRepContractSchema = z.object({
   id: z.string(),
-  /** Billing subscription that covers this legal-entity slot. */
+  /** Billing subscription (plan) that covers this legal entity. */
   subscriptionId: z.string(),
   /** Swiss organisation this contract represents (the controller). */
   legalEntity: z.string().min(1, 'validation.required'),
   /** Internal inbox for supervisory and data-subject mail — not shown on the policy. */
   forwardingEmail: z.email('validation.email'),
+  /** Postal address of the represented Swiss organisation. */
+  postalLine1: z.string().min(1, 'validation.required'),
+  postalLine2: z.string().optional(),
+  postalCode: z.string().min(1, 'validation.required'),
+  city: z.string().min(1, 'validation.required'),
+  country: z.string().min(1, 'validation.required'),
   /** Hosted generator documents that currently include the Hamburg block. */
   linkedDocumentIds: z.array(z.string()),
+  /** Business website when EU rep is purchased without a hosted policy. */
+  website: z.string().optional(),
   status: euRepContractStatusEnum,
 });
 export type EuRepContract = z.infer<typeof euRepContractSchema>;
@@ -44,8 +52,18 @@ export type EuRepContract = z.infer<typeof euRepContractSchema>;
 export const euRepContractUpdateSchema = euRepContractSchema.pick({
   legalEntity: true,
   forwardingEmail: true,
+  postalLine1: true,
+  postalLine2: true,
+  postalCode: true,
+  city: true,
+  country: true,
 });
 export type EuRepContractUpdate = z.infer<typeof euRepContractUpdateSchema>;
+
+export const euRepContractCreateSchema = euRepContractUpdateSchema.extend({
+  subscriptionId: z.string().min(1),
+});
+export type EuRepContractCreate = z.infer<typeof euRepContractCreateSchema>;
 
 export const euRepLinkDocumentsSchema = z.object({
   documentIds: z.array(z.string().min(1)).min(1),
@@ -60,12 +78,22 @@ export function resolveEuRepContract(
   return contracts.find((row) => row.id === document.euRepContractId);
 }
 
-/** The legal-entity contract billed on this subscription (1:1). */
+/** First active contract billed on this subscription (1:N possible). */
 export function resolveEuRepContractForSubscription(
   contracts: readonly EuRepContract[],
   subscriptionId: string
 ): EuRepContract | undefined {
-  return contracts.find((row) => row.subscriptionId === subscriptionId);
+  return contracts.find((row) => row.subscriptionId === subscriptionId && row.status === 'active');
+}
+
+export function listEuRepContractsForSubscription(
+  contracts: readonly EuRepContract[],
+  subscriptionId: string
+): EuRepContract[] {
+  return contracts
+    .filter((row) => row.subscriptionId === subscriptionId && row.status === 'active')
+    .slice()
+    .sort((a, b) => a.legalEntity.localeCompare(b.legalEntity, undefined, { sensitivity: 'base' }));
 }
 
 function normalizeLegalEntityName(value: string): string {
@@ -107,7 +135,7 @@ export function linkedDocumentsForContract(
   ).sort((a, b) => a.createdDate.localeCompare(b.createdDate));
 }
 
-/** Group EU Rep contracts by their billing subscription, like generator policies. */
+/** Flat list of representations with their billing subscription (for sortable tables). */
 export function groupEuRepContractsBySubscription(
   contracts: readonly EuRepContract[],
   subscriptions: readonly Subscription[],
@@ -122,6 +150,10 @@ export function groupEuRepContractsBySubscription(
       documents: linkedDocumentsForContract(contract, documents),
     }))
     .sort((a, b) => {
+      const name = a.contract.legalEntity.localeCompare(b.contract.legalEntity, undefined, {
+        sensitivity: 'base',
+      });
+      if (name !== 0) return name;
       const statusA = SUBSCRIPTION_STATUS_ORDER[a.subscription?.status ?? ''] ?? 9;
       const statusB = SUBSCRIPTION_STATUS_ORDER[b.subscription?.status ?? ''] ?? 9;
       if (statusA !== statusB) return statusA - statusB;
@@ -147,6 +179,23 @@ export function useEuRepContract(id: string) {
     queryKey: euRepKeys.contract(id),
     queryFn: () => request<EuRepContract>(`/eu-rep/contracts/${id}`),
     enabled: Boolean(id),
+  });
+}
+
+export function useCreateEuRepContract() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EuRepContractCreate) =>
+      request<EuRepContract>('/eu-rep/contracts', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: euRepKeys.contracts }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
+      ]);
+    },
   });
 }
 

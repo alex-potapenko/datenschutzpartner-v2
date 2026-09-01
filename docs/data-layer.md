@@ -19,10 +19,15 @@ The mock you write **is** the API contract the backend team will implement.
 Contact form submissions use `api/contact-messages.ts` (`POST /api/contact-messages`) with a
 `subject` enum that routes inquiries to the right admin queue.
 
-Auth uses `api/auth.ts`: `POST /auth/login` stores a bearer token in `localStorage`
-(`lib/auth-session.ts`); `GET /auth/session` returns `{ email, hasAcademyMembership }`.
-Mock accounts: `lucas.baumgartner@gmail.com` (logged in, with membership) — password `dspmp`;
-`demo@datenschutzpartner.ch` (logged in, no membership) — password `demo`.
+Auth uses `api/auth.ts`: every account signs in with **email + password**
+(`POST /auth/login/identify` → `POST /auth/login`). Admins must also pass
+`twoFactorCode`. `GET /auth/session` returns `{ email, emailVerified, role? }`
+where `role` is `member` or `admin`. Registration:
+`POST /auth/register` then `POST /auth/verify-email` (double opt-in;
+prototype also returns `verificationUrl`). Verified sign-ups are added to the
+mock auth store with password `welcome`. Mock seed accounts:
+`lucas.baumgartner@gmail.com` (member, password `dspmp`) and
+`demo@datenschutzpartner.ch` (admin, password `demo`, 2FA code `123456`).
 
 **Lucas seed (typical vs agency):** most policy subscriptions are **1 site = 1 abo**
 (wizard purchases). One **agency prepaid** row (`#84729`, `siteCount: 5`) has three
@@ -34,22 +39,21 @@ expired single-site abo remains for history.
 
 The authenticated hub at `/account` reads from three domain modules:
 
-- `api/account.ts` — dashboard snapshot, profile, addresses (full CRUD), password
-  change. `GET /account/snapshot` feeds the **Overview** dashboard: membership summary,
-  next live session timestamp, document count, and EU Rep **legal-entity** count
-  (from active EU Rep subscriptions). The **Account Details** section splits into **Profile** (name, email,
-  password) and **Billing Addresses** (`PaymentDetailsSection`) — the member's saved
-  billing addresses, laid out in the same section/column/divider style as the Academy
-  membership screen. Addresses carry an optional `label` (e.g. "Head office") and an
-  optional `vatId` shown on invoices; there is no more upsert-by-type — a member can
-  save several `type: 'billing'` addresses and pick freely between them.
-- `api/billing.ts` — subscriptions (+ cancel), memberships and orders. Orders use `orderKind`
-  (`subscription` | `renewal`). Privacy Policy Generator orders are always one policy
-  subscription per invoice. EU Representation is **one subscription per contract**
-  (one legal entity / year, CHF 249) — buying N entities creates N subscriptions and
-  N invoices. Subscriptions expose optional `planId` for
-  plan-specific terms in the member UI, and an optional `billingAddressId` linking to
-  the address used for that one subscription (`PATCH /billing/subscriptions/:id/billing`).
+- `api/account.ts` — dashboard snapshot, profile, a single billing address
+  (`GET/PUT /account/billing-address`, includes `billingEmail`), and password
+  change. `GET /account/snapshot` returns `{ documentCount }` for the **Overview**
+  dashboard. The **Account Details** section splits into **Profile**
+  (inline name and email; password change for members, 2FA status for admins) and **Billing**
+  (`PaymentDetailsSection`) — one inline billing form for the whole account.
+- `api/billing.ts` — subscriptions (+ cancel) and orders. Orders use `orderKind`
+  (`subscription` | `renewal` | `extraRequest`). Privacy Policy Generator orders are always one policy
+  subscription per invoice. EU Representation is **one subscription per plan**
+  (Basis CHF 149 / Plus CHF 229 / Plus 5 CHF 499 per year) that can cover **several
+  legal-entity contracts**. Extra inquiries beyond the plan allowance are billed at
+  CHF 99 (`orderKind: 'extraRequest'`, `POST /billing/eu-rep/extra-request`).
+  Subscriptions expose `planId`, optional `includedRequests` / `usedRequests`, and an optional
+  `billingAddressId` linking to the address used for that subscription
+  (`PATCH /billing/subscriptions/:id/billing`).
   `GET /billing/subscriptions/:id` feeds the dedicated subscription detail page
   (`/account/subscriptions/[id]`). **There is no payment-method resource**: payments run through Payrexx (see below), so
   the member area never stores or displays card details.
@@ -59,16 +63,15 @@ availableSiteSlots, slotSubscriptionId? }`). Each
   policy subscription can cover **prepaid capacity** for several websites (buy-more
   flow) or **one website** when created through the wizard. Each hosted policy maps
   to one site. The term/renewal live on that `policy` `Subscription` (`api/billing.ts`),
-  alongside Academy and EU Rep. Generated policies are **hosted on Datenschutzpartner
+  alongside EU Rep. Generated policies are **hosted on Datenschutzpartner
   servers and embedded on the customer's site**, so legal updates are applied automatically
   — there is **no per-document status** to track and no "update available" action. Each
   document has a `site` (website domain), an optional `siteUrl` (hosted policy page path),
   and a `legalEntity` — the **Swiss controller** of that website, independent of EU
-  Representation. The member-area policy table shows **website first** (as a link),
-  that Swiss legal entity, an **EU Rep** badge when the policy is linked to a
-  representation contract, created date, and last updated date;
-  the detail page is `/account/policies/[id]` (`Policy Text` and `Instruction`
-  tabs). `DocumentsSection` lists hosted policies grouped by
+  Representation. The **Websites** section lists website, policy, cookie-banner stub,
+  and optional linked representation; actions include rescan, edit, and add services.
+  The policy text lives in the `Details` tab of the Privacy Policy section; there
+  is no separate policy detail page. `DocumentsSection` lists hosted policies grouped by
   subscription; the subscription id links to `/account/subscriptions/[id]`
   (the same `MembershipPanel` billing screen as a legal-entity detail). Billing
   history and orders tables also link that id.
@@ -78,8 +81,18 @@ availableSiteSlots, slotSubscriptionId? }`). Each
 Members buy policy coverage in two ways:
 
 1. **Wizard (`/scan` → `/result`)** — always **one website = one new subscription**
-   (`siteCount: 1`). The scan, questionnaire, and checkout all refer to that single
-   site. Payment creates one hosted policy and one billing subscription.
+   (`siteCount: 1`). The **Account** wizard step (email + T&C + newsletter,
+   `POST /auth/register`) is **guest-only**. After double opt-in
+   (`POST /auth/verify-email`) the guest lands on the same last wizard screen
+   a logged-in member reaches after the questionnaire / EU-rep: confirmation
+   with a centered **Show policy** button (wizard chrome, no stepper). Logged-in
+   members skip Account entirely. Show policy starts the trial
+   (`POST /checkout/trial`) when the document is not already published
+   (verify-email already starts it for new accounts). The hosted document starts
+   as a free trial (`trialEndsAt` on the policy subscription). **Payment is not
+   in the wizard** — it lives at
+   `/account/checkout`, reached from a banner under the account sidebar.
+   `POST /checkout/pending/complete` converts the trial to a paid order.
 
 2. **Buy more sites** (`/account/generator/checkout`) — **prepaid capacity** only:
    purchase `siteCount` > 1 with no scan and no hosted documents yet. The member area
@@ -121,29 +134,30 @@ this prototype — the dedicated checkout route redirects to `/scan`), `generato
 (renew one existing subscription), and `euRep` (standalone EU Representation from
 `/account/eu-rep/checkout`). Quote helpers live in `api/checkout.ts`
 (`calculateGeneratorPolicyQuote`, `calculateEuRepQuote`). Standalone EU Rep checkout
-buys **N legal-entity contracts** (`euRepEntityCount` + `euRepEntities[]` with
-`legalEntity` and `forwardingEmail` per contract) and creates **one billing
-subscription per contract**.
+selects a **plan** (`euRepPlanId`: `basis` | `plus` | `plus5`) and creates **one billing
+subscription** plus one or more legal-entity contracts (`euRepEntities[]` with
+`legalEntity`, `forwardingEmail`, and postal address fields). The generator wizard
+always adds **Basis** only and shares the same 14-day trial as the policy
+(`POLICY_TRIAL_DAYS`).
 
 - `api/eu-rep.ts` — EU Representation **contracts** (`GET /eu-rep/contracts`,
   `GET /eu-rep/contracts/:id`, `PATCH /eu-rep/contracts/:id`,
-  `POST /eu-rep/contracts/:id/documents`). One
-  contract = one **Swiss** legal entity for one year. The EU representative is
-  always the constant `EU_REP_REPRESENTATIVE` (VGS Datenschutzpartner GmbH,
+  `POST /eu-rep/contracts`, `POST /eu-rep/contracts/:id/documents`). One
+  contract = one **Swiss** legal entity under an EU Rep **plan subscription**. The EU
+  representative is always the constant `EU_REP_REPRESENTATIVE` (VGS Datenschutzpartner GmbH,
   Hamburg) — there is no per-contract EU-side entity. A member may hold several
-  contracts (an agency with two Swiss clients = two contracts). Fields:
+  contracts on the same subscription. Fields:
   `subscriptionId`, `legalEntity` (the represented Swiss company),
-  `forwardingEmail` (internal inbox — **never** printed in the policy; it may
-  differ from emails in the policy because different people own policies vs EU
-  Rep), `linkedDocumentIds`, `status`. Each contract points at its own billing
-  `subscriptionId` (1:1). Hosted generator documents carry their own Swiss
+  `forwardingEmail` (internal inbox — **never** printed in the policy),
+  postal address fields, `linkedDocumentIds`, `status`. Hosted generator documents carry their own Swiss
   `legalEntity` plus `euRepContractId` (and derived `euRepLinked`);
   linking inserts the Hamburg Art. 27 block. Cancelling an EU
   Rep subscription strips that block from **hosted** policies covered by that
-  contract only. The **EU Representation** section has no secondary tabs:
-  `EuRepContractPanel` lists linked hosted policies grouped by Swiss legal
-  entity. Opening an entity goes to `/account/eu-rep/contracts/[id]` with
-  **Details** (legal entity / forwarding email) and **Subscriptions**
+  subscription. The **EU Representation** account section has tabs
+  **Representations** / **Instructions** / **FAQ**: sortable legal-entity list,
+  secondary linked-policies comfort block, and CHF 99 payment-request action.
+  Opening an entity goes to `/account/eu-rep/contracts/[id]` with
+  **Details** (legal entity / forwarding email / postal address) and **Subscriptions**
   (`MembershipPanel` for that contract) tabs.
 - `api/checkout.ts` — Payrexx checkout sessions and post-payment side effects.
   `useCreateCheckoutSession` → `POST /checkout/sessions` returns `{ id, redirectUrl,
@@ -152,12 +166,13 @@ amount, siteCount, discountRate?, discountAmount? }`. The POC simulates Payrexx 
   an `Order`, creates a **new** policy `Subscription` (or updates the named one on
   `generatorRenewal`), and (for `kind: 'generator'` with a domain) creates a hosted
   document. Additional policies are bought through the generator wizard (`/scan`).
-  Bundling `euRepEntityCount` / `euRepEntities` on a generator checkout creates a
-  new EU Rep **subscription + contract** and auto-links the new hosted document. Passing
+  Bundling `euRepPlanId` / `euRepEntities` on a generator checkout creates a
+  new EU Rep **plan subscription + contract(s)** and auto-links the new hosted document. Passing
   `euRepLinkContractId` instead links the new document to an **existing**
-  contract with no extra charge. Kind `euRep` creates **one subscription per
-  purchased contract**. Unit price is CHF 249 / legal entity / year
-  (`EU_REP_UNIT_PRICE`). After a standalone purchase, leftover hosted policies
+  contract with no extra charge. Kind `euRep` creates **one subscription for the
+  selected plan** and one or more contracts under it. Plan prices live in
+  `EU_REP_PLANS` (Basis / Plus / Plus 5); extra inquiries use
+  `EU_REP_EXTRA_REQUEST_PRICE` (CHF 99). After a standalone purchase, leftover hosted policies
   can be linked (`needsPolicyLinking`, `euRepContractIds`). Changing a contract's
   legal entity regenerates linked hosted policies (`updatedDate`).
   Quote helpers live in `api/checkout.ts` (`calculateGeneratorPolicyQuote`,
@@ -165,25 +180,12 @@ amount, siteCount, discountRate?, discountAmount? }`. The POC simulates Payrexx 
   `openPayrexxPortal()` → `GET /checkout/payrexx-portal`; `downloadOrderInvoice(orderId)`
   → `GET /billing/orders/:id/invoice` (+ PDF blob).
 
-### Per-product billing address selection vs. management
+### Account billing address
 
-Members may assign a **different billing address per product** (Privacy Policy
-Generator, Academy, EU Rep) — each `Subscription` independently points at one
-`billingAddressId`. Two distinct UI surfaces implement this split:
-
-- **Selection, in each product's billing panel** (the shared `MembershipPanel`'s
-  "Change" link on the billing address, used for Academy, EU Rep and the Privacy Policy
-  Generator) — opens `BillingSelectionDialog`
-  (`app/account/_components/BillingSelectionDialog.tsx`), a modal listing the member's
-  saved billing addresses as selectable cards. Confirming calls
-  `useUpdateSubscriptionBilling` to re-point that one subscription. The dialog includes
-  a "Manage billing addresses" link that navigates to Account Details →
-  Billing Addresses — it never creates, edits, or deletes records itself.
-- **CRUD, only in Billing Addresses** (`PaymentDetailsSection`) — lists billing addresses
-  as HeroUI `Card`s in a vertical list; "New address" and each card's edit icon open a
-  `Modal` dialog form (`react-hook-form` + `zodResolver`, schema `addressInputSchema`);
-  delete goes through the shared `ConfirmDialog`. This is the **only** place members can
-  create, edit, or delete addresses.
+Each member has **one** billing address on the account (`GET/PUT
+/account/billing-address`). Subscription sidebars in `MembershipPanel` show the full
+address (including billing email and VAT ID) and link to Account Details → Billing to
+edit. There is no per-subscription address picker.
 
 #### Payrexx (payment service provider)
 
@@ -199,16 +201,15 @@ form, or brand/last4/expiry anywhere in the app. **PAN and CVV are never touched
 frontend.** In production, payment-method changes happen on Payrexx's hosted portal, not
 inside this app; the POC stubs that redirect via `openPayrexxPortal()`.
 
-Subscriptions/memberships/orders are gated on the bearer token in `mocks/handlers.ts`:
-the member token (`lucas.baumgartner@gmail.com`) sees an active subscription +
-membership; the `demo@` token sees the empty states. Addresses and payment methods are
+Subscriptions/orders are gated on the bearer token in `mocks/handlers.ts`:
+the member token (`lucas.baumgartner@gmail.com`) sees active policy and EU Rep
+subscriptions; the `demo@` token sees the empty states. The billing address is
 shared across mock accounts (not gated). The shell renders client-side; `AccountApp`
 redirects unauthenticated visitors to `/login`, and the current password for the mock
 change-password endpoint is `dspmp`.
 
-The **Academy** tab (`AcademySection`) shows **Membership** only (sessions and
-resources live on the public `/academy` landing). Session schedules remain in static
-modules under `lib/academy-content/` for that landing. No dedicated Academy API yet.
+**Datenschutz Academy** is a public marketing surface only (`/academy` landing and
+article pages). It is not part of the member-area navigation or billing APIs.
 
 ## Future API replacement
 

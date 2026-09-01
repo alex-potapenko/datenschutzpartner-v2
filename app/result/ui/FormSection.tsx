@@ -8,6 +8,7 @@ import {
   CheckboxContent,
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { MetaBadge } from '@/components/shared/MetaBadge';
 
 interface FormSectionProps {
   title: string;
@@ -31,14 +32,18 @@ interface FieldProps {
   label: string;
   children: ReactNode;
   hint?: string;
+  optionalLabel?: string;
 }
 
-export function Field({ label, children, hint }: FieldProps) {
+export function Field({ label, children, hint, optionalLabel }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-foreground text-sm font-medium">{label}</label>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-foreground text-sm font-medium">{label}</label>
+        {optionalLabel ? <MetaBadge kind="optional">{optionalLabel}</MetaBadge> : null}
+      </div>
       {children}
-      {hint && <p className="text-muted text-xs">{hint}</p>}
+      {hint ? <p className="text-foreground text-xs leading-snug">{hint}</p> : null}
     </div>
   );
 }
@@ -46,17 +51,23 @@ export function Field({ label, children, hint }: FieldProps) {
 interface TextInputProps {
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 export function TextInput({
   value,
   onChange,
+  onFocus,
+  onBlur,
   placeholder,
   type = 'text',
   className,
+  readOnly,
 }: TextInputProps) {
   return (
     <Input
@@ -64,9 +75,12 @@ export function TextInput({
       type={type}
       value={value}
       onChange={onChange}
+      onFocus={onFocus}
+      onBlur={onBlur}
       placeholder={placeholder}
       fullWidth
       className={className}
+      readOnly={readOnly}
     />
   );
 }

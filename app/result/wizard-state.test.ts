@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ImprovedFormData } from './content/improved-form';
+import type { QuestionnaireFormData } from './content/questionnaire-form';
 import {
   emptyEuRepState,
   isBuyingEuRep,
@@ -11,19 +11,19 @@ import {
   type WizardPersistedState,
 } from './wizard-state';
 
-function form(overrides: Partial<ImprovedFormData> = {}): ImprovedFormData {
+function form(overrides: Partial<QuestionnaireFormData> = {}): QuestionnaireFormData {
   return {
     companyName: 'Acme AG',
     domain: 'acme.ch',
     email: 'info@acme.ch',
     street: 'Bahnhofstrasse 1',
+    streetLine2: '',
     postalCode: '8001',
     city: 'Zürich',
     country: 'Schweiz',
     hasDpo: 'no',
     dpoCompanyName: '',
-    dpoFirstName: '',
-    dpoLastName: '',
+    dpoDesignation: '',
     dpoStreet: '',
     dpoPostalCode: '',
     dpoCity: '',
@@ -57,17 +57,17 @@ function form(overrides: Partial<ImprovedFormData> = {}): ImprovedFormData {
 
 function persisted(overrides: Partial<WizardPersistedState>): WizardPersistedState {
   return {
-    step: 'improved',
+    step: 'questionnaire',
     scanDone: true,
     euRep: emptyEuRepState(),
-    visitedSteps: ['improved'],
+    visitedSteps: ['questionnaire'],
     ...overrides,
   };
 }
 
 describe('isBuyingEuRep / isLinkingExistingEuRep', () => {
   it('treats a chosen plan as a new purchase', () => {
-    const euRep = { plan: 'standard' as const, done: true };
+    const euRep = { plan: 'basis' as const, done: true };
     expect(isBuyingEuRep(euRep)).toBe(true);
     expect(isLinkingExistingEuRep(euRep)).toBe(false);
   });
@@ -84,6 +84,7 @@ describe('normalizeWizardStepId', () => {
     expect(normalizeWizardStepId('scan')).toBe('scanning');
     expect(normalizeWizardStepId('checkout')).toBe('summary');
     expect(normalizeWizardStepId('summary')).toBe('summary');
+    expect(normalizeWizardStepId('improved')).toBe('questionnaire');
   });
 });
 
@@ -95,17 +96,17 @@ describe('wizardStepOrder', () => {
         questionnaireOnly: true,
         euRep: emptyEuRepState(),
       })
-    ).toEqual(['improved']);
+    ).toEqual(['questionnaire']);
   });
 
-  it('ends with summary for new policy generation without GDPR', () => {
+  it('ends with confirmation after the guest Account step', () => {
     expect(
       wizardStepOrder({
         scanDone: true,
         euRep: emptyEuRepState(),
         formData: form({ gdprApplicable: 'no' }),
       })
-    ).toEqual(['scanning', 'improved', 'summary']);
+    ).toEqual(['scanning', 'questionnaire', 'summary', 'confirm']);
   });
 
   it('includes eu-rep when GDPR applies and no third-party representative', () => {
@@ -115,7 +116,7 @@ describe('wizardStepOrder', () => {
         euRep: emptyEuRepState(),
         formData: form({ gdprApplicable: 'yes', hasThirdPartyEuRep: 'no' }),
       })
-    ).toEqual(['scanning', 'improved', 'eu-rep', 'summary']);
+    ).toEqual(['scanning', 'questionnaire', 'eu-rep', 'summary', 'confirm']);
   });
 
   it('skips eu-rep when user has a third-party representative', () => {
@@ -125,7 +126,18 @@ describe('wizardStepOrder', () => {
         euRep: emptyEuRepState(),
         formData: form({ gdprApplicable: 'yes', hasThirdPartyEuRep: 'yes' }),
       })
-    ).toEqual(['scanning', 'improved', 'summary']);
+    ).toEqual(['scanning', 'questionnaire', 'summary', 'confirm']);
+  });
+
+  it('omits the Account step for logged-in members and ends with confirmation', () => {
+    expect(
+      wizardStepOrder({
+        scanDone: true,
+        euRep: emptyEuRepState(),
+        formData: form({ gdprApplicable: 'no' }),
+        includeAccountStep: false,
+      })
+    ).toEqual(['scanning', 'questionnaire', 'confirm']);
   });
 });
 

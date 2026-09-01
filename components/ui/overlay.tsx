@@ -12,6 +12,8 @@ import {
   ModalFooter,
   ModalHeading,
   useOverlayState,
+  DropdownPopover as HeroDropdownPopover,
+  DropdownItem as HeroDropdownItem,
 } from '@heroui/react';
 import { cn } from '@/lib/utils';
 
@@ -46,11 +48,20 @@ export {
 export {
   DropdownRoot,
   DropdownTrigger,
-  DropdownPopover,
   DropdownMenu,
-  DropdownItem,
   DropdownSection,
   RouterProvider,
 } from '@heroui/react';
+
+export function DropdownPopover({
+  className,
+  ...props
+}: ComponentProps<typeof HeroDropdownPopover>) {
+  return <HeroDropdownPopover className={cn('squircle', className)} {...props} />;
+}
+
+export function DropdownItem({ className, ...props }: ComponentProps<typeof HeroDropdownItem>) {
+  return <HeroDropdownItem className={cn('squircle-md', className)} {...props} />;
+}
 
 export { Tooltip, TooltipRoot, TooltipTrigger, TooltipContent, TooltipArrow } from '@heroui/react';

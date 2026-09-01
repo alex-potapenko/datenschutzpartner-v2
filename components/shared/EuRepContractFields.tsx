@@ -31,6 +31,14 @@ function Field({
   );
 }
 
+export type EuRepPostalFields = {
+  postalLine1: string;
+  postalLine2?: string;
+  postalCode: string;
+  city: string;
+  country: string;
+};
+
 type EuRepContractFieldsProps = {
   idPrefix?: string;
   legalEntity: string;
@@ -39,8 +47,11 @@ type EuRepContractFieldsProps = {
   onForwardingEmailChange: (value: string) => void;
   legalEntityError?: string;
   forwardingEmailError?: string;
-  /** Render one field or both — detail screens split fields into separate sections. */
-  fields?: 'both' | 'legalEntity' | 'forwardingEmail';
+  postal?: EuRepPostalFields;
+  onPostalChange?: (patch: Partial<EuRepPostalFields>) => void;
+  postalErrors?: Partial<Record<keyof EuRepPostalFields, string>>;
+  /** Render one field group or all — detail screens split fields into separate sections. */
+  fields?: 'both' | 'legalEntity' | 'forwardingEmail' | 'postal';
 };
 
 export function EuRepContractFields({
@@ -51,6 +62,9 @@ export function EuRepContractFields({
   onForwardingEmailChange,
   legalEntityError,
   forwardingEmailError,
+  postal,
+  onPostalChange,
+  postalErrors,
   fields = 'both',
 }: EuRepContractFieldsProps) {
   const t = useTranslations('account.euRep.contract');
@@ -58,6 +72,7 @@ export function EuRepContractFields({
   const emailId = `${idPrefix}-forwarding-email`;
   const showLegalEntity = fields === 'both' || fields === 'legalEntity';
   const showForwardingEmail = fields === 'both' || fields === 'forwardingEmail';
+  const showPostal = (fields === 'both' || fields === 'postal') && postal && onPostalChange;
 
   return (
     <div className="flex flex-col gap-5">
@@ -101,6 +116,79 @@ export function EuRepContractFields({
             fullWidth
           />
         </Field>
+      ) : null}
+      {showPostal ? (
+        <>
+          <Field
+            id={`${idPrefix}-postal-line1`}
+            label={t('postalLine1')}
+            error={postalErrors?.postalLine1}
+          >
+            <Input
+              id={`${idPrefix}-postal-line1`}
+              variant="secondary"
+              value={postal.postalLine1}
+              onChange={(event) => {
+                onPostalChange({ postalLine1: event.target.value });
+              }}
+              aria-invalid={Boolean(postalErrors?.postalLine1)}
+              fullWidth
+            />
+          </Field>
+          <Field id={`${idPrefix}-postal-line2`} label={t('postalLine2')}>
+            <Input
+              id={`${idPrefix}-postal-line2`}
+              variant="secondary"
+              value={postal.postalLine2 ?? ''}
+              onChange={(event) => {
+                onPostalChange({ postalLine2: event.target.value });
+              }}
+              fullWidth
+            />
+          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field
+              id={`${idPrefix}-postal-code`}
+              label={t('postalCode')}
+              error={postalErrors?.postalCode}
+            >
+              <Input
+                id={`${idPrefix}-postal-code`}
+                variant="secondary"
+                value={postal.postalCode}
+                onChange={(event) => {
+                  onPostalChange({ postalCode: event.target.value });
+                }}
+                aria-invalid={Boolean(postalErrors?.postalCode)}
+                fullWidth
+              />
+            </Field>
+            <Field id={`${idPrefix}-city`} label={t('city')} error={postalErrors?.city}>
+              <Input
+                id={`${idPrefix}-city`}
+                variant="secondary"
+                value={postal.city}
+                onChange={(event) => {
+                  onPostalChange({ city: event.target.value });
+                }}
+                aria-invalid={Boolean(postalErrors?.city)}
+                fullWidth
+              />
+            </Field>
+          </div>
+          <Field id={`${idPrefix}-country`} label={t('country')} error={postalErrors?.country}>
+            <Input
+              id={`${idPrefix}-country`}
+              variant="secondary"
+              value={postal.country}
+              onChange={(event) => {
+                onPostalChange({ country: event.target.value });
+              }}
+              aria-invalid={Boolean(postalErrors?.country)}
+              fullWidth
+            />
+          </Field>
+        </>
       ) : null}
     </div>
   );

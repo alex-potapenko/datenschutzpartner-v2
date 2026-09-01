@@ -5,11 +5,13 @@ import {
   calculateGeneratorPolicyQuote,
   calculateEuRepQuote,
   calculateVatAmount,
-  EU_REP_UNIT_PRICE,
+  EU_REP_EXTRA_REQUEST_PRICE,
   formatDiscountPercent,
   generatorVolumeDiscountExplanation,
   generatorVolumeDiscountRate,
+  POLICY_TRIAL_DAYS,
   qualifyingSiteCountForCheckout,
+  resolveEuRepPlan,
 } from './checkout';
 
 describe('generatorVolumeDiscountRate', () => {
@@ -130,13 +132,37 @@ describe('formatDiscountPercent', () => {
 });
 
 describe('calculateEuRepQuote', () => {
-  it('prices one legal entity at the unit price', () => {
-    expect(calculateEuRepQuote(1).amountDue).toBe(EU_REP_UNIT_PRICE);
+  it('prices Basis at CHF 149 with zero included requests', () => {
+    const quote = calculateEuRepQuote('basis');
+    expect(quote.amountDue).toBe(149);
+    expect(quote.includedRequests).toBe(0);
+    expect(quote.planId).toBe('basis');
   });
 
-  it('caps entity count at one per checkout', () => {
-    expect(calculateEuRepQuote(2).amountDue).toBe(EU_REP_UNIT_PRICE);
-    expect(calculateEuRepQuote(2).entityCount).toBe(1);
+  it('prices Plus and Plus 5 with included requests', () => {
+    expect(calculateEuRepQuote('plus')).toMatchObject({
+      amountDue: 229,
+      includedRequests: 1,
+    });
+    expect(calculateEuRepQuote('plus5')).toMatchObject({
+      amountDue: 499,
+      includedRequests: 5,
+    });
+  });
+
+  it('defaults unknown plan ids to Basis', () => {
+    expect(resolveEuRepPlan('legacy').id).toBe('basis');
+    expect(calculateEuRepQuote('1').planId).toBe('basis');
+  });
+
+  it('exposes the extra-request unit price', () => {
+    expect(EU_REP_EXTRA_REQUEST_PRICE).toBe(99);
+  });
+});
+
+describe('POLICY_TRIAL_DAYS', () => {
+  it('is 14 days for wizard purchases', () => {
+    expect(POLICY_TRIAL_DAYS).toBe(14);
   });
 });
 

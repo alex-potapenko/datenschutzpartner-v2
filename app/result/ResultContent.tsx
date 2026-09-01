@@ -5,12 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepLayout } from './ui/StepLayout';
 import { ScanStep } from './steps/ScanStep';
-import { ImprovedStep, type ImprovedFormData } from './steps/ImprovedStep';
+import { QuestionnaireStep, type QuestionnaireFormData } from './steps/QuestionnaireStep';
 import { EuRepStep } from './steps/EuRepStep';
 import { SummaryStep } from './steps/SummaryStep';
+import { PolicyReadyScreen } from './steps/PolicyReadyScreen';
 import { GeneratedPolicyStep } from './steps/GeneratedPolicyStep';
 import type { GeneratedDocument } from '@/api/documents';
-import type { CheckoutCompleteResult } from '@/api/checkout';
+import { useSession } from '@/api/auth';
 import {
   buildVisitedSteps,
   emptyEuRepState,
@@ -20,8 +21,6 @@ import {
   resolveWizardStep,
   shouldRestoreWizardState,
   shouldShowEuRepStep,
-  wizardStepOrder,
-  normalizeWizardStepId,
   writeWizardState,
   type EuRepState,
   type WizardProgress,
@@ -33,7 +32,7 @@ import { useTranslations } from 'next-intl';
 
 type Step = WizardStep;
 
-/** Post-checkout generated policy screen. */
+/** After Show policy the generated document leaves the wizard. */
 type CheckoutPhase = 'wizard' | 'ready';
 
 function buildFallbackPolicy(domain: string, id: string): GeneratedDocument {
@@ -83,8 +82,11 @@ export default function ResultContent() {
   const params = useSearchParams();
   const router = useRouter();
   const tSummary = useTranslations('result.summary');
-  const tImproved = useTranslations('result.improvedStep');
+  const tQuestionnaire = useTranslations('result.questionnaireStep');
   const regenerateDocument = useRegenerateDocument();
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
+  const includeAccountStep = !session.isLoading && !isAuthenticated;
   const rawUrl = params.get('url') ?? 'https://mywebsite.ch';
 
   const domain: string = (() => {
@@ -103,7 +105,9 @@ export default function ResultContent() {
   const [initialState] = useState(() => createInitialState(params));
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState<Step>(initialState.step);
-  const [formData, setFormData] = useState<ImprovedFormData | undefined>(initialState.formData);
+  const [formData, setFormData] = useState<QuestionnaireFormData | undefined>(
+    initialState.formData
+  );
   const [scanDone, setScanDone] = useState(initialState.scanDone);
   const [euRep, setEuRep] = useState<EuRepState>(initialState.euRep);
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(initialState.visitedSteps);
@@ -114,11 +118,14 @@ export default function ResultContent() {
   );
   const [updateDocumentId, setUpdateDocumentId] = useState(initialState.updateDocumentId);
   const [fillSubscriptionId, setFillSubscriptionId] = useState(initialState.fillSubscriptionId);
+  const [confirmReady, setConfirmReady] = useState(Boolean(initialState.confirmReady));
 
   const progress: WizardProgress = {
     scanDone,
     formData,
     euRep,
+    includeAccountStep,
+    confirmReady,
     questionnaireOnly,
     updateDocumentId,
     fillSubscriptionId,
@@ -127,8 +134,9 @@ export default function ResultContent() {
   const didHydrate = useRef(false);
 
   // Mount-only hydration from sessionStorage (survives full page reloads / deep links).
+  // Wait for the session so Account vs confirmation is decided without a stepper flicker.
   useEffect(() => {
-    if (didHydrate.current) return;
+    if (didHydrate.current || session.isLoading) return;
     didHydrate.current = true;
 
     const stepParam = params.get('step');
@@ -154,6 +162,9 @@ export default function ResultContent() {
       if (restored.checkoutPhase === 'ready') {
         setPhase('ready');
       }
+      if (restored.confirmReady || restored.checkoutPhase === 'confirm') {
+        setConfirmReady(true);
+      }
       if (restored.checkoutDocumentId) {
         setCheckoutDocument(buildFallbackPolicy(domain, restored.checkoutDocumentId));
       }
@@ -176,7 +187,7 @@ export default function ResultContent() {
     /* eslint-enable react-hooks/set-state-in-effect */
     // progress is intentionally read from the closure on first hydration only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params]);
+  }, [params, session.isLoading]);
 
   // Reconcile the step from the URL against the *in-memory* progress (handles
   // browser back/forward and deep links). Reads live state, never storage, so
@@ -211,9 +222,11 @@ export default function ResultContent() {
       questionnaireOnly,
       updateDocumentId,
       fillSubscriptionId,
+      includeAccountStep,
+      confirmReady,
       domain,
       visitedSteps: [...visitedSteps] as WizardStep[],
-      checkoutPhase: phase === 'wizard' ? undefined : phase,
+      checkoutPhase: phase === 'ready' ? 'ready' : confirmReady ? 'confirm' : undefined,
       checkoutDocumentId: checkoutDocument?.id,
     });
   }, [
@@ -225,11 +238,26 @@ export default function ResultContent() {
     questionnaireOnly,
     updateDocumentId,
     fillSubscriptionId,
+    includeAccountStep,
+    confirmReady,
     domain,
     visitedSteps,
     phase,
     checkoutDocument?.id,
   ]);
+
+  useEffect(() => {
+    if (!hydrated || session.isLoading || !isAuthenticated) return;
+    if (phase !== 'wizard' || step !== 'summary' || !formData) return;
+    goToConfirmation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, session.isLoading, isAuthenticated, phase, step, formData]);
+
+  function goToConfirmation(nextProgress: WizardProgress = progress) {
+    const next = { ...nextProgress, confirmReady: true };
+    setConfirmReady(true);
+    advance('confirm', next);
+  }
 
   function syncStepInUrl(next: Step) {
     const nextParams = new URLSearchParams(params.toString());
@@ -250,7 +278,7 @@ export default function ResultContent() {
 
   function handleScanContinue() {
     setScanDone(true);
-    advance('improved', { ...progress, scanDone: true });
+    advance('questionnaire', { ...progress, scanDone: true });
   }
 
   function handlePolicyUpdate() {
@@ -259,7 +287,7 @@ export default function ResultContent() {
     regenerateDocument.mutate(updateDocumentId, {
       onSuccess: () => {
         toast.success(tSummary('updateSuccess'));
-        router.push(`/account/policies/${updateDocumentId}`);
+        router.push('/account?section=privacyPolicy');
       },
       onError: () => {
         toast.error(tSummary('updateFailed'));
@@ -267,7 +295,7 @@ export default function ResultContent() {
     });
   }
 
-  function handleImprovedSubmit(data: ImprovedFormData) {
+  function handleQuestionnaireSubmit(data: QuestionnaireFormData) {
     setFormData(data);
     const skipEuRep = !shouldShowEuRepStep(data);
     const nextEuRep = skipEuRep ? { done: true, declined: true } : emptyEuRepState();
@@ -280,6 +308,11 @@ export default function ResultContent() {
       } else {
         handlePolicyUpdate();
       }
+      return;
+    }
+
+    if (isAuthenticated) {
+      goToConfirmation(nextProgress);
       return;
     }
 
@@ -296,6 +329,11 @@ export default function ResultContent() {
       return;
     }
 
+    if (isAuthenticated) {
+      goToConfirmation(nextProgress);
+      return;
+    }
+
     advance('summary', nextProgress);
   }
 
@@ -305,34 +343,35 @@ export default function ResultContent() {
   }
 
   function handleBack() {
-    if (step === 'improved') {
+    if (step === 'questionnaire') {
       if (questionnaireOnly) {
-        router.push(
-          updateDocumentId ? `/account/policies/${updateDocumentId}` : '/account?section=generator'
-        );
+        router.push('/account?section=privacyPolicy');
       }
       return;
     }
-    if (step === 'eu-rep') goToStep('improved');
-    else if (step === 'summary') {
-      goToStep(shouldShowEuRepStep(formData) ? 'eu-rep' : 'improved');
+    if (step === 'eu-rep') goToStep('questionnaire');
+    else if (step === 'summary' || step === 'confirm') {
+      goToStep(
+        includeAccountStep && step === 'confirm'
+          ? 'summary'
+          : shouldShowEuRepStep(formData)
+            ? 'eu-rep'
+            : 'questionnaire'
+      );
     }
   }
 
-  function handleStepClick(stepId: string) {
-    const normalized = normalizeWizardStepId(stepId);
-    if (!normalized) return;
-    if (normalized === 'scanning' && scanDone && !questionnaireOnly) return;
-    goToStep(normalized);
+  const policyAlreadyGenerated = Boolean(checkoutDocument);
+
+  if (!hydrated) {
+    return (
+      <StepLayout step={step} domain={domain}>
+        <div className="flex flex-1 items-center justify-center" />
+      </StepLayout>
+    );
   }
 
-  const canGoBack = questionnaireOnly
-    ? step === 'improved'
-    : step !== 'scanning' && step !== 'improved';
-  const visibleStepIds = wizardStepOrder(progress);
-
-  // Post-checkout: generated policy (full policy detail page).
-  if (phase === 'ready' && checkoutDocument && formData) {
+  if (phase === 'ready' && checkoutDocument) {
     return <GeneratedPolicyStep document={checkoutDocument} />;
   }
 
@@ -340,13 +379,8 @@ export default function ResultContent() {
     <StepLayout
       step={step}
       domain={domain}
-      canGoBack={canGoBack}
-      onBack={handleBack}
-      onStepClick={handleStepClick}
-      visitedSteps={visitedSteps}
-      visibleStepIds={visibleStepIds}
-      disabledStepIds={scanDone && !questionnaireOnly ? ['scanning'] : undefined}
-      scrollStepsWithContent={step === 'improved'}
+      scrollStepsWithContent={step === 'questionnaire'}
+      quitDisabled={step === 'confirm' && policyAlreadyGenerated}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -355,19 +389,19 @@ export default function ResultContent() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className={`flex min-h-0 flex-1 flex-col${step === 'improved' ? '' : 'h-full'}`}
+          className={`flex min-h-0 flex-1 flex-col${step === 'questionnaire' ? '' : 'h-full'}`}
         >
           {step === 'scanning' && (
             <ScanStep domain={domain} skipLoading={scanDone} onContinue={handleScanContinue} />
           )}
 
-          {step === 'improved' && (
-            <ImprovedStep
+          {step === 'questionnaire' && (
+            <QuestionnaireStep
               domain={domain}
               initialData={formData}
-              onSubmit={handleImprovedSubmit}
+              onSubmit={handleQuestionnaireSubmit}
               onBack={questionnaireOnly ? handleBack : handleScanAgain}
-              backLabel={questionnaireOnly ? undefined : tImproved('scanAgain')}
+              backLabel={questionnaireOnly ? undefined : tQuestionnaire('scanAgain')}
             />
           )}
 
@@ -381,12 +415,21 @@ export default function ResultContent() {
               formData={formData}
               euRep={euRep}
               fillSubscriptionId={fillSubscriptionId}
-              onPaid={(result: CheckoutCompleteResult) => {
-                const document = result.document ?? buildFallbackPolicy(domain, result.orderId);
+              onBack={handleBack}
+            />
+          )}
+
+          {step === 'confirm' && (
+            <PolicyReadyScreen
+              domain={domain}
+              formData={formData}
+              euRep={euRep}
+              fillSubscriptionId={fillSubscriptionId}
+              document={checkoutDocument}
+              onShowPolicy={(document) => {
                 setCheckoutDocument(document);
                 setPhase('ready');
               }}
-              onBack={handleBack}
             />
           )}
         </motion.div>
