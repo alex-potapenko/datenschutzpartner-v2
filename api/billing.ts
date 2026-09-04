@@ -285,19 +285,44 @@ export function isActiveSubscription(subscription: Subscription | null | undefin
   return subscription?.status === 'active' || subscription?.status === 'processing';
 }
 
-/** Whether a single policy subscription is still in its unpaid trial window. */
-export function isPolicySubscriptionOnTrial(
+/** Whether a subscription is still in its unpaid trial window. */
+export function isSubscriptionOnTrial(
   subscription: Subscription | undefined,
   now = new Date()
 ): boolean {
   if (!subscription) return false;
   const today = todayIsoDate(now);
   return (
-    subscription.productType === 'policy' &&
     subscription.status === 'active' &&
     Boolean(subscription.trialEndsAt) &&
     (subscription.trialEndsAt ?? '') >= today
   );
+}
+
+/** Whether a single policy subscription is still in its unpaid trial window. */
+export function isPolicySubscriptionOnTrial(
+  subscription: Subscription | undefined,
+  now = new Date()
+): boolean {
+  return subscription?.productType === 'policy' && isSubscriptionOnTrial(subscription, now);
+}
+
+/** Whether a single EU Rep subscription is still in its unpaid trial window. */
+export function isEuRepSubscriptionOnTrial(
+  subscription: Subscription | undefined,
+  now = new Date()
+): boolean {
+  return subscription?.productType === 'euRep' && isSubscriptionOnTrial(subscription, now);
+}
+
+/** Trial end while unpaid; otherwise the next renewal date. */
+export function subscriptionCoverageEnd(
+  subscription: Subscription | undefined,
+  now = new Date()
+): string | undefined {
+  if (!subscription) return undefined;
+  if (isSubscriptionOnTrial(subscription, now)) return subscription.trialEndsAt;
+  return subscription.nextPaymentDate ?? undefined;
 }
 
 /** Active policy subscriptions that are still in the unpaid trial window. */

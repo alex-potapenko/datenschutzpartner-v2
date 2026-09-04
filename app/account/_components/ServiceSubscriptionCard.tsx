@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Button } from '@/components/ui';
+import { Button, CaretRight, Timer } from '@/components/ui';
 import { MetaBadge } from '@/components/shared/MetaBadge';
 import { DaysLeftBar } from './account-ui';
 import {
@@ -13,8 +13,8 @@ import {
 export type ServiceSubscriptionCardState = 'active' | 'trial' | 'notSubscribed' | 'comingSoon';
 
 export type ServiceSubscriptionCardProps = {
-  icon: ReactNode;
-  accent: string;
+  icon?: ReactNode;
+  accent?: string;
   iconTone?: 'accent' | 'trial';
   title: string;
   state: ServiceSubscriptionCardState;
@@ -51,10 +51,12 @@ function SubscriptionOverviewMetric({
   daysLeft,
   daysLeftAriaLabel,
   daysLeftSuffix,
+  urgentRemainingAtMost,
 }: {
   daysLeft: { remainingDays: number; totalDays: number };
   daysLeftAriaLabel: string;
   daysLeftSuffix: string;
+  urgentRemainingAtMost: number;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -68,6 +70,7 @@ function SubscriptionOverviewMetric({
         remaining={daysLeft.remainingDays}
         total={daysLeft.totalDays}
         label={daysLeftAriaLabel}
+        urgentRemainingAtMost={urgentRemainingAtMost}
       />
     </div>
   );
@@ -128,6 +131,11 @@ export function ServiceSubscriptionCard({
     daysLeftSuffix != null &&
     daysLeftAriaLabel != null;
 
+  const showHeader =
+    icon != null ||
+    statusBadge != null ||
+    (state === 'notSubscribed' && notSubscribedLabel != null);
+
   return (
     <div
       className={
@@ -136,36 +144,47 @@ export function ServiceSubscriptionCard({
           : 'flex min-w-0 flex-col gap-5 p-6 sm:p-8'
       }
     >
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <span
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-          style={
-            iconTone === 'trial'
-              ? {
-                  background: 'var(--warning-soft)',
-                  color: 'var(--warning-soft-foreground)',
-                  opacity: muted ? 0.6 : 1,
-                }
-              : {
-                  background: `color-mix(in oklab, ${accent} 12%, transparent)`,
-                  color: accent,
-                  opacity: muted ? 0.6 : 1,
-                }
-          }
-          aria-hidden
-        >
-          {icon}
-        </span>
-        <ServiceStatusBadge
-          state={state}
-          statusBadge={statusBadge}
-          notSubscribedLabel={notSubscribedLabel}
-        />
-      </div>
+      {showHeader ? (
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          {icon ? (
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+              style={
+                iconTone === 'trial'
+                  ? {
+                      background: 'var(--warning-soft)',
+                      color: 'var(--warning-soft-foreground)',
+                      opacity: muted ? 0.6 : 1,
+                    }
+                  : {
+                      background: `color-mix(in oklab, ${accent ?? 'var(--accent)'} 12%, transparent)`,
+                      color: accent ?? 'var(--accent)',
+                      opacity: muted ? 0.6 : 1,
+                    }
+              }
+              aria-hidden
+            >
+              {icon}
+            </span>
+          ) : null}
+          <ServiceStatusBadge
+            state={state}
+            statusBadge={statusBadge}
+            notSubscribedLabel={notSubscribedLabel}
+          />
+        </div>
+      ) : null}
 
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="text-foreground text-base leading-snug font-semibold">{title}</h2>
+          {state === 'trial' ? (
+            <p className="font-display inline-flex items-center gap-2 text-base leading-snug font-semibold text-[var(--warning-soft-foreground)]">
+              <Timer size={16} weight="fill" className="shrink-0" aria-hidden />
+              <span>{title}</span>
+            </p>
+          ) : (
+            <h2 className="text-foreground text-base leading-snug font-semibold">{title}</h2>
+          )}
           {state === 'trial' && trialLabel ? (
             <MetaBadge kind="trial" className="shrink-0">
               {trialLabel}
@@ -191,6 +210,7 @@ export function ServiceSubscriptionCard({
                 daysLeft={daysLeft}
                 daysLeftAriaLabel={daysLeftAriaLabel}
                 daysLeftSuffix={daysLeftSuffix}
+                urgentRemainingAtMost={state === 'trial' ? 1 : 29}
               />
               {state === 'trial' &&
               trialPricing &&
@@ -219,8 +239,9 @@ export function ServiceSubscriptionCard({
                 />
               ) : null}
               {state === 'trial' && onAction && actionLabel ? (
-                <Button variant="primary" size="sm" className="self-start" onPress={onAction}>
+                <Button variant="primary" size="md" className="gap-2 self-start" onPress={onAction}>
                   {actionLabel}
+                  <CaretRight size={16} weight="bold" className="shrink-0" aria-hidden />
                 </Button>
               ) : null}
             </div>

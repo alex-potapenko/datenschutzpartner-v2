@@ -5,13 +5,11 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ArrowsClockwise, Clock, Crosshair, Gavel } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
-import {
-  calculateGeneratorPolicyQuote,
-  formatDiscountPercent,
-  GENERATOR_POLICY_UNIT_PRICE,
-} from '@/api/checkout';
-import { NavigationLink } from '@/components/shared/NavigationLink';
+import { calculateGeneratorPolicyQuote } from '@/api/checkout';
+import { GeneratorPerSitePriceNote } from '@/components/shared/GeneratorPerSitePriceNote';
 import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
+import { VolumeDiscountThresholdsDialog } from '@/components/shared/VolumeDiscountDialog';
+import { useOverlayState } from '@/components/ui';
 
 const INCLUDED_KEYS = [
   'services',
@@ -67,14 +65,11 @@ function BenefitIcon({ benefitKey }: { benefitKey: BenefitKey }) {
   );
 }
 
-function formatChf(amount: number): string {
-  return `CHF ${amount.toFixed(2)}`;
-}
-
 export function GeneratorBenefitsPanel() {
   const t = useTranslations('generatorPage');
   const tb = useTranslations('generatorPage.benefitsSection');
   const tp = useTranslations('generatorPage.pricingSection');
+  const discountDialog = useOverlayState();
 
   const [siteCount, setSiteCount] = useState(1);
   const quote = useMemo(() => calculateGeneratorPolicyQuote(siteCount, siteCount), [siteCount]);
@@ -83,12 +78,16 @@ export function GeneratorBenefitsPanel() {
     {
       id: 'policy',
       tabLabel: String(siteCount),
-      showPerYear: false,
+      showPerYear: true,
       price: quote.amountDue.toFixed(2),
-      note:
-        quote.discountRate > 0
-          ? tp('discountApplied', { percent: formatDiscountPercent(quote.discountRate) })
-          : tp('perSite', { price: formatChf(GENERATOR_POLICY_UNIT_PRICE) }),
+      note: (
+        <GeneratorPerSitePriceNote
+          quote={quote}
+          onOpenDiscountDialog={() => {
+            discountDialog.open();
+          }}
+        />
+      ),
     },
   ];
 
@@ -120,16 +119,6 @@ export function GeneratorBenefitsPanel() {
                 </li>
               ))}
             </ul>
-
-            <p className="text-muted text-sm leading-relaxed">
-              {t.rich('faqNote', {
-                faq: (chunks) => (
-                  <NavigationLink href="/scan/faq" chevron="none" className="font-medium">
-                    {chunks}
-                  </NavigationLink>
-                ),
-              })}
-            </p>
           </div>
         </div>
 
@@ -157,6 +146,8 @@ export function GeneratorBenefitsPanel() {
           })}
         />
       </div>
+
+      <VolumeDiscountThresholdsDialog state={discountDialog} />
 
       <div
         aria-hidden

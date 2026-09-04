@@ -4,36 +4,41 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepLayout } from './ui/StepLayout';
+import type { WizardStepBarId } from './ui/WizardStepBar';
+import { WebsiteStep } from './steps/WebsiteStep';
 import { ScanStep } from './steps/ScanStep';
 import { QuestionnaireStep, type QuestionnaireFormData } from './steps/QuestionnaireStep';
 import { EuRepStep } from './steps/EuRepStep';
 import { SummaryStep } from './steps/SummaryStep';
-import { PolicyReadyScreen } from './steps/PolicyReadyScreen';
-import { GeneratedPolicyStep } from './steps/GeneratedPolicyStep';
-import type { GeneratedDocument } from '@/api/documents';
+import { AccountActivationScreen } from './steps/AccountActivationScreen';
+import { type GeneratedDocument } from '@/api/documents';
 import { useSession } from '@/api/auth';
 import {
   buildVisitedSteps,
   emptyEuRepState,
   isQuestionnaireOnlyMode,
+  mergeEuRepIntoFormData,
   readWizardState,
   readFillSubscriptionId,
+  hasWebsiteUrlParam,
   resolveWizardStep,
+  shouldResetIncompleteScan,
   shouldRestoreWizardState,
   shouldShowEuRepStep,
+  skippedEuRepState,
+  hasWizardUserProgress,
   writeWizardState,
+  clearWizardState,
   type EuRepState,
   type WizardProgress,
   type WizardStep,
 } from './wizard-state';
+import { privacyPolicyAccountHref, safeAccountReturnTo } from '@/lib/account-routes';
 import { useRegenerateDocument } from '@/api/documents';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
 type Step = WizardStep;
-
-/** After Show policy the generated document leaves the wizard. */
-type CheckoutPhase = 'wizard' | 'ready';
 
 function buildFallbackPolicy(domain: string, id: string): GeneratedDocument {
   const today = new Date().toISOString().slice(0, 10);
@@ -60,6 +65,7 @@ function createInitialState(params: URLSearchParams) {
     questionnaireOnly,
     updateDocumentId,
     fillSubscriptionId,
+    hasWebsiteUrl: hasWebsiteUrlParam(params),
   };
   const step = resolveWizardStep(stepFromUrl, progress);
 
@@ -83,11 +89,17 @@ export default function ResultContent() {
   const router = useRouter();
   const tSummary = useTranslations('result.summary');
   const tQuestionnaire = useTranslations('result.questionnaireStep');
+  const tLanding = useTranslations('landing');
   const regenerateDocument = useRegenerateDocument();
   const session = useSession();
   const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
-  const includeAccountStep = !session.isLoading && !isAuthenticated;
-  const rawUrl = params.get('url') ?? 'https://mywebsite.ch';
+  /** Guests need Account. While the session is still loading, keep the guest path
+   *  so we do not skip registration and dump an anonymous user on confirmation. */
+  const includeAccountStep = !isAuthenticated;
+  const rawUrl = params.get('url')?.trim() ?? '';
+  const hasWebsiteUrl = hasWebsiteUrlParam(params);
+  const returnTo = safeAccountReturnTo(params.get('returnTo'));
+  const quitHref = returnTo ?? '/';
 
   const domain: string = (() => {
     try {
@@ -111,7 +123,6 @@ export default function ResultContent() {
   const [scanDone, setScanDone] = useState(initialState.scanDone);
   const [euRep, setEuRep] = useState<EuRepState>(initialState.euRep);
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(initialState.visitedSteps);
-  const [phase, setPhase] = useState<CheckoutPhase>('wizard');
   const [checkoutDocument, setCheckoutDocument] = useState<GeneratedDocument | undefined>();
   const [questionnaireOnly, setQuestionnaireOnly] = useState(
     initialState.questionnaireOnly ?? false
@@ -119,6 +130,11 @@ export default function ResultContent() {
   const [updateDocumentId, setUpdateDocumentId] = useState(initialState.updateDocumentId);
   const [fillSubscriptionId, setFillSubscriptionId] = useState(initialState.fillSubscriptionId);
   const [confirmReady, setConfirmReady] = useState(Boolean(initialState.confirmReady));
+  const [websiteInput, setWebsiteInput] = useState('');
+  const [activation, setActivation] = useState<{
+    email: string;
+    verificationUrl?: string | null;
+  } | null>(null);
 
   const progress: WizardProgress = {
     scanDone,
@@ -129,9 +145,11 @@ export default function ResultContent() {
     questionnaireOnly,
     updateDocumentId,
     fillSubscriptionId,
+    hasWebsiteUrl,
   };
 
   const didHydrate = useRef(false);
+  const resetIncompleteScanRef = useRef(false);
 
   // Mount-only hydration from sessionStorage (survives full page reloads / deep links).
   // Wait for the session so Account vs confirmation is decided without a stepper flicker.
@@ -145,8 +163,25 @@ export default function ResultContent() {
     const urlQuestionnaireOnly = isQuestionnaireOnlyMode(params);
     const urlUpdateDocumentId = params.get('documentId') ?? undefined;
     const urlFillSubscriptionId = readFillSubscriptionId(params);
+    const restoredScanDone = Boolean(
+      restored && shouldRestoreWizardState(restored, params, domain) && restored.scanDone
+    );
 
     /* eslint-disable react-hooks/set-state-in-effect */
+    if (shouldResetIncompleteScan(requestedStep, restoredScanDone, urlQuestionnaireOnly)) {
+      resetIncompleteScanRef.current = true;
+      clearWizardState();
+      setStep('website');
+      setScanDone(false);
+      setFillSubscriptionId(urlFillSubscriptionId);
+      const nextParams = new URLSearchParams(params.toString());
+      nextParams.delete('url');
+      nextParams.set('step', 'website');
+      router.replace(`/result?${nextParams.toString()}`, { scroll: false });
+      setHydrated(true);
+      return;
+    }
+
     if (restored && shouldRestoreWizardState(restored, params, domain)) {
       setStep(restored.step);
       if (restored.formData !== undefined) setFormData(restored.formData);
@@ -160,7 +195,10 @@ export default function ResultContent() {
       setFillSubscriptionId(urlFillSubscriptionId ?? restored.fillSubscriptionId);
 
       if (restored.checkoutPhase === 'ready') {
-        setPhase('ready');
+        clearWizardState();
+        router.replace(privacyPolicyAccountHref({ site: domain, tab: 'preview' }));
+        setHydrated(true);
+        return;
       }
       if (restored.confirmReady || restored.checkoutPhase === 'confirm') {
         setConfirmReady(true);
@@ -197,9 +235,26 @@ export default function ResultContent() {
 
     const stepParam = params.get('step');
     const requestedStep = stepParam;
+
+    if (resetIncompleteScanRef.current) {
+      const urlCleared = !params.get('url')?.trim() && stepParam === 'website';
+      if (urlCleared) {
+        resetIncompleteScanRef.current = false;
+      } else {
+        /* eslint-disable react-hooks/set-state-in-effect */
+        if (step !== 'website') setStep('website');
+        const nextParams = new URLSearchParams(params.toString());
+        nextParams.delete('url');
+        nextParams.set('step', 'website');
+        router.replace(`/result?${nextParams.toString()}`, { scroll: false });
+        /* eslint-enable react-hooks/set-state-in-effect */
+        return;
+      }
+    }
+
     const resolvedStep = resolveWizardStep(requestedStep, progress);
 
-    /* eslint-disable react-hooks/set-state-in-effect */
+     
     if (resolvedStep !== step) {
       setStep(resolvedStep);
       syncVisitedSteps(progress, resolvedStep, setVisitedSteps);
@@ -207,7 +262,7 @@ export default function ResultContent() {
     if (requestedStep && requestedStep !== resolvedStep) {
       syncStepInUrl(resolvedStep);
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
+     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, params]);
 
@@ -226,7 +281,7 @@ export default function ResultContent() {
       confirmReady,
       domain,
       visitedSteps: [...visitedSteps] as WizardStep[],
-      checkoutPhase: phase === 'ready' ? 'ready' : confirmReady ? 'confirm' : undefined,
+      checkoutPhase: confirmReady ? 'confirm' : undefined,
       checkoutDocumentId: checkoutDocument?.id,
     });
   }, [
@@ -242,16 +297,15 @@ export default function ResultContent() {
     confirmReady,
     domain,
     visitedSteps,
-    phase,
     checkoutDocument?.id,
   ]);
 
   useEffect(() => {
     if (!hydrated || session.isLoading || !isAuthenticated) return;
-    if (phase !== 'wizard' || step !== 'summary' || !formData) return;
+    if (step !== 'summary' || !formData) return;
     goToConfirmation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, session.isLoading, isAuthenticated, phase, step, formData]);
+  }, [hydrated, session.isLoading, isAuthenticated, step, formData]);
 
   function goToConfirmation(nextProgress: WizardProgress = progress) {
     const next = { ...nextProgress, confirmReady: true };
@@ -276,6 +330,16 @@ export default function ResultContent() {
     advance(next, progress);
   }
 
+  function handleWebsiteUrlSubmit(normalizedUrl: string) {
+    const nextProgress = { ...progress, hasWebsiteUrl: true };
+    const nextParams = new URLSearchParams(params.toString());
+    nextParams.set('url', normalizedUrl);
+    nextParams.set('step', 'scanning');
+    syncVisitedSteps(nextProgress, 'scanning', setVisitedSteps);
+    setStep('scanning');
+    router.replace(`/result?${nextParams.toString()}`, { scroll: false });
+  }
+
   function handleScanContinue() {
     setScanDone(true);
     advance('questionnaire', { ...progress, scanDone: true });
@@ -287,7 +351,8 @@ export default function ResultContent() {
     regenerateDocument.mutate(updateDocumentId, {
       onSuccess: () => {
         toast.success(tSummary('updateSuccess'));
-        router.push('/account?section=privacyPolicy');
+        clearWizardState();
+        router.push(privacyPolicyAccountHref({ site: domain, tab: 'preview' }));
       },
       onError: () => {
         toast.error(tSummary('updateFailed'));
@@ -296,33 +361,37 @@ export default function ResultContent() {
   }
 
   function handleQuestionnaireSubmit(data: QuestionnaireFormData) {
-    setFormData(data);
-    const skipEuRep = !shouldShowEuRepStep(data);
-    const nextEuRep = skipEuRep ? { done: true, declined: true } : emptyEuRepState();
+    const showEuRep = shouldShowEuRepStep(data);
+    const nextEuRep = showEuRep ? emptyEuRepState() : skippedEuRepState();
+    const mergedFormData = showEuRep ? data : mergeEuRepIntoFormData(data, nextEuRep);
+
+    setFormData(mergedFormData);
     setEuRep(nextEuRep);
-    const nextProgress = { ...progress, formData: data, euRep: nextEuRep };
+    const nextProgress = { ...progress, formData: mergedFormData, euRep: nextEuRep };
 
-    if (questionnaireOnly) {
-      if (shouldShowEuRepStep(data)) {
-        advance('eu-rep', nextProgress);
-      } else {
+    if (!showEuRep) {
+      if (questionnaireOnly) {
+        advance('questionnaire', nextProgress);
         handlePolicyUpdate();
+        return;
       }
+
+      if (isAuthenticated) {
+        goToConfirmation(nextProgress);
+        return;
+      }
+
+      advance('summary', nextProgress);
       return;
     }
 
-    if (isAuthenticated) {
-      goToConfirmation(nextProgress);
-      return;
-    }
-
-    const target: Step = shouldShowEuRepStep(data) ? 'eu-rep' : 'summary';
-    advance(target, nextProgress);
+    advance('eu-rep', nextProgress);
   }
 
-  function handleEuRepComplete(next: EuRepState) {
+  function handleEuRepComplete(next: EuRepState, updatedFormData: QuestionnaireFormData) {
     setEuRep(next);
-    const nextProgress = { ...progress, euRep: next };
+    setFormData(updatedFormData);
+    const nextProgress = { ...progress, euRep: next, formData: updatedFormData };
 
     if (questionnaireOnly) {
       handlePolicyUpdate();
@@ -343,44 +412,134 @@ export default function ResultContent() {
   }
 
   function handleBack() {
+    if (step === 'website') {
+      router.push(quitHref);
+      return;
+    }
     if (step === 'questionnaire') {
       if (questionnaireOnly) {
-        router.push('/account?section=privacyPolicy');
+        router.push(returnTo ?? privacyPolicyAccountHref({ site: domain || undefined }));
       }
       return;
     }
     if (step === 'eu-rep') goToStep('questionnaire');
     else if (step === 'summary' || step === 'confirm') {
-      goToStep(
+      const previousStep =
         includeAccountStep && step === 'confirm'
           ? 'summary'
-          : shouldShowEuRepStep(formData)
+          : formData && shouldShowEuRepStep(formData)
             ? 'eu-rep'
-            : 'questionnaire'
-      );
+            : 'questionnaire';
+      goToStep(previousStep);
     }
   }
 
+  function handleStepClick(stepId: WizardStepBarId) {
+    if (stepId === 'scanning') {
+      if (scanDone && !questionnaireOnly) return;
+      goToStep(!hasWebsiteUrl && !questionnaireOnly ? 'website' : 'scanning');
+      return;
+    }
+    if (stepId === 'questionnaire') {
+      goToStep('questionnaire');
+      return;
+    }
+    if (stepId === 'eu-rep' && formData && shouldShowEuRepStep(formData)) {
+      goToStep('eu-rep');
+      return;
+    }
+    if (stepId === 'account' && formData && euRep.done) {
+      goToStep('summary');
+    }
+  }
+
+  const showAccountStepInBar = includeAccountStep && !questionnaireOnly;
+  const showEuRepStepInBar = Boolean(formData && shouldShowEuRepStep(formData));
+  const showStepBar = step !== 'confirm' && (showAccountStepInBar || step !== 'summary');
+  const showQuit = step !== 'confirm';
+  const showWebsiteInputHeader = step === 'website' && Boolean(returnTo);
+  const websiteHeaderText = websiteInput.trim() || tLanding('scanPlaceholder');
+  const disabledStepIds = [
+    ...(questionnaireOnly || (scanDone && !questionnaireOnly) ? ['scanning'] : []),
+    ...(showAccountStepInBar && !euRep.done ? ['account'] : []),
+  ];
+  const disabledStepBarIds = disabledStepIds.length > 0 ? disabledStepIds : undefined;
+
   const policyAlreadyGenerated = Boolean(checkoutDocument);
+  const confirmQuit = hasWizardUserProgress(progress);
+
+  useEffect(() => {
+    if (step !== 'website') {
+      setWebsiteInput('');
+    }
+  }, [step]);
 
   if (!hydrated) {
     return (
-      <StepLayout step={step} domain={domain}>
+      <StepLayout
+        step={step}
+        domain={domain}
+        hideDomain={step === 'website' && !showWebsiteInputHeader}
+        domainHeader={showWebsiteInputHeader ? websiteHeaderText : undefined}
+        domainHeaderPlaceholder={showWebsiteInputHeader && !websiteInput.trim()}
+        quitHref={quitHref}
+        confirmQuit={confirmQuit}
+        showStepBar={showStepBar}
+        showAccountStepInBar={showAccountStepInBar}
+        showEuRepStepInBar={showEuRepStepInBar}
+        visitedSteps={visitedSteps}
+        disabledStepIds={disabledStepBarIds}
+        onStepClick={handleStepClick}
+        showQuit={showQuit}
+      >
         <div className="flex flex-1 items-center justify-center" />
       </StepLayout>
     );
   }
 
-  if (phase === 'ready' && checkoutDocument) {
-    return <GeneratedPolicyStep document={checkoutDocument} />;
+  if (activation) {
+    return (
+      <AccountActivationScreen
+        variant="activation"
+        email={activation.email}
+        domain={domain}
+        euRep={euRep}
+        fillSubscriptionId={fillSubscriptionId}
+      />
+    );
+  }
+
+  if (step === 'confirm') {
+    return (
+      <AccountActivationScreen
+        variant="policyReady"
+        domain={domain}
+        euRep={euRep}
+        fillSubscriptionId={fillSubscriptionId}
+        formData={formData}
+        document={checkoutDocument}
+      />
+    );
   }
 
   return (
     <StepLayout
       step={step}
       domain={domain}
-      scrollStepsWithContent={step === 'questionnaire'}
-      quitDisabled={step === 'confirm' && policyAlreadyGenerated}
+      hideDomain={step === 'website' && !showWebsiteInputHeader}
+      domainHeader={showWebsiteInputHeader ? websiteHeaderText : undefined}
+      domainHeaderPlaceholder={showWebsiteInputHeader && !websiteInput.trim()}
+      quitHref={quitHref}
+      scrollStepsWithContent={step === 'questionnaire' || step === 'eu-rep' || step === 'summary'}
+      quitDisabled={false}
+      confirmQuit={confirmQuit}
+      showStepBar={showStepBar}
+      showAccountStepInBar={showAccountStepInBar}
+      showEuRepStepInBar={showEuRepStepInBar}
+      visitedSteps={visitedSteps}
+      disabledStepIds={disabledStepBarIds}
+      onStepClick={handleStepClick}
+      showQuit={showQuit}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -389,8 +548,15 @@ export default function ResultContent() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className={`flex min-h-0 flex-1 flex-col${step === 'questionnaire' ? '' : 'h-full'}`}
+          className={`flex flex-col${step === 'questionnaire' || step === 'eu-rep' ? 'flex-1' : ''}${step !== 'questionnaire' && step !== 'eu-rep' ? 'h-full min-h-0 flex-1' : ''}`}
         >
+          {step === 'website' && (
+            <WebsiteStep
+              onUrlSubmit={handleWebsiteUrlSubmit}
+              onUrlChange={setWebsiteInput}
+              autoFocus={showWebsiteInputHeader}
+            />
+          )}
           {step === 'scanning' && (
             <ScanStep domain={domain} skipLoading={scanDone} onContinue={handleScanContinue} />
           )}
@@ -406,7 +572,12 @@ export default function ResultContent() {
           )}
 
           {step === 'eu-rep' && formData && (
-            <EuRepStep formData={formData} onComplete={handleEuRepComplete} onBack={handleBack} />
+            <EuRepStep
+              formData={formData}
+              initialEuRep={euRep}
+              onComplete={handleEuRepComplete}
+              onBack={handleBack}
+            />
           )}
 
           {step === 'summary' && formData && (
@@ -416,20 +587,7 @@ export default function ResultContent() {
               euRep={euRep}
               fillSubscriptionId={fillSubscriptionId}
               onBack={handleBack}
-            />
-          )}
-
-          {step === 'confirm' && (
-            <PolicyReadyScreen
-              domain={domain}
-              formData={formData}
-              euRep={euRep}
-              fillSubscriptionId={fillSubscriptionId}
-              document={checkoutDocument}
-              onShowPolicy={(document) => {
-                setCheckoutDocument(document);
-                setPhase('ready');
-              }}
+              onRegistered={setActivation}
             />
           )}
         </motion.div>

@@ -1,8 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import type { Subscription } from './billing';
+import {
+  cityNameField,
+  companyNameField,
+  countryNameField,
+  emailField,
+  optionalStreetLine2Field,
+  postalCodeField,
+  streetAddressField,
+} from '@/lib/validation/fields';
+import { isActiveSubscription, type Subscription } from './billing';
 import { billingKeys } from './billing';
-import { documentKeys, uniqueDocumentsBySite, type GeneratedDocument } from './documents';
+import { documentKeys, type GeneratedDocument } from './documents';
 import { request } from './client';
 
 /**
@@ -32,15 +41,15 @@ export const euRepContractSchema = z.object({
   /** Billing subscription (plan) that covers this legal entity. */
   subscriptionId: z.string(),
   /** Swiss organisation this contract represents (the controller). */
-  legalEntity: z.string().min(1, 'validation.required'),
+  legalEntity: companyNameField,
   /** Internal inbox for supervisory and data-subject mail — not shown on the policy. */
-  forwardingEmail: z.email('validation.email'),
+  forwardingEmail: emailField,
   /** Postal address of the represented Swiss organisation. */
-  postalLine1: z.string().min(1, 'validation.required'),
-  postalLine2: z.string().optional(),
-  postalCode: z.string().min(1, 'validation.required'),
-  city: z.string().min(1, 'validation.required'),
-  country: z.string().min(1, 'validation.required'),
+  postalLine1: streetAddressField,
+  postalLine2: optionalStreetLine2Field.optional(),
+  postalCode: postalCodeField,
+  city: cityNameField,
+  country: countryNameField,
   /** Hosted generator documents that currently include the Hamburg block. */
   linkedDocumentIds: z.array(z.string()),
   /** Business website when EU rep is purchased without a hosted policy. */
@@ -100,16 +109,26 @@ function normalizeLegalEntityName(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/** Entity can be removed only when its plan is not actively billed. */
+export function canDeleteEuRepEntity(subscription?: Subscription | null): boolean {
+  return !isActiveSubscription(subscription);
+}
+
 /** Active contract for the Swiss legal entity named on the questionnaire. */
 export function findEuRepContractForLegalEntity(
   contracts: readonly EuRepContract[],
-  legalEntity: string
+  legalEntity: string,
+  subscriptions?: readonly Subscription[]
 ): EuRepContract | undefined {
   const needle = normalizeLegalEntityName(legalEntity);
   if (!needle) return undefined;
-  return contracts.find(
-    (row) => row.status === 'active' && normalizeLegalEntityName(row.legalEntity) === needle
-  );
+  return contracts.find((row) => {
+    if (row.status !== 'active') return false;
+    if (normalizeLegalEntityName(row.legalEntity) !== needle) return false;
+    if (!subscriptions) return true;
+    const subscription = subscriptions.find((item) => item.id === row.subscriptionId);
+    return isActiveSubscription(subscription);
+  });
 }
 
 const SUBSCRIPTION_STATUS_ORDER: Record<string, number> = {
@@ -126,13 +145,10 @@ export type EuRepSubscriptionGroup = {
 };
 
 export function linkedDocumentsForContract(
-  contract: EuRepContract,
-  documents: readonly GeneratedDocument[]
+  _contract: EuRepContract,
+  _documents: readonly GeneratedDocument[]
 ): GeneratedDocument[] {
-  const linkedIds = new Set(contract.linkedDocumentIds);
-  return uniqueDocumentsBySite(
-    documents.filter((doc) => linkedIds.has(doc.id) || doc.euRepContractId === contract.id)
-  ).sort((a, b) => a.createdDate.localeCompare(b.createdDate));
+  return [];
 }
 
 /** Flat list of representations with their billing subscription (for sortable tables). */
@@ -143,7 +159,6 @@ export function groupEuRepContractsBySubscription(
 ): EuRepSubscriptionGroup[] {
   const byId = new Map(subscriptions.map((row) => [row.id, row]));
   return contracts
-    .filter((row) => row.status !== 'cancelled')
     .map((contract) => ({
       contract,
       subscription: byId.get(contract.subscriptionId),
@@ -228,6 +243,23 @@ export function useLinkEuRepDocuments() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: euRepKeys.contracts }),
         queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteEuRepContract() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<void>(`/eu-rep/contracts/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: euRepKeys.all }),
+        queryClient.invalidateQueries({ queryKey: documentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions }),
       ]);
     },
   });

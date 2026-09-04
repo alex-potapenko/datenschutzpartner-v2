@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { personNameField } from '@/lib/validation/fields';
 import { setAuthToken } from '@/lib/auth-session';
 import { accountRoleSchema, type AccountRole } from './account-role';
-import { euRepCheckoutEntitySchema } from './checkout';
+import { euRepCheckoutEntitySchema, euRepPlanIdSchema } from './checkout';
 import { request } from './client';
 
 export { accountRoleSchema, type AccountRole } from './account-role';
@@ -29,18 +30,27 @@ export const sessionSchema = z.object({
   role: accountRoleSchema.optional(),
 });
 
-export const registerSchema = z.object({
-  email: z.email('validation.email'),
-  acceptTerms: z.boolean().refine((value) => value, { message: 'validation.terms' }),
-  newsletter: z.boolean(),
-  domain: z.string().min(1),
-  policyName: z.string().min(1).optional(),
-  legalEntity: z.string().min(1).optional(),
-  fillSubscriptionId: z.string().min(1).optional(),
-  euRepEntityCount: z.number().int().positive().optional(),
-  euRepEntities: z.array(euRepCheckoutEntitySchema).optional(),
-  euRepLinkContractId: z.string().min(1).optional(),
-});
+export const registerSchema = z
+  .object({
+    email: z.email('validation.email'),
+    firstName: personNameField,
+    lastName: personNameField,
+    acceptTerms: z.boolean().refine((value) => value, { message: 'validation.terms' }),
+    newsletter: z.boolean(),
+    domain: z.string().optional(),
+    policyName: z.string().min(1).optional(),
+    legalEntity: z.string().min(1).optional(),
+    fillSubscriptionId: z.string().min(1).optional(),
+    euRepEntityCount: z.number().int().positive().optional(),
+    euRepPlanId: euRepPlanIdSchema.optional(),
+    euRepEntities: z.array(euRepCheckoutEntitySchema).optional(),
+    euRepLinkContractId: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) =>
+      Boolean(data.domain?.trim()) || Boolean(data.euRepEntityCount || data.euRepEntities?.length),
+    { message: 'validation.required', path: ['domain'] }
+  );
 
 export const verifyEmailSchema = z.object({
   token: z.string().min(1, 'validation.required'),
@@ -72,6 +82,7 @@ export type RegisterResponse = {
 export type VerifyEmailResponse = LoginResponse & {
   documentId?: string;
   domain?: string;
+  redirectTo?: string;
   /** Prototype helper — default password for newly verified member accounts. */
   prototypePassword?: string;
 };

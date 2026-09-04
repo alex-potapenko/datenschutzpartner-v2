@@ -8,7 +8,7 @@ Stack is fixed — see `AGENTS.md`.
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `app/academy/`          | Academy landing page, past sessions archive (`/academy/past-sessions`), and article pages.                                                                               |
 | `app/eu-rep/`           | EU representation landing page and the Art. 27 GDPR questionnaire (`/eu-rep/questionnaire`).                                                                             |
-| `app/scan/`             | Privacy policy generator landing page (`/scan`) and FAQ (`/scan/faq`); linked from the result wizard top bar.                                                            |
+| `app/scan/`             | Privacy policy generator landing page (`/scan`) with an on-page FAQ section (`#faq`); linked from the result wizard top bar.                                             |
 | `app/account/`          | Authenticated member area (`/account`, «Mein Konto»); client-side section switching (`?section=`) over a persistent sidebar shell. Trial payment is `/account/checkout`. |
 | `app/verify-email/`     | Double opt-in confirmation after the generator welcome step (`/verify-email?token=`).                                                                                    |
 | `components/ui/`        | Local seam over HeroUI and Phosphor icons — the only place that imports `@heroui/*` or `@phosphor-icons/*`.                                                              |

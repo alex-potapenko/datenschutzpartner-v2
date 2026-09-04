@@ -1,5 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
+import {
+  emailField,
+  messageField,
+  optionalCompanyField,
+  personNameField,
+} from '@/lib/validation/fields';
 import { request } from './client';
 
 export const contactSubjectSchema = z.enum([
@@ -32,11 +38,11 @@ export function createContactSpamChallenge(): ContactSpamChallenge {
 
 export const contactMessageSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, 'validation.required'),
-  company: z.string().optional(),
-  email: z.email('validation.email'),
+  name: personNameField,
+  company: optionalCompanyField,
+  email: emailField,
   subject: contactSubjectSchema,
-  message: z.string().min(1, 'validation.required'),
+  message: messageField,
   createdAt: z.string(),
 });
 

@@ -276,6 +276,9 @@ export const SCAN_ITEM_COUNT = SCAN_GROUP_DEFINITIONS.reduce(
   0
 );
 
+export const SCAN_PHASE_MS = 5000;
+export const SCAN_DURATION_MS = SCAN_PHASE_MS * 2;
+
 /** Deduplicated scan items for the loading carousel (by logo domain or name). */
 export const SCAN_CAROUSEL_ITEMS = SCAN_GROUP_DEFINITIONS.flatMap((group) => group.items).filter(
   (item, index, items) =>

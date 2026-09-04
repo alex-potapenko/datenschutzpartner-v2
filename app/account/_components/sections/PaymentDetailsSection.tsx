@@ -11,6 +11,8 @@ import {
   useUpdateBillingAddress,
   type BillingAddress,
 } from '@/api/account';
+import { displayCountryLabel, SWISS_COUNTRY_STORAGE } from '@/lib/swiss-country';
+import { PostalAddressFields } from '@/app/result/ui/PostalAddressFields';
 import { Button, Input } from '@/components/ui';
 import { DataState, AccountSection } from '../account-ui';
 
@@ -44,7 +46,7 @@ const EMPTY_BILLING: BillingAddress = {
   line2: '',
   postalCode: '',
   city: '',
-  country: '',
+  country: SWISS_COUNTRY_STORAGE,
   vatId: '',
   billingEmail: '',
 };
@@ -52,6 +54,7 @@ const EMPTY_BILLING: BillingAddress = {
 export function PaymentDetailsSection() {
   const t = useTranslations('account.paymentDetails');
   const tRoot = useTranslations();
+  const tCommon = useTranslations('common');
   const billing = useBillingAddress();
   const update = useUpdateBillingAddress();
 
@@ -59,19 +62,26 @@ export function PaymentDetailsSection() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<BillingAddress>({
     resolver: zodResolver(billingAddressSchema),
-    values: billing.data ?? EMPTY_BILLING,
+    values: billing.data
+      ? { ...billing.data, country: SWISS_COUNTRY_STORAGE }
+      : { ...EMPTY_BILLING, country: SWISS_COUNTRY_STORAGE },
   });
 
   function onSubmit(values: BillingAddress) {
-    update.mutate(values, {
-      onSuccess: (saved) => {
-        toast.success(t('addressUpdated'));
-        reset(saved);
-      },
-    });
+    update.mutate(
+      { ...values, country: SWISS_COUNTRY_STORAGE },
+      {
+        onSuccess: (saved) => {
+          toast.success(t('addressUpdated'));
+          reset({ ...saved, country: SWISS_COUNTRY_STORAGE });
+        },
+      }
+    );
   }
 
   const err = (key: keyof BillingAddress) => {
@@ -86,9 +96,8 @@ export function PaymentDetailsSection() {
         isError={billing.isError}
         onRetry={() => void billing.refetch()}
       >
-        <AccountSection title={t('addressesTitle')} className="gap-6" contentClassName="gap-6">
-          <p className="text-muted text-sm leading-relaxed">{t('aboutIntro')}</p>
-
+        <AccountSection className="gap-6" contentClassName="gap-6">
+          <p className="text-foreground text-base leading-relaxed">{t('aboutIntro')}</p>
           <form
             className="flex flex-col gap-6"
             onSubmit={(event) => {
@@ -133,30 +142,32 @@ export function PaymentDetailsSection() {
               <Input id="billingCompany" variant="secondary" fullWidth {...register('company')} />
             </Field>
 
-            <Field id="billingLine1" label={t('line1')} error={err('line1')}>
-              <Input id="billingLine1" variant="secondary" fullWidth {...register('line1')} />
-            </Field>
+            <PostalAddressFields
+              idPrefix="billing"
+              street={watch('line1')}
+              streetLine2={watch('line2')}
+              postalCode={watch('postalCode')}
+              city={watch('city')}
+              onStreetChange={(value) => {
+                setValue('line1', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              onStreetLine2Change={(value) => {
+                setValue('line2', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              onPostalCodeChange={(value) => {
+                setValue('postalCode', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              onCityChange={(value) => {
+                setValue('city', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              line1Error={err('line1') ?? err('postalCode') ?? err('city')}
+              streetLine2Error={err('line2')}
+            />
 
-            <Field id="billingLine2" label={t('line2')} error={err('line2')}>
-              <Input id="billingLine2" variant="secondary" fullWidth {...register('line2')} />
-            </Field>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Field id="billingPostalCode" label={t('postalCode')} error={err('postalCode')}>
-                <Input
-                  id="billingPostalCode"
-                  variant="secondary"
-                  fullWidth
-                  {...register('postalCode')}
-                />
-              </Field>
-              <Field id="billingCity" label={t('city')} error={err('city')}>
-                <Input id="billingCity" variant="secondary" fullWidth {...register('city')} />
-              </Field>
-            </div>
-
-            <Field id="billingCountry" label={t('country')} error={err('country')}>
-              <Input id="billingCountry" variant="secondary" fullWidth {...register('country')} />
+            <Field id="billingCountry" label={t('country')}>
+              <p className="text-foreground text-sm leading-relaxed">
+                {tCommon('countrySwitzerland')}
+              </p>
             </Field>
 
             <Field id="billingVatId" label={t('vatId')} error={err('vatId')}>

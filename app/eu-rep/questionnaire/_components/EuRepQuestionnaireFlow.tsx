@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Button, CaretRight, CheckCircle, Info, Warning } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-import { RadioGroup } from '@/app/result/ui/FormSection';
+import { WizardQuestionRow } from '@/app/result/ui/WizardQuestionRow';
 import { QuestionnaireNewsletter } from './QuestionnaireNewsletter';
 import { cn } from '@/lib/utils';
 
@@ -94,45 +94,12 @@ function updateAnswer(
   return { q1: answers.q1, q2: answers.q2, q3: value };
 }
 
-function QuestionBlock({
-  questionId,
-  answer,
-  showBottomPadding,
-  onAnswer,
-  t,
-}: {
-  questionId: QuestionId;
-  answer?: 'yes' | 'no';
-  showBottomPadding: boolean;
-  onAnswer: (questionId: QuestionId, value: 'yes' | 'no') => void;
-  t: ReturnType<typeof useTranslations<'euRepQuestionnaire'>>;
-}) {
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4">
-        <h2 className="text-foreground !font-sans text-base font-semibold">
-          {t(`questions.${questionId}.title`)}
-        </h2>
-        <p className="text-muted text-sm leading-relaxed">
-          {t(`questions.${questionId}.description`)}
-        </p>
-      </div>
-
-      <div className={showBottomPadding ? 'pb-6' : undefined}>
-        <RadioGroup
-          name={questionId}
-          options={[
-            { value: 'yes', label: t('yes') },
-            { value: 'no', label: t('no') },
-          ]}
-          value={answer ?? ''}
-          onChange={(value) => {
-            onAnswer(questionId, value as 'yes' | 'no');
-          }}
-        />
-      </div>
-    </div>
-  );
+function questionDescription(
+  t: ReturnType<typeof useTranslations<'euRepQuestionnaire'>>,
+  questionId: QuestionId
+): string | undefined {
+  const key = `questions.${questionId}.description` as const;
+  return t.has(key) ? t(key) : undefined;
 }
 
 function OutcomeCard({
@@ -251,12 +218,21 @@ export function EuRepQuestionnaireFlow() {
               transition={motionTransition}
               className={cn(index > 0 && 'border-border border-t pt-8', 'flex flex-col gap-8')}
             >
-              <QuestionBlock
-                questionId={questionId}
-                answer={answers[questionId]}
-                showBottomPadding={outcomeHere === null}
-                onAnswer={handleAnswer}
-                t={t}
+              <WizardQuestionRow
+                variant="choices"
+                spacing="relaxed"
+                relaxedBottomPadding={outcomeHere === null}
+                name={questionId}
+                label={t(`questions.${questionId}.title`)}
+                description={questionDescription(t, questionId)}
+                options={[
+                  { value: 'yes', label: t('yes') },
+                  { value: 'no', label: t('no') },
+                ]}
+                value={answers[questionId] ?? ''}
+                onChange={(value) => {
+                  handleAnswer(questionId, value as 'yes' | 'no');
+                }}
               />
 
               {outcomeHere !== null ? (

@@ -158,19 +158,16 @@ export function normalizeGeneratedDocument(document: GeneratedDocument): Generat
   };
   return {
     ...withSlug,
-    euRepLinked: Boolean(withSlug.euRepContractId) || withSlug.euRepLinked === true,
+    euRepLinked: withSlug.euRepLinked === true,
   };
 }
 
 /** Swiss controller name — stored on the document, else the linked EU Rep contract. */
 export function resolveDocumentLegalEntity(
-  document: Pick<GeneratedDocument, 'legalEntity' | 'euRepContractId'>,
-  contracts: readonly { id: string; legalEntity: string }[]
+  document: Pick<GeneratedDocument, 'legalEntity'>,
+  _contracts: readonly { id: string; legalEntity: string }[] = []
 ): string | undefined {
-  const own = document.legalEntity?.trim();
-  if (own) return own;
-  if (!document.euRepContractId) return undefined;
-  return contracts.find((row) => row.id === document.euRepContractId)?.legalEntity;
+  return document.legalEntity?.trim() || undefined;
 }
 
 function isCookieDocument(document: Pick<GeneratedDocument, 'name' | 'siteUrl'>): boolean {

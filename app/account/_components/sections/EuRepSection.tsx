@@ -1,21 +1,25 @@
 'use client';
 
 import { useMemo, useState, type Key } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { EU_REP_FAQ_CATEGORY_IDS, EU_REP_FAQ_ITEMS_BY_CATEGORY } from '@/lib/faq-content/constants';
-import { isActiveSubscription, useSubscriptions } from '@/api/billing';
+import {
+  useSubscriptions,
+  isEuRepSubscriptionOnTrial,
+  isPolicySubscriptionOnTrial,
+} from '@/api/billing';
 import { FaqCategorizedSections } from '@/components/shared/FaqCategorizedSections';
 import { EuRepServiceLanding } from '@/components/shared/EuRepServiceLanding';
-import {
-  isEuRepAccountScope,
-  normalizeAccountScope,
-} from '@/app/account/_components/account-sections';
-import { useEuRepContracts } from '@/api/eu-rep';
+import { EuRepDeleteEntityAction } from '@/app/account/_components/EuRepDeleteEntityAction';
+import { canDeleteEuRepEntity, useEuRepContracts } from '@/api/eu-rep';
 import { useEuRepScope } from '@/components/shared/eu-rep-scope';
-import { resolveSiteEuRepContract, useSiteScope } from '@/components/shared/site-scope';
 import { Spinner } from '@/components/ui';
-import { AccountSection, AccountSectionFrame } from '../account-ui';
+import { EU_REP_ACCOUNT_HREF } from '@/lib/account-routes';
+import { AccountSection, AccountSectionFrame, subscriptionDaysLeft } from '../account-ui';
+import { useDocuments, resolveDocumentSite } from '@/api/documents';
+import { usePendingCheckout } from '@/api/checkout';
+import { EuRepAccountCheckoutBanner } from '../AccountCheckoutBanner';
+import { TrialPeriodNotice } from '@/components/shared/TrialPeriodNotice';
 import { EuRepLegalEntityPanel } from './EuRepLegalEntityPanel';
 import { MembershipPanel } from './MembershipPanel';
 import {
@@ -51,17 +55,8 @@ function EuRepFaqPanel() {
   );
 }
 
-function buildEuRepQuestionnaireReturnTo(
-  accountScope: ReturnType<typeof normalizeAccountScope>,
-  siteDomain: string | undefined,
-  contractId: string | undefined
-): string {
-  const params = new URLSearchParams();
-  params.set('accountScope', accountScope);
-  params.set('section', 'euRep');
-  if (siteDomain) {
-    params.set('site', siteDomain);
-  }
+function buildEuRepQuestionnaireReturnTo(contractId: string | undefined): string {
+  const params = new URLSearchParams(EU_REP_ACCOUNT_HREF.split('?')[1] ?? '');
   if (contractId) {
     params.set('contract', contractId);
   }
@@ -72,23 +67,14 @@ export function EuRepSection() {
   const t = useTranslations('account.euRep');
   const tTabs = useTranslations('account.serviceTabs');
   const tSubs = useTranslations('account.subscriptions');
+  const tDocuments = useTranslations('account.documents');
   const [tab, setTab] = useState<ServiceTabId>('subscription');
   const tabs = useServiceTabs(EU_REP_TAB_IDS);
-  const searchParams = useSearchParams();
-  const accountScope = normalizeAccountScope(searchParams.get('accountScope'));
-  const inGlobalEuRepScope = isEuRepAccountScope(accountScope);
 
-  const { activeSite } = useSiteScope();
   const contracts = useEuRepContracts();
   const subscriptions = useSubscriptions();
-  const { activeContract: globalContract } = useEuRepScope();
-
-  const siteContract = useMemo(
-    () => (activeSite ? resolveSiteEuRepContract(activeSite, contracts.data ?? []) : undefined),
-    [activeSite, contracts.data]
-  );
-
-  const activeContract = inGlobalEuRepScope ? globalContract : siteContract;
+  const documents = useDocuments();
+  const { activeContract } = useEuRepScope();
 
   const euRepSubscription = useMemo(() => {
     if (!activeContract?.subscriptionId) return null;
@@ -97,17 +83,43 @@ export function EuRepSection() {
     );
   }, [activeContract?.subscriptionId, subscriptions.data]);
 
-  const hasActiveEuRep = Boolean(activeContract && isActiveSubscription(euRepSubscription));
-  const isLoading = contracts.isLoading || subscriptions.isLoading;
+  const hasEuRepEntity = Boolean(activeContract);
+  const canDelete = canDeleteEuRepEntity(euRepSubscription);
+  const isLoading = contracts.isLoading || subscriptions.isLoading || documents.isLoading;
+  const euRepOnTrial = euRepSubscription ? isEuRepSubscriptionOnTrial(euRepSubscription) : false;
+  const euRepTrialPeriod =
+    euRepOnTrial && euRepSubscription?.startDate && euRepSubscription.trialEndsAt
+      ? subscriptionDaysLeft(euRepSubscription.startDate, euRepSubscription.trialEndsAt)
+      : null;
 
-  const questionnaireReturnTo = buildEuRepQuestionnaireReturnTo(
-    accountScope,
-    inGlobalEuRepScope ? undefined : activeSite?.domain,
-    activeContract?.id
+  const linkedPolicySite = useMemo(() => {
+    if (!activeContract) return null;
+    const entity = activeContract.legalEntity.trim().toLowerCase();
+    const linkedPolicy = (documents.data ?? []).find(
+      (document) => document.legalEntity?.trim().toLowerCase() === entity && document.subscriptionId
+    );
+    if (!linkedPolicy) return null;
+    const policySubscription = (subscriptions.data ?? []).find(
+      (row) => row.id === linkedPolicy.subscriptionId
+    );
+    if (!policySubscription || !isPolicySubscriptionOnTrial(policySubscription)) return null;
+    return resolveDocumentSite(linkedPolicy);
+  }, [activeContract, documents.data, subscriptions.data]);
+
+  const pendingCheckoutSite = linkedPolicySite;
+  const pendingCheckout = usePendingCheckout(pendingCheckoutSite);
+  const showBundledCheckoutBanner = Boolean(
+    euRepOnTrial &&
+    pendingCheckout.data?.needed &&
+    linkedPolicySite &&
+    activeContract &&
+    euRepSubscription &&
+    (pendingCheckout.data.euRepEntities?.length || pendingCheckout.data.euRepEntityCount)
   );
 
-  const sectionTitle =
-    inGlobalEuRepScope && activeContract?.legalEntity ? activeContract.legalEntity : t('title');
+  const questionnaireReturnTo = buildEuRepQuestionnaireReturnTo(activeContract?.id);
+
+  const sectionTitle = activeContract?.legalEntity ?? t('title');
 
   if (isLoading) {
     return (
@@ -122,7 +134,7 @@ export function EuRepSection() {
     );
   }
 
-  if (!hasActiveEuRep) {
+  if (!hasEuRepEntity) {
     return (
       <AccountSectionFrame
         hideTitle
@@ -141,6 +153,14 @@ export function EuRepSection() {
   return (
     <AccountSectionFrame
       title={sectionTitle}
+      action={
+        canDelete && activeContract ? (
+          <EuRepDeleteEntityAction
+            contractId={activeContract.id}
+            entityName={activeContract.legalEntity}
+          />
+        ) : undefined
+      }
       tabs={tabs}
       tabsAriaLabel={tTabs('ariaLabel')}
       selectedTab={tab}
@@ -151,11 +171,43 @@ export function EuRepSection() {
       <AnimatedServiceTabContent tabKey={tab} tabOrder={EU_REP_TAB_IDS}>
         {tab === 'subscription' ? (
           <div className="-mx-4 min-w-0 overflow-x-clip sm:-mx-8">
-            <MembershipPanel
-              productType="euRep"
-              subscriptionId={activeContract?.subscriptionId}
-              hideSidebar
-            />
+            {showBundledCheckoutBanner &&
+            linkedPolicySite &&
+            activeContract &&
+            euRepSubscription ? (
+              <EuRepAccountCheckoutBanner
+                siteDomain={linkedPolicySite}
+                policySubscriptionId={
+                  (documents.data ?? []).find(
+                    (document) =>
+                      document.legalEntity?.trim().toLowerCase() ===
+                        activeContract.legalEntity.trim().toLowerCase() && document.subscriptionId
+                  )?.subscriptionId ?? ''
+                }
+                contractId={activeContract.id}
+                euRepSubscriptionId={euRepSubscription.id}
+              />
+            ) : (
+              <>
+                {euRepTrialPeriod ? (
+                  <div className="px-6 pt-6 pb-4 sm:px-8">
+                    <TrialPeriodNotice
+                      variant="euRep"
+                      showTitle={false}
+                      daysLeft={euRepTrialPeriod}
+                      daysLeftAriaLabel={tDocuments('daysLeft', {
+                        count: euRepTrialPeriod.remainingDays,
+                      })}
+                    />
+                  </div>
+                ) : null}
+                <MembershipPanel
+                  productType="euRep"
+                  subscriptionId={activeContract?.subscriptionId}
+                  hideSidebar
+                />
+              </>
+            )}
           </div>
         ) : null}
 

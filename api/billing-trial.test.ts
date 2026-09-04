@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hasActivePolicyTrial, isPolicySubscriptionOnTrial, type Subscription } from './billing';
+import {
+  hasActivePolicyTrial,
+  isEuRepSubscriptionOnTrial,
+  isPolicySubscriptionOnTrial,
+  isSubscriptionOnTrial,
+  type Subscription,
+} from './billing';
 
 function policy(overrides: Partial<Subscription> = {}): Subscription {
   return {
@@ -31,6 +37,39 @@ describe('hasActivePolicyTrial', () => {
 
   it('is false for paid subscriptions without a trial', () => {
     expect(hasActivePolicyTrial([policy()], new Date('2026-08-31T10:00:00'))).toBe(false);
+  });
+});
+
+describe('isSubscriptionOnTrial', () => {
+  it('is true for EU Rep during the same window as a policy trial', () => {
+    expect(
+      isSubscriptionOnTrial(
+        {
+          ...policy({
+            productType: 'euRep',
+            product: 'EU Representation — Basis',
+            trialEndsAt: '2026-09-14',
+          }),
+        },
+        new Date('2026-08-31T10:00:00')
+      )
+    ).toBe(true);
+    expect(
+      isEuRepSubscriptionOnTrial(
+        policy({
+          productType: 'euRep',
+          product: 'EU Representation — Basis',
+          trialEndsAt: '2026-09-14',
+        }),
+        new Date('2026-08-31T10:00:00')
+      )
+    ).toBe(true);
+    expect(
+      isEuRepSubscriptionOnTrial(
+        policy({ trialEndsAt: '2026-09-14' }),
+        new Date('2026-08-31T10:00:00')
+      )
+    ).toBe(false);
   });
 });
 

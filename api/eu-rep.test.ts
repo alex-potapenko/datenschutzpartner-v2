@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { findEuRepContractForLegalEntity, type EuRepContract } from '@/api/eu-rep';
+import type { Subscription } from '@/api/billing';
+import {
+  canDeleteEuRepEntity,
+  findEuRepContractForLegalEntity,
+  type EuRepContract,
+} from '@/api/eu-rep';
+
+function subscription(id: string, status: Subscription['status']): Subscription {
+  return {
+    id,
+    productType: 'euRep',
+    product: 'EU Representation',
+    status,
+    startDate: '2026-01-01',
+    lastOrderDate: '2026-01-01',
+    nextPaymentDate: '2027-01-01',
+    totals: {
+      product: 'EU Representation',
+      subtotal: 149,
+      discount: 0,
+      total: 149,
+      currency: 'CHF',
+    },
+    relatedOrderIds: [],
+  };
+}
 
 const contracts: EuRepContract[] = [
   {
@@ -55,5 +80,34 @@ describe('findEuRepContractForLegalEntity', () => {
     ];
 
     expect(findEuRepContractForLegalEntity(withCancelled, 'Unknown GmbH')).toBeUndefined();
+  });
+
+  it('ignores an active contract whose subscription is cancelled', () => {
+    expect(
+      findEuRepContractForLegalEntity(contracts, 'Baumgartner Digital AG', [
+        subscription('sub-1', 'cancelled'),
+      ])
+    ).toBeUndefined();
+  });
+
+  it('matches when the subscription is still active', () => {
+    expect(
+      findEuRepContractForLegalEntity(contracts, 'Baumgartner Digital AG', [
+        subscription('sub-1', 'active'),
+      ])?.id
+    ).toBe('1');
+  });
+});
+
+describe('canDeleteEuRepEntity', () => {
+  it('blocks delete while the subscription is billed', () => {
+    expect(canDeleteEuRepEntity(subscription('sub-1', 'active'))).toBe(false);
+    expect(canDeleteEuRepEntity(subscription('sub-1', 'processing'))).toBe(false);
+  });
+
+  it('allows delete after cancel or expiry', () => {
+    expect(canDeleteEuRepEntity(subscription('sub-1', 'cancelled'))).toBe(true);
+    expect(canDeleteEuRepEntity(subscription('sub-1', 'expired'))).toBe(true);
+    expect(canDeleteEuRepEntity(undefined)).toBe(true);
   });
 });

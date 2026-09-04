@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, type Key } from 'react';
+import { useMemo, useState, type Key } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRequireSession } from '@/api/auth';
-import { useEuRepContract } from '@/api/eu-rep';
+import { useSubscriptions } from '@/api/billing';
+import { canDeleteEuRepEntity, useEuRepContract } from '@/api/eu-rep';
 import { EU_REP_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
+import { EuRepDeleteEntityAction } from '@/app/account/_components/EuRepDeleteEntityAction';
 import { EuRepLegalEntityPanel } from '@/app/account/_components/sections/EuRepLegalEntityPanel';
 import { MembershipPanel } from '@/app/account/_components/sections/MembershipPanel';
 import {
@@ -32,9 +34,19 @@ export function EuRepContractDetailApp({ contractId }: { contractId: string }) {
   const returnTo = `/account/eu-rep/contracts/${contractId}`;
   const { isChecking } = useRequireSession(returnTo);
   const contractQuery = useEuRepContract(contractId);
+  const subscriptions = useSubscriptions();
   const [tab, setTab] = useState<ContractDetailTab>('details');
 
   const contract = contractQuery.data;
+  const subscription = useMemo(
+    () =>
+      contract
+        ? (subscriptions.data ?? []).find((row) => row.id === contract.subscriptionId)
+        : undefined,
+    [contract, subscriptions.data]
+  );
+  const status = subscription?.status ?? contract?.status;
+  const canDelete = canDeleteEuRepEntity(subscription);
   const detailTitle = tCommon('legalEntityDetails');
 
   if (isChecking) {
@@ -59,7 +71,7 @@ export function EuRepContractDetailApp({ contractId }: { contractId: string }) {
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <DataState
-          isLoading={contractQuery.isLoading}
+          isLoading={contractQuery.isLoading || subscriptions.isLoading}
           isError={contractQuery.isError}
           onRetry={() => {
             void contractQuery.refetch();
@@ -76,6 +88,14 @@ export function EuRepContractDetailApp({ contractId }: { contractId: string }) {
                 className="flex min-h-0 w-full flex-1 flex-col gap-0"
               >
                 <PolicyDetailScreenHeader
+                  action={
+                    canDelete ? (
+                      <EuRepDeleteEntityAction
+                        contractId={contract.id}
+                        entityName={contract.legalEntity}
+                      />
+                    ) : undefined
+                  }
                   below={
                     <Tabs.ListContainer className="overflow-x-auto">
                       <Tabs.List
@@ -101,7 +121,7 @@ export function EuRepContractDetailApp({ contractId }: { contractId: string }) {
                   <h1 className="text-foreground text-2xl font-bold sm:text-3xl">
                     {contract.legalEntity || t('title')}
                   </h1>
-                  <StatusPill tone={statusTone(contract.status)}>{ts(contract.status)}</StatusPill>
+                  {status ? <StatusPill tone={statusTone(status)}>{ts(status)}</StatusPill> : null}
                 </PolicyDetailScreenHeader>
 
                 <Tabs.Panel

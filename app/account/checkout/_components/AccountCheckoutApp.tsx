@@ -1,22 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useRequireSession } from '@/api/auth';
 import { countActivePolicySites, useSubscriptions } from '@/api/billing';
 import {
-  calculateAmountInclVat,
-  calculateEuRepQuote,
-  calculateGeneratorPolicyQuote,
-  calculateVatAmount,
+  calculatePendingTrialCheckoutQuote,
   formatDiscountPercent,
-  formatSwissVatPercent,
-  GENERATOR_POLICY_UNIT_PRICE,
-  POLICY_TRIAL_DAYS,
-  qualifyingSiteCountForCheckout,
   useCompletePendingCheckout,
   usePendingCheckout,
 } from '@/api/checkout';
@@ -25,42 +18,181 @@ import {
   ACCOUNT_CHECKOUT_HREF,
   PRIVACY_POLICY_ACCOUNT_HREF,
 } from '@/app/account/_components/account-sections';
-import { Button, CaretRight, Spinner } from '@/components/ui';
-import { RegularPage } from '@/components/shared/RegularPage';
+import type { EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
+import {
+  formatCheckoutChf,
+  ServiceCheckoutPlanCard,
+  type CheckoutBreakdownLine,
+} from '@/components/shared/ServiceCheckoutPlanCard';
+import { GeneratorPerSitePriceNote } from '@/components/shared/GeneratorPerSitePriceNote';
+import { PolicyDetailPageShell } from '@/components/shared/PolicyDetailLayout';
+import {
+  VolumeDiscountNote,
+  VolumeDiscountThresholdsDialog,
+} from '@/components/shared/VolumeDiscountDialog';
+import { privacyPolicyAccountHref, safeAccountReturnTo } from '@/lib/account-routes';
+import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
 
-function formatChf(amount: number): string {
-  return `CHF ${amount.toFixed(2)}`;
-}
+const GENERATOR_INCLUDED_KEYS = [
+  'services',
+  'gdpr',
+  'questions',
+  'html',
+  'fadp',
+  'adjustments',
+  'hosting',
+  'pdf',
+] as const;
 
-function PriceRow({
-  label,
-  detail,
-  amount,
-  amountClassName = 'text-foreground',
+function AccountCheckoutPageShell({
+  backHref,
+  backLabel,
+  title,
+  children,
 }: {
-  label: string;
-  detail?: string;
-  amount: string;
-  amountClassName?: string;
+  backHref: string;
+  backLabel: string;
+  title?: string;
+  children: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <p className="text-foreground text-sm font-normal">{label}</p>
-        {detail ? <p className="text-muted text-sm font-normal">{detail}</p> : null}
-      </div>
-      <p className={`shrink-0 text-sm font-semibold ${amountClassName}`}>{amount}</p>
+    <PolicyDetailPageShell backHref={backHref} backLabel={backLabel} detailTitle={title}>
+      {children}
+    </PolicyDetailPageShell>
+  );
+}
+
+function CheckoutStatusPanel({
+  children,
+  center = false,
+}: {
+  children: ReactNode;
+  center?: boolean;
+}) {
+  return (
+    <div
+      className={`px-4 py-10 sm:px-8 ${center ? 'flex min-h-40 items-center justify-center' : 'flex flex-col items-center justify-center gap-4 text-center'}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PolicyCheckoutPanel({
+  domain,
+  isFillSlot,
+  fillSubscriptionId,
+  quote,
+  buyingEuRep,
+  linkingExisting,
+  legalEntity,
+  linkedEntityName,
+  euRepAmount,
+  subtotalExclVat,
+  footerAction,
+  onOpenDiscountDialog,
+}: {
+  domain: string;
+  isFillSlot: boolean;
+  fillSubscriptionId?: string;
+  quote: ReturnType<typeof calculatePendingTrialCheckoutQuote>['policyQuote'];
+  buyingEuRep: boolean;
+  linkingExisting: boolean;
+  legalEntity: string;
+  linkedEntityName: string;
+  euRepAmount: number;
+  subtotalExclVat: number;
+  footerAction: ReactNode;
+  onOpenDiscountDialog: () => void;
+}) {
+  const t = useTranslations('account.checkout');
+  const tSummary = useTranslations('result.summary');
+  const tGenerator = useTranslations('generatorPage');
+  const tp = useTranslations('generatorPage.pricingSection');
+
+  const plans: EuRepPlan[] = [
+    {
+      id: 'policy',
+      tabLabel: '1',
+      showPerYear: true,
+      price: quote.amountDue.toFixed(2),
+      note: <GeneratorPerSitePriceNote quote={quote} onOpenDiscountDialog={onOpenDiscountDialog} />,
+    },
+  ];
+
+  const breakdownLines: CheckoutBreakdownLine[] = [
+    {
+      label: tSummary('generatorLine'),
+      detail: isFillSlot
+        ? tSummary('generatorLineSlotDetail', {
+            id: fillSubscriptionId ?? '',
+            domain,
+          })
+        : tSummary('generatorLineDetail', { domain }),
+      amount: formatCheckoutChf(quote.amountDue),
+    },
+  ];
+
+  if (!isFillSlot && quote.discountAmount > 0) {
+    breakdownLines.push({
+      label: (
+        <VolumeDiscountNote
+          label={tSummary('discountLine', {
+            percent: formatDiscountPercent(quote.discountRate),
+          })}
+          onOpen={onOpenDiscountDialog}
+        />
+      ),
+      amount: `− ${formatCheckoutChf(quote.discountAmount)}`,
+      amountClassName: 'text-success',
+    });
+  }
+
+  if (buyingEuRep) {
+    breakdownLines.push({
+      label: tSummary('euRepLine'),
+      detail: tSummary('euRepLineDetailNamed', { entity: legalEntity }),
+      amount: formatCheckoutChf(euRepAmount),
+    });
+  }
+
+  if (linkingExisting) {
+    breakdownLines.push({
+      label: tSummary('euRepLinkLine'),
+      detail: tSummary('euRepLinkLineDetail', {
+        entity: linkedEntityName,
+      }),
+      amount: formatCheckoutChf(0),
+    });
+  }
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-8 sm:py-10">
+      <ServiceCheckoutPlanCard
+        plans={plans}
+        selectedPlanId="policy"
+        layout="standalone"
+        pricePeriod={tp('pricePeriod')}
+        tabsAriaLabel={tp('siteCountLabel')}
+        showPlanTitle={false}
+        selectPlanTitle={t('title')}
+        includedTitle={tp('includedTitle')}
+        features={GENERATOR_INCLUDED_KEYS.map((key) => tGenerator(`features.${key}`))}
+        legal={tGenerator.rich('legalCheckout', {
+          terms: (chunks) => <Link href="/terms">{chunks}</Link>,
+        })}
+        breakdownLines={breakdownLines}
+        subtotalExclVat={subtotalExclVat}
+        footerAction={footerAction}
+      />
     </div>
   );
 }
 
 export function AccountCheckoutApp() {
   const t = useTranslations('account.checkout');
-  const tSummary = useTranslations('result.summary');
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
-  const tGenerator = useTranslations('generatorPage');
-  const tp = useTranslations('generatorPage.pricingSection');
   const router = useRouter();
   const searchParams = useSearchParams();
   const siteParam = searchParams.get('site');
@@ -69,38 +201,46 @@ export function AccountCheckoutApp() {
   const subscriptions = useSubscriptions();
   const euRepContracts = useEuRepContracts();
   const completePending = useCompletePendingCheckout(siteParam);
+  const discountDialog = useOverlayState();
 
   const pendingData = pending.data;
-  const isFillSlot = Boolean(pendingData?.fillSubscriptionId);
-  const buyingEuRep = Boolean(pendingData?.euRepEntityCount || pendingData?.euRepEntities?.length);
-  const linkingExisting = Boolean(pendingData?.euRepLinkContractId);
   const linkedContract = euRepContracts.data?.find(
     (row) => row.id === pendingData?.euRepLinkContractId
   );
-  const domain = pendingData?.domain ?? '';
+  const domain = pendingData?.domain ?? siteParam ?? '';
   const legalEntity =
     pendingData?.legalEntity ?? pendingData?.euRepEntities?.[0]?.legalEntity ?? '—';
 
-  const activeSites = countActivePolicySites(subscriptions.data ?? []);
-  const quote = useMemo(() => {
-    if (isFillSlot) {
-      return {
-        amountDue: 0,
-        discountAmount: 0,
-        discountRate: 0,
-        listPrice: 0,
-      };
-    }
-    return calculateGeneratorPolicyQuote(
-      qualifyingSiteCountForCheckout(activeSites, 'generator', 1),
-      1
-    );
-  }, [activeSites, isFillSlot]);
+  const backHref =
+    safeAccountReturnTo(searchParams.get('returnTo')) ??
+    (domain
+      ? privacyPolicyAccountHref({ site: domain, tab: 'subscription' })
+      : PRIVACY_POLICY_ACCOUNT_HREF);
+  const backLabel = tCommon('back');
 
-  const euRepAmount = buyingEuRep ? calculateEuRepQuote('basis').amountDue : 0;
-  const subtotalExclVat = quote.amountDue + euRepAmount;
-  const vatAmount = calculateVatAmount(subtotalExclVat);
-  const totalInclVat = calculateAmountInclVat(subtotalExclVat);
+  const activeSites = countActivePolicySites(subscriptions.data ?? []);
+  const checkoutQuote = useMemo(() => {
+    if (!pendingData?.needed) return null;
+    return calculatePendingTrialCheckoutQuote(pendingData, activeSites);
+  }, [activeSites, pendingData]);
+
+  const isFillSlot = checkoutQuote?.isFillSlot ?? Boolean(pendingData?.fillSubscriptionId);
+  const buyingEuRep =
+    checkoutQuote?.buyingEuRep ??
+    Boolean(pendingData?.euRepEntityCount || pendingData?.euRepEntities?.length);
+  const linkingExisting =
+    checkoutQuote?.linkingExisting ?? Boolean(pendingData?.euRepLinkContractId);
+  const quote = checkoutQuote?.policyQuote ?? {
+    siteCount: 1,
+    qualifyingSiteCount: activeSites,
+    unitPrice: 0,
+    discountRate: 0,
+    listPrice: 0,
+    discountAmount: 0,
+    amountDue: 0,
+  };
+  const euRepAmount = checkoutQuote?.euRepAmount ?? 0;
+  const subtotalExclVat = checkoutQuote?.subtotalExclVat ?? quote.amountDue;
 
   async function handlePay() {
     try {
@@ -108,163 +248,93 @@ export function AccountCheckoutApp() {
       await new Promise((resolve) => setTimeout(resolve, 900));
       await completePending.mutateAsync();
       toast.success(t('paymentConfirmed'));
-      router.push(PRIVACY_POLICY_ACCOUNT_HREF);
+      router.push(
+        domain
+          ? privacyPolicyAccountHref({ site: domain, tab: 'subscription' })
+          : PRIVACY_POLICY_ACCOUNT_HREF
+      );
     } catch {
       toast.error(t('paymentFailed'));
     }
   }
 
+  const payButton = (
+    <Button
+      variant="primary"
+      size="lg"
+      className="font-display h-14 w-full gap-2 rounded-full text-base"
+      onPress={() => {
+        void handlePay();
+      }}
+      isDisabled={completePending.isPending}
+    >
+      {completePending.isPending ? (
+        <span className="inline-flex items-center gap-2">
+          <Spinner size="sm" aria-hidden />
+          {t('processing')}
+        </span>
+      ) : (
+        <>
+          {t('payCta')}
+          <CaretRight size={16} weight="bold" aria-hidden />
+        </>
+      )}
+    </Button>
+  );
+
   if (isChecking || pending.isLoading || subscriptions.isLoading) {
     return (
-      <RegularPage
-        topBarVariant="account"
-        showFooter={false}
-        noPadding
-        minimal
-        backLink={{ href: PRIVACY_POLICY_ACCOUNT_HREF, label: tCommon('back'), preferHref: true }}
-      >
-        <div className="flex min-h-40 items-center justify-center py-20">
+      <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
+        <CheckoutStatusPanel center>
           <Spinner aria-label={tAccount('loading')} />
-        </div>
-      </RegularPage>
+        </CheckoutStatusPanel>
+      </AccountCheckoutPageShell>
     );
   }
 
   if (pending.isError) {
     return (
-      <RegularPage
-        topBarVariant="account"
-        showFooter={false}
-        noPadding
-        minimal
-        backLink={{ href: PRIVACY_POLICY_ACCOUNT_HREF, label: tCommon('back'), preferHref: true }}
-      >
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-20 text-center">
+      <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
+        <CheckoutStatusPanel>
           <p className="text-foreground text-base">{tAccount('error')}</p>
           <Button variant="outline" onPress={() => void pending.refetch()}>
             {tAccount('retry')}
           </Button>
-        </div>
-      </RegularPage>
+        </CheckoutStatusPanel>
+      </AccountCheckoutPageShell>
     );
   }
 
   if (!pendingData?.needed) {
     return (
-      <RegularPage
-        topBarVariant="account"
-        showFooter={false}
-        noPadding
-        minimal
-        backLink={{ href: PRIVACY_POLICY_ACCOUNT_HREF, label: tCommon('back'), preferHref: true }}
-      >
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-20 text-center">
-          <h1 className="text-foreground text-2xl font-semibold">{t('emptyTitle')}</h1>
+      <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
+        <CheckoutStatusPanel>
+          <h2 className="text-foreground text-2xl font-semibold">{t('emptyTitle')}</h2>
           <p className="text-foreground max-w-md text-sm leading-relaxed">{t('emptyBody')}</p>
-        </div>
-      </RegularPage>
+        </CheckoutStatusPanel>
+      </AccountCheckoutPageShell>
     );
   }
 
   return (
-    <RegularPage
-      topBarVariant="account"
-      showFooter={false}
-      noPadding
-      minimal
-      backLink={{ href: PRIVACY_POLICY_ACCOUNT_HREF, label: tCommon('back'), preferHref: true }}
-    >
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-4 py-12 sm:px-8">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-foreground text-2xl font-semibold sm:text-3xl">{t('title')}</h1>
-          <p className="text-foreground text-sm leading-relaxed">
-            {t('trialBody', { days: POLICY_TRIAL_DAYS })}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <PriceRow
-            label={tSummary('generatorLine')}
-            detail={
-              isFillSlot
-                ? tSummary('generatorLineSlotDetail', {
-                    id: pendingData.fillSubscriptionId ?? '',
-                    domain,
-                  })
-                : tSummary('generatorLineDetail', { domain })
-            }
-            amount={formatChf(quote.amountDue)}
-          />
-
-          {!isFillSlot && quote.discountAmount > 0 ? (
-            <PriceRow
-              label={tSummary('discountLine', {
-                percent: formatDiscountPercent(quote.discountRate),
-              })}
-              amount={`− ${formatChf(quote.discountAmount)}`}
-              amountClassName="text-success"
-            />
-          ) : !isFillSlot ? (
-            <p className="text-muted text-sm">
-              {tp('perSite', { price: formatChf(GENERATOR_POLICY_UNIT_PRICE) })}
-            </p>
-          ) : null}
-
-          {buyingEuRep ? (
-            <PriceRow
-              label={tSummary('euRepLine')}
-              detail={tSummary('euRepLineDetailNamed', { entity: legalEntity })}
-              amount={formatChf(euRepAmount)}
-            />
-          ) : null}
-
-          {linkingExisting ? (
-            <PriceRow
-              label={tSummary('euRepLinkLine')}
-              detail={tSummary('euRepLinkLineDetail', {
-                entity: linkedContract?.legalEntity ?? '—',
-              })}
-              amount={formatChf(0)}
-            />
-          ) : null}
-
-          <div className="border-border flex flex-col gap-3 border-t pt-4">
-            <PriceRow label={tSummary('subtotalExclVat')} amount={formatChf(subtotalExclVat)} />
-            <PriceRow
-              label={tSummary('vatLine', { rate: formatSwissVatPercent() })}
-              amount={formatChf(vatAmount)}
-            />
-            <PriceRow label={tSummary('totalInclVat')} amount={formatChf(totalInclVat)} />
-            <PriceRow label={tSummary('dueToday')} amount={formatChf(totalInclVat)} />
-          </div>
-        </div>
-
-        <p className="text-muted text-sm leading-relaxed">
-          {tGenerator.rich('legal', {
-            terms: (chunks) => <Link href="/terms">{chunks}</Link>,
-          })}
-        </p>
-
-        <Button
-          variant="primary"
-          size="lg"
-          className="font-display h-14 w-full gap-2 rounded-full text-base"
-          onPress={() => void handlePay()}
-          isDisabled={completePending.isPending}
-        >
-          {completePending.isPending ? (
-            <span className="inline-flex items-center gap-2">
-              <Spinner size="sm" aria-hidden />
-              {t('processing')}
-            </span>
-          ) : (
-            <>
-              {t('payCta')}
-              <CaretRight size={16} weight="bold" aria-hidden />
-            </>
-          )}
-        </Button>
-      </div>
-    </RegularPage>
+    <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
+      <PolicyCheckoutPanel
+        domain={domain}
+        isFillSlot={isFillSlot}
+        fillSubscriptionId={pendingData.fillSubscriptionId}
+        quote={quote}
+        buyingEuRep={buyingEuRep}
+        linkingExisting={linkingExisting}
+        legalEntity={legalEntity}
+        linkedEntityName={linkedContract?.legalEntity ?? '—'}
+        euRepAmount={euRepAmount}
+        subtotalExclVat={subtotalExclVat}
+        footerAction={payButton}
+        onOpenDiscountDialog={() => {
+          discountDialog.open();
+        }}
+      />
+      <VolumeDiscountThresholdsDialog state={discountDialog} />
+    </AccountCheckoutPageShell>
   );
 }

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useUpdateEuRepContract, type EuRepContract } from '@/api/eu-rep';
+import { companyNameField, emailField } from '@/lib/validation/fields';
 import { EuRepContractFields } from '@/components/shared/EuRepContractFields';
 import { EuRepRepresentativeAddress } from '@/components/shared/EuRepRepresentativeAddress';
 import { Buildings, Button, MapPin } from '@/components/ui';
@@ -54,11 +55,19 @@ function EuRepLegalEntityPanelContent({ contract }: { contract: EuRepContract })
   const isActive = contract.status === 'active';
 
   function validate(): boolean {
-    const entityOk = legalEntity.trim().length > 0;
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forwardingEmail.trim());
-    setLegalEntityError(entityOk ? undefined : tValidation('required'));
-    setForwardingEmailError(emailOk ? undefined : tValidation('email'));
-    return entityOk && emailOk;
+    const entityResult = companyNameField.safeParse(legalEntity);
+    const emailResult = emailField.safeParse(forwardingEmail);
+    const entityError = entityResult.success
+      ? undefined
+      : tValidation(
+          entityResult.error.issues[0]?.message.slice('validation.'.length) ?? 'required'
+        );
+    const emailError = emailResult.success
+      ? undefined
+      : tValidation(emailResult.error.issues[0]?.message.slice('validation.'.length) ?? 'email');
+    setLegalEntityError(entityError);
+    setForwardingEmailError(emailError);
+    return entityResult.success && emailResult.success;
   }
 
   async function handleSave() {

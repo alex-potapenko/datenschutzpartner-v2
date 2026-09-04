@@ -12,7 +12,7 @@ import {
   CaretRight,
   Cookie,
   FileText,
-  GlobeHemisphereEast,
+  FlagBanner,
   GraduationCap,
   List,
   SignIn,
@@ -57,13 +57,13 @@ const SERVICE_IDS: ServiceEntry[] = [
     id: '/scan',
     key: 'privacyGenerator',
     icon: <FileText size={20} weight="fill" />,
-    accent: 'var(--feature-indigo)',
+    accent: 'var(--accent)',
   },
   {
     id: '/eu-rep',
     key: 'euRep',
-    icon: <GlobeHemisphereEast size={20} weight="fill" />,
-    accent: 'var(--feature-fuchsia)',
+    icon: <FlagBanner size={20} weight="fill" />,
+    accent: 'var(--feature-indigo)',
   },
   {
     id: '/account?section=cookieBanner',
@@ -96,7 +96,8 @@ const NAV_LINKS = [
 const navTriggerClass =
   'font-display flex cursor-pointer items-center gap-1 border-0 bg-transparent text-sm font-medium outline-none';
 
-const barOutlineButtonClass = 'inline-flex shrink-0 border-white/20 text-white hover:bg-white/10';
+const barOutlineButtonClass =
+  'topbar-outline-trigger inline-flex shrink-0 border-white/20 text-white';
 
 const drawerMenuItemClass = 'rounded-xl px-4 transition-colors';
 

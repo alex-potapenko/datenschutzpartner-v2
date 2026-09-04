@@ -82,6 +82,14 @@ li a.academy-preview-list-row-link:hover {
     --button-fg: var(--accent);
   }
 
+  /* TopBar outline triggers sit on accent — keep a subtle white tint on hover/press. */
+  .topbar-outline-trigger.button--outline,
+  .topbar-outline-trigger.button--ghost {
+    --button-fg: white;
+    --button-bg-hover: color-mix(in oklab, white 10%, transparent);
+    --button-bg-pressed: color-mix(in oklab, white 10%, transparent);
+  }
+
   /* Hero preview card fades softly at the bottom on every screen size.
      On desktop it additionally bleeds (clips) into the next section. */
   .hero-preview-fade {
@@ -134,6 +142,27 @@ li a.academy-preview-list-row-link:hover {
   .modal__header + .modal__body {
     @apply mt-0 pt-4;
   }
+}
+
+/* Unlayered — beats HeroUI outline hover/pressed tokens while a TopBar dropdown is open.
+   React Aria keeps data-pressed / aria-expanded on the trigger for the whole overlay. */
+.topbar-outline-trigger,
+.topbar-outline-trigger.button--outline,
+.topbar-outline-trigger.button--ghost {
+  --button-fg: white;
+  --button-bg-hover: color-mix(in oklab, white 10%, transparent);
+  --button-bg-pressed: color-mix(in oklab, white 10%, transparent);
+  color: white;
+}
+
+.topbar-outline-trigger:hover,
+.topbar-outline-trigger:active,
+.topbar-outline-trigger[data-hovered='true'],
+.topbar-outline-trigger[data-pressed='true'],
+.topbar-outline-trigger[aria-expanded='true'],
+.topbar-outline-trigger[data-open='true'] {
+  background-color: color-mix(in oklab, white 10%, transparent);
+  color: white;
 }
 
 /* Unlayered — beats HeroUI button/dropdown press scale on sidebar list selectors */

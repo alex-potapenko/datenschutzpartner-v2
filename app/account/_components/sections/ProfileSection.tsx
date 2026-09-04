@@ -286,39 +286,31 @@ function LanguagePreference() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-foreground text-sm font-medium">{t('languageTitle')}</p>
-        <p className="text-muted text-sm">{t('languageDescription')}</p>
-      </div>
-      <div
-        role="group"
-        aria-label={t('languageTitle')}
-        className="border-border inline-flex shrink-0 items-center gap-1 rounded-full border p-1"
-      >
-        {locales.map((code) => {
-          const isActive = code === locale;
-          return (
-            <button
-              key={code}
-              type="button"
-              disabled={pending}
-              aria-pressed={isActive}
-              onClick={() => {
-                selectLocale(code);
-              }}
-              className={cn(
-                'font-display cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-accent text-white'
-                  : 'text-muted hover:text-foreground hover:bg-key-50'
-              )}
-            >
-              {t(`languageNames.${code}` as 'languageNames.de')}
-            </button>
-          );
-        })}
-      </div>
+    <div
+      role="group"
+      aria-label={t('languageTitle')}
+      className="border-border inline-flex w-fit items-center gap-1 rounded-full border p-1"
+    >
+      {locales.map((code) => {
+        const isActive = code === locale;
+        return (
+          <button
+            key={code}
+            type="button"
+            disabled={pending}
+            aria-pressed={isActive}
+            onClick={() => {
+              selectLocale(code);
+            }}
+            className={cn(
+              'font-display cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+              isActive ? 'bg-accent text-white' : 'text-muted hover:text-foreground hover:bg-key-50'
+            )}
+          >
+            {t(`languageNames.${code}` as 'languageNames.de')}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -328,40 +320,48 @@ function SecuritySection({ profile }: { profile: Profile }) {
   const passwordDialog = useOverlayState();
 
   if (profile.role === 'admin') {
-    return (
-      <div className="flex flex-col gap-4">
-        <p className="text-muted text-sm leading-relaxed">{t('adminTwoFactorHint')}</p>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <p className="text-foreground text-sm font-medium">{t('twoFactorTitle')}</p>
-            <p className="text-muted text-sm">{t('twoFactorDescription')}</p>
-          </div>
-          <StatusPill tone="success">{t('twoFactorEnabled')}</StatusPill>
-        </div>
-      </div>
-    );
+    return <StatusPill tone="success">{t('twoFactorEnabled')}</StatusPill>;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-muted text-sm leading-relaxed">{t('memberPasswordHint')}</p>
-      <div>
-        <Button
-          variant="outline"
-          size="sm"
-          onPress={() => {
-            passwordDialog.open();
-          }}
-        >
-          {t('changePassword')}
-        </Button>
-      </div>
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onPress={() => {
+          passwordDialog.open();
+        }}
+      >
+        {t('changePassword')}
+      </Button>
       <ChangePasswordDialog state={passwordDialog} />
-    </div>
+    </>
   );
 }
 
 export function ProfileSection() {
+  const profile = useProfile();
+
+  return (
+    <div className="divide-border flex min-h-0 flex-1 flex-col divide-y">
+      <DataState
+        isLoading={profile.isLoading}
+        isError={profile.isError}
+        onRetry={() => void profile.refetch()}
+      >
+        {profile.data ? (
+          <>
+            <AccountSection className="gap-6" contentClassName="gap-6">
+              <PersonalDetailsForm profile={profile.data} />
+            </AccountSection>
+          </>
+        ) : null}
+      </DataState>
+    </div>
+  );
+}
+
+export function SettingsSection() {
   const t = useTranslations('account.accountDetails');
   const profile = useProfile();
 
@@ -374,16 +374,11 @@ export function ProfileSection() {
       >
         {profile.data ? (
           <>
-            <AccountSection title={t('profileTitle')} className="gap-6" contentClassName="gap-6">
-              <p className="text-muted text-sm leading-relaxed">{t('aboutIntro')}</p>
-              <PersonalDetailsForm profile={profile.data} />
-            </AccountSection>
-
-            <AccountSection title={t('settingsTitle')} className="gap-6" contentClassName="gap-6">
+            <AccountSection title={t('languageTitle')} contentClassName="gap-0">
               <LanguagePreference />
-              <div className="border-border border-t pt-6">
-                <SecuritySection profile={profile.data} />
-              </div>
+            </AccountSection>
+            <AccountSection title={t('password')} contentClassName="gap-0">
+              <SecuritySection profile={profile.data} />
             </AccountSection>
           </>
         ) : null}

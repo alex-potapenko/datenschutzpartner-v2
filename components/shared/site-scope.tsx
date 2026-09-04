@@ -7,7 +7,6 @@ import {
   useDocuments,
   type GeneratedDocument,
 } from '@/api/documents';
-import { type EuRepContract } from '@/api/eu-rep';
 
 /**
  * A website in the member area — one hosted policy per domain.
@@ -35,20 +34,18 @@ function normalizeDomain(value: string): string {
     .toLowerCase();
 }
 
-export function resolveSiteEuRepContract(
-  site: AccountSite,
-  contracts: readonly EuRepContract[]
-): EuRepContract | undefined {
-  if (!site.document?.euRepContractId) return undefined;
-  return contracts.find((row) => row.id === site.document?.euRepContractId);
-}
-
 export function siteHasPolicy(site: AccountSite): boolean {
   return Boolean(site.document);
 }
 
-export function siteHasEuRep(site: AccountSite, contracts: readonly EuRepContract[]): boolean {
-  return Boolean(resolveSiteEuRepContract(site, contracts));
+/** Future: per-site cookie banner subscription. */
+export function siteHasCookieBanner(_site: AccountSite): boolean {
+  return false;
+}
+
+/** Future: per-site imprint subscription. */
+export function siteHasImprint(_site: AccountSite): boolean {
+  return false;
 }
 
 export function useAccountSites(): { sites: AccountSite[]; isLoading: boolean } {

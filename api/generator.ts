@@ -1,5 +1,15 @@
 import { z } from 'zod';
 import type { QuestionnaireFormData } from '@/app/result/content/questionnaire-form';
+import {
+  cityNameField,
+  companyNameField,
+  countryNameField,
+  domainField,
+  emailField,
+  optionalStreetLine2Field,
+  postalCodeField,
+  streetAddressField,
+} from '@/lib/validation/fields';
 
 export type { QuestionnaireFormData } from '@/app/result/content/questionnaire-form';
 
@@ -9,16 +19,25 @@ const transfersAbroad = z.enum(['no', 'eea', 'worldwide', '']);
 const videoRetention = z.enum(['none', 'duration', 'asRequired', '']);
 const videoRetentionUnit = z.enum(['hours', 'days', '']);
 
+const dpoDetailsSchema = z.object({
+  dpoCompanyName: companyNameField,
+  dpoDesignation: companyNameField,
+  dpoStreet: streetAddressField,
+  dpoPostalCode: postalCodeField,
+  dpoCity: cityNameField,
+  dpoCountry: countryNameField,
+});
+
 export const questionnaireFormSchema = z
   .object({
-    companyName: z.string().min(1, 'validation.required'),
-    domain: z.string().min(1, 'validation.required'),
-    email: z.email('validation.email'),
-    street: z.string().min(1, 'validation.required'),
-    streetLine2: z.string(),
-    postalCode: z.string().min(1, 'validation.required'),
-    city: z.string().min(1, 'validation.required'),
-    country: z.string().min(1, 'validation.required'),
+    companyName: companyNameField,
+    domain: domainField,
+    email: emailField,
+    street: streetAddressField,
+    streetLine2: optionalStreetLine2Field,
+    postalCode: postalCodeField,
+    city: cityNameField,
+    country: countryNameField,
     hasDpo: yesNo,
     dpoCompanyName: z.string(),
     dpoDesignation: z.string(),
@@ -83,20 +102,15 @@ export const questionnaireFormSchema = z
     }
 
     if (data.hasDpo === 'yes') {
-      if (!data.dpoCompanyName.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoCompanyName'], message: 'validation.required' });
-      }
-      if (!data.dpoStreet.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoStreet'], message: 'validation.required' });
-      }
-      if (!data.dpoPostalCode.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoPostalCode'], message: 'validation.required' });
-      }
-      if (!data.dpoCity.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoCity'], message: 'validation.required' });
-      }
-      if (!data.dpoCountry.trim()) {
-        ctx.addIssue({ code: 'custom', path: ['dpoCountry'], message: 'validation.required' });
+      const dpoResult = dpoDetailsSchema.safeParse(data);
+      if (!dpoResult.success) {
+        for (const issue of dpoResult.error.issues) {
+          ctx.addIssue({
+            code: 'custom',
+            path: issue.path,
+            message: issue.message,
+          });
+        }
       }
     }
 
@@ -119,58 +133,6 @@ export const questionnaireFormSchema = z
           path: ['videoRetentionUnit'],
           message: 'validation.required',
         });
-      }
-    }
-
-    if (showThirdPartyEuRepQuestion(data) && !data.hasThirdPartyEuRep) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['hasThirdPartyEuRep'],
-        message: 'validation.required',
-      });
-    }
-
-    if (data.hasThirdPartyEuRep === 'yes') {
-      if (!data.thirdPartyRepName.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepName'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepStreet.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepStreet'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepPostalCode.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepPostalCode'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepCity.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepCity'],
-          message: 'validation.required',
-        });
-      }
-      if (!data.thirdPartyRepCountry.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['thirdPartyRepCountry'],
-          message: 'validation.required',
-        });
-      }
-      if (
-        !data.thirdPartyRepEmail.trim() ||
-        !z.email().safeParse(data.thirdPartyRepEmail.trim()).success
-      ) {
-        ctx.addIssue({ code: 'custom', path: ['thirdPartyRepEmail'], message: 'validation.email' });
       }
     }
   });

@@ -4,6 +4,7 @@ import {
   calculateAmountInclVat,
   calculateGeneratorPolicyQuote,
   calculateEuRepQuote,
+  calculatePendingTrialCheckoutQuote,
   calculateVatAmount,
   EU_REP_EXTRA_REQUEST_PRICE,
   formatDiscountPercent,
@@ -157,6 +158,34 @@ describe('calculateEuRepQuote', () => {
 
   it('exposes the extra-request unit price', () => {
     expect(EU_REP_EXTRA_REQUEST_PRICE).toBe(99);
+  });
+});
+
+describe('calculatePendingTrialCheckoutQuote', () => {
+  it('adds bundled EU Rep to the policy trial total', () => {
+    const result = calculatePendingTrialCheckoutQuote(
+      {
+        euRepPlanId: 'basis',
+        euRepEntityCount: 1,
+        euRepEntities: [
+          {
+            legalEntity: 'Example AG',
+            forwardingEmail: 'privacy@example.ch',
+            postalLine1: 'Bahnhofstrasse 1',
+            postalLine2: '',
+            postalCode: '8001',
+            city: 'Zürich',
+            country: 'Schweiz',
+          },
+        ],
+      },
+      2
+    );
+
+    expect(result.buyingEuRep).toBe(true);
+    expect(result.policyQuote.amountDue).toBeGreaterThan(0);
+    expect(result.euRepAmount).toBe(calculateEuRepQuote('basis').amountDue);
+    expect(result.subtotalExclVat).toBe(result.policyQuote.amountDue + result.euRepAmount);
   });
 });
 

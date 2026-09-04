@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button, CaretLeft, CaretRight } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
+import { useStepLayoutFooterContext, useStepLayoutFooterHoist } from './StepLayoutFooter';
 
 interface StepFooterProps {
   onBack?: () => void;
@@ -11,27 +12,27 @@ interface StepFooterProps {
   onSkip?: () => void;
   ctaLabel?: ReactNode;
   ctaNote?: ReactNode;
+  showCtaCaret?: boolean;
   skipLabel?: string;
   backLabel?: ReactNode;
   ctaDisabled?: boolean;
-  sticky?: boolean;
 }
 
-export function StepFooter({
+function StepFooterSurface({
   onBack,
   onContinue,
   onSkip,
   ctaLabel,
   ctaNote,
+  showCtaCaret = true,
   skipLabel,
   backLabel,
   ctaDisabled,
-  sticky = true,
 }: StepFooterProps) {
   const t = useTranslations('common');
 
   return (
-    <div className={`border-border border-t bg-transparent${sticky ? 'sticky bottom-0 z-20' : ''}`}>
+    <div className="border-border bg-background shrink-0 border-t">
       <Container>
         <div className="border-border flex items-center justify-between gap-2 border-r border-l px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
           {onBack ? (
@@ -75,7 +76,9 @@ export function StepFooter({
                   isDisabled={ctaDisabled}
                 >
                   <span className="truncate">{ctaLabel ?? t('continue')}</span>
-                  <CaretRight size={16} weight="bold" className="shrink-0" />
+                  {showCtaCaret ? (
+                    <CaretRight size={16} weight="bold" className="shrink-0" />
+                  ) : null}
                 </Button>
               ) : null}
             </div>
@@ -84,4 +87,14 @@ export function StepFooter({
       </Container>
     </div>
   );
+}
+
+export function StepFooter(props: StepFooterProps) {
+  const hoistFooter = useStepLayoutFooterContext();
+  const surface = <StepFooterSurface {...props} />;
+
+  useStepLayoutFooterHoist(surface);
+
+  if (hoistFooter) return null;
+  return surface;
 }

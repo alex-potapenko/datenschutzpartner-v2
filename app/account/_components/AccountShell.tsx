@@ -15,17 +15,14 @@ import {
   WEBSITE_SECTION_IDS,
   isEuRepAccountScope,
   normalizeAccountScope,
-  normalizeWebsiteSection,
+  readAccountShellSection,
+  type AccountShellSectionId,
   type WebsiteSectionId,
 } from './account-sections';
 import { PrivacyPolicySection } from './sections/PrivacyPolicySection';
 import { EuRepSection } from './sections/EuRepSection';
 import { ComingSoonSection } from './sections/ComingSoonSection';
 import { SubscriptionsSection } from './sections/SubscriptionsSection';
-
-function readSectionFromUrl(searchParams: URLSearchParams): WebsiteSectionId {
-  return normalizeWebsiteSection(searchParams.get('section'));
-}
 
 function useIsLargeScreen() {
   return useSyncExternalStore(
@@ -41,16 +38,10 @@ function useIsLargeScreen() {
   );
 }
 
-function AccountSectionContent({
-  section,
-  onNavigate,
-}: {
-  section: WebsiteSectionId;
-  onNavigate: (section: WebsiteSectionId) => void;
-}) {
+function AccountSectionContent({ section }: { section: AccountShellSectionId }) {
   switch (section) {
     case 'overview':
-      return <SubscriptionsSection onNavigate={onNavigate} />;
+      return <SubscriptionsSection />;
     case 'privacyPolicy':
       return <PrivacyPolicySection />;
     case 'euRep':
@@ -68,38 +59,36 @@ export function AccountShell() {
   const searchParams = useSearchParams();
   const isLargeScreen = useIsLargeScreen();
 
-  const section = readSectionFromUrl(searchParams);
-  const siteParam = searchParams.get('site');
-  const contractParam = searchParams.get('contract');
   const accountScope = normalizeAccountScope(searchParams.get('accountScope'));
   const inEuRepScope = isEuRepAccountScope(accountScope);
+  const section = readAccountShellSection(searchParams.get('section'), accountScope);
+  const websiteSection: WebsiteSectionId = section === 'euRep' ? 'overview' : section;
+  const siteParam = searchParams.get('site');
+  const contractParam = searchParams.get('contract');
   const contracts = useEuRepContracts();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const activeEuRepContracts = useMemo(
-    () => (contracts.data ?? []).filter((row) => row.status === 'active'),
-    [contracts.data]
-  );
+  const listedEuRepContracts = useMemo(() => contracts.data ?? [], [contracts.data]);
 
   const euRepContractOrder = useMemo(
-    () => activeEuRepContracts.map((row) => row.id),
-    [activeEuRepContracts]
+    () => listedEuRepContracts.map((row) => row.id),
+    [listedEuRepContracts]
   );
 
   const activeEuRepContract = useMemo(() => {
     return (
-      (contractParam ? activeEuRepContracts.find((row) => row.id === contractParam) : undefined) ??
-      activeEuRepContracts[0] ??
+      (contractParam ? listedEuRepContracts.find((row) => row.id === contractParam) : undefined) ??
+      listedEuRepContracts[0] ??
       null
     );
-  }, [contractParam, activeEuRepContracts]);
+  }, [contractParam, listedEuRepContracts]);
 
   const contentActiveKey = inEuRepScope ? (activeEuRepContract?.id ?? 'euRep-empty') : section;
   const contentOrder = inEuRepScope ? euRepContractOrder : WEBSITE_SECTION_IDS;
 
   const mobileNavTitle = inEuRepScope
     ? (activeEuRepContract?.legalEntity ?? t('nav.euRep'))
-    : t(`nav.${section}`);
+    : t(`nav.${websiteSection}`);
 
   const navigate = useCallback(
     (next: WebsiteSectionId) => {
@@ -162,14 +151,14 @@ export function AccountShell() {
 
           {mobileNavOpen ? (
             <div className="border-border border-b lg:hidden">
-              <AccountSidebar active={section} onNavigate={navigate} />
+              <AccountSidebar active={websiteSection} onNavigate={navigate} />
             </div>
           ) : null}
 
           <AccountLayoutProvider mode={isLargeScreen ? 'split' : 'stack'}>
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-visible lg:grid lg:grid-cols-[280px_1fr]">
               <aside className="border-border sticky top-[var(--topbar-height,6rem)] hidden h-[calc(100dvh-var(--topbar-height,6rem))] min-h-0 w-[280px] shrink-0 flex-col self-stretch border-r lg:col-start-1 lg:row-start-1 lg:flex">
-                <AccountSidebar active={section} onNavigate={navigate} />
+                <AccountSidebar active={websiteSection} onNavigate={navigate} />
               </aside>
 
               <div className="min-w-0 overflow-visible lg:col-start-2 lg:row-start-1 lg:min-h-0">
@@ -178,7 +167,7 @@ export function AccountShell() {
                   order={contentOrder}
                   axis="y"
                 >
-                  <AccountSectionContent section={section} onNavigate={navigate} />
+                  <AccountSectionContent section={section} />
                 </AnimatedDirectionalPanel>
               </div>
             </div>

@@ -1,4 +1,4 @@
-export const ACCOUNT_DETAILS_TAB_IDS = ['profile', 'paymentDetails'] as const;
+export const ACCOUNT_DETAILS_TAB_IDS = ['profile', 'paymentDetails', 'settings'] as const;
 
 export type AccountDetailsTab = (typeof ACCOUNT_DETAILS_TAB_IDS)[number];
 

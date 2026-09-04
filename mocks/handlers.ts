@@ -18,9 +18,10 @@ import type {
   EuRepExtraRequestCreate,
 } from '@/api/billing';
 import {
+  isPolicySubscriptionOnTrial,
+  isEuRepSubscriptionOnTrial,
   countActivePolicySites,
   countActivePolicySubscriptions,
-  isPolicySubscriptionOnTrial,
 } from '@/api/billing';
 import type { CheckoutSessionCreate, EuRepPlanId } from '@/api/checkout';
 import {
@@ -175,6 +176,7 @@ const billingAddress = createCollection<BillingAddress & { id: string }>(
       lastName: 'Baumgartner',
       company: 'Baumgartner Digital AG',
       line1: 'Bahnhofstrasse 12',
+      line2: '',
       postalCode: '8001',
       city: 'Zürich',
       country: 'Schweiz',
@@ -520,7 +522,6 @@ function defaultPostalForEntity(legalEntity: string) {
 function createEuRepPurchase(
   session: CheckoutSessionRecord,
   today: string,
-  extraLinkedDocumentIds: string[] = [],
   options?: { trialEndsAt?: string }
 ):
   | { orderId: string; subscriptionId: string; contractId?: string; contractIds: string[] }
@@ -581,12 +582,12 @@ function createEuRepPurchase(
 
   for (let index = 0; index < entityCount; index += 1) {
     const details = entities[index];
-    const legalEntity = details?.legalEntity.trim() || `Legal entity ${String(index + 1)}`;
+    const legalEntity = details?.legalEntity?.trim() || `Legal entity ${String(index + 1)}`;
     const defaults = defaultPostalForEntity(legalEntity);
     const created = euRepContracts.create({
       subscriptionId,
       legalEntity,
-      forwardingEmail: details?.forwardingEmail.trim() || MOCK_MEMBER_EMAIL,
+      forwardingEmail: details?.forwardingEmail?.trim() || MOCK_MEMBER_EMAIL,
       postalLine1: details?.postalLine1?.trim() || defaults.postalLine1,
       postalLine2: details?.postalLine2?.trim() || undefined,
       postalCode: details?.postalCode?.trim() || defaults.postalCode,
@@ -599,10 +600,6 @@ function createEuRepPurchase(
     firstContractId ??= created.id;
   }
 
-  if (firstContractId && extraLinkedDocumentIds.length > 0) {
-    linkDocumentsToContract(firstContractId, extraLinkedDocumentIds, today);
-  }
-
   return {
     orderId: euOrder?.id ?? '',
     subscriptionId,
@@ -611,50 +608,11 @@ function createEuRepPurchase(
   };
 }
 
-function linkDocumentsToContract(contractId: string, documentIds: string[], today: string) {
-  const contract = euRepContracts.all().find((row) => row.id === contractId);
-  if (!contract) return;
-
-  const linked = new Set(contract.linkedDocumentIds);
-  for (const id of documentIds) {
-    for (const other of euRepContracts.all()) {
-      if (other.id === contractId || !other.linkedDocumentIds.includes(id)) continue;
-      euRepContracts.update(other.id, {
-        linkedDocumentIds: other.linkedDocumentIds.filter((item) => item !== id),
-      });
-    }
-    linked.add(id);
-    documents.update(id, { euRepContractId: contractId, euRepLinked: true, updatedDate: today });
-  }
-
-  euRepContracts.update(contractId, { linkedDocumentIds: [...linked] });
-}
-
-function unlinkDocumentFromContract(contractId: string, documentId: string, today: string) {
-  const contract = euRepContracts.all().find((row) => row.id === contractId);
-  if (!contract) return;
-
-  documents.update(documentId, {
-    euRepContractId: undefined,
-    euRepLinked: false,
-    updatedDate: today,
-  });
-  euRepContracts.update(contractId, {
-    linkedDocumentIds: contract.linkedDocumentIds.filter((id) => id !== documentId),
-  });
-}
-
 function stripEuRepFromHostedPolicies(subscriptionId: string) {
-  const today = new Date().toISOString().slice(0, 10);
-  const contracts = euRepContracts
-    .all()
-    .filter((row) => row.subscriptionId === subscriptionId && row.status === 'active');
+  const contracts = euRepContracts.all().filter((row) => row.subscriptionId === subscriptionId);
 
   for (const contract of contracts) {
-    for (const id of contract.linkedDocumentIds) {
-      documents.update(id, { euRepContractId: undefined, euRepLinked: false, updatedDate: today });
-    }
-    euRepContracts.update(contract.id, { status: 'cancelled', linkedDocumentIds: [] });
+    euRepContracts.update(contract.id, { linkedDocumentIds: [] });
   }
 }
 
@@ -702,7 +660,7 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
       : undefined;
     const swissLegalEntity =
       session.legalEntity?.trim() ||
-      session.euRepEntities?.[0]?.legalEntity.trim() ||
+      session.euRepEntities?.[0]?.legalEntity?.trim() ||
       linkedContract?.legalEntity ||
       undefined;
 
@@ -714,15 +672,12 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
       createdDate: today,
       updatedDate: today,
       versions: buildPolicyVersions(today),
-      euRepLinked: willBuyEuRep || willLinkExisting,
     });
 
     let euRepOrderId = '';
     if (willBuyEuRep) {
-      const euResult = createEuRepPurchase(session, today, [created.id]);
+      const euResult = createEuRepPurchase(session, today);
       euRepOrderId = euResult?.orderId ?? '';
-    } else if (willLinkExisting && session.euRepLinkContractId) {
-      linkDocumentsToContract(session.euRepLinkContractId, [created.id], today);
     }
 
     return checkoutSessions.update(sessionId, {
@@ -815,7 +770,7 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
     : undefined;
   const swissLegalEntity =
     session.legalEntity?.trim() ||
-    session.euRepEntities?.[0]?.legalEntity.trim() ||
+    session.euRepEntities?.[0]?.legalEntity?.trim() ||
     linkedContract?.legalEntity ||
     undefined;
 
@@ -829,15 +784,12 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
       createdDate: today,
       updatedDate: today,
       versions: buildPolicyVersions(today),
-      euRepLinked: willBuyEuRep || willLinkExisting,
     });
     documentId = created.id;
   }
 
   if (willBuyEuRep) {
-    createEuRepPurchase(session, today, documentId ? [documentId] : []);
-  } else if (willLinkExisting && session.euRepLinkContractId && documentId) {
-    linkDocumentsToContract(session.euRepLinkContractId, [documentId], today);
+    createEuRepPurchase(session, today);
   }
 
   const completed = checkoutSessions.update(sessionId, {
@@ -869,7 +821,7 @@ function startPolicyTrial(input: CheckoutSessionCreate):
     : undefined;
   const swissLegalEntity =
     input.legalEntity?.trim() ||
-    input.euRepEntities?.[0]?.legalEntity.trim() ||
+    input.euRepEntities?.[0]?.legalEntity?.trim() ||
     linkedContract?.legalEntity ||
     undefined;
 
@@ -892,13 +844,9 @@ function startPolicyTrial(input: CheckoutSessionCreate):
       createdDate: today,
       updatedDate: today,
       versions: buildPolicyVersions(today),
-      euRepLinked: willLinkExisting,
     });
 
-    if (willLinkExisting && input.euRepLinkContractId) {
-      linkDocumentsToContract(input.euRepLinkContractId, [created.id], today);
-    }
-
+    // Fill-slot: the policy is already paid, so EU Rep is billed at checkout — no trial.
     if (willBuyEuRep) {
       const existing = pendingCheckouts
         .all()
@@ -909,7 +857,7 @@ function startPolicyTrial(input: CheckoutSessionCreate):
         fillSubscriptionId: input.fillSubscriptionId,
         documentId: created.id,
         subscriptionId: slotSubscription.id,
-        euRepPlanId: 'basis' as const,
+        euRepPlanId: input.euRepPlanId ?? 'basis',
         euRepEntityCount: input.euRepEntityCount,
         euRepEntities: input.euRepEntities,
         euRepLinkContractId: input.euRepLinkContractId,
@@ -957,12 +905,7 @@ function startPolicyTrial(input: CheckoutSessionCreate):
     createdDate: today,
     updatedDate: today,
     versions: buildPolicyVersions(today),
-    euRepLinked: willLinkExisting,
   });
-
-  if (willLinkExisting && input.euRepLinkContractId) {
-    linkDocumentsToContract(input.euRepLinkContractId, [created.id], today);
-  }
 
   if (willBuyEuRep) {
     createEuRepPurchase(
@@ -977,12 +920,11 @@ function startPolicyTrial(input: CheckoutSessionCreate):
         discountRate: 0,
         discountAmount: 0,
         currency: 'CHF',
-        euRepPlanId: 'basis',
+        euRepPlanId: input.euRepPlanId ?? 'basis',
         euRepEntityCount: input.euRepEntityCount ?? 1,
         euRepEntities: input.euRepEntities,
       },
       today,
-      [created.id],
       { trialEndsAt }
     );
   }
@@ -996,7 +938,7 @@ function startPolicyTrial(input: CheckoutSessionCreate):
     documentId: created.id,
     subscriptionId: createdSub.id,
     trialEndsAt,
-    euRepPlanId: willBuyEuRep ? ('basis' as const) : undefined,
+    euRepPlanId: willBuyEuRep ? (input.euRepPlanId ?? 'basis') : undefined,
     euRepEntityCount: input.euRepEntityCount,
     euRepEntities: input.euRepEntities,
     euRepLinkContractId: input.euRepLinkContractId,
@@ -1140,8 +1082,6 @@ const documents = createCollection<GeneratedDocument>(
         subscriptionId: POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID,
         createdDate: '2026-02-10',
         updatedDate: '2026-06-15',
-        euRepContractId: '1',
-        euRepLinked: true,
       },
       {
         id: '3',
@@ -1151,8 +1091,6 @@ const documents = createCollection<GeneratedDocument>(
         subscriptionId: POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID,
         createdDate: '2025-09-20',
         updatedDate: '2026-05-20',
-        euRepContractId: '2',
-        euRepLinked: true,
       },
       {
         id: '6',
@@ -1162,8 +1100,6 @@ const documents = createCollection<GeneratedDocument>(
         subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
         createdDate: '2026-01-22',
         updatedDate: '2026-04-02',
-        euRepContractId: '1',
-        euRepLinked: true,
       },
       {
         id: '7',
@@ -1202,6 +1138,56 @@ function findDocumentBySite(site: string): GeneratedDocument | undefined {
   return documents.all().find((doc) => formatSiteDomain(resolveDocumentSite(doc)) === normalized);
 }
 
+function inferBundledEuRepForTrialDocument(
+  doc: GeneratedDocument,
+  pending?: PendingCheckoutRecord
+): Pick<
+  PendingCheckoutRecord,
+  'euRepPlanId' | 'euRepEntityCount' | 'euRepEntities' | 'euRepLinkContractId'
+> {
+  if (pending?.euRepEntityCount || pending?.euRepEntities?.length) {
+    return {
+      euRepPlanId: pending.euRepPlanId,
+      euRepEntityCount: pending.euRepEntityCount,
+      euRepEntities: pending.euRepEntities,
+      euRepLinkContractId: pending.euRepLinkContractId,
+    };
+  }
+
+  if (pending?.euRepLinkContractId) {
+    return { euRepLinkContractId: pending.euRepLinkContractId };
+  }
+
+  const entity = doc.legalEntity?.trim().toLowerCase();
+  if (!entity) return {};
+
+  const contract = euRepContracts
+    .all()
+    .find((row) => row.status === 'active' && row.legalEntity.trim().toLowerCase() === entity);
+  if (!contract) return {};
+
+  const euSub = subscriptions.all().find((row) => row.id === contract.subscriptionId);
+  if (!euSub || !isEuRepSubscriptionOnTrial(euSub)) return {};
+
+  const planId = (euSub.planId as EuRepPlanId | undefined) ?? 'basis';
+
+  return {
+    euRepPlanId: planId,
+    euRepEntityCount: euSub.legalEntityCount ?? 1,
+    euRepEntities: [
+      {
+        legalEntity: contract.legalEntity,
+        forwardingEmail: contract.forwardingEmail,
+        postalLine1: contract.postalLine1,
+        postalLine2: contract.postalLine2 ?? '',
+        postalCode: contract.postalCode,
+        city: contract.city,
+        country: contract.country ?? 'Schweiz',
+      },
+    ],
+  };
+}
+
 function resolvePendingCheckoutForSite(site: string) {
   const doc = findDocumentBySite(site);
   if (!doc?.subscriptionId) {
@@ -1215,6 +1201,7 @@ function resolvePendingCheckoutForSite(site: string) {
 
   const normalized = formatSiteDomain(site);
   const pending = pendingCheckouts.all().find((row) => formatSiteDomain(row.domain) === normalized);
+  const bundledEuRep = inferBundledEuRepForTrialDocument(doc, pending);
 
   return {
     needed: true as const,
@@ -1224,9 +1211,10 @@ function resolvePendingCheckoutForSite(site: string) {
     fillSubscriptionId: pending?.fillSubscriptionId,
     documentId: doc.id,
     subscriptionId: doc.subscriptionId,
-    euRepEntityCount: pending?.euRepEntityCount,
-    euRepEntities: pending?.euRepEntities,
-    euRepLinkContractId: pending?.euRepLinkContractId,
+    euRepPlanId: bundledEuRep.euRepPlanId,
+    euRepEntityCount: bundledEuRep.euRepEntityCount,
+    euRepEntities: bundledEuRep.euRepEntities,
+    euRepLinkContractId: bundledEuRep.euRepLinkContractId,
   };
 }
 
@@ -1249,6 +1237,7 @@ function findPendingCheckoutRecord(site?: string | null): PendingCheckoutRecord 
       subscriptionId: resolved.subscriptionId,
       trialEndsAt: resolved.trialEndsAt,
       fillSubscriptionId: resolved.fillSubscriptionId,
+      euRepPlanId: resolved.euRepPlanId,
       euRepEntityCount: resolved.euRepEntityCount,
       euRepEntities: resolved.euRepEntities,
       euRepLinkContractId: resolved.euRepLinkContractId,
@@ -1270,7 +1259,7 @@ const euRepContracts = createCollection<EuRepContract>(
       postalCode: '8001',
       city: 'Zürich',
       country: 'Schweiz',
-      linkedDocumentIds: ['1', '6'],
+      linkedDocumentIds: [],
       status: 'active',
     },
     {
@@ -1282,7 +1271,7 @@ const euRepContracts = createCollection<EuRepContract>(
       postalCode: '3800',
       city: 'Interlaken',
       country: 'Schweiz',
-      linkedDocumentIds: ['3'],
+      linkedDocumentIds: [],
       status: 'active',
     },
     {
@@ -1318,10 +1307,7 @@ function presentDocument(document: GeneratedDocument): GeneratedDocument {
   const normalized = normalizeGeneratedDocument(document);
   if (normalized.legalEntity?.trim()) return normalized;
 
-  const fromContract = euRepContracts
-    .all()
-    .find((row) => row.id === normalized.euRepContractId)?.legalEntity;
-  const legalEntity = SWISS_LEGAL_ENTITY_BY_SITE[resolveDocumentSite(normalized)] ?? fromContract;
+  const legalEntity = SWISS_LEGAL_ENTITY_BY_SITE[resolveDocumentSite(normalized)];
   if (!legalEntity) return normalized;
 
   documents.update(normalized.id, { legalEntity });
@@ -1468,7 +1454,9 @@ export const handlers = [
 
   http.post('/api/auth/register', async ({ request }) => {
     const input = (await request.json()) as RegisterInput;
-    if (!input.email || !input.acceptTerms || !input.domain) {
+    const hasDomain = Boolean(input.domain?.trim());
+    const hasEuRep = Boolean(input.euRepEntityCount || input.euRepEntities?.length);
+    if (!input.email || !input.acceptTerms || (!hasDomain && !hasEuRep)) {
       return HttpResponse.json({ message: 'invalid_registration' }, { status: 400 });
     }
 
@@ -1492,26 +1480,79 @@ export const handlers = [
       return HttpResponse.json({ message: 'invalid_token' }, { status: 400 });
     }
 
-    const trial = startPolicyTrial({
-      kind: 'generator',
-      siteCount: 1,
-      domain: pending.domain,
-      policyName: pending.policyName,
-      legalEntity: pending.legalEntity,
-      fillSubscriptionId: pending.fillSubscriptionId,
-      euRepEntityCount: pending.euRepEntityCount,
-      euRepEntities: pending.euRepEntities,
-      euRepLinkContractId: pending.euRepLinkContractId,
-    });
+    const isEuRepOnly = Boolean(
+      (pending.euRepEntityCount || pending.euRepEntities?.length) && !pending.domain?.trim()
+    );
+
+    let documentId: string | undefined;
+    let domain: string | undefined;
+    let redirectTo: string | undefined;
+
+    if (isEuRepOnly) {
+      const planId = pending.euRepPlanId ?? 'basis';
+      const entityCount = Math.max(
+        1,
+        pending.euRepEntityCount ?? pending.euRepEntities?.length ?? 1
+      );
+      const quote = calculateEuRepQuote(planId, entityCount);
+      const session = checkoutSessions.create({
+        status: 'pending',
+        kind: 'euRep',
+        siteCount: entityCount,
+        amount: quote.amountDue,
+        generatorAmount: 0,
+        listPrice: quote.amountDue,
+        discountRate: 0,
+        discountAmount: 0,
+        currency: 'CHF',
+        euRepPlanId: planId,
+        euRepEntityCount: entityCount,
+        euRepEntities: pending.euRepEntities,
+      });
+      completeCheckoutSession(session.id);
+      redirectTo = '/account?accountScope=euRep&section=euRep';
+    } else {
+      const trial = startPolicyTrial({
+        kind: 'generator',
+        siteCount: 1,
+        domain: pending.domain,
+        policyName: pending.policyName,
+        legalEntity: pending.legalEntity,
+        fillSubscriptionId: pending.fillSubscriptionId,
+        euRepPlanId: pending.euRepPlanId,
+        euRepEntityCount: pending.euRepEntityCount,
+        euRepEntities: pending.euRepEntities,
+        euRepLinkContractId: pending.euRepLinkContractId,
+      });
+      documentId = trial?.documentId;
+      domain = pending.domain;
+    }
 
     const email = pending.email.trim().toLowerCase();
     ensureAuthAccount(email, 'member');
 
+    const existingProfile = profile.all()[0];
+    const profilePayload = {
+      firstName: pending.firstName?.trim() ?? '',
+      lastName: pending.lastName?.trim() ?? '',
+      displayName: `${pending.firstName?.trim() ?? ''} ${pending.lastName?.trim() ?? ''}`.trim(),
+      email,
+      newsletterOptIn: pending.newsletter,
+      role: 'member' as const,
+      twoFactorEnabled: false,
+    };
+    if (existingProfile) {
+      profile.update(existingProfile.id, profilePayload);
+    } else {
+      profile.create({ ...profilePayload, id: '1' });
+    }
+
     return HttpResponse.json({
       token: loginTokenForEmail(email),
       email,
-      documentId: trial?.documentId,
-      domain: pending.domain,
+      documentId,
+      domain,
+      redirectTo,
       prototypePassword: PROTOTYPE_REGISTERED_PASSWORD,
     });
   }),
@@ -1858,6 +1899,33 @@ export const handlers = [
     return HttpResponse.json(updated ?? existing);
   }),
 
+  http.delete('/api/eu-rep/contracts/:id', ({ params, request }) => {
+    if (!isMemberToken(tokenFromRequest(request))) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    const contract = euRepContracts.all().find((row) => row.id === String(params.id));
+    if (!contract) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+    const subscription = subscriptions.all().find((row) => row.id === contract.subscriptionId);
+    if (
+      subscription &&
+      (subscription.status === 'active' || subscription.status === 'processing')
+    ) {
+      return HttpResponse.json({ message: 'subscription_active' }, { status: 409 });
+    }
+    euRepContracts.remove(contract.id);
+    if (subscription) {
+      const remaining = euRepContracts
+        .all()
+        .filter((row) => row.subscriptionId === subscription.id).length;
+      if (remaining > 0) {
+        subscriptions.update(subscription.id, { legalEntityCount: remaining });
+      }
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post('/api/eu-rep/contracts/:id/documents', async ({ params, request }) => {
     if (!isMemberToken(tokenFromRequest(request))) {
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -1867,8 +1935,6 @@ export const handlers = [
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
     const input = (await request.json()) as EuRepLinkDocuments;
-    const today = new Date().toISOString().slice(0, 10);
-    linkDocumentsToContract(contract.id, input.documentIds, today);
     return HttpResponse.json(
       euRepContracts.all().find((row) => row.id === contract.id) ?? contract
     );
@@ -1882,12 +1948,6 @@ export const handlers = [
     if (!contract || contract.status !== 'active') {
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
-    const documentId = String(params.documentId);
-    if (!contract.linkedDocumentIds.includes(documentId)) {
-      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    unlinkDocumentFromContract(contract.id, documentId, today);
     return HttpResponse.json(
       euRepContracts.all().find((row) => row.id === contract.id) ?? contract
     );
@@ -1904,11 +1964,15 @@ export const handlers = [
 
   http.post('/api/checkout/trial', async ({ request }) => {
     const input = (await request.json()) as CheckoutSessionCreate;
-    const trial = startPolicyTrial(input);
-    if (!trial) {
+    try {
+      const trial = startPolicyTrial(input);
+      if (!trial) {
+        return HttpResponse.json({ message: 'trial_failed' }, { status: 400 });
+      }
+      return HttpResponse.json(trial, { status: 201 });
+    } catch {
       return HttpResponse.json({ message: 'trial_failed' }, { status: 400 });
     }
-    return HttpResponse.json(trial, { status: 201 });
   }),
 
   http.post('/api/checkout/pending/complete', ({ request }) => {
@@ -2042,12 +2106,9 @@ export const handlers = [
             euRepEntityCount: pending.euRepEntityCount,
             euRepEntities: pending.euRepEntities,
           },
-          today,
-          pending.documentId ? [pending.documentId] : []
+          today
         );
       }
-    } else if (pending.euRepLinkContractId && pending.documentId) {
-      linkDocumentsToContract(pending.euRepLinkContractId, [pending.documentId], today);
     }
 
     if (pending.id !== '__synthetic__') {
@@ -2218,11 +2279,7 @@ export const handlers = [
 
     const createdContractIds =
       completed.euRepContractIds ?? (completed.euRepContractId ? [completed.euRepContractId] : []);
-    const unlinkedHosted = documents
-      .all()
-      .filter((row) => !row.euRepContractId && !row.euRepLinked);
-    const needsPolicyLinking =
-      completed.kind === 'euRep' && createdContractIds.length > 0 && unlinkedHosted.length > 0;
+    const needsPolicyLinking = false;
 
     return HttpResponse.json({
       sessionId: completed.id,

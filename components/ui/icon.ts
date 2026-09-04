@@ -27,6 +27,7 @@ import {
   MagnifyingGlassIcon as MagnifyingGlass,
   ListChecksIcon as ListChecks,
   LinkSimpleIcon as LinkSimple,
+  StackIcon as Stack,
   GridFourIcon as GridFour,
   HouseIcon as House,
   PencilSimpleIcon as PencilSimple,
@@ -58,6 +59,7 @@ import {
   ShoppingCartIcon as ShoppingCart,
   StorefrontIcon as Storefront,
   FlagIcon as Flag,
+  FlagBannerIcon as FlagBanner,
   TagIcon as Tag,
 
   // Communication
@@ -129,6 +131,7 @@ export {
   MagnifyingGlass,
   ListChecks,
   LinkSimple,
+  Stack,
   GridFour,
   House,
   PencilSimple,
@@ -160,6 +163,7 @@ export {
   ShoppingCart,
   Storefront,
   Flag,
+  FlagBanner,
   Tag,
 
   // Communication

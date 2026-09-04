@@ -14,7 +14,7 @@ export function EuRepRepresentativeAddress({
 }) {
   const t = useTranslations('euRepRepresentative');
   const representative = EU_REP_REPRESENTATIVE;
-  const linkClassName = navigationLinkClassName('sm');
+  const linkClassName = navigationLinkClassName('default');
 
   return (
     <div
@@ -27,7 +27,7 @@ export function EuRepRepresentativeAddress({
       {hideTitle ? null : (
         <p className="text-foreground text-sm font-semibold">{t('previewTitle')}</p>
       )}
-      <p className="text-foreground text-sm leading-relaxed">
+      <p className="text-foreground text-base leading-relaxed">
         <a
           href={representative.website}
           target="_blank"

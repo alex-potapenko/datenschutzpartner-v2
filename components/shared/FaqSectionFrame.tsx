@@ -2,16 +2,18 @@ import type { ReactNode } from 'react';
 import { cn } from '@/components/ui';
 
 type FaqSectionFrameProps = {
+  id?: string;
   title: string;
   intro?: ReactNode;
   children: ReactNode;
   className?: string;
 };
 
-export function FaqSectionFrame({ title, intro, children, className }: FaqSectionFrameProps) {
+export function FaqSectionFrame({ id, title, intro, children, className }: FaqSectionFrameProps) {
   return (
     <section
-      className={cn('border-border border-b', className)}
+      id={id}
+      className={cn('border-border scroll-mt-24 border-b', className)}
       aria-labelledby="faq-section-title"
     >
       <div className="px-4 py-10 sm:px-8 sm:py-16 lg:py-20">

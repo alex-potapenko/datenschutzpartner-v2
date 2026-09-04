@@ -10,7 +10,6 @@ import {
   SECONDARY_TABS_LIST_CLASS,
   SECONDARY_TABS_TAB_CLASS,
 } from '@/components/shared/secondary-tab-styles';
-import { subscriptionDetailHref } from './account-sections';
 import {
   Button,
   CaretDown,
@@ -332,26 +331,34 @@ export function DaysLeftDonut({
   remaining,
   total,
   label,
+  variant = 'default',
 }: {
   remaining: number;
   total: number;
   label: string;
+  variant?: 'default' | 'trial';
 }) {
-  const size = 20;
-  const stroke = 2.5;
+  const size = 16;
+  const stroke = 2;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const remainingFraction = total > 0 ? Math.min(1, Math.max(0, remaining / total)) : 0;
   const remainingLength = circumference * remainingFraction;
   const elapsedLength = circumference - remainingLength;
   const isUrgent = remaining < 30;
+  const progressStroke =
+    variant === 'trial'
+      ? 'var(--warning-soft-foreground, var(--warning))'
+      : isUrgent
+        ? 'var(--feature-red)'
+        : 'var(--accent)';
 
   return (
     <svg
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className="shrink-0"
+      className="size-4 shrink-0"
       overflow="visible"
       role="img"
       aria-label={label}
@@ -370,7 +377,7 @@ export function DaysLeftDonut({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={isUrgent ? 'var(--feature-red)' : 'var(--accent)'}
+          stroke={progressStroke}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${remainingLength} ${circumference}`}
@@ -385,13 +392,16 @@ export function DaysLeftBar({
   remaining,
   total,
   label,
+  urgentRemainingAtMost = 30,
 }: {
   remaining: number;
   total: number;
   label: string;
+  /** Bar turns red when remaining days are at or below this threshold. */
+  urgentRemainingAtMost?: number;
 }) {
   const remainingFraction = total > 0 ? Math.min(1, Math.max(0, remaining / total)) : 0;
-  const isUrgent = remaining < 30;
+  const isUrgent = remaining <= urgentRemainingAtMost;
   const percent = Math.round(remainingFraction * 100);
 
   return (
@@ -474,27 +484,6 @@ export function TableRowAction({ children }: { children: ReactNode }) {
     >
       {children}
     </span>
-  );
-}
-
-export function SubscriptionIdLink({
-  id,
-  children,
-  className,
-}: {
-  id: string;
-  children?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <NavigationLink
-      href={subscriptionDetailHref(id)}
-      size="sm"
-      chevron="right"
-      className={className}
-    >
-      {children ?? id}
-    </NavigationLink>
   );
 }
 

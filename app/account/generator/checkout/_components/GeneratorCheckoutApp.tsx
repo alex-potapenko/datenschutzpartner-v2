@@ -12,29 +12,18 @@ import {
   useCreateCheckoutSession,
   calculateGeneratorPolicyQuote,
   formatDiscountPercent,
-  GENERATOR_POLICY_UNIT_PRICE,
-  GENERATOR_VOLUME_DISCOUNT_TIERS,
   generatorVolumeDiscountExplanation,
   generatorVolumeDiscountRate,
   qualifyingSiteCountForCheckout,
 } from '@/api/checkout';
 import { PRIVACY_POLICY_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
+import { GeneratorPerSitePriceNote } from '@/components/shared/GeneratorPerSitePriceNote';
 import {
-  Button,
-  CaretRight,
-  Info,
-  ModalBackdrop,
-  ModalBody,
-  ModalContainer,
-  ModalDialog,
-  ModalFooter,
-  ModalHeader,
-  ModalHeading,
-  ModalRoot,
-  Spinner,
-  useOverlayState,
-} from '@/components/ui';
+  VolumeDiscountNote,
+  VolumeDiscountThresholdsDialog,
+} from '@/components/shared/VolumeDiscountDialog';
+import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
 import { RegularPage } from '@/components/shared/RegularPage';
 import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
 
@@ -51,77 +40,6 @@ const GENERATOR_INCLUDED_KEYS = [
 
 function formatChf(amount: number): string {
   return `CHF ${amount.toFixed(2)}`;
-}
-
-function VolumeDiscountNote({ label, onOpen }: { label: ReactNode; onOpen: () => void }) {
-  const t = useTranslations('account.generatorCheckout');
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span>{label}</span>
-      <button
-        type="button"
-        aria-label={t('discountThresholdsLabel')}
-        className="text-accent hover:text-key-700 inline-flex cursor-pointer items-center justify-center"
-        onClick={onOpen}
-      >
-        <Info size={16} weight="bold" aria-hidden />
-      </button>
-    </span>
-  );
-}
-
-function VolumeDiscountThresholdsDialog({ state }: { state: ReturnType<typeof useOverlayState> }) {
-  const t = useTranslations('account.generatorCheckout');
-
-  return (
-    <ModalRoot state={state}>
-      <ModalBackdrop isDismissable>
-        <ModalContainer size="sm">
-          <ModalDialog>
-            <ModalHeader>
-              <ModalHeading>{t('discountThresholdsLabel')}</ModalHeading>
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-4">
-                <p className="text-foreground text-sm leading-relaxed">
-                  {t('discountThresholdsIntro')}
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {GENERATOR_VOLUME_DISCOUNT_TIERS.map((tier) => (
-                    <li key={tier.minSites} className="text-foreground text-sm leading-snug">
-                      {tier.rate <= 0
-                        ? t('discountThresholdNone', { to: tier.maxSites ?? 3 })
-                        : tier.maxSites == null
-                          ? t('discountThresholdPlus', {
-                              from: tier.minSites,
-                              percent: formatDiscountPercent(tier.rate),
-                            })
-                          : t('discountThresholdRange', {
-                              from: tier.minSites,
-                              to: tier.maxSites,
-                              percent: formatDiscountPercent(tier.rate),
-                            })}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="primary"
-                onPress={() => {
-                  state.close();
-                }}
-              >
-                {t('discountThresholdsDone')}
-              </Button>
-            </ModalFooter>
-          </ModalDialog>
-        </ModalContainer>
-      </ModalBackdrop>
-    </ModalRoot>
-  );
 }
 
 function GeneratorUpgradePageShell({
@@ -203,7 +121,6 @@ export function GeneratorCheckoutApp() {
         tabLabel: String(siteCount),
         showPerYear: true,
         price: quote.amountDue.toFixed(2),
-        listPrice: quote.discountAmount > 0 ? quote.listPrice.toFixed(2) : undefined,
         note: discountNote,
         noteClassName:
           existingExplanation || cartUnlocksHigherTier
@@ -305,9 +222,14 @@ export function GeneratorCheckoutApp() {
               </div>
             ) : null}
 
-            <p className="text-muted text-sm">
-              {tp('perSite', { price: formatChf(GENERATOR_POLICY_UNIT_PRICE) })}
-            </p>
+            <GeneratorPerSitePriceNote
+              quote={quote}
+              className="text-muted text-sm"
+              collapsedMarginClass="-mt-3"
+              onOpenDiscountDialog={() => {
+                discountDialog.open();
+              }}
+            />
           </>
         }
         postFeaturesFooter={

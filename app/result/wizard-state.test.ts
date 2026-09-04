@@ -2,11 +2,18 @@ import { describe, expect, it } from 'vitest';
 import type { QuestionnaireFormData } from './content/questionnaire-form';
 import {
   emptyEuRepState,
+  euRepOfferVariant,
+  hasDocumentedEuRepAlternative,
+  hasWizardUserProgress,
   isBuyingEuRep,
   isLinkingExistingEuRep,
+  mergeEuRepIntoFormData,
   normalizeWizardStepId,
+  shouldConfirmEuRepSkip,
+  shouldResetIncompleteScan,
   shouldRestoreWizardState,
   shouldShowEuRepStep,
+  showThirdPartyRepFields,
   wizardStepOrder,
   type WizardPersistedState,
 } from './wizard-state';
@@ -89,17 +96,39 @@ describe('normalizeWizardStepId', () => {
 });
 
 describe('wizardStepOrder', () => {
-  it('omits summary in questionnaire-only update runs', () => {
+  it('includes eu-rep after questionnaire in update runs when applicable', () => {
     expect(
       wizardStepOrder({
         scanDone: true,
         questionnaireOnly: true,
         euRep: emptyEuRepState(),
+        formData: form({ gdprApplicable: 'yes', transfersAbroad: 'worldwide' }),
+      })
+    ).toEqual(['questionnaire', 'eu-rep']);
+  });
+
+  it('omits eu-rep when questionnaire answers do not require it', () => {
+    expect(
+      wizardStepOrder({
+        scanDone: true,
+        questionnaireOnly: true,
+        euRep: emptyEuRepState(),
+        formData: form({ gdprApplicable: 'no' }),
       })
     ).toEqual(['questionnaire']);
   });
 
-  it('ends with confirmation after the guest Account step', () => {
+  it('includes eu-rep in the full generator flow when applicable', () => {
+    expect(
+      wizardStepOrder({
+        scanDone: true,
+        euRep: emptyEuRepState(),
+        formData: form({ gdprApplicable: 'yes', transfersAbroad: 'worldwide' }),
+      })
+    ).toEqual(['scanning', 'questionnaire', 'eu-rep', 'summary', 'confirm']);
+  });
+
+  it('omits eu-rep in the full generator flow when GDPR does not apply', () => {
     expect(
       wizardStepOrder({
         scanDone: true,
@@ -109,24 +138,14 @@ describe('wizardStepOrder', () => {
     ).toEqual(['scanning', 'questionnaire', 'summary', 'confirm']);
   });
 
-  it('includes eu-rep when GDPR applies and no third-party representative', () => {
+  it('starts with the website-input step when no URL is present', () => {
     expect(
       wizardStepOrder({
-        scanDone: true,
+        scanDone: false,
+        hasWebsiteUrl: false,
         euRep: emptyEuRepState(),
-        formData: form({ gdprApplicable: 'yes', hasThirdPartyEuRep: 'no' }),
       })
-    ).toEqual(['scanning', 'questionnaire', 'eu-rep', 'summary', 'confirm']);
-  });
-
-  it('skips eu-rep when user has a third-party representative', () => {
-    expect(
-      wizardStepOrder({
-        scanDone: true,
-        euRep: emptyEuRepState(),
-        formData: form({ gdprApplicable: 'yes', hasThirdPartyEuRep: 'yes' }),
-      })
-    ).toEqual(['scanning', 'questionnaire', 'summary', 'confirm']);
+    ).toEqual(['website', 'scanning', 'questionnaire', 'summary', 'confirm']);
   });
 
   it('omits the Account step for logged-in members and ends with confirmation', () => {
@@ -142,20 +161,120 @@ describe('wizardStepOrder', () => {
 });
 
 describe('shouldShowEuRepStep', () => {
-  it('is false when GDPR does not apply', () => {
-    expect(shouldShowEuRepStep(form({ gdprApplicable: 'no' }))).toBe(false);
+  it('is true when GDPR applies and data is exported abroad', () => {
+    expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', transfersAbroad: 'worldwide' }))).toBe(
+      true
+    );
+    expect(shouldShowEuRepStep(form({ gdprApplicable: 'dontknow', transfersAbroad: 'eea' }))).toBe(
+      true
+    );
   });
 
-  it('is false when a third-party representative was declared', () => {
-    expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', hasThirdPartyEuRep: 'yes' }))).toBe(
+  it('is false when GDPR does not apply', () => {
+    expect(shouldShowEuRepStep(form({ gdprApplicable: 'no', transfersAbroad: 'worldwide' }))).toBe(
       false
     );
   });
 
-  it('is true when GDPR applies and no third-party representative', () => {
-    expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', hasThirdPartyEuRep: 'no' }))).toBe(
+  it('is false when data is not exported abroad', () => {
+    expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', transfersAbroad: 'no' }))).toBe(false);
+  });
+
+  it('is false without questionnaire data', () => {
+    expect(shouldShowEuRepStep()).toBe(false);
+  });
+});
+
+describe('eu rep step helpers', () => {
+  it('shows third-party fields when another provider was named', () => {
+    expect(showThirdPartyRepFields({ hasNamedEuRep: 'yes', namedDatenschutzpartner: 'no' })).toBe(
       true
     );
+    expect(showThirdPartyRepFields({ hasNamedEuRep: 'yes', namedDatenschutzpartner: 'yes' })).toBe(
+      false
+    );
+  });
+
+  it('picks the right offer variant', () => {
+    expect(euRepOfferVariant({ hasNamedEuRep: 'no', namedDatenschutzpartner: '' })).toBe('new');
+    expect(euRepOfferVariant({ hasNamedEuRep: 'yes', namedDatenschutzpartner: 'no' })).toBe(
+      'switch'
+    );
+    expect(euRepOfferVariant({ hasNamedEuRep: 'yes', namedDatenschutzpartner: 'yes' })).toBeNull();
+  });
+
+  it('requires skip confirmation when GDPR applies and no rep is documented', () => {
+    expect(
+      shouldConfirmEuRepSkip(form(), {
+        hasNamedEuRep: 'no',
+        declined: true,
+        done: true,
+      })
+    ).toBe(true);
+  });
+
+  it('does not require skip confirmation when a third-party rep is documented', () => {
+    expect(
+      shouldConfirmEuRepSkip(form(), {
+        hasNamedEuRep: 'yes',
+        namedDatenschutzpartner: 'no',
+        thirdPartyRepName: 'Other GmbH',
+        thirdPartyRepStreet: 'Street 1',
+        thirdPartyRepPostalCode: '10115',
+        thirdPartyRepCity: 'Berlin',
+        thirdPartyRepCountry: 'Deutschland',
+        thirdPartyRepEmail: 'rep@example.com',
+        declined: true,
+        done: true,
+      })
+    ).toBe(false);
+    expect(
+      hasDocumentedEuRepAlternative({
+        hasNamedEuRep: 'yes',
+        namedDatenschutzpartner: 'yes',
+      })
+    ).toBe(true);
+  });
+
+  it('does not require skip confirmation when GDPR does not apply', () => {
+    expect(
+      shouldConfirmEuRepSkip(form({ gdprApplicable: 'no' }), {
+        hasNamedEuRep: 'no',
+        declined: true,
+        done: true,
+      })
+    ).toBe(false);
+  });
+
+  it('merges eu-rep answers into questionnaire form data', () => {
+    const merged = mergeEuRepIntoFormData(form(), {
+      hasNamedEuRep: 'yes',
+      namedDatenschutzpartner: 'no',
+      thirdPartyRepName: 'Other GmbH',
+      thirdPartyRepStreet: 'Street 1',
+      thirdPartyRepPostalCode: '10115',
+      thirdPartyRepCity: 'Berlin',
+      thirdPartyRepCountry: 'Deutschland',
+      thirdPartyRepEmail: 'rep@example.com',
+    });
+
+    expect(merged.hasThirdPartyEuRep).toBe('yes');
+    expect(merged.thirdPartyRepName).toBe('Other GmbH');
+    expect(merged.thirdPartyRepEmail).toBe('rep@example.com');
+  });
+});
+
+describe('shouldResetIncompleteScan', () => {
+  it('resets a running scan so reload shows the website input', () => {
+    expect(shouldResetIncompleteScan('scanning', false, false)).toBe(true);
+    expect(shouldResetIncompleteScan('scan', false, false)).toBe(true);
+  });
+
+  it('does not reset a completed scan or a policy-update run', () => {
+    expect(shouldResetIncompleteScan('scanning', true, false)).toBe(false);
+    expect(shouldResetIncompleteScan('scanning', false, true)).toBe(false);
+    expect(shouldResetIncompleteScan('website', false, false)).toBe(false);
+    expect(shouldResetIncompleteScan('questionnaire', false, false)).toBe(false);
   });
 });
 

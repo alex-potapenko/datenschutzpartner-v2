@@ -22,7 +22,7 @@ export function CountryAutocomplete({ value, onChange, placeholder }: CountryAut
 
   return (
     <ComboBox
-      allowsCustomValue
+      allowsCustomValue={false}
       fullWidth
       variant="secondary"
       items={countries}

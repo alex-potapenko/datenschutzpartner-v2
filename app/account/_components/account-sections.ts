@@ -1,15 +1,22 @@
-import { Buildings, Cookie, FileText, GlobeHemisphereEast, House } from '@/components/ui';
+import { Buildings, Cookie, FileText, House } from '@/components/ui';
+import { fillPolicySlotWizardHref } from '@/lib/account-routes';
 
-/** Site-scoped sections in the account sidebar. */
+/** Site-scoped sections in the account sidebar (My Websites). */
 export const WEBSITE_SECTION_IDS = [
   'overview',
   'privacyPolicy',
-  'euRep',
   'cookieBanner',
   'imprint',
 ] as const;
 
 export type WebsiteSectionId = (typeof WEBSITE_SECTION_IDS)[number];
+
+/** EU Representation section — only valid in `accountScope=euRep`. */
+export const EU_REP_SECTION_ID = 'euRep' as const;
+
+export type EuRepSectionId = typeof EU_REP_SECTION_ID;
+
+export type AccountShellSectionId = WebsiteSectionId | EuRepSectionId;
 
 /** @deprecated Use `WebsiteSectionId`. */
 export type AccountSectionId = WebsiteSectionId;
@@ -60,7 +67,6 @@ type IconComponent = typeof FileText;
 export const SECTION_ICON: Record<WebsiteSectionId, IconComponent> = {
   overview: House,
   privacyPolicy: FileText,
-  euRep: GlobeHemisphereEast,
   cookieBanner: Cookie,
   imprint: Buildings,
 };
@@ -68,8 +74,7 @@ export const SECTION_ICON: Record<WebsiteSectionId, IconComponent> = {
 /** Accent used for the service icon and selected sidebar state. */
 export const SECTION_ACCENT: Record<WebsiteSectionId, string> = {
   overview: 'var(--accent)',
-  privacyPolicy: 'var(--feature-indigo)',
-  euRep: 'var(--feature-fuchsia)',
+  privacyPolicy: 'var(--accent)',
   cookieBanner: 'var(--feature-yellow)',
   imprint: 'var(--feature-teal)',
 };
@@ -92,10 +97,19 @@ export function isWebsiteSection(value: string | null): value is WebsiteSectionI
 }
 
 export function normalizeWebsiteSection(value: string | null): WebsiteSectionId {
+  if (value === EU_REP_SECTION_ID) return 'overview';
   if (value && value in LEGACY_SECTION_ALIASES) {
     return LEGACY_SECTION_ALIASES[value] as WebsiteSectionId;
   }
   return isWebsiteSection(value) ? value : 'overview';
+}
+
+export function readAccountShellSection(
+  sectionParam: string | null,
+  accountScope: AccountScopeId
+): AccountShellSectionId {
+  if (isEuRepAccountScope(accountScope)) return EU_REP_SECTION_ID;
+  return normalizeWebsiteSection(sectionParam);
 }
 
 /** @deprecated Use `normalizeWebsiteSection`. */
@@ -106,20 +120,19 @@ export function normalizeAccountSection(value: string | null): WebsiteSectionId 
 export {
   ACCOUNT_CHECKOUT_HREF,
   ACCOUNT_DETAILS_HREF,
+  ADD_WEBSITE_WIZARD_HREF,
   ALL_SUBSCRIPTIONS_ACCOUNT_HREF,
   EU_REP_ACCOUNT_HREF,
   PRIVACY_POLICY_ACCOUNT_HREF,
+  privacyPolicyAccountHref,
   SUBSCRIPTIONS_ACCOUNT_HREF,
+  fillPolicySlotWizardHref,
 } from '@/lib/account-routes';
 
 export function euRepContractDetailHref(id: string) {
   return `/account/eu-rep/contracts/${id}`;
 }
 
-export function subscriptionDetailHref(id: string) {
-  return `/account/subscriptions/${id}`;
-}
-
 export function fillPolicySlotScanHref(subscriptionId: string) {
-  return `/scan?fillSubscription=${encodeURIComponent(subscriptionId)}`;
+  return fillPolicySlotWizardHref(subscriptionId);
 }

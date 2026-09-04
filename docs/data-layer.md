@@ -96,7 +96,7 @@ Members buy policy coverage in two ways:
 
 2. **Buy more sites** (`/account/generator/checkout`) — **prepaid capacity** only:
    purchase `siteCount` > 1 with no scan and no hosted documents yet. The member area
-   shows **empty rows** for unused slots; **Add Site** opens `/scan?fillSubscription=:id`
+   shows **empty rows** for unused slots; **Add Site** opens `/result?step=website&fillSubscription=:id`
    and runs the wizard in fill-slot mode (no generator charge; optional EU Rep add-on
    still billable).
 
@@ -138,11 +138,14 @@ selects a **plan** (`euRepPlanId`: `basis` | `plus` | `plus5`) and creates **one
 subscription** plus one or more legal-entity contracts (`euRepEntities[]` with
 `legalEntity`, `forwardingEmail`, and postal address fields). The generator wizard
 always adds **Basis** only and shares the same 14-day trial as the policy
-(`POLICY_TRIAL_DAYS`).
+(`POLICY_TRIAL_DAYS`). Standalone EU Rep checkout and EU Rep added to an
+already-hosted site (or a prepaid fill-slot) have **no trial** — they are billed
+immediately.
 
 - `api/eu-rep.ts` — EU Representation **contracts** (`GET /eu-rep/contracts`,
   `GET /eu-rep/contracts/:id`, `PATCH /eu-rep/contracts/:id`,
-  `POST /eu-rep/contracts`, `POST /eu-rep/contracts/:id/documents`). One
+  `POST /eu-rep/contracts`, `POST /eu-rep/contracts/:id/documents`,
+  `DELETE /eu-rep/contracts/:id`). One
   contract = one **Swiss** legal entity under an EU Rep **plan subscription**. The EU
   representative is always the constant `EU_REP_REPRESENTATIVE` (VGS Datenschutzpartner GmbH,
   Hamburg) — there is no per-contract EU-side entity. A member may hold several
@@ -153,7 +156,9 @@ always adds **Basis** only and shares the same 14-day trial as the policy
   `legalEntity` plus `euRepContractId` (and derived `euRepLinked`);
   linking inserts the Hamburg Art. 27 block. Cancelling an EU
   Rep subscription strips that block from **hosted** policies covered by that
-  subscription. The **EU Representation** account section has tabs
+  subscription; the legal entity stays in **Your legal entities** with a
+  cancelled/expired badge. `DELETE /eu-rep/contracts/:id` is allowed only when
+  the plan is not `active`/`processing`. The **EU Representation** account section has tabs
   **Representations** / **Instructions** / **FAQ**: sortable legal-entity list,
   secondary linked-policies comfort block, and CHF 99 payment-request action.
   Opening an entity goes to `/account/eu-rep/contracts/[id]` with
@@ -172,8 +177,8 @@ amount, siteCount, discountRate?, discountAmount? }`. The POC simulates Payrexx 
   contract with no extra charge. Kind `euRep` creates **one subscription for the
   selected plan** and one or more contracts under it. Plan prices live in
   `EU_REP_PLANS` (Basis / Plus / Plus 5); extra inquiries use
-  `EU_REP_EXTRA_REQUEST_PRICE` (CHF 99). After a standalone purchase, leftover hosted policies
-  can be linked (`needsPolicyLinking`, `euRepContractIds`). Changing a contract's
+  `EU_REP_EXTRA_REQUEST_PRICE` (CHF 99). Standalone EU Rep contracts live on their
+  own — they are not linked to hosted privacy policies. Changing a contract's
   legal entity regenerates linked hosted policies (`updatedDate`).
   Quote helpers live in `api/checkout.ts` (`calculateGeneratorPolicyQuote`,
   `calculateEuRepQuote`). Helpers:

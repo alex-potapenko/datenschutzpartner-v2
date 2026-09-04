@@ -6,6 +6,11 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button, CaretDown, CaretRight, Check, Tabs } from '@/components/ui';
 import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
+import {
+  EuRepPlanRequestsNote,
+  EuRepPlanRequestsSubline,
+} from '@/app/eu-rep/_components/EuRepPlanRequestsNote';
+import { euRepPlanIdSchema, type EuRepPlanId } from '@/api/checkout';
 
 const MEMBERSHIP_CARD_STYLE = {
   border: '2px solid rgba(255,255,255,1)',
@@ -77,6 +82,9 @@ type EuRepPlanPanelContentProps = {
   showOrderCta?: boolean;
   showPlanPricing?: boolean;
   priceAlign?: 'start' | 'center';
+  /** When set, only the plan note cross-fades on tab change — price and CTA stay put. */
+  planChangeDirection?: number;
+  previousPlanId?: EuRepPlanId;
 };
 
 const SLIDE_TRANSITION = { duration: 0.24, ease: [0.32, 0.72, 0, 1] as const };
@@ -176,6 +184,8 @@ function EuRepPlanPanelContent({
   showOrderCta = true,
   showPlanPricing = true,
   priceAlign = 'start',
+  planChangeDirection,
+  previousPlanId,
 }: EuRepPlanPanelContentProps) {
   const priceValue = Number(plan.price);
   const listPriceValue = plan.listPrice ? Number(plan.listPrice) : NaN;
@@ -208,42 +218,75 @@ function EuRepPlanPanelContent({
 
   return (
     <div className="flex flex-col gap-6">
-      {showPlanPricing || plan.note ? (
+      {showPlanPricing || plan.note != null ? (
         <div
           className={`flex flex-col gap-2${priceAlign === 'center' ? 'items-center text-center' : ''}`}
         >
           {showPlanPricing ? (
-            hasDiscount ? (
-              <div className="flex flex-wrap items-end justify-center gap-2">
-                <span className="font-display text-foreground pb-0.75 text-lg leading-none font-bold">
-                  CHF
-                </span>
-                <span
-                  className={`${priceBlockAmountClassName()} text-muted/70 line-through decoration-from-font`}
-                >
-                  {plan.listPrice}
-                </span>
-                <span className={`${priceBlockAmountClassName()} text-danger`}>{plan.price}</span>
-                {plan.showPerYear ? (
-                  <span className="text-muted pb-1 text-sm leading-snug whitespace-nowrap">
-                    {pricePeriod}
-                  </span>
+            <div
+              className={`flex flex-col gap-2${priceAlign === 'center' ? 'items-center text-center' : ''}`}
+            >
+              <div
+                className={`flex flex-wrap items-center gap-3${priceAlign === 'center' ? 'justify-center' : ''}`}
+              >
+                {hasDiscount ? (
+                  <div className="flex flex-wrap items-end justify-center gap-2">
+                    <span className="font-display text-foreground pb-0.75 text-lg leading-none font-bold">
+                      CHF
+                    </span>
+                    <span
+                      className={`${priceBlockAmountClassName()} text-muted/70 line-through decoration-from-font`}
+                    >
+                      {plan.listPrice}
+                    </span>
+                    <span className={`${priceBlockAmountClassName()} text-danger`}>
+                      {plan.price}
+                    </span>
+                    {plan.showPerYear ? (
+                      <span className="text-muted pb-1 text-sm leading-snug whitespace-nowrap">
+                        {pricePeriod}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <PriceBlock
+                    currency="CHF"
+                    amount={plan.price}
+                    animatedAmount={Number.isFinite(priceValue) ? priceValue : undefined}
+                    notes={[plan.showPerYear ? pricePeriod : null]}
+                    align={priceAlign}
+                  />
+                )}
+                {planChangeDirection !== undefined &&
+                previousPlanId &&
+                euRepPlanIdSchema.safeParse(plan.id).success ? (
+                  <EuRepPlanRequestsNote
+                    planId={plan.id as EuRepPlanId}
+                    previousPlanId={previousPlanId}
+                    direction={planChangeDirection}
+                    variant="inline"
+                  />
                 ) : null}
               </div>
-            ) : (
-              <PriceBlock
-                currency="CHF"
-                amount={plan.price}
-                animatedAmount={Number.isFinite(priceValue) ? priceValue : undefined}
-                notes={[plan.showPerYear ? pricePeriod : null]}
-                align={priceAlign}
-              />
-            )
-          ) : null}
-          {plan.note ? (
-            <div className={plan.noteClassName ?? 'text-muted text-sm leading-snug'}>
-              {plan.note}
+              {planChangeDirection !== undefined &&
+              previousPlanId &&
+              euRepPlanIdSchema.safeParse(plan.id).success ? (
+                <EuRepPlanRequestsSubline
+                  planId={plan.id as EuRepPlanId}
+                  previousPlanId={previousPlanId}
+                  direction={planChangeDirection}
+                />
+              ) : null}
             </div>
+          ) : null}
+          {planChangeDirection === undefined && plan.note != null ? (
+            typeof plan.note === 'string' ? (
+              <div className={plan.noteClassName ?? 'text-foreground text-sm leading-snug'}>
+                {plan.note}
+              </div>
+            ) : (
+              plan.note
+            )
           ) : null}
         </div>
       ) : null}
@@ -353,6 +396,10 @@ export function EuRepPlanCard({
   const [internalPlanId, setInternalPlanId] = useState(defaultPlanId);
   const [lastDefaultPlanId, setLastDefaultPlanId] = useState(defaultPlanId);
   const [direction, setDirection] = useState(1);
+  const [previousPlanId, setPreviousPlanId] = useState<EuRepPlanId>(() => {
+    const parsed = euRepPlanIdSchema.safeParse(defaultPlanId);
+    return parsed.success ? parsed.data : 'basis';
+  });
   if (value === undefined && defaultPlanId !== lastDefaultPlanId) {
     setLastDefaultPlanId(defaultPlanId);
     setInternalPlanId(defaultPlanId);
@@ -375,18 +422,26 @@ export function EuRepPlanCard({
     showOrderCta,
     showPlanPricing,
     priceAlign,
+    planChangeDirection: showPlanTabs ? direction : undefined,
+    previousPlanId: showPlanTabs ? previousPlanId : undefined,
   };
 
   const outerClassName =
     layout === 'standalone'
       ? `flex justify-center overflow-visible px-4 py-8 sm:px-8 sm:py-10${fillHeight ? ' min-h-0 flex-1' : ''}`
-      : 'border-border flex min-h-full items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:border-l lg:px-16 lg:py-12';
+      : 'flex items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:px-16 lg:py-12';
 
   function handlePlanChange(planId: string) {
     const currentIndex = plans.findIndex((plan) => plan.id === selectedPlanId);
     const nextIndex = plans.findIndex((plan) => plan.id === planId);
     if (currentIndex !== -1 && nextIndex !== -1 && currentIndex !== nextIndex) {
       setDirection(nextIndex > currentIndex ? 1 : -1);
+    }
+
+    const parsedCurrent = euRepPlanIdSchema.safeParse(selectedPlanId);
+    const parsedNext = euRepPlanIdSchema.safeParse(planId);
+    if (parsedCurrent.success && parsedNext.success && planId !== selectedPlanId) {
+      setPreviousPlanId(parsedCurrent.data);
     }
 
     if (value === undefined) {
@@ -444,9 +499,7 @@ export function EuRepPlanCard({
                     </Tabs.List>
                   </Tabs.ListContainer>
 
-                  <SlidingPanel panelKey={selectedPlanId} direction={direction}>
-                    <EuRepPlanPanelContent {...planPanelProps} />
-                  </SlidingPanel>
+                  <EuRepPlanPanelContent {...planPanelProps} />
                 </Tabs>
               ) : showPlanPanel ? (
                 <EuRepPlanPanelContent {...planPanelProps} />

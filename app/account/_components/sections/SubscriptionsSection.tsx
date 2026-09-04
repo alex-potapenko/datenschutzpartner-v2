@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   useOrders,
@@ -13,19 +13,10 @@ import {
   type Subscription,
 } from '@/api/billing';
 import { calculateGeneratorPolicyQuote } from '@/api/checkout';
-import { useEuRepContracts } from '@/api/eu-rep';
-import {
-  Buildings,
-  Button,
-  Cookie,
-  FileText,
-  GlobeHemisphereEast,
-  Plus,
-  Spinner,
-} from '@/components/ui';
+import { Buildings, Button, Cookie, FileText, Plus, Spinner } from '@/components/ui';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { useSiteScope } from '@/components/shared/site-scope';
-import { type WebsiteSectionId } from '../account-sections';
+import { accountLocationHref, addWebsiteWizardHref } from '@/lib/account-routes';
 import { AccountSection, AccountSectionFrame, subscriptionDaysLeft } from '../account-ui';
 import { BillingHistoryTable } from '../BillingHistoryTable';
 import {
@@ -48,11 +39,7 @@ type ProductCardConfig = {
   actionLabel?: string;
 };
 
-export function SubscriptionsSection({
-  onNavigate,
-}: {
-  onNavigate?: (section: WebsiteSectionId) => void;
-}) {
+export function SubscriptionsSection() {
   const t = useTranslations('account.siteSubscriptions');
   const tComingSoon = useTranslations('account.comingSoon');
   const tSubs = useTranslations('account.subscriptions');
@@ -62,11 +49,12 @@ export function SubscriptionsSection({
   const tDocuments = useTranslations('account.documents');
   const tNav = useTranslations('account.nav');
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const { activeSite, isLoading: sitesLoading } = useSiteScope();
   const subscriptions = useSubscriptions();
   const orders = useOrders();
-  const contracts = useEuRepContracts();
 
   const isLoading = sitesLoading || subscriptions.isLoading || orders.isLoading;
 
@@ -101,7 +89,7 @@ export function SubscriptionsSection({
                 size="md"
                 className="gap-2"
                 onPress={() => {
-                  router.push('/scan');
+                  router.push(addWebsiteWizardHref(accountLocationHref(pathname, searchParams)));
                 }}
               >
                 <Plus size={18} weight="bold" aria-hidden />
@@ -115,9 +103,6 @@ export function SubscriptionsSection({
   }
 
   const document = activeSite.document;
-  const linkedContract = document?.euRepContractId
-    ? (contracts.data ?? []).find((row) => row.id === document.euRepContractId)
-    : undefined;
   const subscriptionById = new Map((subscriptions.data ?? []).map((row) => [row.id, row]));
   const activeSiteCount = countActivePolicySites(subscriptions.data ?? []);
   const allOrders = orders.data ?? [];
@@ -154,7 +139,7 @@ export function SubscriptionsSection({
             return {
               currency: config.subscription.totals.currency,
               dueAmount: quote.amountDue,
-              pricePeriod: tMembership('products.policy.pricePeriod'),
+              pricePeriod: tMembership(`products.${config.subscription.productType}.pricePeriod`),
             };
           })()
         : null;
@@ -197,7 +182,6 @@ export function SubscriptionsSection({
   }
 
   const policySubscription = subscriptionFor(document?.subscriptionId);
-  const euRepSubscription = subscriptionFor(linkedContract?.subscriptionId);
   const policyOnTrial = policySubscription
     ? isPolicySubscriptionOnTrial(policySubscription)
     : false;
@@ -206,7 +190,7 @@ export function SubscriptionsSection({
     {
       id: 'privacyPolicy',
       icon: <FileText size={20} weight="fill" />,
-      accent: 'var(--feature-indigo)',
+      accent: 'var(--accent)',
       title: tNav('privacyPolicy'),
       state: policyOnTrial ? 'trial' : policySubscription ? 'active' : 'notSubscribed',
       statusBadge:
@@ -218,27 +202,6 @@ export function SubscriptionsSection({
           <StatusPill tone="success">{tDashboard('products.privacyPolicy.statusLive')}</StatusPill>
         ) : undefined,
       subscription: policySubscription,
-    },
-    {
-      id: 'euRep',
-      icon: <GlobeHemisphereEast size={20} weight="fill" />,
-      accent: 'var(--feature-fuchsia)',
-      title: tNav('euRep'),
-      state: euRepSubscription ? 'active' : 'notSubscribed',
-      statusBadge:
-        euRepSubscription && euRepSubscription.status !== 'active' ? (
-          <StatusPill tone={statusTone(euRepSubscription.status)}>
-            {tStatus(euRepSubscription.status)}
-          </StatusPill>
-        ) : undefined,
-      subscription: euRepSubscription,
-      description: tDashboard('products.euRep.bodyInactive'),
-      onAction: !euRepSubscription
-        ? () => {
-            onNavigate?.('euRep');
-          }
-        : undefined,
-      actionLabel: !euRepSubscription ? t('enable') : undefined,
     },
     {
       id: 'cookieBanner',
@@ -264,26 +227,38 @@ export function SubscriptionsSection({
     },
   ];
 
-  const subscribedIds = new Set(
-    [policySubscription?.id, euRepSubscription?.id].filter(Boolean) as string[]
-  );
+  const subscribedIds = new Set([policySubscription?.id].filter(Boolean) as string[]);
 
   const payments = (orders.data ?? [])
     .filter((order) => (order.subscriptionId ? subscribedIds.has(order.subscriptionId) : false))
     .sort((a, b) => b.date.localeCompare(a.date));
+
+  const policyCard = productCards[0];
+  const secondaryCards = productCards.slice(1);
+
+  if (!policyCard) {
+    return (
+      <AccountSectionFrame
+        title={tNav('overview')}
+        content={<p className="text-muted text-sm">{tDashboard('empty.body')}</p>}
+      />
+    );
+  }
 
   return (
     <AccountSectionFrame
       title={tNav('overview')}
       content={
         <div className="-mx-4 min-w-0 overflow-x-clip sm:-mx-8">
-          <section
-            aria-label={tDashboard('productsAriaLabel')}
-            className="border-border divide-border grid divide-y border-b lg:grid-cols-2 lg:divide-x lg:divide-y-0 [&>*]:h-full [&>*:nth-child(2)]:lg:border-r-0 [&>*:nth-child(n+3)]:lg:border-t"
-          >
-            {productCards.map((card) => (
-              <ServiceSubscriptionCard key={card.id} {...buildCardProps(card)} />
-            ))}
+          <section aria-label={tDashboard('productsAriaLabel')} className="border-border border-b">
+            <div className="border-border border-b [&>*]:h-full">
+              <ServiceSubscriptionCard key={policyCard.id} {...buildCardProps(policyCard)} />
+            </div>
+            <div className="divide-border grid divide-y lg:grid-cols-2 lg:divide-x lg:divide-y-0 [&>*]:h-full">
+              {secondaryCards.map((card) => (
+                <ServiceSubscriptionCard key={card.id} {...buildCardProps(card)} />
+              ))}
+            </div>
           </section>
 
           <AccountSection title={tDashboard('recentPayments.title')} contentClassName="gap-0">

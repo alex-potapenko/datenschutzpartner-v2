@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { euRepEntityFieldsSchema } from '@/lib/validation/fields';
 import { accountKeys } from './account';
 import { billingKeys } from './billing';
 import { documentKeys, documentSchema } from './documents';
@@ -22,7 +23,11 @@ export const GENERATOR_POLICY_UNIT_PRICE = 89;
 /** Swiss statutory VAT rate applied to checkout totals. */
 export const SWISS_VAT_RATE = 0.081;
 
-/** Free trial length for wizard purchases (policy + bundled EU Basis). */
+/**
+ * Free trial length for a new generator-wizard purchase.
+ * Applies to the privacy policy and to EU Rep Basis bought in the same run.
+ * Standalone EU Rep checkout and add-on purchases for an existing site have no trial.
+ */
 export const POLICY_TRIAL_DAYS = 14;
 
 export function calculateVatAmount(amountExclVat: number): number {
@@ -226,15 +231,7 @@ export function calculateEuRepQuote(planId: string = 'basis', entityCount = 1): 
   };
 }
 
-export const euRepCheckoutEntitySchema = z.object({
-  legalEntity: z.string().min(1),
-  forwardingEmail: z.email(),
-  postalLine1: z.string().min(1).optional(),
-  postalLine2: z.string().optional(),
-  postalCode: z.string().min(1).optional(),
-  city: z.string().min(1).optional(),
-  country: z.string().min(1).optional(),
-});
+export const euRepCheckoutEntitySchema = euRepEntityFieldsSchema;
 export type EuRepCheckoutEntity = z.infer<typeof euRepCheckoutEntitySchema>;
 
 export const checkoutSessionCreateSchema = z.object({
@@ -246,7 +243,7 @@ export const checkoutSessionCreateSchema = z.object({
   policyName: z.string().min(1).optional(),
   /** Swiss controller of the generated policy (from the questionnaire). */
   legalEntity: z.string().min(1).optional(),
-  /** EU Rep plan — standalone only; wizard always bills Basis. */
+  /** EU Rep plan — standalone or bundled on a generator checkout. */
   euRepPlanId: euRepPlanIdSchema.optional(),
   /** How many Swiss legal-entity slots to buy (`euRep`, or bundled on a generator checkout). */
   euRepEntityCount: z.number().int().positive().optional(),
@@ -310,11 +307,56 @@ export const pendingCheckoutSchema = z.object({
   fillSubscriptionId: z.string().optional(),
   documentId: z.string().optional(),
   subscriptionId: z.string().optional(),
+  euRepPlanId: euRepPlanIdSchema.optional(),
   euRepEntityCount: z.number().int().positive().optional(),
   euRepEntities: z.array(euRepCheckoutEntitySchema).optional(),
   euRepLinkContractId: z.string().optional(),
 });
 export type PendingCheckout = z.infer<typeof pendingCheckoutSchema>;
+
+export function calculatePendingTrialCheckoutQuote(
+  pending: Pick<
+    PendingCheckout,
+    | 'fillSubscriptionId'
+    | 'euRepEntityCount'
+    | 'euRepEntities'
+    | 'euRepPlanId'
+    | 'euRepLinkContractId'
+  >,
+  activePolicySiteCount: number
+) {
+  const isFillSlot = Boolean(pending.fillSubscriptionId);
+  const buyingEuRep = Boolean(pending.euRepEntityCount || pending.euRepEntities?.length);
+  const linkingExisting = Boolean(pending.euRepLinkContractId);
+
+  const policyQuote = isFillSlot
+    ? {
+        siteCount: 1,
+        qualifyingSiteCount: activePolicySiteCount,
+        unitPrice: 0,
+        discountRate: 0,
+        listPrice: 0,
+        discountAmount: 0,
+        amountDue: 0,
+      }
+    : calculateGeneratorPolicyQuote(
+        qualifyingSiteCountForCheckout(activePolicySiteCount, 'generator', 1),
+        1
+      );
+
+  const euRepQuote = buyingEuRep ? calculateEuRepQuote(pending.euRepPlanId ?? 'basis') : null;
+
+  const euRepAmount = euRepQuote?.amountDue ?? 0;
+
+  return {
+    isFillSlot,
+    buyingEuRep,
+    linkingExisting,
+    policyQuote,
+    euRepAmount,
+    subtotalExclVat: policyQuote.amountDue + euRepAmount,
+  };
+}
 
 export const startPolicyTrialResultSchema = z.object({
   document: documentSchema.optional(),

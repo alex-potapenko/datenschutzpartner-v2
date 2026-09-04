@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState, type Key } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState, type Key } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   GENERATOR_FAQ_CATEGORY_IDS,
@@ -19,6 +19,7 @@ import { MembershipPanel } from './MembershipPanel';
 import { AnimatedServiceTabContent, useServiceTabs, type ServiceTabId } from './service-tabs';
 import { useSiteScope } from '@/components/shared/site-scope';
 import { usePendingCheckout } from '@/api/checkout';
+import { accountLocationHref, addWebsiteWizardHref } from '@/lib/account-routes';
 
 /** The hosted policy adds a `preview` tab for the document text itself. */
 const POLICY_TAB_IDS = [
@@ -27,6 +28,10 @@ const POLICY_TAB_IDS = [
   'preview',
   'faq',
 ] as const satisfies readonly ServiceTabId[];
+
+function parsePolicyTab(value: string | null): ServiceTabId | undefined {
+  return POLICY_TAB_IDS.find((id) => id === value);
+}
 
 function GeneratorFaqPanel() {
   const t = useTranslations('generatorFaq');
@@ -58,11 +63,18 @@ export function PrivacyPolicySection() {
   const t = useTranslations('account.privacyPolicy');
   const tTabs = useTranslations('account.serviceTabs');
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { activeSite, isLoading: sitesLoading } = useSiteScope();
   const subscriptions = useSubscriptions();
   const pendingCheckout = usePendingCheckout(activeSite?.document ? activeSite.domain : null);
   const tabs = useServiceTabs(POLICY_TAB_IDS);
-  const [tab, setTab] = useState<ServiceTabId>('subscription');
+  const tabFromUrl = parsePolicyTab(searchParams.get('tab')) ?? 'subscription';
+  const [tab, setTab] = useState<ServiceTabId>(tabFromUrl);
+
+  useEffect(() => {
+    setTab(tabFromUrl);
+  }, [tabFromUrl]);
 
   const document = activeSite?.document;
   const policySubscription = useMemo(() => {
@@ -100,7 +112,7 @@ export function PrivacyPolicySection() {
                 size="md"
                 className="gap-2"
                 onPress={() => {
-                  router.push('/scan');
+                  router.push(addWebsiteWizardHref(accountLocationHref(pathname, searchParams)));
                 }}
               >
                 <Plus size={18} weight="bold" aria-hidden />
@@ -133,7 +145,16 @@ export function PrivacyPolicySection() {
       tabsAriaLabel={tTabs('ariaLabel')}
       selectedTab={tab}
       onTabChange={(key: Key) => {
-        setTab(key as ServiceTabId);
+        const next = key as ServiceTabId;
+        setTab(next);
+        const nextParams = new URLSearchParams(searchParams.toString());
+        if (next === 'subscription') {
+          nextParams.delete('tab');
+        } else {
+          nextParams.set('tab', next);
+        }
+        const query = nextParams.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
       }}
     >
       <AnimatedServiceTabContent tabKey={tab} tabOrder={POLICY_TAB_IDS}>

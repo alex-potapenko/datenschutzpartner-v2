@@ -25,6 +25,20 @@ export function priceBlockAmountClassName(size: PriceBlockSize = 'default') {
   return PRICE_BLOCK_SIZES[size].amountClassName;
 }
 
+export function priceBlockCurrencyClassName(size: PriceBlockSize = 'default') {
+  return PRICE_BLOCK_SIZES[size].currencyClassName;
+}
+
+export function priceBlockNoteClassName(
+  size: PriceBlockSize = 'default',
+  tone: 'muted' | 'foreground' = 'muted'
+) {
+  const noteClassName = PRICE_BLOCK_SIZES[size].noteClassName;
+  return tone === 'foreground'
+    ? noteClassName.replace('text-muted', 'text-foreground')
+    : noteClassName;
+}
+
 export type PriceBlockProps = {
   currency?: string;
   amount: string;

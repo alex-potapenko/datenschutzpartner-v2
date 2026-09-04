@@ -51,7 +51,7 @@ export function statusTone(status: string): StatusTone {
     case 'cancelled':
       return 'danger';
     case 'expired':
-      return 'warning';
+      return 'neutral';
     default:
       return 'neutral';
   }

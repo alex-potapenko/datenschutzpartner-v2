@@ -28,7 +28,20 @@
     "legalEntityDetails": "Juristische Person — Details",
     "entityDetails": "{entity} — Details",
     "continue": "Weiter",
-    "skip": "Überspringen"
+    "skip": "Überspringen",
+    "search": "Suchen",
+    "countrySwitzerland": "Schweiz"
+  },
+  "trialPeriod": {
+    "title": "{days}-tägige Testphase",
+    "availabilityPolicy": "Deine Richtlinie ist während der Testphase voll verfügbar.",
+    "deadlinePolicy": "Zahle vor Ablauf, damit sie online bleibt — sonst wird der Zugriff pausiert.",
+    "availabilityEuRep": "Deine EU-Vertretung ist während der Testphase voll verfügbar.",
+    "deadlineEuRep": "Zahle vor Ablauf, damit sie online bleibt — sonst wird der Zugriff pausiert.",
+    "availabilityPolicyAndEuRep": "Deine Richtlinie und EU-Vertretung sind während der Testphase voll verfügbar.",
+    "deadlinePolicyAndEuRep": "Zahle vor Ablauf, damit sie online bleiben — sonst wird der Zugriff pausiert.",
+    "paymentHintSelected": "Die Zahlung ist im Bereich Abonnement des ausgewählten Services möglich.",
+    "paymentHintEach": "Die Zahlung ist im Bereich Abonnement des jeweiligen Services möglich."
   },
   "meta": {
     "defaultTitle": "Datenschutzpartner — Datenschutz-Generator",
@@ -496,7 +509,7 @@
     "questionnaireCta": "Zum Fragebogen",
     "heroPanelTitle": "VGS Datenschutzpartner GmbH",
     "heroPanelSubtitle": "Ihre Datenschutz-Vertretung im EWR mit Sitz in Deutschland",
-    "orderCta": "Bestellen",
+    "orderCta": "Weiter",
     "stats": {
       "ariaLabel": "EU-Vertretung auf einen Blick",
       "article27": {
@@ -535,8 +548,9 @@
       "subtitle": "Ein Vertrag gilt für eine juristische Person für 12 Monate.",
       "includedTitle": "In jeder juristischen Person enthalten",
       "includedToggle": "Was enthalten ist",
-      "selectPlan": "EU-Vertretung",
+      "selectPlan": "Wie viele EU-Vertretungsanfragen benötigen Sie?",
       "selectOne": "Vertretungsvertrag",
+      "chosenPlan": "Gewählter Plan",
       "perYear": "pro Jahr",
       "perEntity": "{price} je juristische Person / Jahr",
       "decreaseEntities": "Weniger juristische Personen",
@@ -545,20 +559,28 @@
     },
     "pricePeriod": "/ 12 Monate",
     "plans": {
+      "requestSingular": "Anfrage",
+      "requestPlural": "Anfragen",
+      "requestPriceAmount": "CHF 99",
+      "requestPriceSuffixBasis": "pro Anfrage",
+      "requestPriceSuffixAdditional": "pro weitere Anfrage",
+      "requestsThereafter": "danach CHF 99 pro Anfrage",
       "basis": {
         "name": "Basis",
         "price": "149",
-        "requests": "CHF 99 pro zusätzlicher Anfrage"
+        "requests": "CHF 99 pro Anfrage"
       },
       "plus": {
         "name": "Plus",
         "price": "229",
-        "requests": "1 Anfrage inklusive · danach CHF 99"
+        "requests": "1 Anfrage inklusive · danach CHF 99",
+        "requestsRest": " Anfrage inklusive · danach CHF 99"
       },
       "plus5": {
         "name": "Plus 5",
         "price": "499",
-        "requests": "5 Anfragen inklusive · danach CHF 99"
+        "requests": "5 Anfragen inklusive · danach CHF 99",
+        "requestsRest": " Anfragen inklusive · danach CHF 99"
       }
     },
     "faqNote": "Bei Fragen hilft Ihnen unsere <faq>FAQ zur EU-Datenschutz-Vertretung</faq> weiter.",
@@ -573,6 +595,7 @@
       "podcast": "Bonus: «Datenschutz Plaudereien»-Podcast"
     },
     "legal": "Alle Preise verstehen sich zuzüglich gesetzlicher Mehrwertsteuer. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms> (AGB). Ohne Kündigung verlängert sich die Datenschutz-Vertretung automatisch um 12 Monate.",
+    "legalCheckout": "Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms> (AGB). Ohne Kündigung verlängert sich die Datenschutz-Vertretung automatisch um 12 Monate.",
     "faqSection": {
       "title": "Häufig gestellte Fragen",
       "intro": "Hast Du Deine Frage nicht gefunden? Bitte <contact>kontaktiere uns</contact>.",
@@ -708,14 +731,32 @@
   },
   "result": {
     "steps": {
+      "website": "Website",
       "scan": "Scan",
       "scanning": "Scan läuft",
       "questionnaire": "Fragebogen",
       "euRep": "EU-Vertretung",
-      "summary": "Konto"
+      "summary": "Konto",
+      "confirmation": "Deine Richtlinie erhalten"
+    },
+    "websiteStep": {
+      "title": "Website hinzufügen",
+      "description": "Gib die Adresse der Website ein, für die Du eine Datenschutzerklärung brauchst. Als Nächstes scannen wir sie.",
+      "urlLabel": "Website-URL",
+      "urlPlaceholder": "beispiel.ch",
+      "continue": "Weiter"
     },
     "euRepStep": {
       "title": "EU-Datenschutzvertretung",
+      "intro": "Gemäss DSGVO müssen Unternehmen ohne Sitz in der EU/dem EWR oft eine EU-Datenschutzvertretung benennen. Wir helfen Dir, den richtigen Kontakt in Deiner Datenschutzerklärung zu dokumentieren — und können als Deine Vertretung auftreten, wenn Du möchtest.",
+      "hasNamedEuRep": "Hast Du eine EU-Datenschutzvertretung benannt?",
+      "namedDatenschutzpartner": "Hast Du die {company} benannt?",
+      "gotYouCovered": "Glückwunsch, das ist bereits abgedeckt!",
+      "gotYouCoveredRepresentativeIntro": "Wir haben folgende Vertretung benannt:",
+      "offerTitleNew": "Angebot für EU-Datenschutzvertretung von Datenschutzpartner",
+      "offerNewBody": "Wir bieten Dir eine DSGVO-konforme EU-Datenschutzvertretung, Bearbeitung von Anfragen von Aufsichtsbehörden und betroffenen Personen sowie Erwähnung im Verzeichnis der Verarbeitungstätigkeiten, wo erforderlich.",
+      "offerTitleSwitch": "Angebot für Wechsel zur EU-Datenschutzvertretung von Datenschutzpartner",
+      "switchToDatenschutzpartner": "Zu Datenschutzpartner wechseln",
       "requiredIntro": "Basierend auf Deinen <answers>Antworten</answers> gehen wir davon aus, dass Du gemäss DSGVO eine EU-Datenschutzvertretung benennen musst.",
       "requiredIntroPlain": "Basierend auf Deinen Antworten gehen wir davon aus, dass Du gemäss DSGVO eine EU-Datenschutzvertretung benennen musst.",
       "requiredDisclaimer": "Hinweis: Ausnahmsweise ist keine Vertretung erforderlich, wenn die Verarbeitung nur gelegentlich erfolgt, keine umfangreiche Verarbeitung besonderer Datenkategorien umfasst und voraussichtlich kein Risiko für Rechte und Freiheiten natürlicher Personen birgt. Wir raten davon ab, sich auf diese Ausnahme zu verlassen.",
@@ -759,26 +800,59 @@
     },
     "scanStep": {
       "scanningTitle": "Scanne {domain}…",
+      "scanningWebsite": "Deine Website wird gescannt",
+      "creatingPolicy": "Erstelle Datenschutzerklärung",
       "scanningDescription": "Deine Website wird auf Datenverarbeitungs-Tools und Technologien analysiert."
     },
     "summary": {
       "title": "Willkommen",
-      "welcomeTitle": "Konto erstellen",
-      "welcomeBody": "Bestätige Deine E-Mail, um die gehostete Datenschutzerklärung freizuschalten. Der Zugriff bleibt gesperrt, bis Du den Bestätigungslink öffnest.",
+      "welcomeTitle": "Deine Richtlinie ist fertig!",
+      "welcomeBody": "Konto erstellen",
+      "welcomeBodyDescription": "Erstelle ein Konto, um auf Deine Richtlinie für {domain} zuzugreifen und sie aktuell zu halten. Kostenlose Testphase — jetzt keine Zahlung.",
       "welcomeBackTitle": "Konto bestätigen",
       "welcomeBackBody": "Akzeptiere die AGB, um diese Richtlinie in Deinem Konto zu veröffentlichen. Die Zahlung kannst Du später im Profil abschliessen.",
-      "emailLabel": "Konto-E-Mail",
-      "emailHint": "An diese Adresse senden wir den Bestätigungslink. Die Richtlinie wird erst nach der Bestätigung freigeschaltet.",
+      "emailLabel": "Registrierungs-E-Mail",
+      "emailHint": "An diese Adresse senden wir den Bestätigungslink.",
+      "firstNameLabel": "Vorname",
+      "lastNameLabel": "Nachname",
+      "benefits": {
+        "title": "Das erwartet Dich",
+        "items": {
+          "hosted": {
+            "title": "Datenschutzerklärung gehostet und veröffentlichungsbereit",
+            "description": "Deine Richtlinie lebt unter einem Link, den Du auf {domain} einbinden kannst — nicht als Datei, die verloren geht."
+          },
+          "euRep": {
+            "title": "EU-Vertretung, einsatzbereit",
+            "description": "Deine nach der DSGVO erforderliche Vertretung in der EU ist bestellt und über Dein Konto aktiv."
+          },
+          "updates": {
+            "title": "Bleibt aktuell",
+            "description": "Wir aktualisieren Deine Richtlinie automatisch, wenn sich das Gesetz ändert — ohne dass Du etwas neu machen musst."
+          },
+          "moreSites": {
+            "title": "Mehr Websites, wenn Du sie brauchst",
+            "description": "Noch eine Website? Füge ihre Richtlinie demselben Konto hinzu — mit einem Rabatt, der mitwächst, wenn Du weitermachst.<info></info>"
+          }
+        }
+      },
       "emailHintSignedIn": "Das ist die E-Mail Deines Kontos. Die Richtlinie wird in diesem Konto veröffentlicht.",
-      "acceptTerms": "Ich akzeptiere die <terms>Allgemeinen Geschäftsbedingungen</terms>",
-      "newsletter": "Newsletter zu Datenschutz (optional)",
-      "sendConfirmationCta": "Bestätigung senden",
+      "acceptTermsPrefix": "Ich akzeptiere die",
+      "newsletter": "Newsletter zu Datenschutz senden",
+      "sendConfirmationCta": "Konto erstellen",
       "continueCta": "Weiter zum Konto",
-      "inboxTitle": "E-Mail bestätigen",
-      "inboxBody": "Wir haben einen Bestätigungslink an {email} gesendet.",
-      "inboxHint": "Öffne die E-Mail und bestätige Deine Adresse. Der Zugriff auf die Richtlinie ist erst nach diesem Double Opt-in möglich.",
-      "inboxPrototypePassword": "Prototyp: Nach der Bestätigung melde Dich mit dem Passwort «{password}» an.",
-      "openConfirmation": "Bestätigungs-E-Mail öffnen",
+      "activate": {
+        "title": "Konto aktivieren",
+        "body": "Wir haben einen Bestätigungslink an <strong>{email}</strong> gesendet. Öffne ihn, um Dein Konto zu aktivieren.",
+        "servicesTitle": "Deine Bestellung",
+        "policyTitle": "Datenschutz-Generator",
+        "policyDetail": "Website: {domain}",
+        "euRepTitle": "EU-Vertretung",
+        "euRepDetail": "Schweizerische juristische Person: {entity}",
+        "euRepDetailFallback": "Schweizerische juristische Person: —",
+        "pricePeriod": "/ Jahr",
+        "goHome": "Zur Startseite"
+      },
       "accountReady": "Dein Konto ist bereit. Die Richtlinie ist jetzt verfügbar.",
       "accountFailed": "Das Konto konnte nicht eingerichtet werden. Bitte erneut versuchen.",
       "verificationFailed": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte erneut versuchen.",
@@ -872,7 +946,7 @@
     },
     "policyReady": {
       "title": "Deine Datenschutzerklärung ist bereit",
-      "body": "Wir haben die gehostete Datenschutzerklärung aus Deinen Antworten vorbereitet. Öffne sie, um den Text zu prüfen.",
+      "titleWithEuRep": "Deine Datenschutzerklärung und EU-Vertretung sind bereit",
       "showPolicy": "Richtlinie anzeigen",
       "loading": "Richtlinie wird vorbereitet…",
       "failed": "Die Richtlinie konnte nicht geöffnet werden. Bitte erneut versuchen."
@@ -942,7 +1016,7 @@
         "domain": "meinewebsite.ch",
         "email": "info@meinewebsite.ch",
         "street": "Strasse und Hausnummer",
-        "streetLine2": "z. H., Zusatzzeile",
+        "streetLine2": "Optional",
         "postalCode": "PLZ",
         "city": "Ort",
         "country": "Land",
@@ -1045,7 +1119,6 @@
     "fillSlotScanNote": "Du richtest eine Prepaid-Website im Abo #{id} ein. Scanne die Website, die abgedeckt werden soll.",
     "heroImageAlt": "Vorschau Datenschutz-Generator",
     "orderCta": "Start",
-    "faqNote": "Noch Fragen? Unsere <faq>FAQ zum Datenschutz-Generator</faq> hilft weiter.",
     "stats": {
       "ariaLabel": "Datenschutz-Generator auf einen Blick",
       "legallyReviewed": {
@@ -1088,13 +1161,14 @@
       }
     },
     "pricingSection": {
-      "selectPlan": "Wie viele Websites?",
-      "includedTitle": "Bei jeder Website enthalten",
+      "selectPlan": "Preise basierend auf aktiven Richtlinien im Einsatz",
+      "includedTitle": "Was enthalten ist",
       "includedToggle": "Was enthalten ist",
       "sitesIncluded": "{count, plural, one {# Richtlinie / Jahr} other {# Richtlinien / Jahr}}",
-      "perSite": "{price} pro Website / Jahr",
-      "pricePeriod": "/ Jahr",
-      "discountApplied": "{percent} % Mengenrabatt",
+      "perSite": "{price} pro Website",
+      "perSiteUnit": "pro Website",
+      "pricePeriod": "/ 12 Monate",
+      "discountApplied": "{percent} % Rabatt",
       "noDiscount": "Mengenrabatt ab 4 aktiven Websites",
       "decreaseSites": "Weniger Websites",
       "increaseSites": "Mehr Websites",
@@ -1132,7 +1206,8 @@
       "hosting": "Hosting der Datenschutzerklärungen",
       "pdf": "Datenschutzerklärungen als PDF"
     },
-    "legal": "Alle Preise verstehen sich zzgl. gesetzlicher MwSt. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms>. Sofern nicht gekündigt, verlängert sich das Abo automatisch um 12 Monate. Eine Website ist eine Domain mit allen Subdomains. Agentur-Pakete zu attraktiven Preisen für Webagenturen."
+    "legal": "Alle Preise verstehen sich zzgl. gesetzlicher MwSt. Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms>. Sofern nicht gekündigt, verlängert sich das Abo automatisch um 12 Monate. Eine Website ist eine Domain mit allen Subdomains. Agentur-Pakete zu attraktiven Preisen für Webagenturen.",
+    "legalCheckout": "Es gelten die <terms>Allgemeinen Geschäftsbedingungen</terms>. Sofern nicht gekündigt, verlängert sich das Abo automatisch um 12 Monate. Eine Website ist eine Domain mit allen Subdomains. Agentur-Pakete zu attraktiven Preisen für Webagenturen."
   },
   "scan": {
     "title": "Datenschutz-Generator",
@@ -1145,12 +1220,8 @@
     "analysing": "Analyse — Tracker und Dienste werden erkannt…"
   },
   "generatorFaq": {
-    "metaTitle": "FAQ — Datenschutz-Generator — Datenschutzpartner",
-    "metaDescription": "Häufig gestellte Fragen zum Datenschutz-Generator, zu Abonnement und Unterstützung.",
     "title": "FAQ zum Datenschutz-Generator für Datenschutzerklärungen",
-    "introLead": "Unser Datenschutz-Generator hilft Dir, eine auf Deine Website zugeschnittene Datenschutzerklärung zu erstellen. Die Antworten unten erklären, wie erstellte Datenschutzerklärungen verwendet werden dürfen und wie der Generator funktioniert.",
     "introSupport": "Wenn Deine Frage hier nicht beantwortet wird, wende Dich bitte an unseren <support>Support</support>.",
-    "back": "Zurück",
     "categories": {
       "contentAndUse": {
         "label": "Inhalt und Verwendung von erstellten Datenschutzerklärungen"
@@ -1298,7 +1369,7 @@
       "cookieBanner": "Cookie-Banner",
       "imprint": "Impressum-Generator",
       "overview": "Übersicht",
-      "accountDetails": "Kontodaten",
+      "accountDetails": "Mein Profil",
       "allSubscriptions": "Alle Abonnements",
       "soon": "Bald",
       "comingSoon": "Demnächst",
@@ -1314,12 +1385,16 @@
     },
     "siteSwitcher": {
       "switchWebsite": "Website wechseln",
+      "searchSites": "Websites suchen",
+      "noResults": "Keine passenden Websites",
       "addWebsite": "Website hinzufügen",
       "loading": "Websites werden geladen …",
       "empty": "Noch keine Website",
       "emptyProducts": "Keine aktiven Produkte",
       "productPolicy": "Datenschutzerklärung",
-      "productEuRep": "EU-Vertretung"
+      "productEuRep": "EU-Vertretung",
+      "productCookieBanner": "Cookie-Banner",
+      "productImprint": "Impressum"
     },
     "addMenu": {
       "ariaLabel": "Hinzufügen",
@@ -1333,6 +1408,8 @@
     },
     "contractSwitcher": {
       "listTitle": "Deine juristischen Personen",
+      "searchEntities": "Juristische Personen suchen",
+      "noResults": "Keine passenden juristischen Personen",
       "switchContract": "Rechtsträger wechseln",
       "addContract": "EU-Vertretung hinzufügen",
       "loading": "Verträge werden geladen …",
@@ -1473,7 +1550,10 @@
     },
     "allSubscriptions": {
       "title": "Alle Abonnements",
+      "tabsAriaLabel": "Abonnement-Dienste",
+      "websitesTitle": "Websites",
       "colWebsite": "Website",
+      "colRenewal": "Verlängerung",
       "colLegalEntity": "Juristische Person",
       "serviceEmpty": "Noch auf keiner Website aktiv.",
       "comingSoonBody": "Noch nicht verfügbar — wir arbeiten daran.",
@@ -1486,8 +1566,9 @@
       "colProduct": "Produkt",
       "colPlan": "ID",
       "colCoverage": "Umfang",
-      "colDays": "Verbleibend",
-      "colAmount": "Betrag / Jahr",
+      "colStatus": "Status",
+      "colDays": "Tage übrig",
+      "colAmount": "12-Monats-Abonnement",
       "colActions": "Aktionen",
       "daysLeft": "{count, plural, one {# Tag} other {# Tage}}",
       "sitesCovered": "{count, plural, one {# Website} other {# Websites}}",
@@ -1506,7 +1587,13 @@
       "processing": "Zahlung wird verarbeitet…",
       "payCta": "Weiter zur Zahlung",
       "paymentConfirmed": "Zahlung bestätigt.",
-      "paymentFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen."
+      "paymentFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
+      "cancelModal": {
+        "title": "Checkout verlassen?",
+        "body": "Du kannst jederzeit über Dein Konto zurückkehren, um die Zahlung abzuschliessen.",
+        "quit": "Verlassen",
+        "proceed": "Weiterarbeiten"
+      }
     },
     "checkoutBanner": {
       "sectionTitle": "Testphase",
@@ -1553,7 +1640,8 @@
       "metaTitle": "EU-Vertretung — Bestellung",
       "title": "Neue juristische Person hinzufügen",
       "entityIntro": "Gib die Details der juristischen Person ein, die Du in der EU vertreten lassen möchtest.",
-      "selectPlan": "Wähle Deinen EU-Vertretungsplan",
+      "selectPlan": "Wähle Deinen Plan",
+      "chosenPlan": "Gewählter Plan",
       "selectQuantity": "Wie viele juristische Personen?",
       "entityLabel": "Juristische Person {index}",
       "totalDue": "Heute fällig",
@@ -1562,7 +1650,22 @@
       "processing": "Zahlung wird verarbeitet…",
       "failed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
       "success": "EU-Vertretung ist aktiv.",
-      "payCta": "Weiter zur Zahlung"
+      "payCta": "Weiter zur Zahlung",
+      "cancelModal": {
+        "title": "EU-Vertretungs-Bestellung verlassen?",
+        "body": "Deine eingegebenen Angaben gehen verloren. Möchtest Du wirklich abbrechen?",
+        "quit": "Beenden",
+        "proceed": "Weiter bearbeiten"
+      },
+      "guest": {
+        "title": "Dein Konto",
+        "body": "Erstelle ein Konto, um Deine EU-Vertretung abzuschliessen.",
+        "payCta": "Konto erstellen & fortfahren",
+        "registrationFailed": "Dein Konto konnte nicht erstellt werden. Bitte erneut versuchen."
+      },
+      "activation": {
+        "paymentNote": "Nach der E-Mail-Bestätigung wird Deine EU-Vertretung aktiviert und die Zahlung verarbeitet."
+      }
     },
     "academy": {
       "title": "Datenschutz Academy",
@@ -1647,8 +1750,7 @@
         "buyCta": "Hinzufügen",
         "buyMore": "Weitere Verträge kaufen",
         "legalEntity": "Schweizerische juristische Person",
-        "name": "Name",
-        "legalEntityHint": "Die Schweizer Firma, die dieser Vertrag vertritt.",
+        "name": "Rechtlicher Name Ihrer Schweizer juristischen Person",
         "forwardingEmail": "Weiterleitungs-E-Mail",
         "forwardingEmailHint": "An diese Adresse leiten wir Anfragen von Aufsichtsbehörden und betroffenen Personen weiter. Sie erscheint nicht in der Datenschutzerklärung.",
         "postalLine1": "Strasse und Nr.",
@@ -1688,7 +1790,14 @@
         "removeCancel": "Verknüpfung behalten",
         "removeSuccess": "EU-Vertretung aus gehosteter Richtlinie entfernt.",
         "removeFailed": "Die EU-Vertretung konnte nicht aus dieser gehosteten Richtlinie entfernt werden.",
-        "lapseNote": "Läuft dieses Abo aus, entfernen wir den Vertretungsblock nur aus gehosteten Richtlinien."
+        "lapseNote": "Läuft dieses Abo aus, entfernen wir den Vertretungsblock nur aus gehosteten Richtlinien.",
+        "deleteEntity": "Entity löschen",
+        "deleteTitle": "Diese juristische Person löschen?",
+        "deleteBody": "{entity} wird aus Deinen juristischen Personen entfernt. Du kannst sie später erneut hinzufügen, indem Du die EU-Vertretung kaufst.",
+        "deleteConfirm": "Entity löschen",
+        "deleteCancel": "Behalten",
+        "deleted": "Juristische Person gelöscht.",
+        "deleteFailed": "Diese juristische Person konnte nicht gelöscht werden. Kündige zuerst das Abo, falls es noch aktiv ist."
       }
     },
     "documents": {
@@ -1789,12 +1898,12 @@
           "questionsBody": "Bei Fragen zu Deiner Mitgliedschaft antwortet unser Team innerhalb eines Werktags."
         },
         "euRep": {
-          "planTitle": "Abo-Status",
+          "planTitle": "Status",
           "pricePeriod": "/ 12 Monate",
           "questionsBody": "Bei Fragen zu Deiner EU-Vertretung antwortet unser Team innerhalb eines Werktags."
         },
         "policy": {
-          "planTitle": "Abo-Status",
+          "planTitle": "Status",
           "planTitleWithSite": "{site}",
           "planTitleWithSites": "{count, plural, one {# Website} other {# Websites}}",
           "pricePeriod": "/ 12 Monate",
@@ -1870,12 +1979,13 @@
       "referenceEmpty": "—"
     },
     "accountDetails": {
-      "title": "Kontodaten",
+      "title": "Mein Profil",
       "lead": "Dein Profil, Sprache, Sicherheit und Rechnungsdaten.",
-      "tabsAriaLabel": "Kontodaten-Bereiche",
+      "tabsAriaLabel": "Mein Profil-Bereiche",
       "tabs": {
         "profile": "Profil",
-        "paymentDetails": "Rechnung"
+        "settings": "Einstellungen",
+        "paymentDetails": "Rechnungsadresse"
       },
       "profileTitle": "Profil",
       "firstName": "Vorname",
@@ -1920,7 +2030,7 @@
     },
     "paymentDetails": {
       "addressesTitle": "Rechnungsadresse",
-      "aboutIntro": "Diese Rechnungsadresse und E-Mail werden für alle Rechnungen und Abonnements auf Deinem Konto verwendet.",
+      "aboutIntro": "Diese Rechnungsadresse wird für alle Rechnungen und beim Bestellabschluss für Deine Datenschutzerklärung oder EU-Vertretung verwendet.",
       "billingEmail": "Rechnungs-E-Mail-Adresse",
       "save": "Rechnungsdaten speichern",
       "firstName": "Vorname",
@@ -1951,7 +2061,19 @@
     "terms": "Bitte akzeptiere die Allgemeinen Geschäftsbedingungen",
     "email": "Ungültige E-Mail-Adresse",
     "passwordMin": "Das Passwort muss mindestens 8 Zeichen lang sein",
-    "passwordMatch": "Die Passwörter stimmen nicht überein"
+    "passwordMatch": "Die Passwörter stimmen nicht überein",
+    "personName": "Bitte gib einen gültigen Namen ein",
+    "companyName": "Bitte gib einen gültigen Firmen- oder Organisationsnamen ein",
+    "street": "Bitte gib eine gültige Strasse und Hausnummer ein",
+    "postalCode": "Bitte gib eine gültige Postleitzahl ein",
+    "city": "Bitte gib eine gültige Stadt ein",
+    "country": "Bitte wähle ein Land aus der Liste",
+    "domain": "Bitte gib eine gültige Website-Domain ein",
+    "website": "Bitte gib eine gültige Website-URL ein",
+    "messageMin": "Bitte gib mindestens 10 Zeichen ein",
+    "messageMax": "Die Nachricht ist zu lang",
+    "message": "Bitte gib eine aussagekräftige Nachricht ein",
+    "vatId": "Bitte gib eine gültige Umsatzsteuer-Identifikationsnummer ein"
   },
   "contacts": {
     "title": "Kontakte",

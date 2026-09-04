@@ -81,9 +81,9 @@ export function SubscriptionPaidPricing({
     <div className="flex min-w-0 flex-col gap-1">
       <span className="text-muted text-xs font-medium">{label}</span>
       <div className="flex flex-col gap-0.5">
-        <p className="text-foreground text-sm leading-snug">
+        <p className="text-foreground text-sm leading-snug font-semibold">
           {formatMoney(pricing.annualAmount, pricing.currency)}{' '}
-          <span className="text-muted">{pricing.pricePeriod}</span>
+          <span className="text-muted font-normal">{pricing.pricePeriod}</span>
         </p>
         <p className="text-muted text-sm leading-snug">{formatDate(pricing.paidDate)}</p>
       </div>
@@ -112,11 +112,11 @@ export function SubscriptionRenewalPricing({
     <div className="flex min-w-0 flex-col gap-1">
       <span className="text-muted text-xs font-medium">{label}</span>
       <div className="flex flex-col gap-0.5">
-        <div className="text-foreground flex flex-wrap items-center gap-x-1 text-sm leading-snug">
+        <div className="text-foreground flex flex-wrap items-center gap-x-1 text-sm leading-snug font-semibold">
           {hasDiscount ? (
             <>
               <span>{pricing.currency}</span>
-              <span className="text-muted/70 tabular-nums line-through decoration-from-font">
+              <span className="text-muted/70 font-normal tabular-nums line-through decoration-from-font">
                 {listPrice.toFixed(2)}
               </span>
               <span className="tabular-nums">{pricing.renewalAmount.toFixed(2)}</span>
@@ -143,7 +143,7 @@ export function SubscriptionRenewalPricing({
               >
                 <Info size={16} weight="bold" aria-hidden />
               </Tooltip.Trigger>
-              <Tooltip.Content className="w-max max-w-xs p-3 text-sm leading-relaxed">
+              <Tooltip.Content className="w-max max-w-none p-3 text-sm whitespace-nowrap">
                 {discountTooltip({
                   minSites: pricing.discountExplanation.minSites,
                   percent: pricing.discountExplanation.percent,
@@ -176,7 +176,7 @@ export function SubscriptionTrialPricingMetadata({
   renewalAfterPaymentNote: string;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
       <div className="flex min-w-0 flex-col gap-1">
         <span className="text-muted text-xs font-medium">{duePaymentLabel}</span>
         <p className="text-foreground text-sm leading-snug font-semibold">
@@ -206,7 +206,7 @@ export function SubscriptionPricingMetadata({
   discountTooltip: (params: { minSites: number; percent: string }) => string;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
       <SubscriptionPaidPricing pricing={pricing} label={paidLabel} />
       <SubscriptionRenewalPricing
         pricing={pricing}

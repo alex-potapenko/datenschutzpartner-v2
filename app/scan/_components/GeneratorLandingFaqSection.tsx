@@ -29,6 +29,7 @@ export function GeneratorLandingFaqSection() {
 
   return (
     <FaqSectionFrame
+      id="faq"
       title={t('title')}
       intro={t.rich('introSupport', {
         support: (chunks) => (

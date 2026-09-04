@@ -58,4 +58,26 @@ describe('questionnaireFormSchema', () => {
     expect(paths).toContain('acceptsApplications');
     expect(paths).toContain('usesVideoSurveillance');
   });
+
+  it('rejects invalid company names and postal codes', () => {
+    const result = questionnaireFormSchema.safeParse({
+      ...emptyForm,
+      companyName: '!!!',
+      street: 'Bahnhofstrasse 1',
+      postalCode: '8001',
+      city: 'Zürich',
+      hasDpo: 'no',
+      gdprApplicable: 'no',
+      transfersAbroad: 'no',
+      usesProfiling: 'no',
+      processesSpecialData: 'no',
+      usesAiProcessing: 'no',
+      acceptsApplications: 'no',
+      usesVideoSurveillance: 'no',
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues.map((issue) => issue.path[0])).toContain('companyName');
+  });
 });

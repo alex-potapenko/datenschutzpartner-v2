@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { MouseEventHandler, PointerEventHandler, ReactNode } from 'react';
 import { CaretLeft, CaretRight, cn } from '@/components/ui';
 
 export type NavigationLinkSize = 'default' | 'sm';
@@ -34,6 +34,9 @@ type NavigationLinkBaseProps = {
 
 type NavigationLinkAsLink = NavigationLinkBaseProps & {
   href: string;
+  target?: '_blank' | '_self';
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  onPointerDown?: PointerEventHandler<HTMLAnchorElement>;
   onPress?: never;
   as?: never;
 };
@@ -130,6 +133,8 @@ export function NavigationLink({
         <a
           href={props.href}
           className={classes}
+          onClick={props.onClick}
+          onPointerDown={props.onPointerDown}
           {...(props.href.startsWith('http')
             ? { target: '_blank', rel: 'noopener noreferrer' }
             : {})}
@@ -141,8 +146,18 @@ export function NavigationLink({
       );
     }
 
+    const target = props.target;
+    const rel = target === '_blank' ? 'noopener noreferrer' : undefined;
+
     return (
-      <Link href={props.href} className={classes}>
+      <Link
+        href={props.href}
+        className={classes}
+        target={target}
+        rel={rel}
+        onClick={props.onClick}
+        onPointerDown={props.onPointerDown}
+      >
         <NavigationLinkContent size={size} chevron={chevron} chevronWeight={chevronWeight}>
           {children}
         </NavigationLinkContent>

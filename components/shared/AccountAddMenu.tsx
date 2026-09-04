@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   DropdownItem,
@@ -7,20 +8,27 @@ import {
   DropdownPopover,
   DropdownRoot,
   DropdownTrigger,
-  FileText,
-  GlobeHemisphereEast,
+  FlagBanner,
+  Globe,
   Plus,
 } from '@/components/ui';
+import {
+  accountLocationHref,
+  addEuRepCheckoutHref,
+  addWebsiteWizardHref,
+} from '@/lib/account-routes';
 import { cn } from '@/lib/utils';
 
-const ADD_WEBSITE_HREF = '/scan';
-const ADD_EU_REP_HREF = '/account/eu-rep/checkout';
-
 const topBarOutlineTriggerClass =
-  'font-display button button--sm button--outline inline-flex shrink-0 items-center justify-center whitespace-nowrap border-white/20 text-white hover:bg-white/10';
+  'topbar-outline-trigger font-display button button--sm button--outline inline-flex shrink-0 items-center justify-center whitespace-nowrap border-white/20 text-white';
 
 export function AccountAddMenu() {
   const t = useTranslations('account.addMenu');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const returnTo = accountLocationHref(pathname, searchParams);
+  const addWebsiteHref = addWebsiteWizardHref(returnTo);
+  const addEuRepHref = addEuRepCheckoutHref(returnTo);
 
   return (
     <DropdownRoot>
@@ -35,23 +43,23 @@ export function AccountAddMenu() {
         <DropdownMenu aria-label={t('ariaLabel')}>
           <DropdownItem
             id="addWebsite"
-            href={ADD_WEBSITE_HREF}
+            href={addWebsiteHref}
             textValue={t('addWebsite')}
             className="px-3 py-2.5"
           >
             <span className="flex items-center gap-3">
-              <FileText size={18} className="text-muted shrink-0" aria-hidden />
+              <Globe size={18} className="text-muted shrink-0" aria-hidden />
               <span className="text-sm font-medium">{t('addWebsite')}</span>
             </span>
           </DropdownItem>
           <DropdownItem
             id="addEuRep"
-            href={ADD_EU_REP_HREF}
+            href={addEuRepHref}
             textValue={t('addEuRep')}
             className="px-3 py-2.5"
           >
             <span className="flex items-center gap-3">
-              <GlobeHemisphereEast size={18} className="text-muted shrink-0" aria-hidden />
+              <FlagBanner size={18} className="text-muted shrink-0" aria-hidden />
               <span className="text-sm font-medium">{t('addEuRep')}</span>
             </span>
           </DropdownItem>

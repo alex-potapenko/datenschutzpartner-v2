@@ -6,6 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
+import { COMPANY_NAME_PATTERN, countLetters, PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
 import {
   CONTACT_SUBJECTS,
   contactSubjectSchema,
@@ -46,7 +47,7 @@ interface ContactFormProps {
 
 type FormValues = {
   name: string;
-  company?: string;
+  company: string;
   email: string;
   subject: ContactSubject;
   message: string;
@@ -58,23 +59,36 @@ export function ContactForm({
   spamChallenge,
 }: ContactFormProps) {
   const t = useTranslations('contact.form');
+  const tv = useTranslations('validation');
   const [sent, setSent] = useState(false);
   const createMessage = useCreateContactMessage();
 
   const schema = useMemo(
     () =>
       z.object({
-        name: z.string().min(1, t('errors.nameRequired')),
-        company: z.string().optional(),
+        name: z
+          .string()
+          .trim()
+          .min(1, t('errors.nameRequired'))
+          .regex(PERSON_NAME_PATTERN, tv('personName')),
+        company: z
+          .string()
+          .trim()
+          .refine((value) => value === '' || COMPANY_NAME_PATTERN.test(value), tv('companyName')),
         email: z.email(t('errors.emailInvalid')),
         subject: contactSubjectSchema,
-        message: z.string().min(1, t('errors.messageRequired')),
+        message: z
+          .string()
+          .trim()
+          .min(10, tv('messageMin'))
+          .max(5000, tv('messageMax'))
+          .refine((value) => countLetters(value) >= 2, tv('message')),
         spam: z
           .string()
           .min(1, t('errors.spamRequired'))
           .refine((v) => parseInt(v, 10) === spamChallenge.answer, t('errors.spamIncorrect')),
       }),
-    [spamChallenge.answer, t]
+    [spamChallenge.answer, t, tv]
   );
 
   const {
@@ -86,6 +100,7 @@ export function ContactForm({
     resolver: zodResolver(schema),
     defaultValues: {
       subject: defaultSubject,
+      company: '',
     },
   });
 

@@ -4,7 +4,7 @@ import {
   ChartBar,
   EnvelopeSimple,
   Cloud,
-  GlobeHemisphereEast,
+  FlagBanner,
   GraduationCap,
   Bell,
   CreditCard,
@@ -172,7 +172,7 @@ export default async function LandingPage() {
           <Container>
             <div className="border-border grid border-r border-l lg:grid-cols-2">
               <FeatureCard
-                icon={<GlobeHemisphereEast size={48} weight="fill" />}
+                icon={<FlagBanner size={48} weight="fill" />}
                 title={t('featureEuTitle')}
                 description={t('featureEuDescription')}
                 linkLabel={t('learnMore')}

@@ -3,6 +3,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
+import { useProfile } from '@/api/account';
 import { cn } from '@/lib/utils';
 import { RegularPage } from '@/components/shared/RegularPage';
 
@@ -42,16 +43,23 @@ export function PolicyDetailPageShell({
   backHref,
   backLabel,
   detailTitle,
+  showUserName = false,
 }: {
   children: ReactNode;
   backHref?: string;
   backLabel?: string;
   detailTitle?: string;
+  /** Shows the signed-in member's full name next to the back control. */
+  showUserName?: boolean;
 }) {
   const router = useRouter();
+  const profile = useProfile();
   const hasTopBar = Boolean(backHref && backLabel);
   const shouldReduceMotion = useReducedMotion();
   const [isExiting, setIsExiting] = useState(false);
+  const userDisplayName = profile.data?.displayName?.trim();
+  const resolvedDetailTitle =
+    detailTitle ?? (showUserName && userDisplayName ? userDisplayName : undefined);
 
   const handleBack = useCallback(() => {
     if (!backHref) return;
@@ -77,7 +85,7 @@ export function PolicyDetailPageShell({
               label: backLabel,
               preferHref: true,
               iconOnly: true,
-              detailTitle,
+              detailTitle: resolvedDetailTitle,
               onPress: handleBack,
             }
           : undefined

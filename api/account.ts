@@ -1,5 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import {
+  cityNameField,
+  countryNameField,
+  emailField,
+  optionalCompanyField,
+  optionalStreetLine2Field,
+  optionalVatIdField,
+  personNameField,
+  postalCodeField,
+  streetAddressField,
+} from '@/lib/validation/fields';
 import { request } from './client';
 import { accountRoleSchema } from './account-role';
 
@@ -15,16 +26,16 @@ export type AccountSnapshot = z.infer<typeof accountSnapshotSchema>;
 
 /** One billing address per account — used for all invoices and subscriptions. */
 export const billingAddressSchema = z.object({
-  firstName: z.string().min(1, 'validation.required'),
-  lastName: z.string().min(1, 'validation.required'),
-  company: z.string().optional(),
-  line1: z.string().min(1, 'validation.required'),
-  line2: z.string().optional(),
-  postalCode: z.string().min(1, 'validation.required'),
-  city: z.string().min(1, 'validation.required'),
-  country: z.string().min(1, 'validation.required'),
-  vatId: z.string().optional(),
-  billingEmail: z.email('validation.email'),
+  firstName: personNameField,
+  lastName: personNameField,
+  company: optionalCompanyField,
+  line1: streetAddressField,
+  line2: optionalStreetLine2Field,
+  postalCode: postalCodeField,
+  city: cityNameField,
+  country: countryNameField,
+  vatId: optionalVatIdField,
+  billingEmail: emailField,
 });
 export type BillingAddress = z.infer<typeof billingAddressSchema>;
 
@@ -46,10 +57,10 @@ export type Address = z.infer<typeof addressSchema>;
 export { accountRoleSchema, type AccountRole } from './account-role';
 
 export const profileSchema = z.object({
-  firstName: z.string().min(1, 'validation.required'),
-  lastName: z.string().min(1, 'validation.required'),
-  displayName: z.string().min(1, 'validation.required'),
-  email: z.email('validation.email'),
+  firstName: personNameField,
+  lastName: personNameField,
+  displayName: personNameField,
+  email: emailField,
   newsletterOptIn: z.boolean().optional(),
   /** Read-only — drives login and security UI. */
   role: accountRoleSchema,

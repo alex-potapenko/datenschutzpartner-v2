@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { EuRepContract } from '@/api/eu-rep';
 import {
@@ -16,16 +16,12 @@ import {
   Plus,
   Spinner,
 } from '@/components/ui';
+import { accountLocationHref, addEuRepCheckoutHref } from '@/lib/account-routes';
 import { cn } from '@/lib/utils';
 import { useOptionalEuRepScope } from './eu-rep-scope';
 
-const ADD_EU_REP_HREF = '/account/eu-rep/checkout';
-
 function contractSummary(contract: EuRepContract, t: ReturnType<typeof useTranslations>): string {
   if (contract.website) return contract.website;
-  if (contract.linkedDocumentIds.length > 0) {
-    return t('linkedPolicies', { count: contract.linkedDocumentIds.length });
-  }
   return t('standalone');
 }
 
@@ -42,6 +38,8 @@ export function EuRepContractSwitcher({
 }) {
   const t = useTranslations('account.contractSwitcher');
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const scope = useOptionalEuRepScope();
   const isTopBar = variant === 'topbar';
 
@@ -57,10 +55,10 @@ export function EuRepContractSwitcher({
       aria-label={t('addContract')}
       className={cn(
         'size-9 shrink-0 rounded-full',
-        isTopBar && 'border-white/20 text-white hover:bg-white/10'
+        isTopBar && 'topbar-outline-trigger border-white/20 text-white'
       )}
       onPress={() => {
-        router.push(ADD_EU_REP_HREF);
+        router.push(addEuRepCheckoutHref(accountLocationHref(pathname, searchParams)));
       }}
     >
       <Plus size={16} weight="bold" aria-hidden />

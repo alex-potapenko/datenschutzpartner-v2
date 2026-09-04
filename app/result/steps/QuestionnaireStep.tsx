@@ -3,19 +3,15 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import type { z } from 'zod';
-import {
-  questionnaireFormSchema,
-  getGdprBranchVisibility,
-  showThirdPartyEuRepQuestion,
-} from '@/api/generator';
-import { TextInput, RadioGroup, Field } from '../ui/FormSection';
-import { CountryAutocomplete } from '../ui/CountryAutocomplete';
+import { questionnaireFormSchema, getGdprBranchVisibility } from '@/api/generator';
+import { TextInput, RadioGroup } from '../ui/FormSection';
 import { UidCompanyLookup } from '../ui/UidCompanyLookup';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
 import { StepFrame } from '../ui/StepFrame';
 import { Container } from '@/components/shared/Container';
-import { MetaBadge } from '@/components/shared/MetaBadge';
+import { WizardQuestionCategory } from '../ui/WizardQuestionCategory';
+import { WizardQuestionRow } from '../ui/WizardQuestionRow';
 import {
   type QuestionnaireFormData,
   TRANSFERS_ABROAD_OPTIONS,
@@ -47,56 +43,9 @@ function Reveal({ show, children }: { show: boolean; children: React.ReactNode }
     </AnimatePresence>
   );
 }
-function CategoryRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="border-border grid grid-cols-1 border-b last:border-b-0 lg:grid-cols-2">
-      <div className="border-border border-b p-4 sm:p-8 lg:border-r lg:border-b-0">
-        <h2 className="text-muted text-lg leading-snug font-semibold">{label}</h2>
-      </div>
-      <div className="divide-border flex flex-col divide-y">{children}</div>
-    </div>
-  );
+function fieldId(field?: keyof QuestionnaireFormData) {
+  return field ? `questionnaire-field-${field}` : undefined;
 }
-function QField({
-  fieldId,
-  label,
-  hint,
-  fieldInfo,
-  optional,
-  optionalBadgeLabel,
-  required,
-  requiredBadgeLabel,
-  children,
-}: {
-  fieldId?: keyof QuestionnaireFormData;
-  label: string;
-  hint?: string;
-  fieldInfo?: string;
-  optional?: boolean;
-  optionalBadgeLabel?: string;
-  required?: boolean;
-  requiredBadgeLabel?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      id={fieldId ? `questionnaire-field-${fieldId}` : undefined}
-      className="flex flex-col gap-3 px-4 py-4 sm:px-8 sm:py-6"
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>
-          {label}
-        </p>
-        {optional ? <MetaBadge kind="optional">{optionalBadgeLabel}</MetaBadge> : null}
-        {required ? <MetaBadge kind="required">{requiredBadgeLabel}</MetaBadge> : null}
-      </div>
-      {fieldInfo ? <p className="text-foreground text-sm leading-snug">{fieldInfo}</p> : null}
-      {hint ? <p className="text-muted text-xs">{hint}</p> : null}
-      {children}
-    </div>
-  );
-}
-
 function issuesToRequiredFields(issues: z.core.$ZodIssue[]): Set<keyof QuestionnaireFormData> {
   const fields = new Set<keyof QuestionnaireFormData>();
   for (const issue of issues) {
@@ -198,8 +147,8 @@ export function QuestionnaireStep({
     })
   );
   const [requiredFields, setRequiredFields] = useState<Set<keyof QuestionnaireFormData>>(new Set());
+  const [validationAttempt, setValidationAttempt] = useState(0);
   const gdprBranch = getGdprBranchVisibility(form);
-  const thirdPartyQuestionVisible = showThirdPartyEuRepQuestion(form);
 
   function isRequired(...keys: (keyof QuestionnaireFormData)[]) {
     return keys.some((key) => requiredFields.has(key));
@@ -234,23 +183,6 @@ export function QuestionnaireStep({
       }
       if (key === 'offersToEU') {
         next.monitorsEUBehaviour = '';
-      }
-      if (!showThirdPartyEuRepQuestion(next)) {
-        next.hasThirdPartyEuRep = '';
-        next.thirdPartyRepName = '';
-        next.thirdPartyRepStreet = '';
-        next.thirdPartyRepPostalCode = '';
-        next.thirdPartyRepCity = '';
-        next.thirdPartyRepCountry = '';
-        next.thirdPartyRepEmail = '';
-      }
-      if (key === 'hasThirdPartyEuRep' && value !== 'yes') {
-        next.thirdPartyRepName = '';
-        next.thirdPartyRepStreet = '';
-        next.thirdPartyRepPostalCode = '';
-        next.thirdPartyRepCity = '';
-        next.thirdPartyRepCountry = '';
-        next.thirdPartyRepEmail = '';
       }
       if (key === 'hasDpo' && value !== 'yes') {
         next.dpoCompanyName = '';
@@ -288,6 +220,7 @@ export function QuestionnaireStep({
     const result = questionnaireFormSchema.safeParse(form);
     if (!result.success) {
       setRequiredFields(issuesToRequiredFields(result.error.issues));
+      setValidationAttempt((count) => count + 1);
       scrollToFirstIssue(result.error.issues);
       return;
     }
@@ -300,7 +233,6 @@ export function QuestionnaireStep({
       header={<StepHeader title={t('title')} />}
       footer={
         <StepFooter
-          sticky={false}
           onBack={onBack}
           backLabel={backLabel}
           onContinue={handleSubmit}
@@ -310,8 +242,12 @@ export function QuestionnaireStep({
     >
       <Container>
         <div className="border-border border-r border-l">
-          <CategoryRow label={t('categories.controller')}>
-            <QField label={t('uidLookup.label')} optional optionalBadgeLabel={optionalBadge}>
+          <WizardQuestionCategory label={t('categories.controller')}>
+            <WizardQuestionRow
+              label={t('uidLookup.label')}
+              optional
+              optionalBadgeLabel={optionalBadge}
+            >
               <UidCompanyLookup
                 onSelect={(company) => {
                   clearRequired('companyName', 'street', 'postalCode', 'city');
@@ -325,479 +261,322 @@ export function QuestionnaireStep({
                   }));
                 }}
               />
-            </QField>
-            <QField
+            </WizardQuestionRow>
+            <WizardQuestionRow
+              variant="text"
+              id={fieldId('companyName')}
               label={t('fields.companyName')}
-              fieldId="companyName"
+              value={form.companyName}
               required={isRequired('companyName')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <TextInput
-                value={form.companyName}
-                onChange={(e) => {
-                  set('companyName', e.target.value);
-                }}
-                placeholder={t('placeholders.companyName')}
-              />
-            </QField>
-            <QField
-              label={t('fields.postalAddress')}
-              fieldId="street"
+              requiredShakeKey={validationAttempt}
+              placeholder={t('placeholders.companyName')}
+              onChange={(e) => {
+                set('companyName', e.target.value);
+              }}
+            />
+            <WizardQuestionRow
+              variant="address"
+              id={fieldId('street')}
+              label={t('fields.address')}
               required={isRequired('street', 'postalCode', 'city')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                  <div className="min-w-0 sm:flex-[2]">
-                    <Field label={t('fields.streetLine1')}>
-                      <TextInput
-                        value={form.street}
-                        onChange={(e) => {
-                          set('street', e.target.value);
-                        }}
-                        placeholder={t('placeholders.street')}
-                      />
-                    </Field>
-                  </div>
-                  <div className="min-w-0 sm:flex-1">
-                    <TextInput
-                      value={form.postalCode}
-                      onChange={(e) => {
-                        set('postalCode', e.target.value);
-                      }}
-                      placeholder={t('placeholders.postalCode')}
-                    />
-                  </div>
-                  <div className="min-w-0 sm:flex-1">
-                    <TextInput
-                      value={form.city}
-                      onChange={(e) => {
-                        set('city', e.target.value);
-                      }}
-                      placeholder={t('placeholders.city')}
-                    />
-                  </div>
-                </div>
-              </div>
-            </QField>
-            <QField
-              label={t('fields.streetLine2')}
-              fieldId="streetLine2"
-              optional
+              requiredShakeKey={validationAttempt}
               optionalBadgeLabel={optionalBadge}
-            >
-              <TextInput
-                value={form.streetLine2}
-                onChange={(e) => {
-                  set('streetLine2', e.target.value);
-                }}
-              />
-            </QField>
-            <QField
+              idPrefix="questionnaire-field"
+              street={form.street}
+              streetLine2={form.streetLine2}
+              postalCode={form.postalCode}
+              city={form.city}
+              onStreetChange={(value) => {
+                set('street', value);
+              }}
+              onStreetLine2Change={(value) => {
+                set('streetLine2', value);
+              }}
+              onPostalCodeChange={(value) => {
+                set('postalCode', value);
+              }}
+              onCityChange={(value) => {
+                set('city', value);
+              }}
+            />
+            <WizardQuestionRow
+              variant="text"
+              id={fieldId('email')}
               label={t('fields.email')}
-              fieldId="email"
+              inputType="email"
+              value={form.email}
               required={isRequired('email')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <TextInput
-                type="email"
-                value={form.email}
-                onChange={(e) => {
-                  set('email', e.target.value);
-                }}
-                placeholder={t('placeholders.email')}
-              />
-            </QField>
-            <QField
+              requiredShakeKey={validationAttempt}
+              placeholder={t('placeholders.email')}
+              onChange={(e) => {
+                set('email', e.target.value);
+              }}
+            />
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('hasDpo')}
+              name="hasDpo"
               label={t('fields.hasDpo')}
-              fieldId="hasDpo"
-              fieldInfo={t('fieldInfo.hasDpo')}
+              description={t('fieldInfo.hasDpo')}
+              options={yesNo}
+              value={form.hasDpo}
               required={isRequired('hasDpo')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="hasDpo"
-                options={yesNo}
-                value={form.hasDpo}
-                onChange={(v) => {
-                  set('hasDpo', v);
-                }}
-              />
-              <Reveal show={form.hasDpo === 'yes'}>
-                <div className="flex flex-col gap-4 pt-1">
-                  <QField
-                    label={t('fields.dpoCompanyName')}
-                    fieldId="dpoCompanyName"
-                    required={isRequired('dpoCompanyName')}
-                    requiredBadgeLabel={requiredBadge}
-                  >
-                    <TextInput
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('hasDpo', v);
+              }}
+              followUp={
+                <Reveal show={form.hasDpo === 'yes'}>
+                  <div className="flex flex-col gap-4 pt-1">
+                    <WizardQuestionRow
+                      compact
+                      variant="text"
+                      id={fieldId('dpoCompanyName')}
+                      label={t('fields.dpoCompanyName')}
                       value={form.dpoCompanyName}
+                      required={isRequired('dpoCompanyName')}
+                      requiredBadgeLabel={requiredBadge}
+                      requiredShakeKey={validationAttempt}
                       onChange={(e) => {
                         set('dpoCompanyName', e.target.value);
                       }}
                     />
-                  </QField>
-                  <QField
-                    label={t('fields.dpoOfficerType')}
-                    fieldInfo={t('fieldInfo.dpoDesignation')}
-                    optional
-                    optionalBadgeLabel={optionalBadge}
-                  >
-                    <TextInput
+                    <WizardQuestionRow
+                      compact
+                      variant="text"
+                      label={t('fields.dpoOfficerType')}
+                      description={t('fieldInfo.dpoDesignation')}
                       value={form.dpoDesignation}
+                      optional
+                      optionalBadgeLabel={optionalBadge}
                       onChange={(e) => {
                         set('dpoDesignation', e.target.value);
                       }}
                     />
-                  </QField>
-                  <QField
-                    label={t('fields.address')}
-                    fieldId="dpoStreet"
-                    required={isRequired('dpoStreet', 'dpoPostalCode', 'dpoCity')}
-                    requiredBadgeLabel={requiredBadge}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <div className="min-w-0 sm:flex-[2]">
-                        <TextInput
-                          value={form.dpoStreet}
-                          onChange={(e) => {
-                            set('dpoStreet', e.target.value);
-                          }}
-                          placeholder={t('placeholders.street')}
-                        />
-                      </div>
-                      <div className="min-w-0 sm:flex-1">
-                        <TextInput
-                          value={form.dpoPostalCode}
-                          onChange={(e) => {
-                            set('dpoPostalCode', e.target.value);
-                          }}
-                          placeholder={t('placeholders.postalCode')}
-                        />
-                      </div>
-                      <div className="min-w-0 sm:flex-1">
-                        <TextInput
-                          value={form.dpoCity}
-                          onChange={(e) => {
-                            set('dpoCity', e.target.value);
-                          }}
-                          placeholder={t('placeholders.city')}
-                        />
-                      </div>
-                    </div>
-                  </QField>
-                  <QField
-                    label={t('fields.dpoCountry')}
-                    fieldId="dpoCountry"
-                    required={isRequired('dpoCountry')}
-                    requiredBadgeLabel={requiredBadge}
-                  >
-                    <CountryAutocomplete
-                      value={form.dpoCountry}
-                      onChange={(next) => {
-                        set('dpoCountry', next);
+                    <WizardQuestionRow
+                      compact
+                      variant="address"
+                      id={fieldId('dpoStreet')}
+                      label={t('fields.address')}
+                      required={isRequired('dpoStreet', 'dpoPostalCode', 'dpoCity')}
+                      requiredBadgeLabel={requiredBadge}
+                      requiredShakeKey={validationAttempt}
+                      showLine2={false}
+                      street={form.dpoStreet}
+                      postalCode={form.dpoPostalCode}
+                      city={form.dpoCity}
+                      onStreetChange={(value) => {
+                        set('dpoStreet', value);
+                      }}
+                      onPostalCodeChange={(value) => {
+                        set('dpoPostalCode', value);
+                      }}
+                      onCityChange={(value) => {
+                        set('dpoCity', value);
                       }}
                     />
-                  </QField>
-                </div>
-              </Reveal>
-            </QField>
-          </CategoryRow>
-          <CategoryRow label={t('categories.internationalization')}>
-            <QField
-              label={t('fields.gdprApplicable')}
-              fieldId="gdprApplicable"
-              fieldInfo={t('fieldInfo.gdprApplicable')}
-              required={isRequired('gdprApplicable')}
-              requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="gdprApplicable"
-                options={yesNoDontKnow}
-                value={form.gdprApplicable}
-                onChange={(v) => {
-                  set('gdprApplicable', v);
-                }}
-              />
-            </QField>
-            {gdprBranch.showEeaOffer ? (
-              <QField
-                label={t('fields.offersToEU')}
-                fieldId="offersToEU"
-                required={isRequired('offersToEU')}
-                requiredBadgeLabel={requiredBadge}
-              >
-                <RadioGroup
-                  name="offersToEU"
-                  options={yesNo}
-                  value={form.offersToEU}
-                  onChange={(v) => {
-                    set('offersToEU', v);
-                  }}
-                />
-              </QField>
-            ) : null}
-            {gdprBranch.showEeaMonitoring ? (
-              <QField
-                label={t('fields.monitorsEUBehaviour')}
-                fieldId="monitorsEUBehaviour"
-                required={isRequired('monitorsEUBehaviour')}
-                requiredBadgeLabel={requiredBadge}
-              >
-                <RadioGroup
-                  name="monitorsEUBehaviour"
-                  options={yesNo}
-                  value={form.monitorsEUBehaviour}
-                  onChange={(v) => {
-                    set('monitorsEUBehaviour', v);
-                  }}
-                />
-              </QField>
-            ) : null}
-            <QField
-              label={t('fields.transfersAbroad')}
-              fieldId="transfersAbroad"
-              required={isRequired('transfersAbroad')}
-              requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="transfersAbroad"
-                options={TRANSFERS_ABROAD_OPTIONS.map((opt) => ({
-                  value: opt.value,
-                  label: t(`options.transfersAbroad.${opt.value}`),
-                }))}
-                value={form.transfersAbroad}
-                onChange={(v) => {
-                  set('transfersAbroad', v);
-                }}
-              />
-            </QField>
-            <Reveal show={thirdPartyQuestionVisible}>
-              <QField
-                label={t('fields.hasThirdPartyEuRep')}
-                fieldId="hasThirdPartyEuRep"
-                required={isRequired('hasThirdPartyEuRep')}
-                requiredBadgeLabel={requiredBadge}
-              >
-                <RadioGroup
-                  name="hasThirdPartyEuRep"
-                  options={yesNo}
-                  value={form.hasThirdPartyEuRep}
-                  onChange={(v) => {
-                    set('hasThirdPartyEuRep', v);
-                  }}
-                />
-                <Reveal show={form.hasThirdPartyEuRep === 'yes'}>
-                  <div className="flex flex-col gap-4 pt-1">
-                    <QField
-                      label={t('fields.thirdPartyRepName')}
-                      fieldId="thirdPartyRepName"
-                      required={isRequired('thirdPartyRepName')}
-                      requiredBadgeLabel={requiredBadge}
+                    <WizardQuestionRow
+                      compact
+                      id={fieldId('dpoCountry')}
+                      label={t('fields.dpoCountry')}
                     >
-                      <TextInput
-                        value={form.thirdPartyRepName}
-                        onChange={(e) => {
-                          set('thirdPartyRepName', e.target.value);
-                        }}
-                        placeholder={t('placeholders.thirdPartyRepName')}
-                      />
-                    </QField>
-                    <QField
-                      label={t('fields.thirdPartyRepAddress')}
-                      fieldId="thirdPartyRepStreet"
-                      required={isRequired(
-                        'thirdPartyRepStreet',
-                        'thirdPartyRepPostalCode',
-                        'thirdPartyRepCity'
-                      )}
-                      requiredBadgeLabel={requiredBadge}
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                        <div className="min-w-0 sm:flex-[2]">
-                          <TextInput
-                            value={form.thirdPartyRepStreet}
-                            onChange={(e) => {
-                              set('thirdPartyRepStreet', e.target.value);
-                            }}
-                            placeholder={t('placeholders.street')}
-                          />
-                        </div>
-                        <div className="min-w-0 sm:flex-1">
-                          <TextInput
-                            value={form.thirdPartyRepPostalCode}
-                            onChange={(e) => {
-                              set('thirdPartyRepPostalCode', e.target.value);
-                            }}
-                            placeholder={t('placeholders.postalCode')}
-                          />
-                        </div>
-                        <div className="min-w-0 sm:flex-1">
-                          <TextInput
-                            value={form.thirdPartyRepCity}
-                            onChange={(e) => {
-                              set('thirdPartyRepCity', e.target.value);
-                            }}
-                            placeholder={t('placeholders.city')}
-                          />
-                        </div>
-                      </div>
-                    </QField>
-                    <QField
-                      label={t('fields.thirdPartyRepCountry')}
-                      fieldId="thirdPartyRepCountry"
-                      required={isRequired('thirdPartyRepCountry')}
-                      requiredBadgeLabel={requiredBadge}
-                    >
-                      <CountryAutocomplete
-                        value={form.thirdPartyRepCountry}
-                        placeholder={t('placeholders.select')}
-                        onChange={(next) => {
-                          set('thirdPartyRepCountry', next);
-                        }}
-                      />
-                    </QField>
-                    <QField
-                      label={t('fields.thirdPartyRepEmail')}
-                      fieldId="thirdPartyRepEmail"
-                      required={isRequired('thirdPartyRepEmail')}
-                      requiredBadgeLabel={requiredBadge}
-                    >
-                      <TextInput
-                        type="email"
-                        value={form.thirdPartyRepEmail}
-                        onChange={(e) => {
-                          set('thirdPartyRepEmail', e.target.value);
-                        }}
-                      />
-                    </QField>
+                      <p className="text-foreground text-sm leading-relaxed">
+                        {t('defaults.country')}
+                      </p>
+                    </WizardQuestionRow>
                   </div>
                 </Reveal>
-              </QField>
-            </Reveal>
-          </CategoryRow>
-          <CategoryRow label={t('categories.specialRisks')}>
-            <QField
+              }
+            />
+          </WizardQuestionCategory>
+          <WizardQuestionCategory label={t('categories.internationalization')}>
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('gdprApplicable')}
+              name="gdprApplicable"
+              label={t('fields.gdprApplicable')}
+              description={t('fieldInfo.gdprApplicable')}
+              options={yesNoDontKnow}
+              value={form.gdprApplicable}
+              required={isRequired('gdprApplicable')}
+              requiredBadgeLabel={requiredBadge}
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('gdprApplicable', v);
+              }}
+            />
+            {gdprBranch.showEeaOffer ? (
+              <WizardQuestionRow
+                variant="choices"
+                id={fieldId('offersToEU')}
+                name="offersToEU"
+                label={t('fields.offersToEU')}
+                options={yesNo}
+                value={form.offersToEU}
+                required={isRequired('offersToEU')}
+                requiredBadgeLabel={requiredBadge}
+                requiredShakeKey={validationAttempt}
+                onChange={(v) => {
+                  set('offersToEU', v);
+                }}
+              />
+            ) : null}
+            {gdprBranch.showEeaMonitoring ? (
+              <WizardQuestionRow
+                variant="choices"
+                id={fieldId('monitorsEUBehaviour')}
+                name="monitorsEUBehaviour"
+                label={t('fields.monitorsEUBehaviour')}
+                options={yesNo}
+                value={form.monitorsEUBehaviour}
+                required={isRequired('monitorsEUBehaviour')}
+                requiredBadgeLabel={requiredBadge}
+                requiredShakeKey={validationAttempt}
+                onChange={(v) => {
+                  set('monitorsEUBehaviour', v);
+                }}
+              />
+            ) : null}
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('transfersAbroad')}
+              name="transfersAbroad"
+              label={t('fields.transfersAbroad')}
+              options={TRANSFERS_ABROAD_OPTIONS.map((opt) => ({
+                value: opt.value,
+                label: t(`options.transfersAbroad.${opt.value}`),
+              }))}
+              value={form.transfersAbroad}
+              required={isRequired('transfersAbroad')}
+              requiredBadgeLabel={requiredBadge}
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('transfersAbroad', v);
+              }}
+            />
+          </WizardQuestionCategory>
+          <WizardQuestionCategory label={t('categories.specialRisks')}>
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('usesProfiling')}
+              name="usesProfiling"
               label={t('fields.usesProfiling')}
-              fieldId="usesProfiling"
-              fieldInfo={t('fieldInfo.usesProfiling')}
+              description={t('fieldInfo.usesProfiling')}
+              options={yesNoDontKnow}
+              value={form.usesProfiling}
               required={isRequired('usesProfiling')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="usesProfiling"
-                options={yesNoDontKnow}
-                value={form.usesProfiling}
-                onChange={(v) => {
-                  set('usesProfiling', v);
-                }}
-              />
-            </QField>
-            <QField
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('usesProfiling', v);
+              }}
+            />
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('processesSpecialData')}
+              name="processesSpecialData"
               label={t('fields.processesSpecialData')}
-              fieldId="processesSpecialData"
-              fieldInfo={t('fieldInfo.processesSpecialData')}
+              description={t('fieldInfo.processesSpecialData')}
+              options={yesNoDontKnow}
+              value={form.processesSpecialData}
               required={isRequired('processesSpecialData')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="processesSpecialData"
-                options={yesNoDontKnow}
-                value={form.processesSpecialData}
-                onChange={(v) => {
-                  set('processesSpecialData', v);
-                }}
-              />
-            </QField>
-          </CategoryRow>
-          <CategoryRow label={t('categories.artificialIntelligence')}>
-            <QField
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('processesSpecialData', v);
+              }}
+            />
+          </WizardQuestionCategory>
+          <WizardQuestionCategory label={t('categories.artificialIntelligence')}>
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('usesAiProcessing')}
+              name="usesAiProcessing"
               label={t('fields.usesAiProcessing')}
-              fieldId="usesAiProcessing"
+              options={yesNo}
+              value={form.usesAiProcessing}
               required={isRequired('usesAiProcessing')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="usesAiProcessing"
-                options={yesNo}
-                value={form.usesAiProcessing}
-                onChange={(v) => {
-                  set('usesAiProcessing', v);
-                }}
-              />
-            </QField>
-          </CategoryRow>
-          <CategoryRow label={t('categories.humanResources')}>
-            <QField
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('usesAiProcessing', v);
+              }}
+            />
+          </WizardQuestionCategory>
+          <WizardQuestionCategory label={t('categories.humanResources')}>
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('acceptsApplications')}
+              name="acceptsApplications"
               label={t('fields.acceptsApplications')}
-              fieldId="acceptsApplications"
+              options={yesNo}
+              value={form.acceptsApplications}
               required={isRequired('acceptsApplications')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="acceptsApplications"
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('acceptsApplications', v);
+              }}
+            />
+            <Reveal show={form.acceptsApplications === 'yes'}>
+              <WizardQuestionRow
+                variant="choices"
+                name="hasTalentPool"
+                label={t('fields.hasTalentPool')}
                 options={yesNo}
-                value={form.acceptsApplications}
+                value={form.hasTalentPool}
+                optional
+                optionalBadgeLabel={optionalBadge}
                 onChange={(v) => {
-                  set('acceptsApplications', v);
+                  set('hasTalentPool', v);
                 }}
               />
-            </QField>
-            <Reveal show={form.acceptsApplications === 'yes'}>
-              <QField label={t('fields.hasTalentPool')} optional optionalBadgeLabel={optionalBadge}>
-                <RadioGroup
-                  name="hasTalentPool"
-                  options={yesNo}
-                  value={form.hasTalentPool}
-                  onChange={(v) => {
-                    set('hasTalentPool', v);
-                  }}
-                />
-              </QField>
             </Reveal>
-          </CategoryRow>
-          <CategoryRow label={t('categories.videoSurveillance')}>
-            <QField
+          </WizardQuestionCategory>
+          <WizardQuestionCategory label={t('categories.videoSurveillance')}>
+            <WizardQuestionRow
+              variant="choices"
+              id={fieldId('usesVideoSurveillance')}
+              name="usesVideoSurveillance"
               label={t('fields.usesVideoSurveillance')}
-              fieldId="usesVideoSurveillance"
+              options={yesNo}
+              value={form.usesVideoSurveillance}
               required={isRequired('usesVideoSurveillance')}
               requiredBadgeLabel={requiredBadge}
-            >
-              <RadioGroup
-                name="usesVideoSurveillance"
-                options={yesNo}
-                value={form.usesVideoSurveillance}
-                onChange={(v) => {
-                  set('usesVideoSurveillance', v);
-                }}
-              />
-            </QField>
+              requiredShakeKey={validationAttempt}
+              onChange={(v) => {
+                set('usesVideoSurveillance', v);
+              }}
+            />
             <Reveal show={form.usesVideoSurveillance === 'yes'}>
-              <QField
+              <WizardQuestionRow
+                variant="choices"
+                id={fieldId('videoRetention')}
+                name="videoRetention"
                 label={t('fields.videoRetention')}
-                fieldId="videoRetention"
+                options={VIDEO_RETENTION_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: t(`options.videoRetention.${opt.value}`),
+                }))}
+                value={form.videoRetention}
                 required={isRequired('videoRetention')}
                 requiredBadgeLabel={requiredBadge}
-              >
-                <RadioGroup
-                  name="videoRetention"
-                  options={VIDEO_RETENTION_OPTIONS.map((opt) => ({
-                    value: opt.value,
-                    label: t(`options.videoRetention.${opt.value}`),
-                  }))}
-                  value={form.videoRetention}
-                  onChange={(v) => {
-                    set('videoRetention', v);
-                  }}
-                />
-              </QField>
+                requiredShakeKey={validationAttempt}
+                onChange={(v) => {
+                  set('videoRetention', v);
+                }}
+              />
               <Reveal show={form.videoRetention === 'duration'}>
-                <QField
+                <WizardQuestionRow
+                  id={fieldId('videoRetentionAmount')}
                   label={t('fields.videoRetentionDuration')}
-                  fieldId="videoRetentionAmount"
                   required={isRequired('videoRetentionAmount', 'videoRetentionUnit')}
                   requiredBadgeLabel={requiredBadge}
+                  requiredShakeKey={validationAttempt}
                 >
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <TextInput
@@ -820,10 +599,10 @@ export function QuestionnaireStep({
                       }}
                     />
                   </div>
-                </QField>
+                </WizardQuestionRow>
               </Reveal>
             </Reveal>
-          </CategoryRow>
+          </WizardQuestionCategory>
         </div>
       </Container>
     </StepFrame>

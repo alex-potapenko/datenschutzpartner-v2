@@ -32,23 +32,31 @@ interface FieldProps {
   label: string;
   children: ReactNode;
   hint?: string;
+  hintClassName?: string;
   optionalLabel?: string;
 }
 
-export function Field({ label, children, hint, optionalLabel }: FieldProps) {
+export function Field({ label, children, hint, hintClassName, optionalLabel }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-foreground text-sm font-medium">{label}</label>
-        {optionalLabel ? <MetaBadge kind="optional">{optionalLabel}</MetaBadge> : null}
-      </div>
+      <label className="text-foreground text-sm leading-snug font-medium">
+        {label}
+        {optionalLabel ? (
+          <MetaBadge kind="optional" className="ml-1.5 align-middle">
+            {optionalLabel}
+          </MetaBadge>
+        ) : null}
+      </label>
       {children}
-      {hint ? <p className="text-foreground text-xs leading-snug">{hint}</p> : null}
+      {hint ? (
+        <p className={cn('text-xs leading-snug', hintClassName ?? 'text-foreground')}>{hint}</p>
+      ) : null}
     </div>
   );
 }
 
 interface TextInputProps {
+  id?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -60,6 +68,7 @@ interface TextInputProps {
 }
 
 export function TextInput({
+  id,
   value,
   onChange,
   onFocus,
@@ -71,6 +80,7 @@ export function TextInput({
 }: TextInputProps) {
   return (
     <Input
+      id={id}
       variant="secondary"
       type={type}
       value={value}

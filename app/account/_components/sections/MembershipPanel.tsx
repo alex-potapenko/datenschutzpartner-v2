@@ -12,6 +12,7 @@ import {
   useCancelSubscription,
   useContinueSubscription,
   useOrders,
+  subscriptionCoverageEnd,
   useSubscriptions,
   type BillingProductType,
   type Subscription,
@@ -36,6 +37,7 @@ import { NavigationLink } from '@/components/shared/NavigationLink';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
 import { ACCOUNT_BILLING_DETAILS_HREF } from '@/lib/account-routes';
+import { displayCountryLabel } from '@/lib/swiss-country';
 import {
   buildSubscriptionPricing,
   lastOrderFor,
@@ -158,11 +160,11 @@ function CurrentPlanPanel({
   const [isRenewalReminderTooltipOpen, setIsRenewalReminderTooltipOpen] = useState(false);
   const isRenewalInactive =
     subscription.status === 'cancelled' || subscription.status === 'expired';
+  const coverageEnd = subscriptionCoverageEnd(subscription);
   const showRenewalBlock =
     isRenewalInactive ||
     Boolean(
-      subscription.nextPaymentDate &&
-      (subscription.status === 'active' || subscription.status === 'processing')
+      coverageEnd && (subscription.status === 'active' || subscription.status === 'processing')
     );
   const hasDiscount = Boolean(
     pricing.discountExplanation &&
@@ -170,8 +172,8 @@ function CurrentPlanPanel({
     pricing.renewalListPrice > pricing.renewalAmount
   );
   const renewalPeriod =
-    subscription.startDate && subscription.nextPaymentDate
-      ? subscriptionDaysLeft(subscription.startDate, subscription.nextPaymentDate)
+    subscription.startDate && coverageEnd
+      ? subscriptionDaysLeft(subscription.startDate, coverageEnd)
       : null;
   const daysLeftLabel = renewalPeriod
     ? tDocuments('daysLeft', { count: renewalPeriod.remainingDays })
@@ -211,7 +213,7 @@ function CurrentPlanPanel({
         >
           <Info size={16} weight="bold" aria-hidden />
         </Tooltip.Trigger>
-        <Tooltip.Content className="w-max max-w-xs p-3 text-sm leading-relaxed">
+        <Tooltip.Content className="w-max max-w-none p-3 text-sm whitespace-nowrap">
           {t('renewalReminder')}{' '}
           <NavigationLink
             href={`/terms#${TERMS_CONTRACT_DURATION_SECTION_ID}`}
@@ -351,7 +353,7 @@ function CurrentPlanPanel({
                           >
                             <Info size={16} weight="bold" aria-hidden />
                           </Tooltip.Trigger>
-                          <Tooltip.Content className="w-max max-w-none p-3 text-sm break-normal whitespace-nowrap">
+                          <Tooltip.Content className="w-max max-w-none p-3 text-sm whitespace-nowrap">
                             {t('renewalDiscountTooltip', {
                               minSites: pricing.discountExplanation.minSites,
                               percent: pricing.discountExplanation.percent,
@@ -427,6 +429,7 @@ export function MembershipPanel({
   hidePlanHeader?: boolean;
 }) {
   const t = useTranslations('account.membershipPanel');
+  const tCommon = useTranslations('common');
   const tFooter = useTranslations('footer');
   const tGeneratorPlan = useTranslations('account.generatorPlan');
   const subscriptions = useSubscriptions();
@@ -632,7 +635,7 @@ export function MembershipPanel({
                         ) : null}
                         {billing.postalCode} {billing.city}
                         <br />
-                        {billing.country}
+                        {displayCountryLabel(billing.country, tCommon('countrySwitzerland'))}
                         {billing.vatId ? (
                           <>
                             <br />

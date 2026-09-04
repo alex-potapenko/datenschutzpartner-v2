@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import {
   Button,
   ModalRoot,
@@ -27,7 +28,7 @@ export function ConfirmDialog({
 }: {
   state: OverlayState;
   title: string;
-  body: string;
+  body: ReactNode;
   confirmLabel: string;
   cancelLabel: string;
   onConfirm: () => void;
@@ -42,7 +43,9 @@ export function ConfirmDialog({
               <ModalHeading>{title}</ModalHeading>
             </ModalHeader>
             <ModalBody>
-              <p className="text-foreground text-sm leading-relaxed">{body}</p>
+              <div className="text-foreground flex flex-col gap-3 text-sm leading-relaxed">
+                {typeof body === 'string' ? <p>{body}</p> : body}
+              </div>
             </ModalBody>
             <ModalFooter>
               <Button

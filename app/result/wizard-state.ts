@@ -1,20 +1,27 @@
 import type { QuestionnaireFormData } from './content/questionnaire-form';
 import { isGdprApplicable } from '@/api/generator';
+import { normalizeAndValidateWebsiteUrl } from '@/lib/validation/url';
 import type { EuRepPlanId } from '@/api/checkout';
 
 export { isGdprApplicable } from '@/api/generator';
 export type { EuRepPlanId } from '@/api/checkout';
 
-export type WizardStep = 'scanning' | 'questionnaire' | 'eu-rep' | 'summary' | 'confirm';
+export type WizardStep =
+  | 'website'
+  | 'scanning'
+  | 'questionnaire'
+  | 'eu-rep'
+  | 'summary'
+  | 'confirm';
 
 /**
- * EU representation decision captured on the conditional `eu-rep` step. The step
- * only appears when {@link shouldShowEuRepStep} is true (GDPR applies and the
- * user has no third-party representative). Otherwise the step is skipped after
- * the questionnaire. Wizard purchases always use Basis.
+ * EU representation decision captured on the `eu-rep` step. Wizard purchases
+ * always use Basis when the user opts into our offer.
  */
+export type EuRepYesNo = 'yes' | 'no' | '';
+
 export type EuRepState = {
-  /** Buying a new representation contract with this checkout (always `basis` in wizard). */
+  /** Buying a new representation contract with this checkout. */
   plan?: EuRepPlanId;
   /** Link the new hosted policy to this existing contract (no extra charge). */
   linkContractId?: string;
@@ -22,6 +29,23 @@ export type EuRepState = {
   legalEntity?: string;
   /** Forwarding email for a new contract purchased in the wizard. */
   forwardingEmail?: string;
+  /** Swiss postal address for a new contract purchased in the wizard. */
+  postalLine1?: string;
+  postalLine2?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  /** Whether the user has named any EU representative. */
+  hasNamedEuRep?: EuRepYesNo;
+  /** Whether VGS Datenschutzpartner GmbH was named as representative. */
+  namedDatenschutzpartner?: EuRepYesNo;
+  /** Third-party representative details (when another provider was named). */
+  thirdPartyRepName?: string;
+  thirdPartyRepStreet?: string;
+  thirdPartyRepPostalCode?: string;
+  thirdPartyRepCity?: string;
+  thirdPartyRepCountry?: string;
+  thirdPartyRepEmail?: string;
   /** They declined to add EU representation. */
   declined?: boolean;
   /** The step was completed and checkout may be reached. */
@@ -45,6 +69,11 @@ export type WizardProgress = {
   updateDocumentId?: string;
   /** Prepaid slot on an existing policy subscription. */
   fillSubscriptionId?: string;
+  /**
+   * Whether the run already has a website URL (from `?url=`).
+   * `false` shows the website-input step first. Omitted/`true` skips it.
+   */
+  hasWebsiteUrl?: boolean;
   /**
    * Guest-only Account step. Logged-in members skip it and go to the
    * confirmation screen instead. Defaults to true when omitted.
@@ -74,6 +103,14 @@ export function readFillSubscriptionId(params: URLSearchParams): string | undefi
   return value && value.length > 0 ? value : undefined;
 }
 
+export function hasWebsiteUrlParam(params: URLSearchParams): boolean {
+  return Boolean(params.get('url')?.trim());
+}
+
+export function normalizeWebsiteUrl(value: string): string | null {
+  return normalizeAndValidateWebsiteUrl(value);
+}
+
 /** Whether sessionStorage wizard progress matches the current URL run. */
 export function shouldRestoreWizardState(
   restored: WizardPersistedState,
@@ -84,6 +121,11 @@ export function shouldRestoreWizardState(
 
   if (isUpdateFlow) {
     return true;
+  }
+
+  // Adding a website starts a fresh run — never inherit a previous scan.
+  if (!hasWebsiteUrlParam(params)) {
+    return false;
   }
 
   // A new-site generation must never inherit a policy-update session.
@@ -97,7 +139,21 @@ export function shouldRestoreWizardState(
 
 const WIZARD_STORAGE_KEY = 'datenschutzpartner-result-wizard';
 
+/**
+ * A running scan does not survive reload. Show the website input instead
+ * (same as starting the wizard from the member profile).
+ */
+export function shouldResetIncompleteScan(
+  requestedStep: string | null,
+  scanDone: boolean,
+  questionnaireOnly: boolean
+): boolean {
+  if (questionnaireOnly) return false;
+  return normalizeWizardStep(requestedStep) === 'scanning' && !scanDone;
+}
+
 const VALID_STEPS = new Set<WizardStep>([
+  'website',
   'scanning',
   'questionnaire',
   'eu-rep',
@@ -125,13 +181,113 @@ export function emptyEuRepState(): EuRepState {
   return {};
 }
 
+/** EU-rep step was skipped because questionnaire answers do not require it. */
+export function skippedEuRepState(): EuRepState {
+  return { declined: true, done: true };
+}
+
 /**
- * Whether the EU representation wizard step should appear.
- * Skipped when GDPR does not apply or the user has a third-party representative.
+ * Whether the dedicated EU representation wizard step is shown.
+ * Requires GDPR to apply (yes or unknown) and data exports outside Switzerland.
  */
 export function shouldShowEuRepStep(formData?: QuestionnaireFormData): boolean {
-  if (!isGdprApplicable(formData)) return false;
-  return formData?.hasThirdPartyEuRep !== 'yes';
+  if (!formData) return false;
+
+  const gdprApplies = formData.gdprApplicable === 'yes' || formData.gdprApplicable === 'dontknow';
+  const exportsDataAbroad =
+    formData.transfersAbroad === 'eea' || formData.transfersAbroad === 'worldwide';
+
+  return gdprApplies && exportsDataAbroad;
+}
+
+export function showThirdPartyRepFields(
+  euRep: Pick<EuRepState, 'hasNamedEuRep' | 'namedDatenschutzpartner'>
+): boolean {
+  return euRep.hasNamedEuRep === 'yes' && euRep.namedDatenschutzpartner === 'no';
+}
+
+export type EuRepOfferVariant = 'new' | 'switch';
+
+export function euRepOfferVariant(
+  euRep: Pick<EuRepState, 'hasNamedEuRep' | 'namedDatenschutzpartner'>
+): EuRepOfferVariant | null {
+  if (euRep.hasNamedEuRep === 'no') return 'new';
+  if (showThirdPartyRepFields(euRep)) return 'switch';
+  return null;
+}
+
+const EU_REP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function hasCompleteThirdPartyRepDetails(
+  euRep: Pick<
+    EuRepState,
+    | 'thirdPartyRepName'
+    | 'thirdPartyRepStreet'
+    | 'thirdPartyRepPostalCode'
+    | 'thirdPartyRepCity'
+    | 'thirdPartyRepCountry'
+    | 'thirdPartyRepEmail'
+  >
+): boolean {
+  return Boolean(
+    euRep.thirdPartyRepName?.trim() &&
+    euRep.thirdPartyRepStreet?.trim() &&
+    euRep.thirdPartyRepPostalCode?.trim() &&
+    euRep.thirdPartyRepCity?.trim() &&
+    euRep.thirdPartyRepCountry?.trim() &&
+    EU_REP_EMAIL_PATTERN.test(euRep.thirdPartyRepEmail?.trim() ?? '')
+  );
+}
+
+/** User documented an EU rep other than our subscription offer. */
+export function hasDocumentedEuRepAlternative(
+  euRep: Pick<
+    EuRepState,
+    | 'hasNamedEuRep'
+    | 'namedDatenschutzpartner'
+    | 'thirdPartyRepName'
+    | 'thirdPartyRepStreet'
+    | 'thirdPartyRepPostalCode'
+    | 'thirdPartyRepCity'
+    | 'thirdPartyRepCountry'
+    | 'thirdPartyRepEmail'
+  >
+): boolean {
+  if (euRep.hasNamedEuRep === 'yes' && euRep.namedDatenschutzpartner === 'yes') {
+    return true;
+  }
+  if (showThirdPartyRepFields(euRep)) {
+    return hasCompleteThirdPartyRepDetails(euRep);
+  }
+  return false;
+}
+
+/** Whether skipping our EU-rep offer needs an explicit liability warning. */
+export function shouldConfirmEuRepSkip(
+  formData: QuestionnaireFormData,
+  euRep: EuRepState
+): boolean {
+  if (isBuyingEuRep(euRep) || isLinkingExistingEuRep(euRep)) return false;
+  if (hasDocumentedEuRepAlternative(euRep)) return false;
+  return isGdprApplicable(formData);
+}
+
+export function mergeEuRepIntoFormData(
+  form: QuestionnaireFormData,
+  euRep: EuRepState
+): QuestionnaireFormData {
+  const hasThirdParty = showThirdPartyRepFields(euRep);
+
+  return {
+    ...form,
+    hasThirdPartyEuRep: hasThirdParty ? 'yes' : 'no',
+    thirdPartyRepName: hasThirdParty ? (euRep.thirdPartyRepName ?? '').trim() : '',
+    thirdPartyRepStreet: hasThirdParty ? (euRep.thirdPartyRepStreet ?? '').trim() : '',
+    thirdPartyRepPostalCode: hasThirdParty ? (euRep.thirdPartyRepPostalCode ?? '').trim() : '',
+    thirdPartyRepCity: hasThirdParty ? (euRep.thirdPartyRepCity ?? '').trim() : '',
+    thirdPartyRepCountry: hasThirdParty ? (euRep.thirdPartyRepCountry ?? '').trim() : '',
+    thirdPartyRepEmail: hasThirdParty ? (euRep.thirdPartyRepEmail ?? '').trim() : '',
+  };
 }
 
 /**
@@ -149,12 +305,16 @@ export function isEuRepRequired(formData?: QuestionnaireFormData): boolean {
   return isGdprApplicable(formData);
 }
 
-/** The ordered screens for the current run — `eu-rep` and Account are conditional. */
+/** The ordered screens for the current run — Account is conditional for guests. */
 export function wizardStepOrder(progress: WizardProgress): WizardStep[] {
   const steps: WizardStep[] = progress.questionnaireOnly
     ? ['questionnaire']
-    : ['scanning', 'questionnaire'];
-  if (shouldShowEuRepStep(progress.formData)) steps.push('eu-rep');
+    : progress.hasWebsiteUrl === false
+      ? ['website', 'scanning', 'questionnaire']
+      : ['scanning', 'questionnaire'];
+  if (shouldShowEuRepStep(progress.formData)) {
+    steps.push('eu-rep');
+  }
   if (!progress.questionnaireOnly) {
     if (progress.includeAccountStep !== false) steps.push('summary');
     steps.push('confirm');
@@ -167,12 +327,14 @@ export function lastContentStep(progress: Pick<WizardProgress, 'formData'>): Wiz
 }
 
 export function maxAccessibleStep(progress: WizardProgress): WizardStep {
+  if (!progress.questionnaireOnly && progress.hasWebsiteUrl === false) return 'website';
   if (!progress.questionnaireOnly && !progress.scanDone) return 'scanning';
   if (!progress.formData) return 'questionnaire';
-  if (shouldShowEuRepStep(progress.formData) && !progress.euRep.done) return 'eu-rep';
-  if (progress.questionnaireOnly) {
-    return shouldShowEuRepStep(progress.formData) ? 'eu-rep' : 'questionnaire';
-  }
+
+  const euRepApplies = shouldShowEuRepStep(progress.formData);
+  if (euRepApplies && !progress.euRep.done) return 'eu-rep';
+  if (progress.questionnaireOnly) return 'questionnaire';
+
   if (progress.includeAccountStep === false || progress.confirmReady) {
     return 'confirm';
   }
@@ -229,8 +391,55 @@ function migrateEuRep(raw: unknown): EuRepState {
       typeof value.forwardingEmail === 'string' && value.forwardingEmail.length > 0
         ? value.forwardingEmail
         : undefined,
+    postalLine1:
+      typeof value.postalLine1 === 'string' && value.postalLine1.length > 0
+        ? value.postalLine1
+        : undefined,
+    postalLine2:
+      typeof value.postalLine2 === 'string' && value.postalLine2.length > 0
+        ? value.postalLine2
+        : undefined,
+    postalCode:
+      typeof value.postalCode === 'string' && value.postalCode.length > 0
+        ? value.postalCode
+        : undefined,
+    city: typeof value.city === 'string' && value.city.length > 0 ? value.city : undefined,
+    country:
+      typeof value.country === 'string' && value.country.length > 0 ? value.country : undefined,
     declined: value.declined,
     done: value.done,
+    hasNamedEuRep:
+      value.hasNamedEuRep === 'yes' || value.hasNamedEuRep === 'no'
+        ? value.hasNamedEuRep
+        : undefined,
+    namedDatenschutzpartner:
+      value.namedDatenschutzpartner === 'yes' || value.namedDatenschutzpartner === 'no'
+        ? value.namedDatenschutzpartner
+        : undefined,
+    thirdPartyRepName:
+      typeof value.thirdPartyRepName === 'string' && value.thirdPartyRepName.length > 0
+        ? value.thirdPartyRepName
+        : undefined,
+    thirdPartyRepStreet:
+      typeof value.thirdPartyRepStreet === 'string' && value.thirdPartyRepStreet.length > 0
+        ? value.thirdPartyRepStreet
+        : undefined,
+    thirdPartyRepPostalCode:
+      typeof value.thirdPartyRepPostalCode === 'string' && value.thirdPartyRepPostalCode.length > 0
+        ? value.thirdPartyRepPostalCode
+        : undefined,
+    thirdPartyRepCity:
+      typeof value.thirdPartyRepCity === 'string' && value.thirdPartyRepCity.length > 0
+        ? value.thirdPartyRepCity
+        : undefined,
+    thirdPartyRepCountry:
+      typeof value.thirdPartyRepCountry === 'string' && value.thirdPartyRepCountry.length > 0
+        ? value.thirdPartyRepCountry
+        : undefined,
+    thirdPartyRepEmail:
+      typeof value.thirdPartyRepEmail === 'string' && value.thirdPartyRepEmail.length > 0
+        ? value.thirdPartyRepEmail
+        : undefined,
   };
 }
 
@@ -306,6 +515,40 @@ export function clearWizardState() {
   } catch {
     /* quota / private mode — ignore */
   }
+}
+
+function hasEuRepUserProgress(euRep: EuRepState): boolean {
+  return Boolean(
+    euRep.done ||
+    euRep.declined ||
+    euRep.linkContractId ||
+    euRep.plan ||
+    euRep.hasNamedEuRep ||
+    euRep.namedDatenschutzpartner ||
+    euRep.legalEntity?.trim() ||
+    euRep.forwardingEmail?.trim() ||
+    euRep.thirdPartyRepName?.trim() ||
+    euRep.thirdPartyRepStreet?.trim() ||
+    euRep.thirdPartyRepPostalCode?.trim() ||
+    euRep.thirdPartyRepCity?.trim() ||
+    euRep.thirdPartyRepCountry?.trim() ||
+    euRep.thirdPartyRepEmail?.trim()
+  );
+}
+
+/** Whether the user has entered or answered anything worth confirming on quit. */
+export function hasWizardUserProgress(progress: WizardProgress): boolean {
+  if (progress.confirmReady) return true;
+
+  if (progress.questionnaireOnly) {
+    return progress.formData !== undefined || hasEuRepUserProgress(progress.euRep);
+  }
+
+  if (progress.scanDone) return true;
+  if (progress.formData !== undefined) return true;
+  if (hasEuRepUserProgress(progress.euRep)) return true;
+
+  return false;
 }
 
 export function buildResultReturnTo(searchParams: URLSearchParams, step: WizardStep) {

@@ -1,51 +1,79 @@
 'use client';
 
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { type ReactNode } from 'react';
-import {
-  Button,
-  ModalRoot,
-  ModalBackdrop,
-  ModalContainer,
-  ModalDialog,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalHeading,
-  useOverlayState,
-} from '@/components/ui';
-import { Question } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
-import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
-import { Logo } from '@/components/shared/Logo';
-import { buildResultReturnTo, clearWizardState, type WizardStep } from '@/app/result/wizard-state';
+import { ServiceWizardShell } from '@/components/shared/ServiceWizardShell';
+import { ServiceWizardFaqPanel } from '@/components/shared/ServiceWizardFaqPanel';
+import { cn } from '@/lib/utils';
+import { clearWizardState } from '@/app/result/wizard-state';
+import { StepLayoutFooterContextProvider } from './StepLayoutFooter';
+import { WizardStepBar, toWizardStepBarId, type WizardStepBarId } from './WizardStepBar';
 
 interface StepLayoutProps {
   step: string;
   domain: string;
   children: ReactNode;
+  /** Hide the domain bar — website-input step has no site yet. */
+  hideDomain?: boolean;
+  /** Accent header text — e.g. live website input while adding a site from the account. */
+  domainHeader?: string;
+  /** Muted header style for placeholder copy before the user types. */
+  domainHeaderPlaceholder?: boolean;
+  /** Where Quit sends the user. Defaults to the marketing home. */
+  quitHref?: string;
   /** Scroll the domain bar with step content — long questionnaire forms. */
   scrollStepsWithContent?: boolean;
   /** Lock the wizard exit once the hosted policy already exists. */
   quitDisabled?: boolean;
+  /** When false, Quit leaves immediately without the cancel modal. */
+  confirmQuit?: boolean;
+  /** Show the three-step progress bar (scanning → questionnaire → eu-rep). */
+  showStepBar?: boolean;
+  /** Add the guest account step to the progress bar. */
+  showAccountStepInBar?: boolean;
+  /** Hide EU-rep in the progress bar when it does not apply. */
+  showEuRepStepInBar?: boolean;
+  visitedSteps?: Set<string>;
+  disabledStepIds?: string[];
+  onStepClick?: (stepId: WizardStepBarId) => void;
+  /** Hide Quit on the left — e.g. policy ready screen. */
+  showQuit?: boolean;
 }
 
 export function StepLayout({
   step,
   domain,
   children,
+  hideDomain = false,
+  domainHeader,
+  domainHeaderPlaceholder = false,
+  quitHref = '/',
   scrollStepsWithContent = false,
   quitDisabled = false,
+  confirmQuit = true,
+  showStepBar = true,
+  showAccountStepInBar = false,
+  showEuRepStepInBar = true,
+  visitedSteps,
+  disabledStepIds,
+  onStepClick,
+  showQuit = true,
 }: StepLayoutProps) {
   const tCommon = useTranslations('common');
   const tCancel = useTranslations('result.cancelModal');
   const tGenerator = useTranslations('services.privacyGenerator');
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const modal = useOverlayState();
+  const [layoutFooter, setLayoutFooter] = useState<ReactNode | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const domainChrome = (
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [step]);
+
+  const showDomainChrome = domainHeader != null || !hideDomain;
+  const domainChromeText = domainHeader ?? domain;
+
+  const domainChrome = showDomainChrome ? (
     <div
       className="shrink-0"
       style={{
@@ -58,114 +86,68 @@ export function StepLayout({
           className="border-r border-l px-4 py-6 sm:px-8 sm:py-8"
           style={{ borderColor: 'rgba(255,255,255,0.12)' }}
         >
-          <h1 className="truncate text-2xl text-white sm:text-3xl lg:text-4xl">{domain}</h1>
+          <h1
+            className={cn(
+              'truncate text-2xl sm:text-3xl lg:text-4xl',
+              domainHeaderPlaceholder ? 'text-white/55' : 'text-white'
+            )}
+          >
+            {domainChromeText}
+          </h1>
         </div>
       </Container>
     </div>
-  );
+  ) : null;
+
+  const stepBar = showStepBar ? (
+    <WizardStepBar
+      currentStepId={toWizardStepBarId(step)}
+      visitedSteps={visitedSteps}
+      disabledStepIds={disabledStepIds}
+      onStepClick={onStepClick}
+      showAccountStep={showAccountStepInBar}
+      showEuRepStep={showEuRepStepInBar}
+    />
+  ) : null;
 
   return (
-    <div className="bg-background flex h-dvh flex-col overflow-hidden">
-      <div className="shrink-0 text-white" style={{ background: 'var(--accent)' }}>
-        <Container>
-          <div className="flex items-center border-r border-l border-white/20">
-            <div className="flex w-1/2 min-w-0 items-center px-4 py-5 sm:px-8">
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                <button
-                  type="button"
-                  className={`inline-flex min-w-0 items-center rounded-sm border-0 bg-transparent p-0 text-left ${
-                    quitDisabled ? 'cursor-default opacity-60' : 'cursor-pointer hover:opacity-90'
-                  }`}
-                  aria-label={tCancel('title')}
-                  disabled={quitDisabled}
-                  onClick={() => {
-                    if (quitDisabled) return;
-                    modal.open();
-                  }}
-                >
-                  <Logo />
-                </button>
-                <div aria-hidden className="h-6 w-px shrink-0 bg-white/20" />
-                <span className="font-display flex min-w-0 items-center truncate text-sm leading-none font-medium tracking-tight text-white lowercase">
-                  {tGenerator('label')}
-                </span>
-              </div>
-            </div>
-            <div className="flex w-1/2 items-center justify-end gap-2 px-4 py-5 sm:gap-3 sm:px-8">
-              <LocaleSwitcher />
-              <Button
-                variant="outline"
-                size="md"
-                className="gap-2 border-white/20 text-white hover:bg-white/10"
-                onPress={() => {
-                  const returnTo = buildResultReturnTo(searchParams, step as WizardStep);
-                  router.push(`/scan/faq?returnTo=${encodeURIComponent(returnTo)}`);
-                }}
-              >
-                <Question size={16} weight="bold" />
-                <span className="hidden sm:inline">{tCommon('faq')}</span>
-                <span className="sm:hidden">{tCommon('faqShort')}</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="md"
-                className="border-white/20 text-white hover:bg-white/10"
-                isDisabled={quitDisabled}
-                onPress={() => {
-                  modal.open();
-                }}
-              >
-                {tCancel('quit')}
-              </Button>
-            </div>
-          </div>
-        </Container>
-      </div>
-
+    <ServiceWizardShell
+      serviceLabel={tGenerator('label')}
+      quitHref={quitHref}
+      onQuit={() => {
+        clearWizardState();
+      }}
+      faqContent={<ServiceWizardFaqPanel variant="generator" />}
+      quitDisabled={quitDisabled}
+      confirmQuit={confirmQuit}
+      showQuit={showQuit}
+      cancelTitle={tCancel('title')}
+      cancelBody={tCancel('body')}
+      cancelQuitLabel={tCancel('quit')}
+      cancelProceedLabel={tCancel('proceed')}
+      faqLabel={tCommon('faq')}
+      faqShortLabel={tCommon('faqShort')}
+    >
       {!scrollStepsWithContent ? domainChrome : null}
+      {stepBar && !scrollStepsWithContent ? stepBar : null}
 
-      <div
-        className={`flex min-h-0 flex-1 flex-col ${scrollStepsWithContent ? 'overflow-y-auto' : 'overflow-hidden'}`}
-      >
-        {scrollStepsWithContent ? domainChrome : null}
-        {children}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <StepLayoutFooterContextProvider value={scrollStepsWithContent ? setLayoutFooter : null}>
+          <div
+            ref={scrollRef}
+            className={
+              scrollStepsWithContent
+                ? 'flex min-h-0 flex-1 flex-col overflow-y-auto'
+                : 'flex min-h-0 flex-1 flex-col overflow-hidden'
+            }
+          >
+            {scrollStepsWithContent ? domainChrome : null}
+            {stepBar && scrollStepsWithContent ? stepBar : null}
+            {children}
+          </div>
+        </StepLayoutFooterContextProvider>
+        {layoutFooter}
       </div>
-
-      <ModalRoot state={modal}>
-        <ModalBackdrop isDismissable>
-          <ModalContainer size="sm">
-            <ModalDialog>
-              <ModalHeader>
-                <ModalHeading>{tCancel('title')}</ModalHeading>
-              </ModalHeader>
-              <ModalBody>
-                <p className="text-foreground text-sm leading-relaxed">{tCancel('body')}</p>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  variant="outline"
-                  className="text-danger"
-                  isDisabled={quitDisabled}
-                  onPress={() => {
-                    clearWizardState();
-                    window.location.href = '/';
-                  }}
-                >
-                  {tCancel('quit')}
-                </Button>
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    modal.close();
-                  }}
-                >
-                  {tCancel('proceed')}
-                </Button>
-              </ModalFooter>
-            </ModalDialog>
-          </ModalContainer>
-        </ModalBackdrop>
-      </ModalRoot>
-    </div>
+    </ServiceWizardShell>
   );
 }

@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { isPolicySubscriptionOnTrial, useSubscriptions } from '@/api/billing';
 import { MetaBadge } from '@/components/shared/MetaBadge';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { useAccountScope, isEuRepAccountScope } from '@/components/shared/AccountScopeSwitcher';
-import { SiteSwitcher } from '@/components/shared/SiteSwitcher';
+import { SiteSwitcher, WebsiteSidebarSitePanel } from '@/components/shared/SiteSwitcher';
 import { useSiteScope } from '@/components/shared/site-scope';
 import { cn } from '@/components/ui';
 import { AnimatedDirectionalPanel } from './AnimatedDirectionalPanel';
@@ -27,7 +27,6 @@ type AccountSidebarProps = {
 
 export function SidebarNav({ active, onNavigate }: AccountSidebarProps) {
   const t = useTranslations('account');
-  const accountScope = useAccountScope();
   const { activeSite } = useSiteScope();
   const subscriptions = useSubscriptions();
 
@@ -38,14 +37,10 @@ export function SidebarNav({ active, onNavigate }: AccountSidebarProps) {
     return isPolicySubscriptionOnTrial(subscription);
   }, [activeSite?.document?.subscriptionId, subscriptions.data]);
 
-  const visibleSections = WEBSITE_SECTION_IDS.filter((section) =>
-    isEuRepAccountScope(accountScope) ? section === 'euRep' : true
-  );
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex flex-col">
-        {visibleSections.map((section) => {
+        {WEBSITE_SECTION_IDS.map((section) => {
           const Icon = SECTION_ICON[section];
           const accent = SECTION_ACCENT[section];
           const isActive = section === active;
@@ -118,15 +113,19 @@ function AccountSidebarFooter() {
   );
 }
 
+const WEBSITE_SIDEBAR_PANEL_ORDER = ['sections', 'site-list'] as const;
+
 export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
   const t = useTranslations('account');
   const accountScope = useAccountScope();
   const isEuRepScope = isEuRepAccountScope(accountScope);
   const scopeKey = isEuRepScope ? 'euRep' : 'websites';
+  const [siteListOpen, setSiteListOpen] = useState(false);
+  const websitePanelKey = siteListOpen ? 'site-list' : 'sections';
 
   return (
     <nav className="flex h-full min-h-0 flex-1 flex-col" aria-label={t('title')}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <AnimatedDirectionalPanel
           activeKey={scopeKey}
           order={ACCOUNT_SCOPE_IDS}
@@ -136,10 +135,27 @@ export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
           {isEuRepScope ? (
             <EuRepContractSidebarNav />
           ) : (
-            <>
-              <SiteSwitcher />
-              <SidebarNav active={active} onNavigate={onNavigate} />
-            </>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <SiteSwitcher isOpen={siteListOpen} onOpenChange={setSiteListOpen} />
+              <AnimatedDirectionalPanel
+                activeKey={websitePanelKey}
+                order={WEBSITE_SIDEBAR_PANEL_ORDER}
+                axis="y"
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                {siteListOpen ? (
+                  <WebsiteSidebarSitePanel
+                    onSiteSelect={() => {
+                      setSiteListOpen(false);
+                    }}
+                  />
+                ) : (
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <SidebarNav active={active} onNavigate={onNavigate} />
+                  </div>
+                )}
+              </AnimatedDirectionalPanel>
+            </div>
           )}
         </AnimatedDirectionalPanel>
       </div>

@@ -28,7 +28,20 @@
     "legalEntityDetails": "Legal entity details",
     "entityDetails": "{entity} details",
     "continue": "Continue",
-    "skip": "Skip"
+    "skip": "Skip",
+    "search": "Search",
+    "countrySwitzerland": "Switzerland"
+  },
+  "trialPeriod": {
+    "title": "{days}-Day Trial Period",
+    "availabilityPolicy": "Your policy is fully available during the trial.",
+    "deadlinePolicy": "Pay before it ends to keep it live — otherwise access is paused.",
+    "availabilityEuRep": "Your EU representation is fully available during the trial.",
+    "deadlineEuRep": "Pay before it ends to keep it live — otherwise access is paused.",
+    "availabilityPolicyAndEuRep": "Your policy and EU representation are fully available during the trial.",
+    "deadlinePolicyAndEuRep": "Pay before it ends to keep them live — otherwise access is paused.",
+    "paymentHintSelected": "Payment is available in the Subscription section of the selected service.",
+    "paymentHintEach": "Payment is available in the Subscription section of each selected service."
   },
   "meta": {
     "defaultTitle": "Datenschutzpartner — Privacy Policy Generator",
@@ -496,7 +509,7 @@
     "questionnaireCta": "Check Questionnaire",
     "heroPanelTitle": "VGS Datenschutzpartner GmbH",
     "heroPanelSubtitle": "Your data protection representative in the EEA, based in Germany",
-    "orderCta": "Order",
+    "orderCta": "Continue",
     "stats": {
       "ariaLabel": "EU representation at a glance",
       "article27": {
@@ -514,7 +527,7 @@
     },
     "benefitsSection": {
       "title": "What you get",
-      "subtitle": "Providers without an establishment in the EU need a representative in the EEA. We provide it — including an official point of contact and review of incoming inquiries.",
+      "subtitle": "Providers without an establishment in the EU need a representative in the EEA. We provide it — including an official point of contact and review of incoming requests.",
       "items": {
         "art27": {
           "title": "Representation under Art. 27 GDPR",
@@ -525,8 +538,8 @@
           "description": "An additional point of contact for supervisory authorities and data subjects — listable in your privacy policy, legal notice and records of processing activities."
         },
         "inquiries": {
-          "title": "Review & forwarding of inquiries",
-          "description": "Inquiries by postal mail or email are reviewed and forwarded to you by email — for example data subject access requests."
+          "title": "Review & forwarding of requests",
+          "description": "Requests by postal mail or email are reviewed and forwarded to you by email — for example data subject access requests."
         }
       }
     },
@@ -535,8 +548,9 @@
       "subtitle": "One contract covers one legal entity for 12 months.",
       "includedTitle": "Included with every legal entity",
       "includedToggle": "See what's included",
-      "selectPlan": "EU representation",
+      "selectPlan": "How many EU representative requests do you need?",
       "selectOne": "Representation contract",
+      "chosenPlan": "Chosen plan",
       "perYear": "per year",
       "perEntity": "{price} per legal entity / year",
       "decreaseEntities": "Fewer legal entities",
@@ -545,20 +559,28 @@
     },
     "pricePeriod": "/ 12 months",
     "plans": {
+      "requestSingular": "request",
+      "requestPlural": "requests",
+      "requestPriceAmount": "CHF 99",
+      "requestPriceSuffixBasis": "per request",
+      "requestPriceSuffixAdditional": "per additional request",
+      "requestsThereafter": "CHF 99 per additional request",
       "basis": {
         "name": "Basis",
         "price": "149",
-        "requests": "CHF 99 per additional inquiry"
+        "requests": "CHF 99 per request"
       },
       "plus": {
         "name": "Plus",
         "price": "229",
-        "requests": "1 inquiry included · CHF 99 thereafter"
+        "requests": "1 request included · CHF 99 thereafter",
+        "requestsRest": " request included · CHF 99 thereafter"
       },
       "plus5": {
         "name": "Plus 5",
         "price": "499",
-        "requests": "5 inquiries included · CHF 99 thereafter"
+        "requests": "5 requests included · CHF 99 thereafter",
+        "requestsRest": " requests included · CHF 99 thereafter"
       }
     },
     "faqNote": "Do you have questions? Our <faq>FAQ on EU data protection representation</faq> will help you.",
@@ -573,6 +595,7 @@
       "podcast": "Bonus: «Datenschutz Plaudereien» podcast"
     },
     "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> (GTC) apply. Unless cancelled, the data protection representation is automatically renewed for 12 months.",
+    "legalCheckout": "The <terms>general terms and conditions</terms> (GTC) apply. Unless cancelled, the data protection representation is automatically renewed for 12 months.",
     "faqSection": {
       "title": "Frequently Asked Questions",
       "intro": "Didn't find the answer to your question? Please <contact>contact us</contact>.",
@@ -615,7 +638,7 @@
         },
         "q7": {
           "question": "What are the tasks of an EU data protection representative?",
-          "answer": "The EU data protection representative is an additional point of contact for supervisory authorities and data subjects for all inquiries in connection with ensuring compliance with the European General Data Protection Regulation (GDPR) (Art. 27 para. 4 GDPR).\n\nThe EU data protection representative can also be imagined as a “mailbox” in the EU that authorities and data subjects in the European Economic Area (EEA) can use."
+          "answer": "The EU data protection representative is an additional point of contact for supervisory authorities and data subjects for all requests in connection with ensuring compliance with the European General Data Protection Regulation (GDPR) (Art. 27 para. 4 GDPR).\n\nThe EU data protection representative can also be imagined as a “mailbox” in the EU that authorities and data subjects in the European Economic Area (EEA) can use."
         },
         "q8": {
           "question": "What requirements must an EU data protection representative meet?",
@@ -634,12 +657,12 @@
           "answer": "If the tasks and requirements for the EU data protection representative in the EU change, we will adapt our offering accordingly."
         },
         "q12": {
-          "question": "What kinds of inquiries should be expected?",
+          "question": "What kinds of requests should be expected?",
           "answer": "Supervisory authorities and data subjects may contact the EU data protection representative at any time. In this way, data subjects may, for example, exercise their rights of access, data portability, erasure and objection. Supervisory authorities may, for example, forward complaints from data subjects or request information about compliance with the General Data Protection Regulation (GDPR)."
         },
         "q13": {
-          "question": "How many inquiries should be expected?",
-          "answer": "Experience shows that most controllers have to expect few or no inquiries. Controllers who are reachable for data subjects are normally contacted directly and not via the EU data protection representative.\n\nData protection supervisory authorities normally contact the EU data protection representative. However, such inquiries are usually self-provoked, whether through notifications of data breaches or inquiries from data subjects that were not answered directly.\n\nAs a rule, we only forward inquiries in connection with the General Data Protection Regulation (GDPR). Obvious email advertising (spam), for example, is not forwarded."
+          "question": "How many requests should be expected?",
+          "answer": "Experience shows that most controllers have to expect few or no requests. Controllers who are reachable for data subjects are normally contacted directly and not via the EU data protection representative.\n\nData protection supervisory authorities normally contact the EU data protection representative. However, such requests are usually self-provoked, whether through notifications of data breaches or requests from data subjects that were not answered directly.\n\nAs a rule, we only forward requests in connection with the General Data Protection Regulation (GDPR). Obvious email advertising (spam), for example, is not forwarded."
         },
         "q14": {
           "question": "How and where must the EU data protection representative be mentioned?",
@@ -708,14 +731,32 @@
   },
   "result": {
     "steps": {
+      "website": "Website",
       "scan": "Scan",
       "scanning": "Scanning",
       "questionnaire": "Questionnaire",
       "euRep": "EU Representation",
-      "summary": "Account"
+      "summary": "Account",
+      "confirmation": "Get your policy"
+    },
+    "websiteStep": {
+      "title": "Add your website",
+      "description": "Enter the address of the website you want a privacy policy for. We scan it next.",
+      "urlLabel": "Website URL",
+      "urlPlaceholder": "example.ch",
+      "continue": "Continue"
     },
     "euRepStep": {
       "title": "EU data protection representation",
+      "intro": "Under the GDPR, companies without a seat in the EU/EEA often need to appoint an EU data protection representative. We help you document the right contact in your privacy policy — and can act as your representative if you wish.",
+      "hasNamedEuRep": "Have you appointed an EU data protection representative?",
+      "namedDatenschutzpartner": "Have you appointed {company}?",
+      "gotYouCovered": "Congrats, we've already covered your legal entity!",
+      "gotYouCoveredRepresentativeIntro": "We have appointed the following representative:",
+      "offerTitleNew": "EU data protection representation from Datenschutzpartner",
+      "offerNewBody": "We offer compliant EU data protection representation, handling of supervisory authority and data-subject requests, and mention in your records of processing activities where required.",
+      "offerTitleSwitch": "Switch to EU data protection representation from Datenschutzpartner",
+      "switchToDatenschutzpartner": "Switch to Datenschutzpartner",
       "requiredIntro": "Based on your <answers>answers</answers>, we assume that you must appoint an EU data protection representative under the GDPR.",
       "requiredIntroPlain": "Based on your answers, we assume that you must appoint an EU data protection representative under the GDPR.",
       "requiredDisclaimer": "Note: Exceptionally, no representative is required for processing that occurs only occasionally, does not involve large-scale processing of special categories of data, and is unlikely to result in a risk to the rights and freedoms of natural persons. We advise against relying on this exception.",
@@ -759,26 +800,59 @@
     },
     "scanStep": {
       "scanningTitle": "Scanning {domain}...",
+      "scanningWebsite": "Scanning your website",
+      "creatingPolicy": "Creating privacy policy",
       "scanningDescription": "Analyzing your website for data processing tools and technologies."
     },
     "summary": {
       "title": "Welcome",
-      "welcomeTitle": "Create your account",
-      "welcomeBody": "Confirm your email to unlock the hosted privacy policy. Access stays locked until you open the confirmation link we send you.",
+      "welcomeTitle": "Your policy is ready!",
+      "welcomeBody": "Create Account",
+      "welcomeBodyDescription": "Create an account to access your policy for {domain} and keep it up to date. Free trial period — no payment now.",
       "welcomeBackTitle": "Confirm your account",
       "welcomeBackBody": "Accept the terms to publish this policy to your account. You can complete payment later from your profile.",
-      "emailLabel": "Account email",
-      "emailHint": "We send a confirmation link to this address. The policy unlocks only after you confirm.",
+      "emailLabel": "Registration email",
+      "emailHint": "We send a confirmation link to this address.",
+      "firstNameLabel": "First name",
+      "lastNameLabel": "Last name",
+      "benefits": {
+        "title": "What you get",
+        "items": {
+          "hosted": {
+            "title": "Privacy policy hosted and ready to publish",
+            "description": "Your policy lives at a link you can put on {domain}, not a file that gets lost."
+          },
+          "euRep": {
+            "title": "EU representative, ready to go",
+            "description": "Your GDPR-required representative in the EU is appointed and active through your account."
+          },
+          "updates": {
+            "title": "Stays up to date",
+            "description": "We update your policy automatically when the law changes — no need to redo anything."
+          },
+          "moreSites": {
+            "title": "More sites, when you need them",
+            "description": "Have another site? Add its policy to the same account, with a discount that grows as you go.<info></info>"
+          }
+        }
+      },
       "emailHintSignedIn": "This is the email on your account. The policy is published to this account.",
-      "acceptTerms": "I accept the <terms>general terms and conditions</terms>",
-      "newsletter": "Send me the data protection newsletter (optional)",
-      "sendConfirmationCta": "Send confirmation",
+      "acceptTermsPrefix": "I accept the",
+      "newsletter": "Send me the data protection newsletter",
+      "sendConfirmationCta": "Create account",
       "continueCta": "Continue to account",
-      "inboxTitle": "Confirm your email",
-      "inboxBody": "We sent a confirmation link to {email}.",
-      "inboxHint": "Open the email and confirm your address. Policy access unlocks only after this double opt-in.",
-      "inboxPrototypePassword": "Prototype: after confirming, sign in with password «{password}».",
-      "openConfirmation": "Open confirmation email",
+      "activate": {
+        "title": "Activate your account",
+        "body": "We sent a confirmation link to <strong>{email}</strong>. Open it to activate your account.",
+        "servicesTitle": "Your order",
+        "policyTitle": "Privacy Policy Generator",
+        "policyDetail": "Website: {domain}",
+        "euRepTitle": "EU representation",
+        "euRepDetail": "Swiss legal entity: {entity}",
+        "euRepDetailFallback": "Swiss legal entity: —",
+        "pricePeriod": "/ year",
+        "goHome": "Go to Home Page"
+      },
       "accountReady": "Your account is ready. The policy is now available.",
       "accountFailed": "We could not finish setting up your account. Please try again.",
       "verificationFailed": "We could not send the confirmation email. Please try again.",
@@ -872,7 +946,7 @@
     },
     "policyReady": {
       "title": "Your privacy policy is ready",
-      "body": "We prepared the hosted privacy policy from your answers. Open it to review the text.",
+      "titleWithEuRep": "Your privacy policy and EU representation are ready",
       "showPolicy": "Show policy",
       "loading": "Preparing your policy…",
       "failed": "The policy could not be opened. Please try again."
@@ -942,7 +1016,7 @@
         "domain": "mywebsite.ch",
         "email": "info@mywebsite.ch",
         "street": "Street and number",
-        "streetLine2": "c/o, additional line",
+        "streetLine2": "Optional",
         "postalCode": "Postal code",
         "city": "City",
         "country": "Country",
@@ -1045,7 +1119,6 @@
     "fillSlotScanNote": "You are setting up a prepaid site on subscription #{id}. Scan the website you want to cover.",
     "heroImageAlt": "Privacy policy generator preview",
     "orderCta": "Start",
-    "faqNote": "Do you have questions? Our <faq>FAQ on the privacy policy generator</faq> will help you.",
     "stats": {
       "ariaLabel": "Privacy policy generator at a glance",
       "legallyReviewed": {
@@ -1088,13 +1161,14 @@
       }
     },
     "pricingSection": {
-      "selectPlan": "How many websites?",
-      "includedTitle": "Included with every website",
+      "selectPlan": "Pricing based on active policies in use",
+      "includedTitle": "What's included",
       "includedToggle": "See what's included",
       "sitesIncluded": "{count, plural, one {# policy / year} other {# policies / year}}",
-      "perSite": "{price} per website / year",
-      "pricePeriod": "/ year",
-      "discountApplied": "{percent}% volume discount",
+      "perSite": "{price} per website",
+      "perSiteUnit": "per website",
+      "pricePeriod": "/ 12 months",
+      "discountApplied": "{percent}% discount",
       "noDiscount": "Volume discount from 4 active sites",
       "decreaseSites": "Fewer websites",
       "increaseSites": "More websites",
@@ -1132,7 +1206,8 @@
       "hosting": "Hosting of the privacy policies",
       "pdf": "Privacy policies as PDF files"
     },
-    "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> apply. Unless cancelled, the subscription is automatically renewed for 12 months. A single website is one domain with all its subdomains. Agency packages at attractive prices for web agencies."
+    "legal": "All prices are subject to statutory VAT. The <terms>general terms and conditions</terms> apply. Unless cancelled, the subscription is automatically renewed for 12 months. A single website is one domain with all its subdomains. Agency packages at attractive prices for web agencies.",
+    "legalCheckout": "The <terms>general terms and conditions</terms> apply. Unless cancelled, the subscription is automatically renewed for 12 months. A single website is one domain with all its subdomains. Agency packages at attractive prices for web agencies."
   },
   "scan": {
     "title": "Privacy Policy Generator",
@@ -1145,12 +1220,8 @@
     "analysing": "Analysing — detecting trackers and services…"
   },
   "generatorFaq": {
-    "metaTitle": "FAQ — Privacy Policy Generator — Datenschutzpartner",
-    "metaDescription": "Frequently asked questions about the privacy policy generator, subscriptions, and support.",
     "title": "FAQ on the privacy policy generator",
-    "introLead": "Our privacy policy generator helps you create a privacy policy tailored to your website. The answers below explain how generated policies may be used and how the generator works.",
     "introSupport": "If your question is not listed here, please contact our <support>support team</support>.",
-    "back": "Back",
     "categories": {
       "contentAndUse": {
         "label": "Content and use of generated privacy policies"
@@ -1298,7 +1369,7 @@
       "cookieBanner": "Cookie Banner",
       "imprint": "Imprint Generator",
       "overview": "Overview",
-      "accountDetails": "Account Details",
+      "accountDetails": "My profile",
       "allSubscriptions": "All Subscriptions",
       "soon": "Soon",
       "comingSoon": "Coming Soon",
@@ -1314,12 +1385,16 @@
     },
     "siteSwitcher": {
       "switchWebsite": "Switch website",
+      "searchSites": "Search websites",
+      "noResults": "No matching websites",
       "addWebsite": "Add website",
       "loading": "Loading websites …",
       "empty": "No website yet",
       "emptyProducts": "No active products",
       "productPolicy": "Privacy policy",
-      "productEuRep": "EU representation"
+      "productEuRep": "EU representation",
+      "productCookieBanner": "Cookie banner",
+      "productImprint": "Imprint"
     },
     "addMenu": {
       "ariaLabel": "Add new",
@@ -1333,6 +1408,8 @@
     },
     "contractSwitcher": {
       "listTitle": "Your legal entities",
+      "searchEntities": "Search legal entities",
+      "noResults": "No matching legal entities",
       "switchContract": "Switch legal entity",
       "addContract": "Add EU representation",
       "loading": "Loading contracts …",
@@ -1473,7 +1550,10 @@
     },
     "allSubscriptions": {
       "title": "All subscriptions",
+      "tabsAriaLabel": "Subscription services",
+      "websitesTitle": "Websites",
       "colWebsite": "Website",
+      "colRenewal": "Renewal",
       "colLegalEntity": "Legal entity",
       "serviceEmpty": "Not active on any website yet.",
       "comingSoonBody": "Not available yet — we're building it.",
@@ -1486,8 +1566,9 @@
       "colProduct": "Product",
       "colPlan": "ID",
       "colCoverage": "Coverage",
-      "colDays": "Remaining",
-      "colAmount": "Amount / year",
+      "colStatus": "Status",
+      "colDays": "Days left",
+      "colAmount": "12-month subscription",
       "colActions": "Actions",
       "daysLeft": "{count, plural, one {# day} other {# days}}",
       "sitesCovered": "{count, plural, one {# website} other {# websites}}",
@@ -1506,7 +1587,13 @@
       "processing": "Processing payment…",
       "payCta": "Continue with payment",
       "paymentConfirmed": "Payment confirmed.",
-      "paymentFailed": "Payment could not be completed. Please try again."
+      "paymentFailed": "Payment could not be completed. Please try again.",
+      "cancelModal": {
+        "title": "Quit checkout?",
+        "body": "You can return here anytime from your account to complete payment.",
+        "quit": "Quit",
+        "proceed": "Proceed working"
+      }
     },
     "checkoutBanner": {
       "sectionTitle": "Trial period",
@@ -1553,7 +1640,8 @@
       "metaTitle": "EU Representation — checkout",
       "title": "Add a new legal entity",
       "entityIntro": "Enter the details of the legal entity you want to represent in the EU.",
-      "selectPlan": "Choose your EU representation plan",
+      "selectPlan": "Choose your plan",
+      "chosenPlan": "Chosen plan",
       "selectQuantity": "How many legal entities?",
       "entityLabel": "Legal entity {index}",
       "totalDue": "Total due today",
@@ -1562,7 +1650,22 @@
       "processing": "Processing payment…",
       "failed": "Payment could not be completed. Please try again.",
       "success": "EU representation is active.",
-      "payCta": "Continue with payment"
+      "payCta": "Continue with payment",
+      "cancelModal": {
+        "title": "Quit EU representation checkout?",
+        "body": "Your entered details will be lost. Are you sure you want to leave?",
+        "quit": "Quit",
+        "proceed": "Proceed working"
+      },
+      "guest": {
+        "title": "Your account",
+        "body": "Create an account to complete your EU representation order.",
+        "payCta": "Create account & continue",
+        "registrationFailed": "We could not create your account. Please try again."
+      },
+      "activation": {
+        "paymentNote": "After you confirm your email, your EU representation will be activated and payment will be processed."
+      }
     },
     "academy": {
       "title": "Datenschutz Academy",
@@ -1615,15 +1718,15 @@
         "intro": "Publish the representative details in your privacy policy and keep your forwarding email up to date so we can reach you when authorities or data subjects contact us.",
         "stepMention": "Mention VGS Datenschutzpartner GmbH (Hamburg) as your EU representative in the privacy policy — and in the record of processing activities where required.",
         "stepGenerator": "If you host the policy with us, link the website under Linked policies so the representative block stays in sync with your subscription.",
-        "stepForwarding": "Keep the forwarding email on each legal entity current. Inquiries are sent there; the address is not published in the policy.",
-        "stepLink": "When an inquiry exceeds your plan allowance, create a payment request (CHF 99) from the Representations tab."
+        "stepForwarding": "Keep the forwarding email on each legal entity current. Requests are sent there; the address is not published in the policy.",
+        "stepLink": "When a request exceeds your plan allowance, create a payment request (CHF 99) from the Representations tab."
       },
       "contract": {
         "title": "Covered organisation",
         "countTitle": "Representations",
         "listTitle": "Legal entities",
-        "requestsTitle": "Included inquiries",
-        "requestsHint": "Extra inquiry: CHF {price}",
+        "requestsTitle": "Included requests",
+        "requestsHint": "Extra request: CHF {price}",
         "paymentRequestCta": "Create payment request",
         "paymentRequestSuccess": "Payment request created for CHF {price}.",
         "paymentRequestFailed": "Could not create the payment request. Please try again.",
@@ -1647,10 +1750,9 @@
         "buyCta": "Add",
         "buyMore": "Buy more contracts",
         "legalEntity": "Swiss legal entity",
-        "name": "Name",
-        "legalEntityHint": "The Swiss company this contract represents.",
+        "name": "Your Swiss entity legal name",
         "forwardingEmail": "Forwarding email",
-        "forwardingEmailHint": "Where we send supervisory and data-subject inquiries. This address is not published in the policy.",
+        "forwardingEmailHint": "Where we send supervisory and data-subject requests. This address is not published in the policy.",
         "postalLine1": "Street address",
         "postalLine2": "Address line 2 (optional)",
         "postalCode": "Postal code",
@@ -1688,7 +1790,14 @@
         "removeCancel": "Keep linked",
         "removeSuccess": "EU representative removed from hosted policy.",
         "removeFailed": "Could not remove the EU representative from this hosted policy.",
-        "lapseNote": "If this subscription lapses, the representative block is removed from hosted policies only."
+        "lapseNote": "If this subscription lapses, the representative block is removed from hosted policies only.",
+        "deleteEntity": "Delete Entity",
+        "deleteTitle": "Delete this legal entity?",
+        "deleteBody": "This removes {entity} from your legal entities. You can add it again later by purchasing EU representation.",
+        "deleteConfirm": "Delete Entity",
+        "deleteCancel": "Keep entity",
+        "deleted": "Legal entity deleted.",
+        "deleteFailed": "Could not delete this legal entity. Cancel the subscription first if it is still active."
       }
     },
     "documents": {
@@ -1789,12 +1898,12 @@
           "questionsBody": "If you have any questions on your membership, our team will answer within one business day."
         },
         "euRep": {
-          "planTitle": "Subscription Status",
+          "planTitle": "Status",
           "pricePeriod": "/ 12 months",
           "questionsBody": "If you have any questions on your EU representation, our team will answer within one business day."
         },
         "policy": {
-          "planTitle": "Subscription Status",
+          "planTitle": "Status",
           "planTitleWithSite": "{site}",
           "planTitleWithSites": "{count, plural, one {# website} other {# websites}}",
           "pricePeriod": "/ 12 months",
@@ -1870,12 +1979,13 @@
       "referenceEmpty": "—"
     },
     "accountDetails": {
-      "title": "Account Details",
+      "title": "My profile",
       "lead": "Your profile, language, security and billing information.",
-      "tabsAriaLabel": "Account Details sections",
+      "tabsAriaLabel": "My profile sections",
       "tabs": {
         "profile": "Profile",
-        "paymentDetails": "Billing"
+        "settings": "Settings",
+        "paymentDetails": "Billing Address"
       },
       "profileTitle": "Profile",
       "firstName": "First name",
@@ -1920,7 +2030,7 @@
     },
     "paymentDetails": {
       "addressesTitle": "Billing address",
-      "aboutIntro": "This billing address and email are used for all invoices and subscriptions on your account.",
+      "aboutIntro": "This billing address is used for all invoices and when you complete checkout for your privacy policy or EU representation.",
       "billingEmail": "Billing email address",
       "save": "Save billing details",
       "firstName": "First name",
@@ -1951,7 +2061,19 @@
     "terms": "Please accept the general terms and conditions",
     "email": "Invalid email address",
     "passwordMin": "Password must be at least 8 characters",
-    "passwordMatch": "Passwords do not match"
+    "passwordMatch": "Passwords do not match",
+    "personName": "Please enter a valid name",
+    "companyName": "Please enter a valid company or organisation name",
+    "street": "Please enter a valid street address",
+    "postalCode": "Please enter a valid postal code",
+    "city": "Please enter a valid city",
+    "country": "Please select a country from the list",
+    "domain": "Please enter a valid website domain",
+    "website": "Please enter a valid website URL",
+    "messageMin": "Please enter at least 10 characters",
+    "messageMax": "Message is too long",
+    "message": "Please enter a meaningful message",
+    "vatId": "Please enter a valid VAT number"
   },
   "contacts": {
     "title": "Contacts",
@@ -2011,7 +2133,7 @@
         "title": "Data protection representation in the European Economic Area (EEA)",
         "intro": "We have appointed the following data protection representative pursuant to <art27>Art. 27 GDPR</art27>:",
         "country": "Germany",
-        "closing": "The data protection representative serves as an additional point of contact for data subjects and authorities in the European Union (EU) and in the rest of the European Economic Area (EEA) for inquiries relating to the GDPR."
+        "closing": "The data protection representative serves as an additional point of contact for data subjects and authorities in the European Union (EU) and in the rest of the European Economic Area (EEA) for requests relating to the GDPR."
       },
       "dataWeProcess": {
         "title": "Data we process",

@@ -23,13 +23,18 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { cn } from '@/lib/utils';
 
 const topBarOutlineTriggerClass =
-  'font-display button button--sm button--outline inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap border-white/20 text-white hover:bg-white/10';
+  'topbar-outline-trigger font-display button button--sm button--outline inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap border-white/20 text-white';
 
 /**
  * Account chrome on the top bar: user icon + name opening profile, cross-website
  * subscriptions and log out. Replaces the former close button.
  */
-export function AccountProfileMenu() {
+export function AccountProfileMenu({
+  onLeaveRequest,
+}: {
+  /** Wizard shell — any item opens the leave confirmation instead of navigating. */
+  onLeaveRequest?: () => void;
+} = {}) {
   const t = useTranslations('account');
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -40,6 +45,14 @@ export function AccountProfileMenu() {
   const firstName = profile.data?.firstName ?? displayName.split(' ')[0] ?? '';
   const label = displayName.trim() || firstName || profile.data?.email || t('nav.accountDetails');
   const buttonLabel = firstName || label;
+
+  function handleMenuAction(action?: () => void) {
+    if (onLeaveRequest) {
+      onLeaveRequest();
+      return;
+    }
+    action?.();
+  }
 
   function handleLogout() {
     clearAuthToken();
@@ -64,9 +77,10 @@ export function AccountProfileMenu() {
           <DropdownMenu aria-label={t('nav.profileMenu')}>
             <DropdownItem
               id="accountDetails"
-              href={ACCOUNT_DETAILS_HREF}
+              href={onLeaveRequest ? undefined : ACCOUNT_DETAILS_HREF}
               textValue={t('nav.accountDetails')}
               className="px-3 py-2.5"
+              onAction={onLeaveRequest ? () => { handleMenuAction(); } : undefined}
             >
               <span className="flex items-center gap-3">
                 <IdentificationCard size={18} className="text-muted shrink-0" aria-hidden />
@@ -75,9 +89,10 @@ export function AccountProfileMenu() {
             </DropdownItem>
             <DropdownItem
               id="allSubscriptions"
-              href={ALL_SUBSCRIPTIONS_ACCOUNT_HREF}
+              href={onLeaveRequest ? undefined : ALL_SUBSCRIPTIONS_ACCOUNT_HREF}
               textValue={t('nav.allSubscriptions')}
               className="px-3 py-2.5"
+              onAction={onLeaveRequest ? () => { handleMenuAction(); } : undefined}
             >
               <span className="flex items-center gap-3">
                 <Receipt size={18} className="text-muted shrink-0" aria-hidden />
@@ -89,7 +104,9 @@ export function AccountProfileMenu() {
               textValue={t('nav.logout')}
               className="border-border mt-1 border-t px-3 py-2.5 pt-3"
               onAction={() => {
-                logout.open();
+                handleMenuAction(() => {
+                  logout.open();
+                });
               }}
             >
               <span className="text-danger flex items-center gap-3">

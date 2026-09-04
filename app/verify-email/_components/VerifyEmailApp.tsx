@@ -60,7 +60,10 @@ function VerifyEmailContent() {
           }
 
           toast.success(t('success'));
-          router.replace(domain ? resultUrlForDomain(domain) : '/account?section=privacyPolicy');
+          router.replace(
+            data.redirectTo ??
+              (domain ? resultUrlForDomain(domain) : '/account?accountScope=euRep&section=euRep')
+          );
         },
         onError: () => {
           toast.error(t('failed'));

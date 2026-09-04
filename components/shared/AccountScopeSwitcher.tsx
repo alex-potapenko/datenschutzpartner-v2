@@ -31,8 +31,11 @@ export function AccountScopeSwitcher({ className }: { className?: string }) {
 
     if (next === 'euRep') {
       params.set('section', 'euRep');
-    } else if (params.get('section') === 'euRep') {
-      params.set('section', 'overview');
+    } else {
+      if (params.get('section') === 'euRep') {
+        params.set('section', 'overview');
+      }
+      params.delete('contract');
     }
 
     router.replace(`/account?${params.toString()}`, { scroll: false });
