@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepLayout } from './ui/StepLayout';
@@ -150,6 +151,8 @@ export default function ResultContent() {
 
   const didHydrate = useRef(false);
   const resetIncompleteScanRef = useRef(false);
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
 
   // Mount-only hydration from sessionStorage (survives full page reloads / deep links).
   // Wait for the session so Account vs confirmation is decided without a stepper flicker.
@@ -252,7 +255,7 @@ export default function ResultContent() {
       }
     }
 
-    const resolvedStep = resolveWizardStep(requestedStep, progress);
+    const resolvedStep = resolveWizardStep(requestedStep, progressRef.current);
 
      
     if (resolvedStep !== step) {
@@ -264,7 +267,7 @@ export default function ResultContent() {
     }
      
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, params]);
+  }, [hydrated, params, confirmReady, euRep, formData, scanDone, includeAccountStep, questionnaireOnly]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -309,7 +312,12 @@ export default function ResultContent() {
 
   function goToConfirmation(nextProgress: WizardProgress = progress) {
     const next = { ...nextProgress, confirmReady: true };
-    setConfirmReady(true);
+    progressRef.current = next;
+    flushSync(() => {
+      setConfirmReady(true);
+      setEuRep(next.euRep);
+      if (next.formData !== undefined) setFormData(next.formData);
+    });
     advance('confirm', next);
   }
 
@@ -320,6 +328,7 @@ export default function ResultContent() {
   }
 
   function advance(next: Step, nextProgress: WizardProgress) {
+    progressRef.current = nextProgress;
     const resolvedStep = resolveWizardStep(next, nextProgress);
     syncVisitedSteps(nextProgress, resolvedStep, setVisitedSteps);
     setStep(resolvedStep);
@@ -389,11 +398,11 @@ export default function ResultContent() {
   }
 
   function handleEuRepComplete(next: EuRepState, updatedFormData: QuestionnaireFormData) {
-    setEuRep(next);
-    setFormData(updatedFormData);
     const nextProgress = { ...progress, euRep: next, formData: updatedFormData };
 
     if (questionnaireOnly) {
+      setEuRep(next);
+      setFormData(updatedFormData);
       handlePolicyUpdate();
       return;
     }
@@ -403,6 +412,8 @@ export default function ResultContent() {
       return;
     }
 
+    setEuRep(next);
+    setFormData(updatedFormData);
     advance('summary', nextProgress);
   }
 
