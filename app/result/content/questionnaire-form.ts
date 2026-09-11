@@ -2,6 +2,7 @@ export interface QuestionnaireFormData {
   companyName: string;
   domain: string;
   email: string;
+  department: string;
   street: string;
   streetLine2: string;
   postalCode: string;
@@ -9,8 +10,11 @@ export interface QuestionnaireFormData {
   country: string;
   hasDpo: string;
   dpoCompanyName: string;
-  dpoDesignation: string;
+  dpoDesignationEn: string;
+  dpoDesignationDe: string;
+  dpoDepartment: string;
   dpoStreet: string;
+  dpoStreetLine2: string;
   dpoPostalCode: string;
   dpoCity: string;
   dpoCountry: string;

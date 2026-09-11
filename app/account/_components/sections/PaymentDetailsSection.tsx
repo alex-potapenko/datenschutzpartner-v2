@@ -42,6 +42,7 @@ const EMPTY_BILLING: BillingAddress = {
   firstName: '',
   lastName: '',
   company: '',
+  department: '',
   line1: '',
   line2: '',
   postalCode: '',
@@ -117,33 +118,48 @@ export function PaymentDetailsSection() {
               />
             </Field>
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Field id="billingFirstName" label={t('firstName')} error={err('firstName')}>
-                <Input
-                  id="billingFirstName"
-                  variant="secondary"
-                  fullWidth
-                  autoComplete="given-name"
-                  {...register('firstName')}
-                />
-              </Field>
-              <Field id="billingLastName" label={t('lastName')} error={err('lastName')}>
-                <Input
-                  id="billingLastName"
-                  variant="secondary"
-                  fullWidth
-                  autoComplete="family-name"
-                  {...register('lastName')}
-                />
-              </Field>
+            <div className="flex flex-col gap-6 sm:flex-row">
+              <div className="sm:flex-1">
+                <Field id="billingFirstName" label={t('firstName')} error={err('firstName')}>
+                  <Input
+                    id="billingFirstName"
+                    variant="secondary"
+                    fullWidth
+                    autoComplete="given-name"
+                    {...register('firstName')}
+                  />
+                </Field>
+              </div>
+              <div className="sm:flex-1">
+                <Field id="billingLastName" label={t('lastName')} error={err('lastName')}>
+                  <Input
+                    id="billingLastName"
+                    variant="secondary"
+                    fullWidth
+                    autoComplete="family-name"
+                    {...register('lastName')}
+                  />
+                </Field>
+              </div>
             </div>
-
-            <Field id="billingCompany" label={t('company')} error={err('company')}>
-              <Input id="billingCompany" variant="secondary" fullWidth {...register('company')} />
-            </Field>
 
             <PostalAddressFields
               idPrefix="billing"
+              legalEntity={watch('company')}
+              onLegalEntityChange={(value) => {
+                setValue('company', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              legalEntityError={err('company')}
+              vatId={watch('vatId')}
+              onVatIdChange={(value) => {
+                setValue('vatId', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              vatIdError={err('vatId')}
+              department={watch('department')}
+              onDepartmentChange={(value) => {
+                setValue('department', value, { shouldDirty: true, shouldValidate: true });
+              }}
+              departmentError={err('department')}
               street={watch('line1')}
               streetLine2={watch('line2')}
               postalCode={watch('postalCode')}
@@ -160,21 +176,24 @@ export function PaymentDetailsSection() {
               onCityChange={(value) => {
                 setValue('city', value, { shouldDirty: true, shouldValidate: true });
               }}
-              line1Error={err('line1') ?? err('postalCode') ?? err('city')}
+              onLegalEntityUidSelect={(company) => {
+                setValue('line1', company.street, { shouldDirty: true });
+                setValue('postalCode', company.postalCode, { shouldDirty: true });
+                setValue('city', company.city, { shouldDirty: true });
+                setValue('vatId', `${company.uid} MWST`, { shouldDirty: true });
+              }}
+              optionalBadge={t('optionalBadge')}
+              line1Error={err('line1')}
+              postalCodeError={err('postalCode')}
+              cityError={err('city')}
               streetLine2Error={err('line2')}
+              countryDisplayLabel={displayCountryLabel(
+                SWISS_COUNTRY_STORAGE,
+                tCommon('countrySwitzerland')
+              )}
             />
 
-            <Field id="billingCountry" label={t('country')}>
-              <p className="text-foreground text-sm leading-relaxed">
-                {tCommon('countrySwitzerland')}
-              </p>
-            </Field>
-
-            <Field id="billingVatId" label={t('vatId')} error={err('vatId')}>
-              <Input id="billingVatId" variant="secondary" fullWidth {...register('vatId')} />
-            </Field>
-
-            <div className="flex justify-end">
+            <div className="flex justify-start">
               <Button
                 type="submit"
                 variant="primary"

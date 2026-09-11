@@ -1,7 +1,16 @@
 /**
  * Local seam over HeroUI form fields.
  */
-export { ComboBox, Input, TextArea, Select, ListBox, SearchField } from '@heroui/react';
+export {
+  ComboBox,
+  Input,
+  InputOTP,
+  REGEXP_ONLY_DIGITS,
+  TextArea,
+  Select,
+  ListBox,
+  SearchField,
+} from '@heroui/react';
 export type { InputProps, TextAreaProps } from '@heroui/react';
 
 export { Label } from '@heroui/react';

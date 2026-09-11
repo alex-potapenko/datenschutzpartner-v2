@@ -5,7 +5,7 @@ import { CheckCircle } from '@/components/ui';
 
 type EuRepWizardCoveredSectionProps = {
   title: string;
-  body?: string;
+  body?: ReactNode;
   children?: ReactNode;
   /** Full-page layout for the matched-contract shortcut. */
   variant?: 'section' | 'page';

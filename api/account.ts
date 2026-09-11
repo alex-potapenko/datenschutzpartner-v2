@@ -5,6 +5,7 @@ import {
   countryNameField,
   emailField,
   optionalCompanyField,
+  optionalDepartmentField,
   optionalStreetLine2Field,
   optionalVatIdField,
   personNameField,
@@ -29,6 +30,7 @@ export const billingAddressSchema = z.object({
   firstName: personNameField,
   lastName: personNameField,
   company: optionalCompanyField,
+  department: optionalDepartmentField,
   line1: streetAddressField,
   line2: optionalStreetLine2Field,
   postalCode: postalCodeField,
@@ -136,5 +138,34 @@ export function useChangePassword() {
         method: 'PUT',
         body: JSON.stringify(input),
       }),
+  });
+}
+
+export function useEnableTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { code: string }) =>
+      request<Profile>('/account/two-factor/enable', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountKeys.profile });
+    },
+  });
+}
+
+export function useDisableTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      request<Profile>('/account/two-factor/disable', {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: accountKeys.profile });
+    },
   });
 }

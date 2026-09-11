@@ -6,6 +6,7 @@ import {
   countryNameField,
   emailField,
   optionalStreetLine2Field,
+  optionalDepartmentField,
   postalCodeField,
   streetAddressField,
 } from '@/lib/validation/fields';
@@ -45,6 +46,7 @@ export const euRepContractSchema = z.object({
   /** Internal inbox for supervisory and data-subject mail — not shown on the policy. */
   forwardingEmail: emailField,
   /** Postal address of the represented Swiss organisation. */
+  postalDepartment: optionalDepartmentField.optional(),
   postalLine1: streetAddressField,
   postalLine2: optionalStreetLine2Field.optional(),
   postalCode: postalCodeField,
@@ -61,6 +63,7 @@ export type EuRepContract = z.infer<typeof euRepContractSchema>;
 export const euRepContractUpdateSchema = euRepContractSchema.pick({
   legalEntity: true,
   forwardingEmail: true,
+  postalDepartment: true,
   postalLine1: true,
   postalLine2: true,
   postalCode: true,
@@ -145,9 +148,11 @@ export type EuRepSubscriptionGroup = {
 };
 
 export function linkedDocumentsForContract(
-  _contract: EuRepContract,
-  _documents: readonly GeneratedDocument[]
+  contract: EuRepContract,
+  documents: readonly GeneratedDocument[]
 ): GeneratedDocument[] {
+  void contract;
+  void documents;
   return [];
 }
 
@@ -252,7 +257,7 @@ export function useDeleteEuRepContract() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      request<void>(`/eu-rep/contracts/${id}`, {
+      request<undefined>(`/eu-rep/contracts/${id}`, {
         method: 'DELETE',
       }),
     onSuccess: async () => {

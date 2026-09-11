@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { MouseEventHandler, PointerEventHandler, ReactNode } from 'react';
-import { CaretLeft, CaretRight, cn } from '@/components/ui';
+import { CaretLeft, CaretRight, ArrowSquareOut, cn } from '@/components/ui';
 
 export type NavigationLinkSize = 'default' | 'sm';
 
@@ -28,7 +28,7 @@ type NavigationLinkBaseProps = {
   children: ReactNode;
   className?: string;
   size?: NavigationLinkSize;
-  chevron?: 'left' | 'right' | 'none';
+  chevron?: 'left' | 'right' | 'external' | 'none';
   chevronWeight?: 'regular' | 'bold';
 };
 
@@ -80,11 +80,16 @@ function NavigationLinkContent({
   chevron = 'right',
   chevronWeight = 'regular',
 }: Pick<NavigationLinkBaseProps, 'children' | 'size' | 'chevron' | 'chevronWeight'>) {
+  const { iconSize } = NAVIGATION_LINK_SIZES[size];
+
   return (
     <>
       {chevron === 'left' ? <Chevron side="left" weight={chevronWeight} size={size} /> : null}
       {children}
       {chevron === 'right' ? <Chevron side="right" weight={chevronWeight} size={size} /> : null}
+      {chevron === 'external' ? (
+        <ArrowSquareOut size={iconSize} weight="light" aria-hidden className="shrink-0" />
+      ) : null}
     </>
   );
 }

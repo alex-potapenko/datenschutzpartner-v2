@@ -1,13 +1,65 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+import { StepLayoutFooterContextProvider } from '@/app/result/ui/StepLayoutFooter';
 import { Button, CaretRight } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 import { ServiceWizardShell } from '@/components/shared/ServiceWizardShell';
+import type { ServiceBrandId } from '@/components/shared/topbars/service-brands';
+import { cn } from '@/lib/utils';
+
+export function ServiceWizardAccentHeader({
+  title,
+  placeholder = false,
+}: {
+  title: string;
+  placeholder?: boolean;
+}) {
+  return (
+    <div
+      className="shrink-0"
+      style={{
+        background: 'var(--accent)',
+        borderBottom: '1px solid rgba(255,255,255,0.12)',
+      }}
+    >
+      <Container>
+        <div
+          className="border-r border-l px-4 py-6 sm:px-8 sm:py-8"
+          style={{ borderColor: 'rgba(255,255,255,0.12)' }}
+        >
+          <h1
+            className={cn(
+              'truncate text-2xl sm:text-3xl lg:text-4xl',
+              placeholder ? 'text-white/55' : 'text-white'
+            )}
+          >
+            {title}
+          </h1>
+        </div>
+      </Container>
+    </div>
+  );
+}
+
+/** Scrollable checkout step body with a pinned footer — mirrors policy wizard scroll steps. */
+export function ServiceCheckoutScrollLayout({ children }: { children: ReactNode }) {
+  const [layoutFooter, setLayoutFooter] = useState<ReactNode | null>(null);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <StepLayoutFooterContextProvider value={setLayoutFooter}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+      </StepLayoutFooterContextProvider>
+      {layoutFooter}
+    </div>
+  );
+}
 
 export function ServiceCheckoutShell({
   serviceLabel,
+  serviceBrandId,
   quitHref,
   onQuit,
   faqHref,
@@ -20,6 +72,7 @@ export function ServiceCheckoutShell({
   children,
 }: {
   serviceLabel: string;
+  serviceBrandId?: ServiceBrandId;
   quitHref: string;
   onQuit?: () => void;
   faqHref?: string;
@@ -36,6 +89,7 @@ export function ServiceCheckoutShell({
   return (
     <ServiceWizardShell
       serviceLabel={serviceLabel}
+      serviceBrandId={serviceBrandId}
       quitHref={quitHref}
       onQuit={onQuit}
       faqHref={faqHref}

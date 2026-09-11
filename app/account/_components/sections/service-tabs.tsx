@@ -11,6 +11,7 @@ import { AnimatedDirectionalPanel } from '../AnimatedDirectionalPanel';
  * services that host a document, so sections pass the subset they need.
  */
 export const SERVICE_TAB_IDS = [
+  'details',
   'subscription',
   'instructions',
   'legalEntity',
@@ -33,6 +34,11 @@ export const EU_REP_TAB_IDS = [
   'legalEntity',
   'faq',
 ] as const satisfies readonly ServiceTabId[];
+
+export function parseEuRepTab(value: string | null | undefined): ServiceTabId | undefined {
+  if (!value) return undefined;
+  return EU_REP_TAB_IDS.find((id) => id === value);
+}
 
 export function useServiceTabs(
   ids: readonly ServiceTabId[] = BASE_SERVICE_TAB_IDS

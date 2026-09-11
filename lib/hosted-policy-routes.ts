@@ -8,6 +8,8 @@ export const RESERVED_HOSTED_POLICY_SLUGS = new Set([
   'imprint',
   'insights',
   'login',
+  'news',
+  'podcasts',
   'policies',
   'privacy',
   'result',

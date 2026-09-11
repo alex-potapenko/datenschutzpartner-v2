@@ -1,7 +1,6 @@
 import { AcademyFaqSection } from './AcademyFaqSection';
 import { AcademyMembershipCard } from './AcademyMembershipSection';
 import { AcademyOverviewSection } from './AcademyOverviewSection';
-import { AcademyPreviewSection } from './AcademyPreviewSection';
 
 export function AcademyLanding() {
   return (
@@ -13,7 +12,6 @@ export function AcademyLanding() {
         </div>
       </section>
 
-      <AcademyPreviewSection />
       <AcademyFaqSection />
     </>
   );

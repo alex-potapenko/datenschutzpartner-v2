@@ -6,7 +6,12 @@ import {
   calculateGeneratorPolicyQuote,
   generatorVolumeDiscountExplanation,
 } from '@/api/checkout';
-import { resolvePolicySiteCount, type Order, type Subscription } from '@/api/billing';
+import {
+  resolvePolicySiteCount,
+  subscriptionTermEndDate,
+  type Order,
+  type Subscription,
+} from '@/api/billing';
 import { Info, Tooltip } from '@/components/ui';
 import { formatMoney, useDateFormatter } from './account-ui';
 
@@ -68,6 +73,27 @@ export function buildSubscriptionPricing(
   };
 }
 
+export function inactiveRenewalStatusNote(
+  subscription: Subscription,
+  formatDate: (date: string) => string,
+  labels: {
+    cancelledOn: (params: { date: string }) => string;
+    expiredOn: (params: { date: string }) => string;
+  }
+): string | null {
+  if (subscription.status !== 'cancelled' && subscription.status !== 'expired') {
+    return null;
+  }
+
+  const endDate = subscriptionTermEndDate(subscription);
+  if (!endDate) return null;
+
+  const formatted = formatDate(endDate);
+  return subscription.status === 'expired'
+    ? labels.expiredOn({ date: formatted })
+    : labels.cancelledOn({ date: formatted });
+}
+
 export function SubscriptionPaidPricing({
   pricing,
   label,
@@ -96,17 +122,28 @@ export function SubscriptionRenewalPricing({
   label,
   discountTooltipLabel,
   discountTooltip,
+  inactiveNote,
 }: {
   pricing: SubscriptionPricing;
   label: string;
   discountTooltipLabel: string;
   discountTooltip: (params: { minSites: number; percent: string }) => string;
+  inactiveNote?: string | null;
 }) {
   const formatDate = useDateFormatter();
   const [isDiscountTooltipOpen, setIsDiscountTooltipOpen] = useState(false);
   const listPrice = pricing.renewalListPrice;
   const hasDiscount =
     listPrice != null && listPrice > pricing.renewalAmount && pricing.discountExplanation;
+
+  if (inactiveNote) {
+    return (
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="text-muted text-xs font-medium">{label}</span>
+        <p className="text-foreground text-sm leading-snug font-normal">{inactiveNote}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -198,12 +235,14 @@ export function SubscriptionPricingMetadata({
   renewalLabel,
   discountTooltipLabel,
   discountTooltip,
+  renewalInactiveNote,
 }: {
   pricing: SubscriptionPricing;
   paidLabel: string;
   renewalLabel: string;
   discountTooltipLabel: string;
   discountTooltip: (params: { minSites: number; percent: string }) => string;
+  renewalInactiveNote?: string | null;
 }) {
   return (
     <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
@@ -213,6 +252,7 @@ export function SubscriptionPricingMetadata({
         label={renewalLabel}
         discountTooltipLabel={discountTooltipLabel}
         discountTooltip={discountTooltip}
+        inactiveNote={renewalInactiveNote}
       />
     </div>
   );

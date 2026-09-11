@@ -1,29 +1,43 @@
 'use client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import type { z } from 'zod';
 import { questionnaireFormSchema, getGdprBranchVisibility } from '@/api/generator';
 import { TextInput, RadioGroup } from '../ui/FormSection';
-import { UidCompanyLookup } from '../ui/UidCompanyLookup';
+import { PostalAddressFields } from '../ui/PostalAddressFields';
+import { displayCountryLabel } from '@/lib/swiss-country';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
 import { StepFrame } from '../ui/StepFrame';
+import { WizardBorderedColumn } from '../ui/WizardBorderedColumn';
 import { Container } from '@/components/shared/Container';
+import { ArrowCounterClockwise } from '@/components/ui';
 import { WizardQuestionCategory } from '../ui/WizardQuestionCategory';
 import { WizardQuestionRow } from '../ui/WizardQuestionRow';
+import { DpoOfficerField } from '../ui/DpoOfficerField';
 import {
   type QuestionnaireFormData,
   TRANSFERS_ABROAD_OPTIONS,
   VIDEO_RETENTION_OPTIONS,
 } from '../content/questionnaire-form';
+import { shouldShowEuRepStep } from '../wizard-state';
 export type { QuestionnaireFormData };
 interface QuestionnaireStepProps {
   domain: string;
   onSubmit: (data: QuestionnaireFormData) => void;
   onBack?: () => void;
   backLabel?: string;
+  /** Replaces Back with a control that restores the values the form opened with. */
+  resetLabel?: string;
+  /** Keeps the CTA disabled until the form differs from the values it opened with. */
+  requireChanges?: boolean;
   initialData?: Partial<QuestionnaireFormData>;
+  /** Overrides for reuse outside the wizard — the account edits an existing policy. */
+  title?: string;
+  ctaLabel?: ReactNode;
+  showCtaCaret?: boolean;
+  ctaDisabled?: boolean;
 }
 function Reveal({ show, children }: { show: boolean; children: React.ReactNode }) {
   return (
@@ -42,6 +56,16 @@ function Reveal({ show, children }: { show: boolean; children: React.ReactNode }
       )}
     </AnimatePresence>
   );
+}
+function isSameForm(a: QuestionnaireFormData, b: QuestionnaireFormData) {
+  return (Object.keys(a) as (keyof QuestionnaireFormData)[]).every((key) => {
+    const left = a[key];
+    const right = b[key];
+    if (Array.isArray(left) && Array.isArray(right)) {
+      return [...left].sort().join('|') === [...right].sort().join('|');
+    }
+    return left === right;
+  });
 }
 function fieldId(field?: keyof QuestionnaireFormData) {
   return field ? `questionnaire-field-${field}` : undefined;
@@ -69,26 +93,44 @@ type LegacyQuestionnaireFormData = Partial<QuestionnaireFormData> & {
   dpoFirstName?: string;
   dpoLastName?: string;
   dpoOfficerType?: string;
+  /** Superseded by `dpoDesignationEn` / `dpoDesignationDe`. */
+  dpoDesignation?: string;
 };
-function resolveDpoDesignation(initial?: LegacyQuestionnaireFormData): string {
-  if (initial?.dpoDesignation) return initial.dpoDesignation;
+function resolveLegacyDpoName(initial?: LegacyQuestionnaireFormData): string {
   return [initial?.dpoFirstName, initial?.dpoLastName].filter(Boolean).join(' ').trim();
+}
+function resolveDpoDesignations(initial?: LegacyQuestionnaireFormData): {
+  en: string;
+  de: string;
+} {
+  if (initial?.dpoDesignationEn || initial?.dpoDesignationDe) {
+    return {
+      en: initial.dpoDesignationEn ?? '',
+      de: initial.dpoDesignationDe ?? '',
+    };
+  }
+
+  const legacy = initial?.dpoDesignation?.trim() || resolveLegacyDpoName(initial);
+  return { en: legacy, de: '' };
 }
 function emptyForm(
   domain: string,
   companyName: string,
   initialData?: LegacyQuestionnaireFormData,
-  defaults?: { dpoDesignation: string; country: string }
+  defaults?: { country: string }
 ): QuestionnaireFormData {
   const { domain: initialDomain, ...rawRest } = initialData ?? {};
   const restInitial = { ...rawRest };
   delete restInitial.dpoFirstName;
   delete restInitial.dpoLastName;
   delete restInitial.dpoOfficerType;
+  delete restInitial.dpoDesignation;
+  const dpoDesignations = resolveDpoDesignations(initialData);
   return {
     companyName,
     domain: initialDomain ?? domain,
     email: `info@${domain}`,
+    department: '',
     street: '',
     streetLine2: '',
     postalCode: '',
@@ -96,11 +138,11 @@ function emptyForm(
     country: defaults?.country ?? 'Schweiz',
     hasDpo: '',
     dpoCompanyName: '',
-    dpoDesignation: resolveDpoDesignation(initialData) || defaults?.dpoDesignation || '',
+    dpoDepartment: '',
     dpoStreet: '',
+    dpoStreetLine2: '',
     dpoPostalCode: '',
     dpoCity: '',
-    dpoCountry: '',
     dpoEmail: '',
     gdprApplicable: '',
     offersToEU: '',
@@ -125,6 +167,11 @@ function emptyForm(
     thirdPartyRepEmail: '',
     basedInSwitzerland: 'yes',
     ...restInitial,
+    dpoDesignationEn: restInitial.dpoDesignationEn ?? dpoDesignations.en,
+    dpoDesignationDe: restInitial.dpoDesignationDe ?? dpoDesignations.de,
+    dpoCountry: restInitial.dpoCountry?.trim()
+      ? restInitial.dpoCountry
+      : (defaults?.country ?? 'Schweiz'),
   };
 }
 export function QuestionnaireStep({
@@ -132,23 +179,33 @@ export function QuestionnaireStep({
   onSubmit,
   onBack,
   backLabel,
+  resetLabel,
+  requireChanges = false,
   initialData,
+  title,
+  ctaLabel,
+  showCtaCaret,
+  ctaDisabled,
 }: QuestionnaireStepProps) {
   const t = useTranslations('result.questionnaireStep');
+  const tCommon = useTranslations('common');
   const tEuRepQ = useTranslations('euRepQuestionnaire');
   const optionalBadge = t('optionalBadge');
   const requiredBadge = t('requiredBadge');
   const companyGuess = domain.replace(/^www\./, '').split('.')[0] ?? domain;
   const companyName = companyGuess.charAt(0).toUpperCase() + companyGuess.slice(1);
-  const [form, setForm] = useState<QuestionnaireFormData>(() =>
+  const [baseline] = useState<QuestionnaireFormData>(() =>
     emptyForm(domain, companyName, initialData, {
-      dpoDesignation: t('defaults.dpoDesignation'),
       country: t('defaults.country'),
     })
   );
+  const [form, setForm] = useState<QuestionnaireFormData>(baseline);
   const [requiredFields, setRequiredFields] = useState<Set<keyof QuestionnaireFormData>>(new Set());
   const [validationAttempt, setValidationAttempt] = useState(0);
   const gdprBranch = getGdprBranchVisibility(form);
+  const showEuRepNext = shouldShowEuRepStep(form);
+  const continueCtaLabel = ctaLabel ?? (showEuRepNext ? t('continue') : t('createPolicy'));
+  const showContinueCaret = showCtaCaret ?? showEuRepNext;
 
   function isRequired(...keys: (keyof QuestionnaireFormData)[]) {
     return keys.some((key) => requiredFields.has(key));
@@ -186,8 +243,11 @@ export function QuestionnaireStep({
       }
       if (key === 'hasDpo' && value !== 'yes') {
         next.dpoCompanyName = '';
-        next.dpoDesignation = '';
+        next.dpoDesignationEn = '';
+        next.dpoDesignationDe = '';
+        next.dpoDepartment = '';
         next.dpoStreet = '';
+        next.dpoStreetLine2 = '';
         next.dpoPostalCode = '';
         next.dpoCity = '';
         next.dpoCountry = '';
@@ -195,7 +255,6 @@ export function QuestionnaireStep({
       }
       if (key === 'hasDpo' && value === 'yes') {
         next.dpoCompanyName = prev.dpoCompanyName.trim() || prev.companyName;
-        next.dpoDesignation = prev.dpoDesignation.trim() || t('defaults.dpoDesignation');
         next.dpoCountry = prev.dpoCountry.trim() || t('defaults.country');
       }
       if (key === 'processesSpecialData' && value !== 'yes') {
@@ -216,6 +275,10 @@ export function QuestionnaireStep({
       return next;
     });
   }
+  function handleReset() {
+    setForm(baseline);
+    setRequiredFields(new Set());
+  }
   function handleSubmit() {
     const result = questionnaireFormSchema.safeParse(form);
     if (!result.success) {
@@ -230,60 +293,54 @@ export function QuestionnaireStep({
   return (
     <StepFrame
       scrollWithContent
-      header={<StepHeader title={t('title')} />}
+      header={<StepHeader title={title ?? t('title')} />}
       footer={
         <StepFooter
-          onBack={onBack}
-          backLabel={backLabel}
+          onBack={resetLabel ? handleReset : onBack}
+          backLabel={resetLabel ?? backLabel}
+          backIcon={resetLabel ? <ArrowCounterClockwise size={16} weight="bold" /> : undefined}
           onContinue={handleSubmit}
-          ctaLabel={t('continue')}
+          ctaLabel={continueCtaLabel}
+          showCtaCaret={showContinueCaret}
+          ctaDisabled={ctaDisabled === true || (requireChanges && isSameForm(form, baseline))}
         />
       }
     >
-      <Container>
-        <div className="border-border border-r border-l">
+      <Container className="flex min-h-full flex-1 flex-col">
+        <WizardBorderedColumn
+          layoutKey={`${form.hasDpo}:${form.acceptsApplications}:${form.usesVideoSurveillance}:${form.videoRetention}`}
+        >
           <WizardQuestionCategory label={t('categories.controller')}>
-            <WizardQuestionRow
-              label={t('uidLookup.label')}
-              optional
-              optionalBadgeLabel={optionalBadge}
-            >
-              <UidCompanyLookup
-                onSelect={(company) => {
-                  clearRequired('companyName', 'street', 'postalCode', 'city');
-                  setForm((current) => ({
-                    ...current,
-                    companyName: company.name,
-                    street: company.street,
-                    postalCode: company.postalCode,
-                    city: company.city,
-                    country: company.country,
-                  }));
-                }}
-              />
-            </WizardQuestionRow>
-            <WizardQuestionRow
-              variant="text"
-              id={fieldId('companyName')}
-              label={t('fields.companyName')}
-              value={form.companyName}
-              required={isRequired('companyName')}
-              requiredBadgeLabel={requiredBadge}
-              requiredShakeKey={validationAttempt}
-              placeholder={t('placeholders.companyName')}
-              onChange={(e) => {
-                set('companyName', e.target.value);
-              }}
-            />
             <WizardQuestionRow
               variant="address"
               id={fieldId('street')}
               label={t('fields.address')}
-              required={isRequired('street', 'postalCode', 'city')}
+              required={isRequired('companyName', 'street', 'postalCode', 'city')}
               requiredBadgeLabel={requiredBadge}
               requiredShakeKey={validationAttempt}
               optionalBadgeLabel={optionalBadge}
               idPrefix="questionnaire-field"
+              legalEntity={form.companyName}
+              onLegalEntityChange={(value) => {
+                set('companyName', value);
+              }}
+              legalEntityRequiredLabel={isRequired('companyName') ? requiredBadge : undefined}
+              legalEntityRequiredShakeKey={validationAttempt}
+              onLegalEntityUidSelect={(company) => {
+                clearRequired('companyName', 'street', 'postalCode', 'city');
+                setForm((current) => ({
+                  ...current,
+                  companyName: company.name,
+                  street: company.street,
+                  postalCode: company.postalCode,
+                  city: company.city,
+                  country: company.country,
+                }));
+              }}
+              department={form.department}
+              onDepartmentChange={(value) => {
+                set('department', value);
+              }}
               street={form.street}
               streetLine2={form.streetLine2}
               postalCode={form.postalCode}
@@ -300,6 +357,10 @@ export function QuestionnaireStep({
               onCityChange={(value) => {
                 set('city', value);
               }}
+              line1RequiredLabel={
+                isRequired('street', 'postalCode', 'city') ? requiredBadge : undefined
+              }
+              countryDisplayLabel={displayCountryLabel(form.country, tCommon('countrySwitzerland'))}
             />
             <WizardQuestionRow
               variant="text"
@@ -331,46 +392,51 @@ export function QuestionnaireStep({
               }}
               followUp={
                 <Reveal show={form.hasDpo === 'yes'}>
-                  <div className="flex flex-col gap-4 pt-1">
-                    <WizardQuestionRow
-                      compact
-                      variant="text"
-                      id={fieldId('dpoCompanyName')}
-                      label={t('fields.dpoCompanyName')}
-                      value={form.dpoCompanyName}
-                      required={isRequired('dpoCompanyName')}
-                      requiredBadgeLabel={requiredBadge}
-                      requiredShakeKey={validationAttempt}
-                      onChange={(e) => {
-                        set('dpoCompanyName', e.target.value);
+                  <div className="flex flex-col gap-6 pt-6">
+                    <div className="flex flex-col gap-6">
+                      <WizardQuestionRow
+                        compact
+                        variant="text"
+                        id={fieldId('dpoCompanyName')}
+                        label={t('fields.dpoCompanyName')}
+                        value={form.dpoCompanyName}
+                        required={isRequired('dpoCompanyName')}
+                        requiredBadgeLabel={requiredBadge}
+                        requiredShakeKey={validationAttempt}
+                        onChange={(e) => {
+                          set('dpoCompanyName', e.target.value);
+                        }}
+                      />
+                      <DpoOfficerField
+                        id={fieldId('dpoDesignationEn')}
+                        label={t('fields.dpoOfficerType')}
+                        description={t('fieldInfo.dpoDesignation')}
+                        optionalBadge={optionalBadge}
+                        valueEn={form.dpoDesignationEn}
+                        valueDe={form.dpoDesignationDe}
+                        onValueEnChange={(value) => {
+                          set('dpoDesignationEn', value);
+                        }}
+                        onValueDeChange={(value) => {
+                          set('dpoDesignationDe', value);
+                        }}
+                      />
+                    </div>
+                    <PostalAddressFields
+                      idPrefix="questionnaire-field-dpo"
+                      department={form.dpoDepartment}
+                      onDepartmentChange={(value) => {
+                        set('dpoDepartment', value);
                       }}
-                    />
-                    <WizardQuestionRow
-                      compact
-                      variant="text"
-                      label={t('fields.dpoOfficerType')}
-                      description={t('fieldInfo.dpoDesignation')}
-                      value={form.dpoDesignation}
-                      optional
-                      optionalBadgeLabel={optionalBadge}
-                      onChange={(e) => {
-                        set('dpoDesignation', e.target.value);
-                      }}
-                    />
-                    <WizardQuestionRow
-                      compact
-                      variant="address"
-                      id={fieldId('dpoStreet')}
-                      label={t('fields.address')}
-                      required={isRequired('dpoStreet', 'dpoPostalCode', 'dpoCity')}
-                      requiredBadgeLabel={requiredBadge}
-                      requiredShakeKey={validationAttempt}
-                      showLine2={false}
                       street={form.dpoStreet}
+                      streetLine2={form.dpoStreetLine2}
                       postalCode={form.dpoPostalCode}
                       city={form.dpoCity}
                       onStreetChange={(value) => {
                         set('dpoStreet', value);
+                      }}
+                      onStreetLine2Change={(value) => {
+                        set('dpoStreetLine2', value);
                       }}
                       onPostalCodeChange={(value) => {
                         set('dpoPostalCode', value);
@@ -378,16 +444,18 @@ export function QuestionnaireStep({
                       onCityChange={(value) => {
                         set('dpoCity', value);
                       }}
+                      country={form.dpoCountry}
+                      onCountryChange={(value) => {
+                        set('dpoCountry', value);
+                      }}
+                      optionalBadge={optionalBadge}
+                      line1RequiredLabel={
+                        isRequired('dpoStreet', 'dpoPostalCode', 'dpoCity')
+                          ? requiredBadge
+                          : undefined
+                      }
+                      requiredShakeKey={validationAttempt}
                     />
-                    <WizardQuestionRow
-                      compact
-                      id={fieldId('dpoCountry')}
-                      label={t('fields.dpoCountry')}
-                    >
-                      <p className="text-foreground text-sm leading-relaxed">
-                        {t('defaults.country')}
-                      </p>
-                    </WizardQuestionRow>
                   </div>
                 </Reveal>
               }
@@ -603,7 +671,7 @@ export function QuestionnaireStep({
               </Reveal>
             </Reveal>
           </WizardQuestionCategory>
-        </div>
+        </WizardBorderedColumn>
       </Container>
     </StepFrame>
   );

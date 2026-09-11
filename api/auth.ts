@@ -65,6 +65,8 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 
 export type LoginIdentifyResponse = {
   role: AccountRole;
+  requiresTwoFactor: boolean;
+  twoFactorSetupRequired: boolean;
 };
 
 export type LoginResponse = {

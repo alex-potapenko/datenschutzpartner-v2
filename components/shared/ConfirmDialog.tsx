@@ -25,6 +25,7 @@ export function ConfirmDialog({
   cancelLabel,
   onConfirm,
   isPending,
+  destructive = true,
 }: {
   state: OverlayState;
   title: string;
@@ -33,6 +34,7 @@ export function ConfirmDialog({
   cancelLabel: string;
   onConfirm: () => void;
   isPending?: boolean;
+  destructive?: boolean;
 }) {
   return (
     <ModalRoot state={state}>
@@ -58,7 +60,7 @@ export function ConfirmDialog({
               </Button>
               <Button
                 variant="primary"
-                className="bg-[var(--feature-red)]"
+                className={destructive ? 'bg-[var(--feature-red)]' : undefined}
                 isDisabled={isPending}
                 onPress={onConfirm}
               >

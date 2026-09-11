@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
+  useContinueSubscription,
   useOrders,
   useSubscriptions,
   countActivePolicySites,
@@ -12,18 +13,27 @@ import {
   resolvePolicySiteCount,
   type Subscription,
 } from '@/api/billing';
-import { calculateGeneratorPolicyQuote } from '@/api/checkout';
+import { calculateGeneratorPolicyQuote, usePendingCheckout } from '@/api/checkout';
 import { Buildings, Button, Cookie, FileText, Plus, Spinner } from '@/components/ui';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { useSiteScope } from '@/components/shared/site-scope';
-import { accountLocationHref, addWebsiteWizardHref } from '@/lib/account-routes';
-import { AccountSection, AccountSectionFrame, subscriptionDaysLeft } from '../account-ui';
+import { accountLocationHref, addWebsiteWizardHref, withReturnTo } from '@/lib/account-routes';
+import {
+  AccountSection,
+  AccountSectionFrame,
+  subscriptionDaysLeft,
+  useDateFormatter,
+} from '../account-ui';
+import { ACCOUNT_CHECKOUT_HREF } from '../account-sections';
 import { BillingHistoryTable } from '../BillingHistoryTable';
 import {
   ServiceSubscriptionCard,
   type ServiceSubscriptionCardState,
 } from '../ServiceSubscriptionCard';
-import { buildSubscriptionPricing } from '../SubscriptionPricingMetadata';
+import {
+  buildSubscriptionPricing,
+  inactiveRenewalStatusNote,
+} from '../SubscriptionPricingMetadata';
 
 type ProductCardConfig = {
   id: string;
@@ -37,6 +47,9 @@ type ProductCardConfig = {
   description?: string;
   onAction?: () => void;
   actionLabel?: string;
+  onContinue?: () => void;
+  continueLabel?: string;
+  isContinuing?: boolean;
 };
 
 export function SubscriptionsSection() {
@@ -48,13 +61,17 @@ export function SubscriptionsSection() {
   const tStatus = useTranslations('account.status');
   const tDocuments = useTranslations('account.documents');
   const tNav = useTranslations('account.nav');
+  const tCheckout = useTranslations('account.checkoutBanner');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const formatDate = useDateFormatter();
 
   const { activeSite, isLoading: sitesLoading } = useSiteScope();
   const subscriptions = useSubscriptions();
+  const continueSubscription = useContinueSubscription();
   const orders = useOrders();
+  const pendingCheckout = usePendingCheckout(activeSite?.domain ?? null);
 
   const isLoading = sitesLoading || subscriptions.isLoading || orders.isLoading;
 
@@ -143,6 +160,14 @@ export function SubscriptionsSection() {
             };
           })()
         : null;
+    const renewalInactiveNote =
+      config.subscription &&
+      (config.subscription.status === 'cancelled' || config.subscription.status === 'expired')
+        ? inactiveRenewalStatusNote(config.subscription, formatDate, {
+            cancelledOn: (params) => tMembership('cancelledOn', params),
+            expiredOn: (params) => tMembership('expiredOn', params),
+          })
+        : null;
 
     return {
       icon: config.icon,
@@ -163,12 +188,16 @@ export function SubscriptionsSection() {
       discountTooltipLabel: tMembership('renewalDiscountTooltipLabel'),
       discountTooltip: (params: { minSites: number; percent: string }) =>
         tMembership('renewalDiscountTooltip', params),
+      renewalInactiveNote,
       notSubscribedLabel: t('notSubscribed'),
       comingSoonLabel: tNav('comingSoon'),
       description: config.description,
       muted: config.muted,
       onAction: config.onAction,
       actionLabel: config.actionLabel,
+      onContinue: config.onContinue,
+      continueLabel: config.continueLabel,
+      isContinuing: config.isContinuing,
       equalHeight: true,
     };
   }
@@ -185,6 +214,14 @@ export function SubscriptionsSection() {
   const policyOnTrial = policySubscription
     ? isPolicySubscriptionOnTrial(policySubscription)
     : false;
+  const showPolicyCheckout =
+    policyOnTrial && Boolean(pendingCheckout.data?.needed) && Boolean(activeSite.domain);
+
+  const policyIsInactive =
+    policySubscription?.status === 'cancelled' || policySubscription?.status === 'expired';
+  const policyNeedsContinue =
+    policyIsInactive ||
+    (policySubscription?.status === 'active' && !policySubscription.nextPaymentDate);
 
   const productCards: ProductCardConfig[] = [
     {
@@ -202,6 +239,28 @@ export function SubscriptionsSection() {
           <StatusPill tone="success">{tDashboard('products.privacyPolicy.statusLive')}</StatusPill>
         ) : undefined,
       subscription: policySubscription,
+      onContinue: policyNeedsContinue
+        ? () => {
+            continueSubscription.mutate(policySubscription.id, {
+              onSuccess: () => {
+                toast.success(tMembership('continued'));
+              },
+            });
+          }
+        : undefined,
+      continueLabel: tMembership('continueSubscription'),
+      isContinuing: continueSubscription.isPending,
+      onAction: showPolicyCheckout
+        ? () => {
+            router.push(
+              withReturnTo(
+                `${ACCOUNT_CHECKOUT_HREF}?site=${encodeURIComponent(activeSite.domain)}`,
+                accountLocationHref(pathname, searchParams)
+              )
+            );
+          }
+        : undefined,
+      actionLabel: showPolicyCheckout ? tCheckout('cta') : undefined,
     },
     {
       id: 'cookieBanner',

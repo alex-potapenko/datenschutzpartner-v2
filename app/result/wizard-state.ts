@@ -30,6 +30,7 @@ export type EuRepState = {
   /** Forwarding email for a new contract purchased in the wizard. */
   forwardingEmail?: string;
   /** Swiss postal address for a new contract purchased in the wizard. */
+  postalDepartment?: string;
   postalLine1?: string;
   postalLine2?: string;
   postalCode?: string;
@@ -188,16 +189,12 @@ export function skippedEuRepState(): EuRepState {
 
 /**
  * Whether the dedicated EU representation wizard step is shown.
- * Requires GDPR to apply (yes or unknown) and data exports outside Switzerland.
+ * Requires GDPR to apply (yes or unknown).
  */
 export function shouldShowEuRepStep(formData?: QuestionnaireFormData): boolean {
   if (!formData) return false;
 
-  const gdprApplies = formData.gdprApplicable === 'yes' || formData.gdprApplicable === 'dontknow';
-  const exportsDataAbroad =
-    formData.transfersAbroad === 'eea' || formData.transfersAbroad === 'worldwide';
-
-  return gdprApplies && exportsDataAbroad;
+  return formData.gdprApplicable === 'yes' || formData.gdprApplicable === 'dontknow';
 }
 
 export function showThirdPartyRepFields(
@@ -390,6 +387,10 @@ function migrateEuRep(raw: unknown): EuRepState {
     forwardingEmail:
       typeof value.forwardingEmail === 'string' && value.forwardingEmail.length > 0
         ? value.forwardingEmail
+        : undefined,
+    postalDepartment:
+      typeof value.postalDepartment === 'string' && value.postalDepartment.length > 0
+        ? value.postalDepartment
         : undefined,
     postalLine1:
       typeof value.postalLine1 === 'string' && value.postalLine1.length > 0

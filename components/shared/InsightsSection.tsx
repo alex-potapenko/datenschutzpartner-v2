@@ -6,7 +6,7 @@ import { HOMEPAGE_INSIGHTS_LIMIT } from '@/lib/insights-content';
 
 export function InsightsSection() {
   return (
-    <section className="border-border bg-background border-b">
+    <div className="border-border bg-background border-b">
       <Container>
         <div className="border-border relative border-r border-l">
           <InsightsPanel
@@ -16,6 +16,6 @@ export function InsightsSection() {
           />
         </div>
       </Container>
-    </section>
+    </div>
   );
 }

@@ -10,14 +10,17 @@ import { z } from 'zod';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { FieldErrors } from 'react-hook-form';
 import { ApiError } from '@/api/client';
-import { useIdentifyLogin, useLogin, type AccountRole } from '@/api/auth';
+import { useIdentifyLogin, useLogin } from '@/api/auth';
 import { env } from '@/env';
 import { storeLoginCredential } from '@/lib/store-login-credential';
 import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-import { Button, Eye, EyeSlash, Input, InputGroup, Label } from '@/components/ui';
+import { TotpInput } from '@/components/shared/TotpInput';
+import { Button, Eye, EyeSlash, Input, InputGroup, Label, Spinner } from '@/components/ui';
 
-type LoginStep = 'email' | 'password';
+const TOTP_INPUT_ID = 'login-totp';
+
+type LoginStep = 'email' | 'password' | 'totp';
 
 type EmailStepValues = {
   email: string;
@@ -25,7 +28,6 @@ type EmailStepValues = {
 
 type PasswordStepValues = {
   password: string;
-  twoFactorCode?: string;
 };
 
 const PROTOTYPE_EMAIL_DEFAULT =
@@ -47,7 +49,10 @@ export function LoginForm() {
 
   const [step, setStep] = useState<LoginStep>('email');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<AccountRole>('member');
+  const [password, setPassword] = useState('');
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [twoFactorSetupRequired, setTwoFactorSetupRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authFailed, setAuthFailed] = useState(false);
 
@@ -67,20 +72,13 @@ export function LoginForm() {
     [tv]
   );
 
-  const requiresTwoFactor = role === 'admin';
-
-  const passwordSchema = useMemo(() => {
-    const base = z.object({
-      password: z.string().min(1, tv('required')),
-      twoFactorCode: z.string().optional(),
-    });
-
-    if (!requiresTwoFactor) return base;
-
-    return base.extend({
-      twoFactorCode: z.string().min(1, tv('required')),
-    });
-  }, [tv, requiresTwoFactor]);
+  const passwordSchema = useMemo(
+    () =>
+      z.object({
+        password: z.string().min(1, tv('required')),
+      }),
+    [tv]
+  );
 
   const emailForm = useForm<EmailStepValues>({
     resolver: zodResolver(emailSchema),
@@ -98,10 +96,11 @@ export function LoginForm() {
   const returnTo = searchParams.get('returnTo') ?? '/account';
 
   useEffect(() => {
-    if (step !== 'password') return;
-
     const frame = requestAnimationFrame(() => {
-      document.getElementById('password')?.focus();
+      if (step === 'password') {
+        document.getElementById('password')?.focus();
+        return;
+      }
     });
 
     return () => {
@@ -109,11 +108,57 @@ export function LoginForm() {
     };
   }, [step]);
 
+  useEffect(() => {
+    if (step !== 'totp') return;
+
+    const delay = reduceMotion ? 0 : 300;
+    const timer = window.setTimeout(() => {
+      document.getElementById(TOTP_INPUT_ID)?.focus();
+    }, delay);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [reduceMotion, step]);
+
   const emailInvalid = Boolean(emailForm.formState.errors.email);
-  const passwordInvalid =
-    Boolean(passwordForm.formState.errors.password) ||
-    Boolean(passwordForm.formState.errors.twoFactorCode) ||
-    authFailed;
+  const passwordInvalid = Boolean(passwordForm.formState.errors.password) || authFailed;
+  const totpInvalid = authFailed;
+
+  const stepTitle =
+    step === 'totp'
+      ? twoFactorSetupRequired
+        ? t('twoFactorSetupTitle')
+        : t('twoFactorVerifyTitle')
+      : t('title');
+
+  async function completeLogin(twoFactorCode: string) {
+    setAuthFailed(false);
+
+    try {
+      await login.mutateAsync({
+        email,
+        password,
+        twoFactorCode,
+      });
+      await storeLoginCredential(email, password);
+      toast.success(t('success'));
+      startTransition(() => {
+        router.push(returnTo);
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setAuthFailed(true);
+        showDangerToast(
+          step === 'totp' || requiresTwoFactor
+            ? t('errors.invalidCredentialsOr2fa')
+            : t('errors.invalidCredentials')
+        );
+        return;
+      }
+      showDangerToast(t('errors.generic'));
+    }
+  }
 
   async function onEmailSubmit(values: EmailStepValues) {
     setAuthFailed(false);
@@ -123,42 +168,40 @@ export function LoginForm() {
 
     try {
       const result = await identify.mutateAsync({ email: normalizedEmail });
-      setRole(result.role);
-      passwordForm.reset({ password: '', twoFactorCode: '' });
+      setRequiresTwoFactor(result.requiresTwoFactor);
+      setTwoFactorSetupRequired(result.twoFactorSetupRequired);
+      passwordForm.reset({ password: '' });
+      setTotpCode('');
       setStep('password');
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
-        showDangerToast(t('errors.unknownEmail'));
+        toast.success(t('identifyNotice'));
         return;
       }
       showDangerToast(t('errors.generic'));
     }
   }
 
-  async function onPasswordSubmit(values: PasswordStepValues) {
+  function onPasswordSubmit(values: PasswordStepValues) {
     setAuthFailed(false);
+    setPassword(values.password);
 
-    try {
-      await login.mutateAsync({
-        email,
-        password: values.password,
-        twoFactorCode: values.twoFactorCode,
-      });
-      await storeLoginCredential(email, values.password);
-      toast.success(t('success'));
-      startTransition(() => {
-        router.push(returnTo);
-      });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        setAuthFailed(true);
-        showDangerToast(
-          requiresTwoFactor ? t('errors.invalidCredentialsOr2fa') : t('errors.invalidCredentials')
-        );
-        return;
-      }
-      showDangerToast(t('errors.generic'));
+    if (requiresTwoFactor || twoFactorSetupRequired) {
+      setTotpCode('');
+      setStep('totp');
+      return;
     }
+
+    void completeLogin('');
+  }
+
+  function onTotpSubmit() {
+    if (totpCode.length !== 6) {
+      showDangerToast(tv('required'));
+      return;
+    }
+
+    void completeLogin(totpCode);
   }
 
   function onSubmit(event: SyntheticEvent<HTMLFormElement>) {
@@ -172,17 +215,33 @@ export function LoginForm() {
       return;
     }
 
-    void passwordForm.handleSubmit(onPasswordSubmit, (fieldErrors) => {
-      const message = firstValidationMessage(fieldErrors);
-      if (message) showDangerToast(message);
-    })();
+    if (step === 'password') {
+      void passwordForm.handleSubmit(onPasswordSubmit, (fieldErrors) => {
+        const message = firstValidationMessage(fieldErrors);
+        if (message) showDangerToast(message);
+      })();
+      return;
+    }
+
+    onTotpSubmit();
   }
+
+  const postEmailStep = step === 'password' || step === 'totp';
 
   return (
     <>
-      <h1 className="text-foreground mb-6 text-center text-2xl font-bold sm:text-3xl">
-        {t('title')}
-      </h1>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.h1
+          key={stepTitle}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+          transition={motionTransition}
+          className="text-foreground mb-6 text-center text-2xl font-bold sm:text-3xl"
+        >
+          {stepTitle}
+        </motion.h1>
+      </AnimatePresence>
 
       <form
         onSubmit={onSubmit}
@@ -194,13 +253,8 @@ export function LoginForm() {
       >
         <div className="flex flex-col gap-5">
           <motion.div
-            layout={!reduceMotion}
             initial={false}
-            animate={
-              step === 'password'
-                ? { opacity: reduceMotion ? 1 : 0.72, y: reduceMotion ? 0 : -2 }
-                : { opacity: 1, y: 0 }
-            }
+            animate={postEmailStep ? { opacity: reduceMotion ? 1 : 0.72 } : { opacity: 1 }}
             transition={motionTransition}
             className="flex flex-col gap-1.5"
           >
@@ -216,92 +270,101 @@ export function LoginForm() {
               spellCheck={false}
               placeholder={t('emailPlaceholder')}
               aria-invalid={emailInvalid}
-              readOnly={step === 'password'}
+              readOnly={step !== 'email'}
               fullWidth
-              className={step === 'password' ? 'cursor-default whitespace-nowrap' : undefined}
+              className={step !== 'email' ? 'cursor-default whitespace-nowrap' : undefined}
               {...emailForm.register('email')}
             />
           </motion.div>
 
-          <AnimatePresence initial={false}>
-            {step === 'password' ? (
-              <motion.div
-                key="password-fields"
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: 12 }}
-                transition={motionTransition}
-                className="flex flex-col gap-5"
-              >
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="password" isInvalid={passwordInvalid}>
-                    {t('password')}
-                  </Label>
-                  <InputGroup
-                    variant="secondary"
-                    fullWidth
-                    data-invalid={passwordInvalid || undefined}
-                  >
-                    <InputGroup.Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      spellCheck={false}
-                      placeholder={t('passwordPlaceholder')}
-                      aria-invalid={passwordInvalid}
-                      className="pr-2"
-                      {...passwordForm.register('password', {
-                        onChange: () => {
-                          if (authFailed) setAuthFailed(false);
-                        },
-                      })}
-                    />
-                    <InputGroup.Suffix className="pe-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPassword((visible) => !visible);
-                        }}
-                        aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-                        aria-pressed={showPassword}
-                        className="text-muted hover:text-foreground rounded-md p-1 transition-colors"
-                      >
-                        {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
-                      </button>
-                    </InputGroup.Suffix>
-                  </InputGroup>
-                </div>
-
-                {requiresTwoFactor ? (
+          <div className={postEmailStep ? 'min-h-[8.75rem]' : undefined}>
+            <AnimatePresence mode="wait" initial={false}>
+              {step === 'password' ? (
+                <motion.div
+                  key="password-fields"
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reduceMotion ? undefined : { opacity: 0 }}
+                  transition={motionTransition}
+                  className="flex flex-col gap-5"
+                >
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="twoFactorCode" isInvalid={passwordInvalid}>
-                      {t('twoFactorCode')}
+                    <Label htmlFor="password" isInvalid={passwordInvalid}>
+                      {t('password')}
                     </Label>
-                    <Input
-                      id="twoFactorCode"
+                    <InputGroup
                       variant="secondary"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder={t('twoFactorPlaceholder')}
-                      aria-invalid={passwordInvalid}
                       fullWidth
-                      {...passwordForm.register('twoFactorCode', {
-                        onChange: () => {
-                          if (authFailed) setAuthFailed(false);
-                        },
-                      })}
-                    />
+                      data-invalid={passwordInvalid || undefined}
+                    >
+                      <InputGroup.Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        spellCheck={false}
+                        placeholder={t('passwordPlaceholder')}
+                        aria-invalid={passwordInvalid}
+                        className="pr-2"
+                        {...passwordForm.register('password', {
+                          onChange: () => {
+                            if (authFailed) setAuthFailed(false);
+                          },
+                        })}
+                      />
+                      <InputGroup.Suffix className="pe-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPassword((visible) => !visible);
+                          }}
+                          aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                          aria-pressed={showPassword}
+                          className="text-muted hover:text-foreground rounded-md p-1 transition-colors"
+                        >
+                          {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+                        </button>
+                      </InputGroup.Suffix>
+                    </InputGroup>
                   </div>
-                ) : null}
 
-                <div className="flex justify-end">
-                  <NavigationLink href="/login/forgot-password">
-                    {t('forgotPassword')}
-                  </NavigationLink>
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+                  <div className="flex justify-end">
+                    <NavigationLink href="/login/forgot-password">
+                      {t('forgotPassword')}
+                    </NavigationLink>
+                  </div>
+                </motion.div>
+              ) : null}
+
+              {step === 'totp' ? (
+                <motion.div
+                  key="totp-fields"
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reduceMotion ? undefined : { opacity: 0 }}
+                  transition={motionTransition}
+                  className="flex flex-col gap-1.5"
+                >
+                  <Label htmlFor={TOTP_INPUT_ID} isInvalid={totpInvalid}>
+                    {twoFactorSetupRequired ? t('twoFactorSetupBody') : t('twoFactorVerifyBody')}
+                  </Label>
+                  <TotpInput
+                    id={TOTP_INPUT_ID}
+                    // UX: move focus to OTP after password step
+                    // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional 2FA step focus
+                    autoFocus
+                    aria-label={t('twoFactorCode')}
+                    value={totpCode}
+                    isInvalid={totpInvalid}
+                    isDisabled={login.isPending}
+                    onChange={(value) => {
+                      setTotpCode(value);
+                      if (authFailed) setAuthFailed(false);
+                    }}
+                  />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
         </div>
 
         <Button
@@ -309,14 +372,30 @@ export function LoginForm() {
           variant="primary"
           size="lg"
           fullWidth
-          isPending={step === 'email' ? identify.isPending : login.isPending}
+          isPending={
+            step === 'email' ? identify.isPending : step === 'password' ? false : login.isPending
+          }
           isDisabled={
             step === 'email'
               ? emailForm.formState.isSubmitting || identify.isPending
-              : passwordForm.formState.isSubmitting || login.isPending
+              : step === 'password'
+                ? passwordForm.formState.isSubmitting
+                : login.isPending || totpCode.length !== 6
           }
         >
-          {step === 'email' ? t('continue') : t('submit')}
+          {step === 'email' ? (
+            t('continue')
+          ) : step === 'password' ? (
+            requiresTwoFactor || twoFactorSetupRequired ? (
+              t('continue')
+            ) : (
+              t('submit')
+            )
+          ) : login.isPending ? (
+            <Spinner size="sm" aria-hidden />
+          ) : (
+            t('submit')
+          )}
         </Button>
       </form>
     </>

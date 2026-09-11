@@ -3,10 +3,10 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowsClockwise, FlagBanner, LinkSimple, Stack } from '@/components/ui';
+import { ArrowsClockwise, FlagBanner, LinkSimple, Stack, Timer } from '@/components/ui';
 import { VolumeDiscountInfoTooltip } from '@/components/shared/VolumeDiscountDialog';
 
-const BASE_BENEFIT_KEYS = ['hosted', 'updates', 'moreSites'] as const;
+const BASE_BENEFIT_KEYS = ['hosted', 'trial', 'updates', 'moreSites'] as const;
 const EU_REP_BENEFIT_KEY = 'euRep' as const;
 
 type BaseBenefitKey = (typeof BASE_BENEFIT_KEYS)[number];
@@ -15,18 +15,23 @@ type BenefitKey = BaseBenefitKey | typeof EU_REP_BENEFIT_KEY;
 const BENEFIT_ICONS: Record<BenefitKey, ReactNode> = {
   hosted: <LinkSimple size={24} weight="regular" aria-hidden />,
   euRep: <FlagBanner size={24} weight="regular" aria-hidden />,
+  trial: <Timer size={24} weight="regular" aria-hidden />,
   updates: <ArrowsClockwise size={24} weight="regular" aria-hidden />,
   moreSites: <Stack size={24} weight="regular" aria-hidden />,
 };
 
 const BENEFIT_ICON_STYLES: Record<BenefitKey, { color: string; background: string }> = {
   hosted: {
-    color: 'var(--warning)',
-    background: 'color-mix(in srgb, var(--warning) 12%, transparent)',
+    color: 'var(--feature-fuchsia)',
+    background: 'color-mix(in oklab, var(--feature-fuchsia) 12%, transparent)',
   },
   euRep: {
     color: 'var(--feature-indigo)',
     background: 'color-mix(in srgb, var(--feature-indigo) 12%, transparent)',
+  },
+  trial: {
+    color: 'var(--warning)',
+    background: 'color-mix(in srgb, var(--warning) 12%, transparent)',
   },
   updates: {
     color: 'var(--feature-teal)',
@@ -40,7 +45,7 @@ const BENEFIT_ICON_STYLES: Record<BenefitKey, { color: string; background: strin
 
 function benefitKeys(includeEuRep: boolean): BenefitKey[] {
   if (!includeEuRep) return [...BASE_BENEFIT_KEYS];
-  return ['hosted', EU_REP_BENEFIT_KEY, 'updates', 'moreSites'];
+  return ['hosted', EU_REP_BENEFIT_KEY, 'trial', 'updates', 'moreSites'];
 }
 
 function BenefitIcon({ benefitKey }: { benefitKey: BenefitKey }) {
@@ -64,6 +69,8 @@ function BenefitTitle({ benefitKey }: { benefitKey: BenefitKey }) {
       return t('items.hosted.title');
     case 'euRep':
       return t('items.euRep.title');
+    case 'trial':
+      return t('items.trial.title');
     case 'updates':
       return t('items.updates.title');
     case 'moreSites':
@@ -79,6 +86,8 @@ function BenefitDescription({ benefitKey, domain }: { benefitKey: BenefitKey; do
       return <>{t('items.hosted.description', { domain })}</>;
     case 'euRep':
       return <>{t('items.euRep.description')}</>;
+    case 'trial':
+      return <>{t('items.trial.description')}</>;
     case 'updates':
       return <>{t('items.updates.description')}</>;
     case 'moreSites':

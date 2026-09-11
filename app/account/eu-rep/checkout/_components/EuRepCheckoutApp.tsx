@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -10,12 +11,13 @@ import { useRegister, useSession } from '@/api/auth';
 import {
   calculateEuRepQuote,
   EU_REP_PLANS,
+  formatDiscountPercent,
   useCompleteCheckoutSession,
   useCreateCheckoutSession,
   type EuRepPlanId,
 } from '@/api/checkout';
 import { EU_REP_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
-import { safeAccountReturnTo, safeEuRepCheckoutReturnTo } from '@/lib/account-routes';
+import { safeEuRepCheckoutReturnTo } from '@/lib/account-routes';
 import type { EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
 import {
   EuRepContractFields,
@@ -23,21 +25,57 @@ import {
 } from '@/components/shared/EuRepContractFields';
 import { Container } from '@/components/shared/Container';
 import {
+  ServiceCheckoutScrollLayout,
   ServiceCheckoutShell,
   ServiceCheckoutStepHeader,
+  ServiceWizardAccentHeader,
 } from '@/components/shared/ServiceCheckoutFrame';
 import { ServiceCheckoutLayout } from '@/components/shared/ServiceCheckoutLayout';
 import { ServiceWizardFaqPanel } from '@/components/shared/ServiceWizardFaqPanel';
-import { ServiceCheckoutPlanCard } from '@/components/shared/ServiceCheckoutPlanCard';
+import {
+  ServiceCheckoutPlanCard,
+  formatCheckoutChf,
+} from '@/components/shared/ServiceCheckoutPlanCard';
+import { PromoCodeField } from '@/components/shared/PromoCodeField';
 import { StepFrame } from '@/app/result/ui/StepFrame';
-import { Button, CaretRight, Spinner } from '@/components/ui';
+import { StepFooter } from '@/app/result/ui/StepFooter';
+import { WizardBorderedColumn } from '@/app/result/ui/WizardBorderedColumn';
+import { EuRepCheckoutStepBar, type EuRepCheckoutStepId } from './EuRepCheckoutStepBar';
+import { EuRepCheckoutWelcomeBenefits } from './EuRepCheckoutWelcomeBenefits';
+import {
+  Button,
+  CaretRight,
+  ModalRoot,
+  ModalBackdrop,
+  ModalContainer,
+  ModalDialog,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalHeading,
+  Spinner,
+  useOverlayState,
+} from '@/components/ui';
 import { PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
-import { EuRepCheckoutActivation } from './EuRepCheckoutActivation';
+import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
+import { ConfirmingPaymentScreen } from '@/components/shared/ConfirmingPaymentScreen';
+import { ConfirmingStatusScreen } from '@/components/shared/ConfirmingStatusScreen';
+import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import {
   EuRepCheckoutGuestFields,
+  EuRepCheckoutGuestCheckboxes,
   type EuRepGuestAccountDraft,
   type EuRepGuestAccountErrors,
 } from './EuRepCheckoutGuestFields';
+import { EuRepCheckoutActivation } from './EuRepCheckoutActivation';
+import {
+  applyPromoDiscount,
+  calculatePromoDiscountAmount,
+  normalizePromoCode,
+  resolvePromoCode,
+  type PromoCodeDiscount,
+} from '@/lib/promo-codes';
 
 const INCLUDED_KEYS = [
   'establishment',
@@ -61,7 +99,9 @@ type EntityDraft = {
 type EntityErrors = {
   legalEntity?: string;
   forwardingEmail?: string;
+  postalDepartment?: string;
   postalLine1?: string;
+  postalLine2?: string;
   postalCode?: string;
   city?: string;
   country?: string;
@@ -71,6 +111,7 @@ function emptyEntity(): EntityDraft {
   return {
     legalEntity: '',
     forwardingEmail: '',
+    postalDepartment: '',
     postalLine1: '',
     postalLine2: '',
     postalCode: '',
@@ -115,6 +156,12 @@ function hasEntityProgress(entity: EntityDraft): boolean {
   );
 }
 
+function resolveGuestForwardingEmail(entity: EntityDraft, guestEmail: string): EntityDraft {
+  const trimmedGuestEmail = guestEmail.trim();
+  if (!trimmedGuestEmail || entity.forwardingEmail.trim()) return entity;
+  return { ...entity, forwardingEmail: trimmedGuestEmail };
+}
+
 function validateEntity(
   entity: EntityDraft,
   tValidation: ReturnType<typeof useTranslations>
@@ -122,6 +169,7 @@ function validateEntity(
   const result = euRepEntityFieldsSchema.safeParse({
     legalEntity: entity.legalEntity,
     forwardingEmail: entity.forwardingEmail,
+    postalDepartment: entity.postalDepartment ?? '',
     postalLine1: entity.postalLine1,
     postalLine2: entity.postalLine2 ?? '',
     postalCode: entity.postalCode,
@@ -185,6 +233,44 @@ function validateGuestAccount(
   return { ok: false, errors };
 }
 
+function collectCheckoutValidationIssues({
+  entity,
+  guestAccount,
+  includeGuestFields,
+  tValidation,
+}: {
+  entity: EntityDraft;
+  guestAccount: EuRepGuestAccountDraft;
+  includeGuestFields: boolean;
+  tValidation: ReturnType<typeof useTranslations>;
+}): {
+  ok: boolean;
+  entityErrors: EntityErrors;
+  guestErrors: EuRepGuestAccountErrors;
+} {
+  const entityResult = validateEntity(entity, tValidation);
+  const guestResult = includeGuestFields
+    ? validateGuestAccount(guestAccount, tValidation)
+    : { ok: true, errors: {} as EuRepGuestAccountErrors };
+
+  return {
+    ok: entityResult.ok && guestResult.ok,
+    entityErrors: entityResult.errors,
+    guestErrors: guestResult.errors,
+  };
+}
+
+function hasCheckoutErrorsBesidesTermsAcceptance(
+  entityErrors: EntityErrors,
+  guestErrors: EuRepGuestAccountErrors
+): boolean {
+  if (Object.values(entityErrors).some(Boolean)) return true;
+
+  return Object.entries(guestErrors).some(
+    ([key, message]) => Boolean(message) && key !== 'acceptTerms'
+  );
+}
+
 export function EuRepCheckoutApp() {
   const t = useTranslations('account.euRepCheckout');
   const tValidation = useTranslations('validation');
@@ -194,12 +280,16 @@ export function EuRepCheckoutApp() {
   const tp = useTranslations('euRepPage.pricingSection');
   const tPage = useTranslations('euRepPage');
   const tGuest = useTranslations('account.euRepCheckout.guest');
+  const tSummary = useTranslations('result.summary');
+  const tCommon = useTranslations('common');
+  const tQuestionnaire = useTranslations('result.questionnaireStep');
   const router = useRouter();
   const searchParams = useSearchParams();
   const session = useSession();
   const registerAccount = useRegister();
   const isAuthenticated = Boolean(session.data?.email);
   const isChecking = session.isLoading || session.isFetching;
+  const reduceMotion = useReducedMotion();
   const createSession = useCreateCheckoutSession();
   const completeSession = useCompleteCheckoutSession();
 
@@ -210,17 +300,74 @@ export function EuRepCheckoutApp() {
   const initialPlan: EuRepPlanId = isEuRepPlanId(planParam) ? planParam : 'basis';
   const [selectedPlanId, setSelectedPlanId] = useState<EuRepPlanId>(initialPlan);
   const [entity, setEntity] = useState<EntityDraft>(() => readStoredEntity() ?? emptyEntity());
+  const forwardingEmailTouchedRef = useRef(Boolean(readStoredEntity()?.forwardingEmail.trim()));
   const [errors, setErrors] = useState<EntityErrors>({});
   const [guestAccount, setGuestAccount] = useState<EuRepGuestAccountDraft>(emptyGuestAccount);
   const [guestErrors, setGuestErrors] = useState<EuRepGuestAccountErrors>({});
   const [guestSubmitCount, setGuestSubmitCount] = useState(0);
-  const [activationEmail, setActivationEmail] = useState<string | null>(null);
-
+  const [entitySubmitCount, setEntitySubmitCount] = useState(0);
+  const [loggedOrderConfirmation, setLoggedOrderConfirmation] = useState<{
+    contractId: string;
+  } | null>(null);
+  const [guestOrderConfirmation, setGuestOrderConfirmation] = useState<{ email: string } | null>(
+    null
+  );
+  const { phase: paymentPhase, run: runPaymentConfirmation } = useConfirmingPaymentFlow();
+  const { phase: accountPhase, run: runCreateAccountFlow } = useConfirmingPaymentFlow();
+  const validationModal = useOverlayState();
+  const checkoutConfirm = useOverlayState();
+  const pendingCheckoutActionRef = useRef<(() => Promise<void>) | null>(null);
+  const [promoDraft, setPromoDraft] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [guestCheckoutStep, setGuestCheckoutStep] = useState<EuRepCheckoutStepId>('entity');
   const quote = useMemo(() => calculateEuRepQuote(selectedPlanId), [selectedPlanId]);
+  const appliedPromo = useMemo((): { code: string; discount: PromoCodeDiscount } | null => {
+    if (!appliedPromoCode) return null;
+    const discount = resolvePromoCode(appliedPromoCode);
+    if (!discount) return null;
+    return { code: appliedPromoCode, discount };
+  }, [appliedPromoCode]);
+  const promoDiscountAmount = useMemo(() => {
+    if (!appliedPromo) return 0;
+    return calculatePromoDiscountAmount(quote.amountDue, appliedPromo.discount);
+  }, [appliedPromo, quote.amountDue]);
+  const checkoutSubtotal = useMemo(() => {
+    if (!appliedPromo) return quote.amountDue;
+    return applyPromoDiscount(quote.amountDue, appliedPromo.discount);
+  }, [appliedPromo, quote.amountDue]);
+  const promoBreakdownLines = useMemo(() => {
+    if (!appliedPromo || promoDiscountAmount <= 0) return undefined;
+
+    const selectedPlanLabel = tPage(`plans.${selectedPlanId}.name`);
+    const discountLabel =
+      appliedPromo.discount.kind === 'percent'
+        ? t('promoCode.discountPercent', {
+            code: appliedPromo.code,
+            percent: formatDiscountPercent(appliedPromo.discount.rate),
+          })
+        : t('promoCode.discountFixed', { code: appliedPromo.code });
+
+    return [
+      {
+        label: t('activation.plan', { plan: selectedPlanLabel }),
+        amount: formatCheckoutChf(quote.amountDue),
+      },
+      {
+        label: discountLabel,
+        amount: `− ${formatCheckoutChf(promoDiscountAmount)}`,
+        amountClassName: 'text-success',
+      },
+    ];
+  }, [appliedPromo, promoDiscountAmount, quote.amountDue, selectedPlanId, t, tPage]);
   const selectedPlanLabel = tPage(`plans.${selectedPlanId}.name`);
   const confirmQuit = hasEntityProgress(entity) || selectedPlanId !== initialPlan;
   const isProcessing =
-    createSession.isPending || completeSession.isPending || registerAccount.isPending;
+    paymentPhase !== 'idle' ||
+    accountPhase !== 'idle' ||
+    createSession.isPending ||
+    completeSession.isPending ||
+    registerAccount.isPending;
 
   const checkoutPlans: EuRepPlan[] = useMemo(
     () =>
@@ -245,50 +392,105 @@ export function EuRepCheckoutApp() {
     writeStoredEntity(entity);
   }, [entity]);
 
-  function goToAccount() {
-    clearStoredEntity();
-    router.push(backFallbackHref);
-  }
-
   function handleShellQuit() {
     clearStoredEntity();
   }
 
-  async function handlePay() {
-    const entityResult = validateEntity(entity, tValidation);
-    setErrors(entityResult.errors);
-    if (!entityResult.ok) return;
+  function clearGuestError(key: keyof EuRepGuestAccountDraft) {
+    setGuestErrors((current) => {
+      if (!current[key]) return current;
+      return Object.fromEntries(Object.entries(current).filter(([entryKey]) => entryKey !== key));
+    });
+  }
+
+  function clearEntityError(key: keyof EntityErrors) {
+    setErrors((current) => {
+      if (!current[key]) return current;
+      return Object.fromEntries(Object.entries(current).filter(([entryKey]) => entryKey !== key));
+    });
+  }
+
+  function clearAddressErrors() {
+    setErrors((current) => {
+      if (!current.postalLine1 && !current.postalCode && !current.city) return current;
+      const next = { ...current };
+      delete next.postalLine1;
+      delete next.postalCode;
+      delete next.city;
+      return next;
+    });
+  }
+
+  function handleApplyPromo() {
+    const discount = resolvePromoCode(promoDraft);
+    if (!discount) {
+      setAppliedPromoCode(null);
+      setPromoError(t('promoCode.invalid'));
+      return;
+    }
+
+    setAppliedPromoCode(normalizePromoCode(promoDraft));
+    setPromoError(null);
+  }
+
+  function handleRemovePromo() {
+    setAppliedPromoCode(null);
+    setPromoDraft('');
+    setPromoError(null);
+  }
+
+  function handleContinueFromEntity() {
+    const validation = validateEntity(entity, tValidation);
+    setErrors(validation.errors);
+    if (!validation.ok) {
+      setEntitySubmitCount((count) => count + 1);
+      if (Object.values(validation.errors).some(Boolean)) {
+        validationModal.open();
+      }
+      return;
+    }
+
+    setGuestCheckoutStep('account');
+  }
+
+  function handleBackToEntity() {
+    setGuestCheckoutStep('entity');
+  }
+
+  async function executeCheckout() {
+    const entityForCheckout = !isAuthenticated
+      ? resolveGuestForwardingEmail(entity, guestAccount.email)
+      : entity;
 
     const euRepEntities = [
       {
-        legalEntity: entity.legalEntity.trim(),
-        forwardingEmail: entity.forwardingEmail.trim(),
-        postalLine1: entity.postalLine1.trim(),
-        postalLine2: entity.postalLine2?.trim() ?? '',
-        postalCode: entity.postalCode.trim(),
-        city: entity.city.trim(),
-        country: entity.country.trim() || 'Schweiz',
+        legalEntity: entityForCheckout.legalEntity.trim(),
+        forwardingEmail: entityForCheckout.forwardingEmail.trim(),
+        postalDepartment: entityForCheckout.postalDepartment?.trim() ?? '',
+        postalLine1: entityForCheckout.postalLine1.trim(),
+        postalLine2: entityForCheckout.postalLine2?.trim() ?? '',
+        postalCode: entityForCheckout.postalCode.trim(),
+        city: entityForCheckout.city.trim(),
+        country: entityForCheckout.country.trim() || 'Schweiz',
       },
     ];
 
     if (!isAuthenticated) {
-      const accountResult = validateGuestAccount(guestAccount, tValidation);
-      setGuestErrors(accountResult.errors);
-      setGuestSubmitCount((count) => count + 1);
-      if (!accountResult.ok) return;
-
       try {
-        const result = await registerAccount.mutateAsync({
-          email: guestAccount.email.trim(),
-          firstName: guestAccount.firstName.trim(),
-          lastName: guestAccount.lastName.trim(),
-          acceptTerms: guestAccount.acceptTerms,
-          newsletter: guestAccount.newsletter,
-          euRepPlanId: selectedPlanId,
-          euRepEntityCount: 1,
-          euRepEntities,
+        await runCreateAccountFlow(async () => {
+          const result = await registerAccount.mutateAsync({
+            email: guestAccount.email.trim(),
+            firstName: guestAccount.firstName.trim(),
+            lastName: guestAccount.lastName.trim(),
+            acceptTerms: guestAccount.acceptTerms,
+            newsletter: guestAccount.newsletter,
+            euRepPlanId: selectedPlanId,
+            euRepEntityCount: 1,
+            euRepEntities,
+          });
+          clearStoredEntity();
+          setGuestOrderConfirmation({ email: result.email });
         });
-        setActivationEmail(result.email);
       } catch {
         toast.error(tGuest('registrationFailed'));
       }
@@ -296,25 +498,76 @@ export function EuRepCheckoutApp() {
     }
 
     try {
-      toast.info(t('redirecting'));
-      const checkoutSession = await createSession.mutateAsync({
-        kind: 'euRep',
-        euRepPlanId: selectedPlanId,
-        euRepEntityCount: 1,
-        euRepEntities,
+      await runPaymentConfirmation(async () => {
+        const checkoutSession = await createSession.mutateAsync({
+          kind: 'euRep',
+          euRepPlanId: selectedPlanId,
+          euRepEntityCount: 1,
+          euRepEntities,
+          promoCode: appliedPromoCode ?? undefined,
+        });
+        const result = await completeSession.mutateAsync(checkoutSession.id);
+        const contractId = result.euRepContractId ?? result.euRepContractIds?.[0];
+        if (!contractId) {
+          throw new Error('Missing EU rep contract id');
+        }
+        clearStoredEntity();
+        setLoggedOrderConfirmation({ contractId });
       });
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      await completeSession.mutateAsync(checkoutSession.id);
-      toast.success(t('success'));
-      clearStoredEntity();
-      goToAccount();
     } catch {
       toast.error(t('failed'));
     }
   }
 
+  function handlePay() {
+    const entityForCheckout = !isAuthenticated
+      ? resolveGuestForwardingEmail(entity, guestAccount.email)
+      : entity;
+
+    const validation = collectCheckoutValidationIssues({
+      entity: entityForCheckout,
+      guestAccount,
+      includeGuestFields: !isAuthenticated,
+      tValidation,
+    });
+
+    setErrors(validation.entityErrors);
+    if (!validation.ok) {
+      setEntitySubmitCount((count) => count + 1);
+    }
+    if (!isAuthenticated) {
+      setGuestErrors(validation.guestErrors);
+      setGuestSubmitCount((count) => count + 1);
+    }
+
+    if (!validation.ok) {
+      if (
+        hasCheckoutErrorsBesidesTermsAcceptance(validation.entityErrors, validation.guestErrors)
+      ) {
+        validationModal.open();
+      }
+      return;
+    }
+
+    pendingCheckoutActionRef.current = executeCheckout;
+    checkoutConfirm.open();
+  }
+
+  async function handleConfirmCheckout() {
+    const action = pendingCheckoutActionRef.current;
+    if (!action) return;
+
+    checkoutConfirm.close();
+    try {
+      await action();
+    } finally {
+      pendingCheckoutActionRef.current = null;
+    }
+  }
+
   const shellProps = {
     serviceLabel: tService('label'),
+    serviceBrandId: 'euRep' as const,
     quitHref: backFallbackHref,
     onQuit: handleShellQuit,
     faqContent: <ServiceWizardFaqPanel variant="euRep" />,
@@ -325,9 +578,18 @@ export function EuRepCheckoutApp() {
     cancelProceedLabel: tCancel('proceed'),
   };
 
+  const legalEntityName = entity.legalEntity.trim();
+  const accentHeader = (
+    <ServiceWizardAccentHeader
+      title={legalEntityName || t('accentHeaderPlaceholder')}
+      placeholder={!legalEntityName}
+    />
+  );
+
   if (isChecking) {
     return (
       <ServiceCheckoutShell {...shellProps}>
+        {accentHeader}
         <StepFrame centerContent>
           <Container>
             <div className="border-border flex min-h-32 items-center justify-center border-r border-l py-10">
@@ -339,95 +601,310 @@ export function EuRepCheckoutApp() {
     );
   }
 
-  if (activationEmail) {
+  if (!isAuthenticated && (accountPhase === 'confirming' || accountPhase === 'confirmed')) {
     return (
-      <EuRepCheckoutActivation
-        email={activationEmail}
-        legalEntity={entity.legalEntity}
-        planLabel={selectedPlanLabel}
-        amount={quote.amountDue}
+      <PaymentConfirmationCrossfade
+        phase={accountPhase}
+        confirming={<ConfirmingStatusScreen title={tSummary('creatingAccountTitle')} />}
+        confirmed={
+          guestOrderConfirmation ? (
+            <EuRepCheckoutActivation
+              variant="guest"
+              email={guestOrderConfirmation.email}
+              legalEntity={entity.legalEntity}
+              planLabel={selectedPlanLabel}
+              amount={checkoutSubtotal}
+              newsletterOptIn={guestAccount.newsletter}
+            />
+          ) : null
+        }
       />
+    );
+  }
+
+  if (paymentPhase === 'confirming' || paymentPhase === 'confirmed') {
+    return (
+      <PaymentConfirmationCrossfade
+        phase={paymentPhase}
+        confirming={<ConfirmingPaymentScreen />}
+        confirmed={
+          loggedOrderConfirmation ? (
+            <EuRepCheckoutActivation
+              variant="logged"
+              contractId={loggedOrderConfirmation.contractId}
+              legalEntity={entity.legalEntity}
+              planLabel={selectedPlanLabel}
+              amount={checkoutSubtotal}
+            />
+          ) : null
+        }
+      />
+    );
+  }
+
+  function handleGuestAccountChange(patch: Partial<EuRepGuestAccountDraft>) {
+    setGuestAccount((current) => {
+      const next = { ...current, ...patch };
+      if (!('email' in patch)) return next;
+
+      const previousEmail = current.email;
+      const nextEmail = patch.email ?? current.email;
+      setEntity((entityCurrent) => {
+        if (forwardingEmailTouchedRef.current) return entityCurrent;
+
+        const forwarding = entityCurrent.forwardingEmail;
+        if (forwarding.trim() !== '' && forwarding !== previousEmail) {
+          return entityCurrent;
+        }
+
+        return { ...entityCurrent, forwardingEmail: nextEmail };
+      });
+
+      return next;
+    });
+  }
+
+  const entitySection = (
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-foreground text-base font-semibold">{t('entitySectionTitle')}</h3>
+        <p className="text-muted text-sm leading-relaxed">{t('entityIntro')}</p>
+      </div>
+      <EuRepContractFields
+        idPrefix="checkout"
+        legalEntity={entity.legalEntity}
+        forwardingEmail={entity.forwardingEmail}
+        onLegalEntityChange={(value) => {
+          setEntity((current) => ({ ...current, legalEntity: value }));
+          clearEntityError('legalEntity');
+        }}
+        onForwardingEmailChange={(value) => {
+          forwardingEmailTouchedRef.current = true;
+          setEntity((current) => ({ ...current, forwardingEmail: value }));
+          clearEntityError('forwardingEmail');
+        }}
+        onLegalEntityFocus={() => {
+          clearEntityError('legalEntity');
+        }}
+        onForwardingEmailFocus={() => {
+          clearEntityError('forwardingEmail');
+        }}
+        onPostalFieldFocus={clearAddressErrors}
+        legalEntityError={errors.legalEntity}
+        forwardingEmailError={errors.forwardingEmail}
+        postal={entity}
+        onPostalChange={(patch) => {
+          setEntity((current) => ({ ...current, ...patch }));
+          if ('postalLine2' in patch || 'postalDepartment' in patch) {
+            if ('postalLine2' in patch) clearEntityError('postalLine2');
+            if ('postalDepartment' in patch) clearEntityError('postalDepartment');
+            return;
+          }
+          clearAddressErrors();
+        }}
+        postalErrors={errors}
+        addressRequiredShakeKey={entitySubmitCount}
+      />
+    </section>
+  );
+
+  const payButton = (
+    <Button
+      variant="primary"
+      size="lg"
+      className="font-display h-11 gap-2 rounded-full px-6 text-base sm:h-14 sm:px-8"
+      onPress={() => {
+        handlePay();
+      }}
+      isDisabled={isProcessing}
+    >
+      {isProcessing ? (
+        <span className="inline-flex items-center gap-2">
+          <Spinner size="sm" aria-hidden />
+          {t('processing')}
+        </span>
+      ) : (
+        <>
+          {t('payCta')}
+          <CaretRight size={16} weight="bold" aria-hidden />
+        </>
+      )}
+    </Button>
+  );
+
+  const planCard = (footerAction?: ReactNode) => (
+    <ServiceCheckoutPlanCard
+      plans={checkoutPlans}
+      selectedPlanId={selectedPlanId}
+      onPlanChange={(planId) => {
+        if (isEuRepPlanId(planId)) setSelectedPlanId(planId);
+      }}
+      pricePeriod={tPage('pricePeriod')}
+      tabsAriaLabel={tp('entityCountLabel')}
+      selectPlanTitle={t('chosenPlan')}
+      includedTitle={tp('includedToggle')}
+      features={INCLUDED_KEYS.map((key) => tPage(`features.${key}`))}
+      legal={tPage.rich('legalCheckout', {
+        terms: (chunks) => <Link href="/terms">{chunks}</Link>,
+      })}
+      breakdownLines={promoBreakdownLines}
+      subtotalExclVat={checkoutSubtotal}
+      preBreakdownFooter={
+        isAuthenticated ? (
+          <PromoCodeField
+            value={promoDraft}
+            appliedCode={appliedPromo?.code}
+            error={promoError}
+            onChange={(value) => {
+              setPromoDraft(value);
+              if (promoError) setPromoError(null);
+            }}
+            onApply={handleApplyPromo}
+            onRemove={handleRemovePromo}
+            disabled={isProcessing}
+          />
+        ) : null
+      }
+      footerAction={footerAction}
+    />
+  );
+
+  const checkoutDialogs = (
+    <>
+      <ModalRoot state={validationModal}>
+        <ModalBackdrop isDismissable>
+          <ModalContainer size="sm">
+            <ModalDialog>
+              <ModalHeader>
+                <ModalHeading>{t('validationAlert.title')}</ModalHeading>
+              </ModalHeader>
+              <ModalBody>
+                <div className="text-foreground flex flex-col gap-3 text-sm leading-relaxed">
+                  <p>{t('validationAlert.body')}</p>
+                  <ul className="list-disc space-y-1 pl-5">
+                    <li>{tQuestionnaire('fields.streetLine2')}</li>
+                    {!isAuthenticated ? <li>{tSummary('newsletter')}</li> : null}
+                  </ul>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    validationModal.close();
+                  }}
+                >
+                  {t('validationAlert.ok')}
+                </Button>
+              </ModalFooter>
+            </ModalDialog>
+          </ModalContainer>
+        </ModalBackdrop>
+      </ModalRoot>
+
+      <ConfirmDialog
+        state={checkoutConfirm}
+        title={t('checkoutConfirm.title')}
+        body={t('checkoutConfirm.body')}
+        confirmLabel={tCommon('continue')}
+        cancelLabel={tSummary('keepEditing')}
+        destructive={false}
+        isPending={isProcessing}
+        onConfirm={() => {
+          void handleConfirmCheckout();
+        }}
+      />
+    </>
+  );
+
+  if (!isAuthenticated) {
+    return (
+      <ServiceCheckoutShell {...shellProps}>
+        <ServiceCheckoutScrollLayout>
+          {accentHeader}
+          <EuRepCheckoutStepBar currentStepId={guestCheckoutStep} />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={guestCheckoutStep}
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+              className="flex min-h-full flex-1 flex-col"
+            >
+              {guestCheckoutStep === 'account' ? (
+                <StepFrame
+                  scrollWithContent
+                  header={<ServiceCheckoutStepHeader title={t('guestAccountTitle')} />}
+                  footer={<StepFooter onBack={handleBackToEntity} />}
+                >
+                  <Container className="flex min-h-full flex-1 flex-col">
+                    <WizardBorderedColumn className="flex min-h-0 flex-1 flex-col">
+                      <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch lg:grid-cols-2">
+                        <div className="border-border flex min-h-0 flex-col border-b lg:border-r lg:border-b-0">
+                          <div className="shrink-0 px-4 pt-8 sm:px-8 lg:pt-12">
+                            <h2 className="text-foreground text-xl font-bold sm:text-2xl">
+                              {tGuest('title')}
+                            </h2>
+                          </div>
+                          <div className="flex flex-col gap-6 px-4 pt-8 pb-8 sm:px-8 sm:pb-10 lg:pb-12">
+                            <EuRepCheckoutGuestFields
+                              value={guestAccount}
+                              errors={guestErrors}
+                              showIntro={false}
+                              onChange={handleGuestAccountChange}
+                              onClearError={clearGuestError}
+                            />
+                            <EuRepCheckoutGuestCheckboxes
+                              value={guestAccount}
+                              errors={guestErrors}
+                              submitCount={guestSubmitCount}
+                              onChange={handleGuestAccountChange}
+                              onClearError={clearGuestError}
+                            />
+                            {payButton}
+                          </div>
+                        </div>
+                        <div className="flex min-h-0 flex-col overflow-visible px-4 py-8 sm:px-8 sm:py-10 lg:py-12">
+                          <EuRepCheckoutWelcomeBenefits />
+                        </div>
+                      </div>
+                    </WizardBorderedColumn>
+                  </Container>
+                </StepFrame>
+              ) : (
+                <StepFrame
+                  contentOverflowVisible
+                  footer={
+                    <StepFooter
+                      onContinue={handleContinueFromEntity}
+                      ctaLabel={tCommon('continue')}
+                      ctaDisabled={isProcessing}
+                    />
+                  }
+                >
+                  <ServiceCheckoutStepHeader title={t('guestEntityStepTitle')} />
+                  <ServiceCheckoutLayout aside={entitySection}>{planCard()}</ServiceCheckoutLayout>
+                </StepFrame>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </ServiceCheckoutScrollLayout>
+        {checkoutDialogs}
+      </ServiceCheckoutShell>
     );
   }
 
   return (
     <ServiceCheckoutShell {...shellProps}>
-      <StepFrame contentOverflowVisible header={<ServiceCheckoutStepHeader title={t('title')} />}>
-        <ServiceCheckoutLayout
-          aside={
-            <div className="flex flex-col gap-8">
-              {!isAuthenticated ? (
-                <EuRepCheckoutGuestFields
-                  value={guestAccount}
-                  errors={guestErrors}
-                  submitCount={guestSubmitCount}
-                  onChange={(patch) => {
-                    setGuestAccount((current) => ({ ...current, ...patch }));
-                  }}
-                />
-              ) : null}
-              <EuRepContractFields
-                idPrefix="checkout"
-                legalEntity={entity.legalEntity}
-                forwardingEmail={entity.forwardingEmail}
-                onLegalEntityChange={(value) => {
-                  setEntity((current) => ({ ...current, legalEntity: value }));
-                }}
-                onForwardingEmailChange={(value) => {
-                  setEntity((current) => ({ ...current, forwardingEmail: value }));
-                }}
-                legalEntityError={errors.legalEntity}
-                forwardingEmailError={errors.forwardingEmail}
-                postal={entity}
-                onPostalChange={(patch) => {
-                  setEntity((current) => ({ ...current, ...patch }));
-                }}
-                postalErrors={errors}
-              />
-            </div>
-          }
-        >
-          <ServiceCheckoutPlanCard
-            plans={checkoutPlans}
-            selectedPlanId={selectedPlanId}
-            onPlanChange={(planId) => {
-              if (isEuRepPlanId(planId)) setSelectedPlanId(planId);
-            }}
-            pricePeriod={tPage('pricePeriod')}
-            tabsAriaLabel={tp('entityCountLabel')}
-            selectPlanTitle={t('chosenPlan')}
-            includedTitle={tp('includedToggle')}
-            features={INCLUDED_KEYS.map((key) => tPage(`features.${key}`))}
-            legal={tPage.rich('legalCheckout', {
-              terms: (chunks) => <Link href="/terms">{chunks}</Link>,
-            })}
-            subtotalExclVat={quote.amountDue}
-            footerAction={
-              <Button
-                variant="primary"
-                size="lg"
-                className="font-display h-14 w-full gap-2 rounded-full text-base"
-                onPress={() => {
-                  void handlePay();
-                }}
-                isDisabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Spinner size="sm" aria-hidden />
-                    {t('processing')}
-                  </span>
-                ) : (
-                  <>
-                    {isAuthenticated ? t('payCta') : tGuest('payCta')}
-                    <CaretRight size={16} weight="bold" aria-hidden />
-                  </>
-                )}
-              </Button>
-            }
-          />
+      {accentHeader}
+      <StepFrame contentOverflowVisible>
+        <ServiceCheckoutStepHeader title={t('title')} />
+        <ServiceCheckoutLayout aside={entitySection}>
+          {planCard(<div className="flex flex-col gap-5">{payButton}</div>)}
         </ServiceCheckoutLayout>
       </StepFrame>
+      {checkoutDialogs}
     </ServiceCheckoutShell>
   );
 }

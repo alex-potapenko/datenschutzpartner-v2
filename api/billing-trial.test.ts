@@ -4,6 +4,7 @@ import {
   isEuRepSubscriptionOnTrial,
   isPolicySubscriptionOnTrial,
   isSubscriptionOnTrial,
+  subscriptionGrantsProductAccess,
   type Subscription,
 } from './billing';
 
@@ -88,6 +89,32 @@ describe('isPolicySubscriptionOnTrial', () => {
       isPolicySubscriptionOnTrial(
         policy({ trialEndsAt: '2026-08-30' }),
         new Date('2026-08-31T10:00:00')
+      )
+    ).toBe(false);
+  });
+});
+
+describe('subscriptionGrantsProductAccess', () => {
+  const now = new Date('2026-08-31T10:00:00');
+
+  it('grants access for active subscriptions', () => {
+    expect(subscriptionGrantsProductAccess(policy(), now)).toBe(true);
+  });
+
+  it('grants access for cancelled subscriptions until the paid term ends', () => {
+    expect(
+      subscriptionGrantsProductAccess(
+        policy({ status: 'cancelled', nextPaymentDate: '2027-04-02' }),
+        now
+      )
+    ).toBe(true);
+  });
+
+  it('denies access once a cancelled subscription term has ended', () => {
+    expect(
+      subscriptionGrantsProductAccess(
+        policy({ status: 'cancelled', nextPaymentDate: '2026-08-01' }),
+        now
       )
     ).toBe(false);
   });

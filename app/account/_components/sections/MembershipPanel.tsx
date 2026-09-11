@@ -1,38 +1,63 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   countActivePolicySites,
   listEuRepSubscriptions,
   listPolicySubscriptions,
+  listEuRepRequestedExtraRequests,
+  listEuRepRequestUsages,
+  resolveEuRepRemainingRequests,
   resolvePolicySiteCount,
   useCancelSubscription,
   useContinueSubscription,
+  useCreateEuRepExtraRequest,
+  useWithdrawEuRepExtraRequest,
   useOrders,
+  hasSubscriptionAccessRemaining,
   subscriptionCoverageEnd,
+  subscriptionTermEndDate,
   useSubscriptions,
   type BillingProductType,
   type Subscription,
 } from '@/api/billing';
-import { calculateGeneratorPolicyQuote, downloadOrderInvoice } from '@/api/checkout';
+import {
+  calculateGeneratorPolicyQuote,
+  downloadOrderInvoice,
+  EU_REP_EXTRA_REQUEST_PRICE,
+  resolveEuRepPlan,
+} from '@/api/checkout';
 import { useBillingAddress } from '@/api/account';
 import { useDocuments } from '@/api/documents';
 import { useEuRepContracts } from '@/api/eu-rep';
 import {
   ArrowsClockwise,
   Button,
+  ChatTeardropText,
+  CheckCircle,
+  Chip,
   CreditCard,
   FileText,
   Info,
   MapPin,
   Question,
+  Stack,
   Tooltip,
+  ModalRoot,
+  ModalBackdrop,
+  ModalContainer,
+  ModalDialog,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalHeading,
   useOverlayState,
   cn,
 } from '@/components/ui';
+import { Field, TextInput } from '@/app/result/ui/FormSection';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
@@ -50,9 +75,12 @@ import {
   DaysLeftDonut,
   EmptyState,
   subscriptionDaysLeft,
+  formatMoney,
   useDateFormatter,
+  useDateTimeFormatter,
 } from '../account-ui';
 import { BillingHistoryTable } from '../BillingHistoryTable';
+import { EuRepPlanRequestsNote } from '@/app/eu-rep/_components/EuRepPlanRequestsNote';
 
 /** Anchor for AGB §5 Vertragslaufzeit — must match `LegalMarkdown` heading ids in `terms.de.md`. */
 const TERMS_CONTRACT_DURATION_SECTION_ID = '5-vertragslaufzeit';
@@ -78,19 +106,7 @@ function endOfTermDate(nextPaymentDate: string): string {
 }
 
 function inactiveRenewalEndDate(subscription: Subscription): string | null {
-  if (subscription.nextPaymentDate) {
-    return endOfTermDate(subscription.nextPaymentDate);
-  }
-  const base = subscription.lastOrderDate ?? subscription.startDate;
-  if (!base) return null;
-  const date = new Date(`${base}T12:00:00`);
-  date.setFullYear(date.getFullYear() + 1);
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
-
-function hasSubscriptionAccessRemaining(endDateIso: string): boolean {
-  return endDateIso.slice(0, 10) >= new Date().toISOString().slice(0, 10);
+  return subscriptionTermEndDate(subscription);
 }
 
 export function SubscriptionPlanActions({
@@ -128,6 +144,218 @@ export function SubscriptionPlanActions({
   );
 }
 
+/** Shared accent icon tile for status-style panel blocks. */
+const STATUS_BLOCK_ICON_STYLE = {
+  color: 'var(--accent)',
+  background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+};
+
+function EuRepExtraRequestDialog({
+  subscription,
+  state,
+}: {
+  subscription: Subscription;
+  state: ReturnType<typeof useOverlayState>;
+}) {
+  const t = useTranslations('account.membershipPanel');
+  const tCommon = useTranslations('common');
+  const createExtraRequest = useCreateEuRepExtraRequest();
+  const [quantity, setQuantity] = useState('1');
+
+  function close() {
+    setQuantity('1');
+    state.close();
+  }
+
+  function submit() {
+    const parsed = Number.parseInt(quantity, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return;
+
+    createExtraRequest.mutate(
+      { subscriptionId: subscription.id, quantity: parsed },
+      {
+        onSuccess: () => {
+          close();
+        },
+        onError: () => {
+          toast.error(t('requestsExtraFailed'));
+        },
+      }
+    );
+  }
+
+  return (
+    <ModalRoot
+      state={{
+        ...state,
+        setOpen: (open: boolean) => {
+          if (!open) close();
+          else state.setOpen(open);
+        },
+        close,
+      }}
+    >
+      <ModalBackdrop isDismissable>
+        <ModalContainer size="sm">
+          <ModalDialog>
+            <ModalHeader>
+              <ModalHeading>{t('requestsRequestDialogTitle')}</ModalHeading>
+            </ModalHeader>
+            <ModalBody>
+              <div className="flex flex-col gap-5">
+                <p className="text-foreground text-sm leading-relaxed">
+                  {t('requestsRequestDialogBody', {
+                    price: formatMoney(EU_REP_EXTRA_REQUEST_PRICE, 'CHF'),
+                  })}
+                </p>
+                <Field label={t('requestsRequestQuantityLabel')}>
+                  <TextInput
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={quantity}
+                    fullWidth={false}
+                    className="w-16"
+                    onChange={(event) => {
+                      setQuantity(event.target.value);
+                    }}
+                  />
+                </Field>
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="outline" onPress={close}>
+                {tCommon('cancel')}
+              </Button>
+              <Button
+                variant="primary"
+                isDisabled={createExtraRequest.isPending || Number.parseInt(quantity, 10) < 1}
+                onPress={submit}
+              >
+                {t('requestsRequestSubmit')}
+              </Button>
+            </ModalFooter>
+          </ModalDialog>
+        </ModalContainer>
+      </ModalBackdrop>
+    </ModalRoot>
+  );
+}
+
+export function EuRepRequestsSection({ subscription }: { subscription: Subscription }) {
+  const t = useTranslations('account.membershipPanel');
+  const formatDate = useDateFormatter();
+  const formatDateTime = useDateTimeFormatter();
+  const requestDialog = useOverlayState();
+  const withdrawExtraRequest = useWithdrawEuRepExtraRequest();
+  const remainingRequests = resolveEuRepRemainingRequests(subscription);
+  const requestUsages = listEuRepRequestUsages(subscription);
+  const requestedExtraRequests = listEuRepRequestedExtraRequests(subscription);
+  const canAddExtra = subscription.status === 'active';
+
+  return (
+    <AccountSection title={t('sectionRequests')} contentClassName="gap-6">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+              style={STATUS_BLOCK_ICON_STYLE}
+              aria-hidden
+            >
+              <ChatTeardropText size={18} weight="fill" />
+            </span>
+            <h3 className="text-foreground text-sm font-semibold">{t('requestsAvailableLabel')}</h3>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p
+                className={priceBlockAmountClassName('sm')}
+                aria-label={`${t('requestsAvailableLabel')}: ${remainingRequests}`}
+              >
+                {remainingRequests}
+              </p>
+              {requestedExtraRequests.length === 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  isDisabled={!canAddExtra}
+                  onPress={() => {
+                    requestDialog.open();
+                  }}
+                >
+                  {t('requestsRequestCta')}
+                </Button>
+              ) : null}
+              {requestedExtraRequests.map((request) => (
+                <div key={request.id} className="flex items-center gap-2">
+                  <Chip variant="soft" size="sm" color="warning">
+                    {t('requestsRequestedChip', {
+                      count: request.quantity,
+                      date: formatDate(request.requestedDate),
+                    })}
+                  </Chip>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    isDisabled={withdrawExtraRequest.isPending}
+                    onPress={() => {
+                      withdrawExtraRequest.mutate(
+                        { subscriptionId: subscription.id, requestId: request.id },
+                        {
+                          onSuccess: () => {
+                            toast.success(t('requestsWithdrawn'));
+                          },
+                          onError: () => {
+                            toast.error(t('requestsWithdrawFailed'));
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    {t('requestsWithdrawCta')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-border h-px shrink-0 sm:h-auto sm:w-px sm:self-stretch" aria-hidden />
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+              style={STATUS_BLOCK_ICON_STYLE}
+              aria-hidden
+            >
+              <CheckCircle size={18} weight="fill" />
+            </span>
+            <h3 className="text-foreground text-sm font-semibold">{t('requestsUsageLabel')}</h3>
+          </div>
+          <div className="flex flex-col gap-2">
+            {requestUsages.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {requestUsages.map((usage, index) => (
+                  <Chip key={`${usage.date}-${index}`} variant="soft" size="lg" color="default">
+                    {formatDateTime(usage.date)}
+                  </Chip>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted text-sm leading-snug">{t('requestsNoneUsed')}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      <EuRepExtraRequestDialog subscription={subscription} state={requestDialog} />
+    </AccountSection>
+  );
+}
+
 function CurrentPlanPanel({
   subscription,
   planTitle,
@@ -153,13 +381,18 @@ function CurrentPlanPanel({
 }) {
   const t = useTranslations('account.membershipPanel');
   const tDocuments = useTranslations('account.documents');
+  const tEuRepPlans = useTranslations('euRepPage.plans');
   const ts = useTranslations('account.status');
   const formatDate = useDateFormatter();
   const { currency } = subscription.totals;
+  const isEuRep = subscription.productType === 'euRep';
+  const euRepPlanId = isEuRep ? resolveEuRepPlan(subscription.planId).id : null;
   const [isDiscountTooltipOpen, setIsDiscountTooltipOpen] = useState(false);
   const [isRenewalReminderTooltipOpen, setIsRenewalReminderTooltipOpen] = useState(false);
   const isRenewalInactive =
-    subscription.status === 'cancelled' || subscription.status === 'expired';
+    subscription.status === 'cancelled' ||
+    subscription.status === 'expired' ||
+    (subscription.status === 'active' && !subscription.nextPaymentDate);
   const coverageEnd = subscriptionCoverageEnd(subscription);
   const showRenewalBlock =
     isRenewalInactive ||
@@ -243,14 +476,44 @@ function CurrentPlanPanel({
       contentClassName="gap-6"
     >
       <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
+        {isEuRep && euRepPlanId ? (
+          <>
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                  style={STATUS_BLOCK_ICON_STYLE}
+                  aria-hidden
+                >
+                  <Stack size={18} weight="fill" />
+                </span>
+                <h3 className="text-foreground text-sm font-semibold">{t('sectionPlan')}</h3>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className={priceBlockAmountClassName('sm')}>
+                  {tEuRepPlans(`${euRepPlanId}.name`)}
+                </p>
+                <EuRepPlanRequestsNote
+                  planId={euRepPlanId}
+                  previousPlanId={euRepPlanId}
+                  direction={0}
+                  variant="block"
+                  tone="muted"
+                  animateCount={false}
+                />
+              </div>
+            </div>
+            <div
+              className="bg-border h-px shrink-0 sm:h-auto sm:w-px sm:self-stretch"
+              aria-hidden
+            />
+          </>
+        ) : null}
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex items-center gap-2.5">
             <span
               className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-              style={{
-                color: 'var(--accent)',
-                background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-              }}
+              style={STATUS_BLOCK_ICON_STYLE}
               aria-hidden
             >
               <CreditCard size={18} weight="fill" />
@@ -284,10 +547,7 @@ function CurrentPlanPanel({
                 <div className="flex items-center gap-2.5">
                   <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-                    style={{
-                      color: 'var(--accent)',
-                      background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-                    }}
+                    style={STATUS_BLOCK_ICON_STYLE}
                     aria-hidden
                   >
                     <ArrowsClockwise size={16} weight="bold" />
@@ -562,35 +822,39 @@ export function MembershipPanel({
                 };
 
                 return (
-                  <CurrentPlanPanel
-                    key={subscription.id}
-                    subscription={subscription}
-                    hideHeader={Boolean(subscriptionId && isPolicy && hidePlanHeader)}
-                    hideDownload={Boolean(subscriptionId && (isPolicy || isEuRep))}
-                    planTitle={t(`products.${productType}.planTitle`)}
-                    pricing={pricing}
-                    priceIncreased={priceIncreased}
-                    onCancel={
-                      subscription.status === 'active'
-                        ? () => {
-                            setCancelTarget(subscription);
-                            confirm.open();
-                          }
-                        : undefined
-                    }
-                    onContinue={
-                      subscription.status === 'cancelled' || subscription.status === 'expired'
-                        ? () => {
-                            continueSubscription.mutate(subscription.id, {
-                              onSuccess: () => {
-                                toast.success(t('continued'));
-                              },
-                            });
-                          }
-                        : undefined
-                    }
-                    isContinuing={continueSubscription.isPending}
-                  />
+                  <Fragment key={subscription.id}>
+                    <CurrentPlanPanel
+                      subscription={subscription}
+                      hideHeader={Boolean(subscriptionId && isPolicy && hidePlanHeader)}
+                      hideDownload={Boolean(subscriptionId && (isPolicy || isEuRep))}
+                      planTitle={t(`products.${productType}.planTitle`)}
+                      pricing={pricing}
+                      priceIncreased={priceIncreased}
+                      onCancel={
+                        subscription.status === 'active'
+                          ? () => {
+                              setCancelTarget(subscription);
+                              confirm.open();
+                            }
+                          : undefined
+                      }
+                      onContinue={
+                        subscription.status === 'cancelled' ||
+                        subscription.status === 'expired' ||
+                        (subscription.status === 'active' && !subscription.nextPaymentDate)
+                          ? () => {
+                              continueSubscription.mutate(subscription.id, {
+                                onSuccess: () => {
+                                  toast.success(t('continued'));
+                                },
+                              });
+                            }
+                          : undefined
+                      }
+                      isContinuing={continueSubscription.isPending}
+                    />
+                    {isEuRep ? <EuRepRequestsSection subscription={subscription} /> : null}
+                  </Fragment>
                 );
               })}
 
@@ -622,6 +886,12 @@ export function MembershipPanel({
                         {billing.company ? (
                           <>
                             {billing.company}
+                            <br />
+                          </>
+                        ) : null}
+                        {billing.department ? (
+                          <>
+                            {billing.department}
                             <br />
                           </>
                         ) : null}

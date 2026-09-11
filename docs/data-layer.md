@@ -30,10 +30,10 @@ mock auth store with password `welcome`. Mock seed accounts:
 `demo@datenschutzpartner.ch` (admin, password `demo`, 2FA code `123456`).
 
 **Lucas seed (typical vs agency):** most policy subscriptions are **1 site = 1 abo**
-(wizard purchases). One **agency prepaid** row (`#84729`, `siteCount: 5`) has three
-client sites set up and **two empty slots** (buy-more flow). Separate single-site abos
-cover `sutter-web.ch` and `alpenblick-hotel.ch` with their own renewal dates. One
-expired single-site abo remains for history.
+(wizard purchases). Separate single-site abos cover `sutter-web.ch`, `alpenblick-hotel.ch`,
+and `mueller-consulting.ch` with their own renewal dates. One **agency prepaid** row
+(`#84729`, `siteCount: 5`) has **five empty slots** (buy-more flow; priced with volume
+discount at purchase). One expired single-site abo remains for history.
 
 ## Member area («Mein Konto»)
 
@@ -50,7 +50,8 @@ The authenticated hub at `/account` reads from three domain modules:
   subscription per invoice. EU Representation is **one subscription per plan**
   (Basis CHF 149 / Plus CHF 229 / Plus 5 CHF 499 per year) that can cover **several
   legal-entity contracts**. Extra inquiries beyond the plan allowance are billed at
-  CHF 99 (`orderKind: 'extraRequest'`, `POST /billing/eu-rep/extra-request`).
+  CHF 99 (`orderKind: 'extraRequest'`). `POST /billing/eu-rep/extra-request` only queues a
+  pending request on the subscription; the invoice is created after Payrexx payment.
   Subscriptions expose `planId`, optional `includedRequests` / `usedRequests`, and an optional
   `billingAddressId` linking to the address used for that subscription
   (`PATCH /billing/subscriptions/:id/billing`).
@@ -156,7 +157,7 @@ immediately.
   `legalEntity` plus `euRepContractId` (and derived `euRepLinked`);
   linking inserts the Hamburg Art. 27 block. Cancelling an EU
   Rep subscription strips that block from **hosted** policies covered by that
-  subscription; the legal entity stays in **Your legal entities** with a
+  subscription; the legal entity stays in **Your contracts** with a
   cancelled/expired badge. `DELETE /eu-rep/contracts/:id` is allowed only when
   the plan is not `active`/`processing`. The **EU Representation** account section has tabs
   **Representations** / **Instructions** / **FAQ**: sortable legal-entity list,
@@ -213,8 +214,9 @@ shared across mock accounts (not gated). The shell renders client-side; `Account
 redirects unauthenticated visitors to `/login`, and the current password for the mock
 change-password endpoint is `dspmp`.
 
-**Datenschutz Academy** is a public marketing surface only (`/academy` landing and
-article pages). It is not part of the member-area navigation or billing APIs.
+**Datenschutz Academy** is a public marketing landing only (`/academy`). Membership,
+sessions, and articles live on the external Academy platform; they are not part of the
+member-area navigation or billing APIs.
 
 ## Future API replacement
 

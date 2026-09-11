@@ -4,7 +4,6 @@ import {
   emptyEuRepState,
   euRepOfferVariant,
   hasDocumentedEuRepAlternative,
-  hasWizardUserProgress,
   isBuyingEuRep,
   isLinkingExistingEuRep,
   mergeEuRepIntoFormData,
@@ -23,6 +22,7 @@ function form(overrides: Partial<QuestionnaireFormData> = {}): QuestionnaireForm
     companyName: 'Acme AG',
     domain: 'acme.ch',
     email: 'info@acme.ch',
+    department: '',
     street: 'Bahnhofstrasse 1',
     streetLine2: '',
     postalCode: '8001',
@@ -30,8 +30,11 @@ function form(overrides: Partial<QuestionnaireFormData> = {}): QuestionnaireForm
     country: 'Schweiz',
     hasDpo: 'no',
     dpoCompanyName: '',
-    dpoDesignation: '',
+    dpoDesignationEn: '',
+    dpoDesignationDe: '',
+    dpoDepartment: '',
     dpoStreet: '',
+    dpoStreetLine2: '',
     dpoPostalCode: '',
     dpoCity: '',
     dpoCountry: '',
@@ -161,10 +164,11 @@ describe('wizardStepOrder', () => {
 });
 
 describe('shouldShowEuRepStep', () => {
-  it('is true when GDPR applies and data is exported abroad', () => {
+  it('is true when GDPR applies', () => {
     expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', transfersAbroad: 'worldwide' }))).toBe(
       true
     );
+    expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', transfersAbroad: 'no' }))).toBe(true);
     expect(shouldShowEuRepStep(form({ gdprApplicable: 'dontknow', transfersAbroad: 'eea' }))).toBe(
       true
     );
@@ -174,10 +178,6 @@ describe('shouldShowEuRepStep', () => {
     expect(shouldShowEuRepStep(form({ gdprApplicable: 'no', transfersAbroad: 'worldwide' }))).toBe(
       false
     );
-  });
-
-  it('is false when data is not exported abroad', () => {
-    expect(shouldShowEuRepStep(form({ gdprApplicable: 'yes', transfersAbroad: 'no' }))).toBe(false);
   });
 
   it('is false without questionnaire data', () => {

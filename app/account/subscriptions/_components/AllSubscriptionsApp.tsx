@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useRequireSession } from '@/api/auth';
@@ -38,7 +38,11 @@ import {
   SECONDARY_TABS_TAB_CLASS,
 } from '@/app/account/_components/account-ui';
 import { AnimatedServiceTabContent } from '@/app/account/_components/sections/service-tabs';
-import { isAllSubscriptionsTab, type AllSubscriptionsTab } from './all-subscriptions-tabs';
+import {
+  ALL_SUBSCRIPTIONS_TAB_ICON,
+  isAllSubscriptionsTab,
+  type AllSubscriptionsTab,
+} from './all-subscriptions-tabs';
 
 const RECENT_PAYMENTS_LIMIT = 20;
 
@@ -73,11 +77,6 @@ export function AllSubscriptionsApp() {
   const tabFromUrl: AllSubscriptionsTab = isAllSubscriptionsTab(tabParam)
     ? tabParam
     : 'privacyPolicy';
-  const [tab, setTab] = useState<AllSubscriptionsTab>(tabFromUrl);
-
-  useEffect(() => {
-    setTab(tabFromUrl);
-  }, [tabFromUrl]);
 
   const { isChecking } = useRequireSession(ALL_SUBSCRIPTIONS_ACCOUNT_HREF);
   const subscriptions = useSubscriptions();
@@ -134,11 +133,16 @@ export function AllSubscriptionsApp() {
     return tabs;
   }, [subscriptions.data, contracts.data]);
 
+  const tab = useMemo((): AllSubscriptionsTab => {
+    if (isLoading || visibleTabs.length === 0) return tabFromUrl;
+    if (visibleTabs.includes(tabFromUrl)) return tabFromUrl;
+    return visibleTabs[0] ?? 'privacyPolicy';
+  }, [isLoading, visibleTabs, tabFromUrl]);
+
   useEffect(() => {
     if (isLoading || visibleTabs.length === 0) return;
-    if (!visibleTabs.includes(tab)) {
+    if (!visibleTabs.includes(tabFromUrl)) {
       const next = visibleTabs[0] ?? 'privacyPolicy';
-      setTab(next);
       router.replace(
         next === 'privacyPolicy'
           ? ALL_SUBSCRIPTIONS_ACCOUNT_HREF
@@ -146,7 +150,7 @@ export function AllSubscriptionsApp() {
         { scroll: false }
       );
     }
-  }, [isLoading, visibleTabs, tab, router]);
+  }, [isLoading, visibleTabs, tabFromUrl, router]);
 
   const recentOrders =
     orders.data
@@ -158,7 +162,6 @@ export function AllSubscriptionsApp() {
     subscriptions.data?.filter((row) => row.status === 'active' && row.nextPaymentDate) ?? [];
 
   function selectTab(next: AllSubscriptionsTab) {
-    setTab(next);
     router.replace(
       next === 'privacyPolicy'
         ? ALL_SUBSCRIPTIONS_ACCOUNT_HREF
@@ -194,11 +197,11 @@ export function AllSubscriptionsApp() {
           <Table.Header>
             <Table.Column isRowHeader>{primaryColumnLabel}</Table.Column>
             {showStatus ? <Table.Column>{tSubs('colStatus')}</Table.Column> : null}
-            <Table.Column className="text-right">{tSubs('colDays')}</Table.Column>
             <Table.Column className="text-right">{tSubs('colAmount')}</Table.Column>
             {showRenewalDate ? (
               <Table.Column className="text-right">{t('colRenewal')}</Table.Column>
             ) : null}
+            <Table.Column className="text-right">{tSubs('colDays')}</Table.Column>
             <Table.Column className="text-right">
               <span className="sr-only">{tSubs('colActions')}</span>
             </Table.Column>
@@ -239,6 +242,22 @@ export function AllSubscriptionsApp() {
                       )}
                     </Table.Cell>
                   ) : null}
+                  <Table.Cell className="text-right font-normal">
+                    {row.amount != null
+                      ? formatMoney(row.amount, subscription?.totals.currency ?? 'CHF')
+                      : '—'}
+                  </Table.Cell>
+                  {showRenewalDate ? (
+                    <Table.Cell className="text-right">
+                      {subscription?.nextPaymentDate ? (
+                        <span className="text-muted text-sm">
+                          {formatDate(subscription.nextPaymentDate)}
+                        </span>
+                      ) : (
+                        <span className="text-muted text-sm">—</span>
+                      )}
+                    </Table.Cell>
+                  ) : null}
                   <Table.Cell className="text-right">
                     {period && daysLeftLabel ? (
                       <div className="inline-flex items-center justify-end gap-2">
@@ -260,22 +279,6 @@ export function AllSubscriptionsApp() {
                       <span className="text-muted text-sm">—</span>
                     )}
                   </Table.Cell>
-                  <Table.Cell className="text-right font-normal">
-                    {row.amount != null
-                      ? formatMoney(row.amount, subscription?.totals.currency ?? 'CHF')
-                      : '—'}
-                  </Table.Cell>
-                  {showRenewalDate ? (
-                    <Table.Cell className="text-right">
-                      {subscription?.nextPaymentDate ? (
-                        <span className="text-muted text-sm">
-                          {formatDate(subscription.nextPaymentDate)}
-                        </span>
-                      ) : (
-                        <span className="text-muted text-sm">—</span>
-                      )}
-                    </Table.Cell>
-                  ) : null}
                   <Table.Cell className="text-right">
                     {row.manageHref ? (
                       <Button
@@ -285,7 +288,7 @@ export function AllSubscriptionsApp() {
                         className="size-8 rounded-full"
                         aria-label={tSubs('manage')}
                         onPress={() => {
-                          router.push(row.manageHref!);
+                          if (row.manageHref) router.push(row.manageHref);
                         }}
                       >
                         <CaretRight size={16} weight="bold" aria-hidden />
@@ -329,7 +332,7 @@ export function AllSubscriptionsApp() {
     return (
       <div className="divide-border flex min-w-0 flex-col divide-y">
         <AccountSection
-          title={tab === 'privacyPolicy' ? t('websitesTitle') : t('colLegalEntity')}
+          title={tab === 'privacyPolicy' ? t('websitesTitle') : t('colContracts')}
           titleAside={
             <Chip variant="soft" size="sm" color="default">
               {tab === 'privacyPolicy' ? activeSiteCount : (contracts.data?.length ?? 0)}
@@ -346,7 +349,7 @@ export function AllSubscriptionsApp() {
                     ? { amount: policyRenewalTotal, currency: policyRenewalCurrency }
                     : undefined,
               })
-            : renderRows(euRepRows, tNav('euRep'), t('colLegalEntity'))}
+            : renderRows(euRepRows, tNav('euRep'), t('colContracts'))}
         </AccountSection>
 
         {productType ? (
@@ -385,14 +388,19 @@ export function AllSubscriptionsApp() {
               <h1 className="text-foreground text-2xl font-bold sm:text-3xl">{t('title')}</h1>
               <Tabs.ListContainer className="overflow-x-auto !px-0">
                 <Tabs.List aria-label={t('tabsAriaLabel')} className={SECONDARY_TABS_LIST_CLASS}>
-                  {visibleTabs.map((id) => (
-                    <Tabs.Tab key={id} id={id} className={SECONDARY_TABS_TAB_CLASS}>
-                      <span className="text-base font-medium whitespace-nowrap">
-                        {tabLabel(id)}
-                      </span>
-                      <Tabs.Indicator className={SECONDARY_TABS_INDICATOR_CLASS} />
-                    </Tabs.Tab>
-                  ))}
+                  {visibleTabs.map((id) => {
+                    const TabIcon = ALL_SUBSCRIPTIONS_TAB_ICON[id];
+
+                    return (
+                      <Tabs.Tab key={id} id={id} className={SECONDARY_TABS_TAB_CLASS}>
+                        <span className="inline-flex items-center gap-2 text-base font-medium whitespace-nowrap">
+                          <TabIcon size={18} weight="fill" className="shrink-0" aria-hidden />
+                          {tabLabel(id)}
+                        </span>
+                        <Tabs.Indicator className={SECONDARY_TABS_INDICATOR_CLASS} />
+                      </Tabs.Tab>
+                    );
+                  })}
                 </Tabs.List>
               </Tabs.ListContainer>
             </div>

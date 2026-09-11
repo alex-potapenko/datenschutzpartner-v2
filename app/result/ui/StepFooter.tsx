@@ -15,6 +15,8 @@ interface StepFooterProps {
   showCtaCaret?: boolean;
   skipLabel?: string;
   backLabel?: ReactNode;
+  /** Replaces the back caret — e.g. a reset arrow when the button restores saved values. */
+  backIcon?: ReactNode;
   ctaDisabled?: boolean;
 }
 
@@ -27,6 +29,7 @@ function StepFooterSurface({
   showCtaCaret = true,
   skipLabel,
   backLabel,
+  backIcon,
   ctaDisabled,
 }: StepFooterProps) {
   const t = useTranslations('common');
@@ -42,7 +45,7 @@ function StepFooterSurface({
               className="h-11 shrink-0 gap-2 rounded-full px-5 sm:h-14 sm:px-8"
               onPress={onBack}
             >
-              <CaretLeft size={16} weight="bold" />
+              {backIcon ?? <CaretLeft size={16} weight="bold" />}
               <span className={backLabel ? 'inline' : 'hidden sm:inline'}>
                 {backLabel ?? t('back')}
               </span>

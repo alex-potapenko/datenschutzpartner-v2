@@ -10,15 +10,15 @@ export function buildTrialCheckoutPayload(
 ): CheckoutSessionCreate {
   const buyingEuRep = isBuyingEuRep(euRep);
   const linkingExisting = isLinkingExistingEuRep(euRep);
-  const legalEntity = (euRep.legalEntity ?? formData.companyName ?? '').trim();
-  const forwardingEmail = (euRep.forwardingEmail ?? formData.email ?? '').trim();
+  const legalEntity = (euRep.legalEntity ?? formData.companyName).trim();
+  const forwardingEmail = (euRep.forwardingEmail ?? formData.email).trim();
 
   return {
     kind: 'generator',
     siteCount: 1,
     domain,
     policyName: 'Privacy Policy',
-    legalEntity: formData.companyName?.trim() || undefined,
+    legalEntity: formData.companyName.trim() || undefined,
     fillSubscriptionId,
     euRepPlanId: buyingEuRep ? euRep.plan : undefined,
     euRepEntityCount: buyingEuRep ? 1 : undefined,
@@ -27,6 +27,7 @@ export function buildTrialCheckoutPayload(
           {
             legalEntity: legalEntity || formData.companyName.trim(),
             forwardingEmail: forwardingEmail || formData.email.trim(),
+            postalDepartment: euRep.postalDepartment?.trim() ?? '',
             postalLine1: euRep.postalLine1?.trim() || formData.street.trim(),
             postalLine2: euRep.postalLine2?.trim() || formData.streetLine2.trim(),
             postalCode: euRep.postalCode?.trim() || formData.postalCode.trim(),

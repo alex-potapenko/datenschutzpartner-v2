@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { GraduationCap } from '@/components/ui';
+import { ArrowSquareOut, GraduationCap } from '@/components/ui';
+import { ACADEMY_MEMBERSHIP_EXTERNAL_URL } from '@/lib/academy-content/constants';
 
 export async function AcademyHero() {
   const t = await getTranslations('academy.landing');
@@ -28,21 +28,16 @@ export async function AcademyHero() {
               <p className="text-foreground">{t('heroIntro')}</p>
               <p className="text-foreground">{t('heroSubtitle')}</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="#membership"
-                className="font-display inline-flex h-14 w-fit items-center justify-center rounded-full px-8 text-base font-medium text-white transition-opacity hover:opacity-90"
-                style={{ background: 'var(--accent)' }}
-              >
-                {t('joinCta')}
-              </Link>
-              <Link
-                href="#materials"
-                className="button button--outline button--lg font-display h-14 w-fit rounded-full px-8 text-base"
-              >
-                {t('seeMaterialsCta')}
-              </Link>
-            </div>
+            <a
+              href={ACADEMY_MEMBERSHIP_EXTERNAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display inline-flex h-14 w-fit items-center justify-center gap-2 rounded-full px-8 text-base font-medium text-white transition-opacity hover:opacity-90"
+              style={{ background: 'var(--accent)' }}
+            >
+              {t('joinCta')}
+              <ArrowSquareOut size={16} weight="bold" className="text-white" aria-hidden />
+            </a>
           </div>
         </div>
 

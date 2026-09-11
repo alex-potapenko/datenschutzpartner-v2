@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useRequireSession } from '@/api/auth';
@@ -24,8 +23,12 @@ import {
   VolumeDiscountThresholdsDialog,
 } from '@/components/shared/VolumeDiscountDialog';
 import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
-import { RegularPage } from '@/components/shared/RegularPage';
+import { NestedScreenShell } from '@/components/shared/NestedScreenShell';
 import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
+import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
+import { ConfirmingPaymentScreen } from '@/components/shared/ConfirmingPaymentScreen';
+import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
+import { GeneratorCheckoutConfirmation } from '@/app/account/generator/checkout/_components/GeneratorCheckoutConfirmation';
 
 const GENERATOR_INCLUDED_KEYS = [
   'services',
@@ -44,25 +47,24 @@ function formatChf(amount: number): string {
 
 function GeneratorUpgradePageShell({
   backLabel,
+  detailTitle,
   children,
 }: {
   backLabel: string;
+  detailTitle: string;
   children: ReactNode;
 }) {
   return (
-    <RegularPage
+    <NestedScreenShell
       topBarVariant="account"
-      showFooter={false}
+      backHref={PRIVACY_POLICY_ACCOUNT_HREF}
+      backLabel={backLabel}
+      detailTitle={detailTitle}
       noPadding
-      minimal
-      backLink={{
-        href: PRIVACY_POLICY_ACCOUNT_HREF,
-        label: backLabel,
-        preferHref: true,
-      }}
+      contentClassName="flex flex-1 flex-col justify-center"
     >
-      <div className="flex flex-1 flex-col justify-center">{children}</div>
-    </RegularPage>
+      {children}
+    </NestedScreenShell>
   );
 }
 
@@ -70,16 +72,22 @@ export function GeneratorCheckoutApp() {
   const t = useTranslations('account.generatorCheckout');
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
+  const tService = useTranslations('services.privacyGenerator');
   const tGenerator = useTranslations('generatorPage');
   const tp = useTranslations('generatorPage.pricingSection');
-  const router = useRouter();
   const { isChecking } = useRequireSession('/account/generator/checkout');
   const subscriptions = useSubscriptions();
   const [siteCount, setSiteCount] = useState(1);
   const createSession = useCreateCheckoutSession();
   const completeSession = useCompleteCheckoutSession();
   const discountDialog = useOverlayState();
-  const isProcessing = createSession.isPending || completeSession.isPending;
+  const { phase: paymentPhase, run: runPaymentConfirmation } = useConfirmingPaymentFlow();
+  const [confirmation, setConfirmation] = useState<{
+    siteCount: number;
+    amountDue: number;
+  } | null>(null);
+  const isProcessing =
+    paymentPhase !== 'idle' || createSession.isPending || completeSession.isPending;
 
   const activeSites = countActivePolicySites(subscriptions.data ?? []);
   const qualifyingSites = qualifyingSiteCountForCheckout(activeSites, 'generator', siteCount);
@@ -146,19 +154,14 @@ export function GeneratorCheckoutApp() {
 
   async function handlePay() {
     try {
-      toast.info(t('redirecting'));
-      const checkoutSession = await createSession.mutateAsync({
-        kind: 'generator',
-        siteCount,
+      await runPaymentConfirmation(async () => {
+        const checkoutSession = await createSession.mutateAsync({
+          kind: 'generator',
+          siteCount,
+        });
+        await completeSession.mutateAsync(checkoutSession.id);
+        setConfirmation({ siteCount, amountDue: quote.amountDue });
       });
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      const result = await completeSession.mutateAsync(checkoutSession.id);
-      toast.success(
-        t('success', {
-          allowance: result.activeSubscriptionCount,
-        })
-      );
-      router.push(PRIVACY_POLICY_ACCOUNT_HREF);
     } catch {
       toast.error(t('failed'));
     }
@@ -166,7 +169,7 @@ export function GeneratorCheckoutApp() {
 
   if (isChecking || isDataLoading) {
     return (
-      <GeneratorUpgradePageShell backLabel={tCommon('back')}>
+      <GeneratorUpgradePageShell backLabel={tCommon('back')} detailTitle={tService('label')}>
         <div className="flex min-h-40 items-center justify-center py-20">
           <Spinner aria-label={tAccount('loading')} />
         </div>
@@ -174,8 +177,25 @@ export function GeneratorCheckoutApp() {
     );
   }
 
+  if (paymentPhase === 'confirming' || paymentPhase === 'confirmed') {
+    return (
+      <PaymentConfirmationCrossfade
+        phase={paymentPhase}
+        confirming={<ConfirmingPaymentScreen />}
+        confirmed={
+          confirmation ? (
+            <GeneratorCheckoutConfirmation
+              siteCount={confirmation.siteCount}
+              amountDue={confirmation.amountDue}
+            />
+          ) : null
+        }
+      />
+    );
+  }
+
   return (
-    <GeneratorUpgradePageShell backLabel={tCommon('back')}>
+    <GeneratorUpgradePageShell backLabel={tCommon('back')} detailTitle={tService('label')}>
       <EuRepPlanCard
         plans={checkoutPlans}
         defaultPlanId="quantity"

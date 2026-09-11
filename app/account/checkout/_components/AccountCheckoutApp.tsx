@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, type ReactNode } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useRequireSession } from '@/api/auth';
@@ -31,6 +31,10 @@ import {
   VolumeDiscountThresholdsDialog,
 } from '@/components/shared/VolumeDiscountDialog';
 import { privacyPolicyAccountHref, safeAccountReturnTo } from '@/lib/account-routes';
+import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
+import { ConfirmingPaymentScreen } from '@/components/shared/ConfirmingPaymentScreen';
+import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
+import { AccountCheckoutConfirmation } from '@/app/account/checkout/_components/AccountCheckoutConfirmation';
 import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
 
 const GENERATOR_INCLUDED_KEYS = [
@@ -193,7 +197,6 @@ export function AccountCheckoutApp() {
   const t = useTranslations('account.checkout');
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
-  const router = useRouter();
   const searchParams = useSearchParams();
   const siteParam = searchParams.get('site');
   const { isChecking } = useRequireSession(ACCOUNT_CHECKOUT_HREF);
@@ -202,6 +205,14 @@ export function AccountCheckoutApp() {
   const euRepContracts = useEuRepContracts();
   const completePending = useCompletePendingCheckout(siteParam);
   const discountDialog = useOverlayState();
+  const { phase: paymentPhase, run: runPaymentConfirmation } = useConfirmingPaymentFlow();
+  const [confirmation, setConfirmation] = useState<{
+    domain: string;
+    legalEntity: string;
+    policyAmount: number;
+    euRepAmount: number;
+    buyingEuRep: boolean;
+  } | null>(null);
 
   const pendingData = pending.data;
   const linkedContract = euRepContracts.data?.find(
@@ -244,19 +255,22 @@ export function AccountCheckoutApp() {
 
   async function handlePay() {
     try {
-      toast.info(t('redirecting'));
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      await completePending.mutateAsync();
-      toast.success(t('paymentConfirmed'));
-      router.push(
-        domain
-          ? privacyPolicyAccountHref({ site: domain, tab: 'subscription' })
-          : PRIVACY_POLICY_ACCOUNT_HREF
-      );
+      await runPaymentConfirmation(async () => {
+        await completePending.mutateAsync();
+        setConfirmation({
+          domain,
+          legalEntity,
+          policyAmount: quote.amountDue,
+          euRepAmount,
+          buyingEuRep,
+        });
+      });
     } catch {
       toast.error(t('paymentFailed'));
     }
   }
+
+  const isPaying = paymentPhase !== 'idle' || completePending.isPending;
 
   const payButton = (
     <Button
@@ -266,9 +280,9 @@ export function AccountCheckoutApp() {
       onPress={() => {
         void handlePay();
       }}
-      isDisabled={completePending.isPending}
+      isDisabled={isPaying}
     >
-      {completePending.isPending ? (
+      {isPaying ? (
         <span className="inline-flex items-center gap-2">
           <Spinner size="sm" aria-hidden />
           {t('processing')}
@@ -313,6 +327,26 @@ export function AccountCheckoutApp() {
           <p className="text-foreground max-w-md text-sm leading-relaxed">{t('emptyBody')}</p>
         </CheckoutStatusPanel>
       </AccountCheckoutPageShell>
+    );
+  }
+
+  if (paymentPhase === 'confirming' || paymentPhase === 'confirmed') {
+    return (
+      <PaymentConfirmationCrossfade
+        phase={paymentPhase}
+        confirming={<ConfirmingPaymentScreen />}
+        confirmed={
+          confirmation ? (
+            <AccountCheckoutConfirmation
+              domain={confirmation.domain}
+              legalEntity={confirmation.legalEntity}
+              policyAmount={confirmation.policyAmount}
+              euRepAmount={confirmation.euRepAmount}
+              buyingEuRep={confirmation.buyingEuRep}
+            />
+          ) : null
+        }
+      />
     );
   }
 

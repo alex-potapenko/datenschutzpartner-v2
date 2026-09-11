@@ -2,7 +2,7 @@ import { ArticleCard, type ArticleCardArticle } from './ArticleCard';
 
 interface ArticlesGridProps {
   articles: ArticleCardArticle[];
-  basePath?: '/insights' | '/academy';
+  basePath: '/insights';
   layout?: 'featured' | 'uniform';
 }
 
@@ -23,11 +23,7 @@ function uniformTileClassName(index: number, total: number): string {
     .join(' ');
 }
 
-export function ArticlesGrid({
-  articles,
-  basePath = '/insights',
-  layout = 'featured',
-}: ArticlesGridProps) {
+export function ArticlesGrid({ articles, basePath, layout = 'featured' }: ArticlesGridProps) {
   if (layout === 'uniform') {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3">

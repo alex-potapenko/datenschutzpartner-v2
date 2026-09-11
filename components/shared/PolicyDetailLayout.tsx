@@ -1,13 +1,9 @@
 'use client';
 
-import { useCallback, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, useReducedMotion } from 'motion/react';
+import type { ReactNode } from 'react';
 import { useProfile } from '@/api/account';
 import { cn } from '@/lib/utils';
-import { RegularPage } from '@/components/shared/RegularPage';
-
-const DETAIL_TRANSITION = { duration: 0.24, ease: 'easeOut' } as const;
+import { NestedScreenShell } from '@/components/shared/NestedScreenShell';
 
 /** Page header for detail screens — title and actions below the TopBar back control. */
 export function PolicyDetailScreenHeader({
@@ -52,58 +48,25 @@ export function PolicyDetailPageShell({
   /** Shows the signed-in member's full name next to the back control. */
   showUserName?: boolean;
 }) {
-  const router = useRouter();
   const profile = useProfile();
   const hasTopBar = Boolean(backHref && backLabel);
-  const shouldReduceMotion = useReducedMotion();
-  const [isExiting, setIsExiting] = useState(false);
-  const userDisplayName = profile.data?.displayName?.trim();
+  const userDisplayName = profile.data?.displayName.trim();
   const resolvedDetailTitle =
     detailTitle ?? (showUserName && userDisplayName ? userDisplayName : undefined);
 
-  const handleBack = useCallback(() => {
-    if (!backHref) return;
-
-    if (shouldReduceMotion) {
-      router.push(backHref);
-      return;
-    }
-
-    setIsExiting(true);
-  }, [backHref, router, shouldReduceMotion]);
+  if (!backHref || !backLabel) {
+    return <>{children}</>;
+  }
 
   return (
-    <RegularPage
-      showFooter={false}
-      noPadding
+    <NestedScreenShell
+      backHref={backHref}
+      backLabel={backLabel}
+      detailTitle={resolvedDetailTitle}
       showTopBar={hasTopBar}
-      minimal
-      backLink={
-        backHref && backLabel
-          ? {
-              href: backHref,
-              label: backLabel,
-              preferHref: true,
-              iconOnly: true,
-              detailTitle: resolvedDetailTitle,
-              onPress: handleBack,
-            }
-          : undefined
-      }
+      noPadding
     >
-      <motion.div
-        className="flex min-h-dvh flex-1 flex-col"
-        initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
-        animate={isExiting ? { opacity: 0, x: 20 } : { opacity: 1, x: 0 }}
-        transition={DETAIL_TRANSITION}
-        onAnimationComplete={() => {
-          if (isExiting && backHref) {
-            router.push(backHref);
-          }
-        }}
-      >
-        {children}
-      </motion.div>
-    </RegularPage>
+      {children}
+    </NestedScreenShell>
   );
 }

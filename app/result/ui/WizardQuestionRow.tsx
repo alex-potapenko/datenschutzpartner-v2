@@ -1,9 +1,10 @@
 import type { ChangeEvent, ReactNode } from 'react';
+import type { UidCompany } from '@/api/uid-registry';
 import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
 import { MetaBadge } from '@/components/shared/MetaBadge';
 import { cn } from '@/lib/utils';
 import { PostalAddressFields } from './PostalAddressFields';
-import { RadioGroup, TextInput } from './FormSection';
+import { Field, RadioGroup, TextInput } from './FormSection';
 
 export type WizardQuestionChoice = { value: string; label: string };
 
@@ -32,11 +33,11 @@ export function WizardQuestionLabel({
     <p
       className={cn(
         'text-foreground leading-snug',
-        compact ? 'text-sm font-medium' : 'text-base font-semibold'
+        compact ? 'text-sm font-medium' : 'text-lg font-semibold'
       )}
     >
       {label}
-      {optional && optionalBadgeLabel ? (
+      {optional && !compact && optionalBadgeLabel ? (
         <MetaBadge kind="optional" className="ml-1.5 align-middle">
           {optionalBadgeLabel}
         </MetaBadge>
@@ -100,17 +101,29 @@ export type WizardQuestionRowProps = WizardQuestionRowShared &
         onStreetChange: (value: string) => void;
         onPostalCodeChange: (value: string) => void;
         onCityChange: (value: string) => void;
+        legalEntity?: string;
+        onLegalEntityChange?: (value: string) => void;
+        onLegalEntityUidSelect?: (company: UidCompany) => void;
+        legalEntityRequiredLabel?: string;
+        legalEntityRequiredShakeKey?: number;
+        department?: string;
+        onDepartmentChange?: (value: string) => void;
+        departmentError?: string;
+        countryDisplayLabel?: string;
         streetLine2?: string;
         onStreetLine2Change?: (value: string) => void;
         showLine2?: boolean;
-        streetPlaceholder?: string;
-        postalPlaceholder?: string;
-        cityPlaceholder?: string;
         idPrefix?: string;
         line1Error?: string;
+        line1RequiredLabel?: string;
+        requiredShakeKey?: number;
         streetLine2Error?: string;
       }
   );
+
+function usesFieldLabel(props: WizardQuestionRowProps) {
+  return props.variant === 'text' || props.variant === undefined;
+}
 
 function renderAnswer(props: WizardQuestionRowProps) {
   if (props.variant === 'choices') {
@@ -138,6 +151,7 @@ function renderAnswer(props: WizardQuestionRowProps) {
         placeholder={props.placeholder}
         readOnly={props.readOnly}
         className={props.inputClassName}
+        optionalLabel={props.optional ? props.optionalBadgeLabel : undefined}
       />
     );
   }
@@ -145,6 +159,14 @@ function renderAnswer(props: WizardQuestionRowProps) {
   if (props.variant === 'address') {
     return (
       <PostalAddressFields
+        legalEntity={props.legalEntity}
+        onLegalEntityChange={props.onLegalEntityChange}
+        onLegalEntityUidSelect={props.onLegalEntityUidSelect}
+        legalEntityRequiredLabel={props.legalEntityRequiredLabel}
+        legalEntityRequiredShakeKey={props.legalEntityRequiredShakeKey}
+        department={props.department}
+        onDepartmentChange={props.onDepartmentChange}
+        departmentError={props.departmentError}
         street={props.street}
         streetLine2={props.streetLine2}
         postalCode={props.postalCode}
@@ -153,11 +175,11 @@ function renderAnswer(props: WizardQuestionRowProps) {
         onStreetLine2Change={props.onStreetLine2Change}
         onPostalCodeChange={props.onPostalCodeChange}
         onCityChange={props.onCityChange}
+        countryDisplayLabel={props.countryDisplayLabel}
         showLine2={props.showLine2 ?? Boolean(props.onStreetLine2Change)}
         optionalBadge={props.optionalBadgeLabel}
-        streetPlaceholder={props.streetPlaceholder}
-        postalPlaceholder={props.postalPlaceholder}
-        cityPlaceholder={props.cityPlaceholder}
+        line1RequiredLabel={props.line1RequiredLabel}
+        requiredShakeKey={props.requiredShakeKey}
         idPrefix={props.idPrefix}
         line1Error={props.line1Error}
         streetLine2Error={props.streetLine2Error}
@@ -185,6 +207,38 @@ export function WizardQuestionRow(props: WizardQuestionRowProps) {
     relaxedBottomPadding = true,
   } = props;
 
+  const fieldLabel = usesFieldLabel(props);
+  const answer = renderAnswer(props);
+
+  const rowClassName = cn(
+    'flex flex-col',
+    bordered
+      ? 'border-border gap-3 border-b px-4 py-4 sm:px-8 sm:py-6'
+      : compact
+        ? 'gap-1.5'
+        : spacing === 'relaxed'
+          ? 'gap-8'
+          : 'gap-3 px-4 py-4 sm:px-8 sm:py-6'
+  );
+
+  if (fieldLabel) {
+    return (
+      <div id={id} className={rowClassName}>
+        <Field
+          label={label}
+          description={description}
+          required={required}
+          requiredLabel={requiredBadgeLabel}
+          requiredShakeKey={requiredShakeKey}
+          hint={hint}
+          hintClassName="text-muted"
+        >
+          {answer}
+        </Field>
+      </div>
+    );
+  }
+
   const prompt = (
     <>
       <WizardQuestionLabel
@@ -201,22 +255,8 @@ export function WizardQuestionRow(props: WizardQuestionRowProps) {
     </>
   );
 
-  const answer = renderAnswer(props);
-
   return (
-    <div
-      id={id}
-      className={cn(
-        'flex flex-col',
-        bordered
-          ? 'border-border gap-3 border-b px-4 py-4 sm:px-8 sm:py-6'
-          : compact
-            ? 'gap-1.5'
-            : spacing === 'relaxed'
-              ? 'gap-8'
-              : 'gap-3 px-4 py-4 sm:px-8 sm:py-6'
-      )}
-    >
+    <div id={id} className={rowClassName}>
       {spacing === 'relaxed' ? <div className="flex flex-col gap-4">{prompt}</div> : prompt}
       <div
         className={cn(

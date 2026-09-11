@@ -77,9 +77,15 @@ export const optionalVatIdField = z
   .trim()
   .refine((value) => value === '' || VAT_ID_PATTERN.test(value), 'validation.vatId');
 
+export const optionalDepartmentField = z
+  .string()
+  .trim()
+  .refine((value) => value === '' || value.length <= 120, 'validation.department');
+
 export const euRepEntityFieldsSchema = z.object({
   legalEntity: companyNameField,
   forwardingEmail: emailField,
+  postalDepartment: optionalDepartmentField,
   postalLine1: streetAddressField,
   postalLine2: optionalStreetLine2Field,
   postalCode: postalCodeField,

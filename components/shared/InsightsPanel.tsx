@@ -3,7 +3,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { GraduationCap, MicrophoneStage, Newspaper, Tabs } from '@/components/ui';
+import { MicrophoneStage, Newspaper, Tabs } from '@/components/ui';
 import { ArticlesGrid } from './ArticlesGrid';
 import { InsightsPagination } from './InsightsPagination';
 import { NavigationLink } from './NavigationLink';
@@ -27,8 +27,7 @@ interface InsightsPanelProps {
 }
 
 const TAB_ICONS: Record<InsightsTab, ReactNode> = {
-  webinars: <GraduationCap size={20} weight="fill" aria-hidden />,
-  newsQuestions: <Newspaper size={20} weight="fill" aria-hidden />,
+  news: <Newspaper size={20} weight="fill" aria-hidden />,
   podcasts: <MicrophoneStage size={20} weight="fill" aria-hidden />,
 };
 
@@ -44,7 +43,7 @@ function InsightsPanelContent({
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('insights');
-  const activeTab = parseInsightsTab(searchParams.get('tab')) ?? 'webinars';
+  const activeTab = parseInsightsTab(searchParams.get('tab')) ?? 'news';
   const activePage = parseInsightsPage(searchParams.get('page'));
   const content = getInsightsContent(locale);
   const isPaginated = limit === undefined;

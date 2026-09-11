@@ -2,7 +2,8 @@
 
 import { type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { RegularPage } from '@/components/shared/RegularPage';
+import { useTranslations } from 'next-intl';
+import { NestedScreenShell } from '@/components/shared/NestedScreenShell';
 
 type EuRepQuestionnaireLayoutProps = {
   title: string;
@@ -17,21 +18,19 @@ export function EuRepQuestionnaireLayout({
   backLabel,
   children,
 }: EuRepQuestionnaireLayoutProps) {
+  const tService = useTranslations('services.euRep');
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
   const backHref = returnTo?.startsWith('/result?') ? returnTo : '/eu-rep';
 
   return (
-    <RegularPage
+    <NestedScreenShell
       activePath="/eu-rep"
-      backLink={{
-        href: backHref,
-        label: backLabel,
-        preferHref: Boolean(returnTo?.startsWith('/result?')),
-      }}
-      minimal
-      showFooter={false}
-      header={
+      backHref={backHref}
+      backLabel={backLabel}
+      preferHref={Boolean(returnTo?.startsWith('/result?'))}
+      detailTitle={tService('label')}
+      pageHeader={
         <>
           <h1 className="text-foreground text-2xl font-bold sm:text-3xl">{title}</h1>
           <p className="text-foreground max-w-3xl leading-relaxed">{intro}</p>
@@ -39,6 +38,6 @@ export function EuRepQuestionnaireLayout({
       }
     >
       {children}
-    </RegularPage>
+    </NestedScreenShell>
   );
 }

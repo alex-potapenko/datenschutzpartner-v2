@@ -1,10 +1,11 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button, Spinner, useOverlayState } from '@/components/ui';
 import { useSubscriptions } from '@/api/billing';
+import { useSession } from '@/api/auth';
 import {
   EU_REP_REPRESENTATIVE,
   findEuRepContractForLegalEntity,
@@ -18,10 +19,10 @@ import { EuRepWizardOffer } from '../components/EuRepWizardOffer';
 import { StepHeader } from '../ui/StepHeader';
 import { StepFooter } from '../ui/StepFooter';
 import { StepFrame } from '../ui/StepFrame';
+import { WizardBorderedColumn } from '../ui/WizardBorderedColumn';
 import { Container } from '@/components/shared/Container';
 import { WizardQuestionRow } from '../ui/WizardQuestionRow';
 import { TextInput } from '../ui/FormSection';
-import { CountryAutocomplete } from '../ui/CountryAutocomplete';
 import { PostalAddressFields } from '../ui/PostalAddressFields';
 import type { QuestionnaireFormData } from '../content/questionnaire-form';
 import {
@@ -34,6 +35,7 @@ import {
 } from '../wizard-state';
 import { EuRepRepresentativeAddress } from '@/components/shared/EuRepRepresentativeAddress';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { cn, smoothScrollElementIntoView } from '@/lib/utils';
 
 interface EuRepStepProps {
   formData: QuestionnaireFormData;
@@ -54,12 +56,21 @@ function Reveal({
   show,
   children,
   variant = 'collapse',
+  fill = false,
+  overflowVisible = false,
 }: {
   show: boolean;
   children: React.ReactNode;
   variant?: 'collapse' | 'fade';
+  /** Stretch to the remaining column height (checkout offer panels). */
+  fill?: boolean;
+  /** Allow glows and shadows to extend outside the revealed panel. */
+  overflowVisible?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
+  const duration = reduceMotion ? 0 : 0.28;
+  const fillClassName = fill ? 'flex min-h-0 flex-1 flex-col' : undefined;
+  const clipClassName = overflowVisible ? 'overflow-visible' : 'overflow-hidden';
 
   if (variant === 'fade') {
     return (
@@ -67,14 +78,11 @@ function Reveal({
         {show ? (
           <motion.div
             key="reveal-fade"
-            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-            transition={{
-              duration: reduceMotion ? 0 : 0.25,
-              ease: revealEase,
-            }}
-            className="flex flex-1 flex-col"
+            exit={{ opacity: 0 }}
+            transition={{ duration, ease: revealEase }}
+            className={fillClassName}
           >
             {children}
           </motion.div>
@@ -88,16 +96,64 @@ function Reveal({
       {show ? (
         <motion.div
           key="reveal"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.25, ease: 'easeInOut' }}
-          className="flex flex-1 flex-col overflow-visible"
+          initial={reduceMotion ? false : { opacity: 0, gridTemplateRows: '0fr' }}
+          animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+          exit={{ opacity: 0 }}
+          transition={{ duration, ease: revealEase }}
+          className={cn('grid', overflowVisible && 'overflow-visible')}
         >
-          {children}
+          <div className={clipClassName}>
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.22, ease: revealEase }}
+            >
+              {children}
+            </motion.div>
+          </div>
         </motion.div>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+function EuRepPartnerFollowUp({
+  branch,
+  children,
+}: {
+  branch: EuRepYesNo | '';
+  children: (variant: 'covered' | 'follow-up') => ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  const duration = reduceMotion ? 0 : 0.22;
+
+  return (
+    <div>
+      <AnimatePresence mode="wait" initial={false}>
+        {branch === 'yes' ? (
+          <motion.div
+            key="covered"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration, ease: revealEase }}
+          >
+            {children('covered')}
+          </motion.div>
+        ) : branch === 'no' ? (
+          <motion.div
+            key="follow-up"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration, ease: revealEase }}
+          >
+            {children('follow-up')}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -119,10 +175,11 @@ function emptyPostal(
   initialEuRep?: EuRepState
 ): EuRepPostalFields {
   return {
-    postalLine1: initialEuRep?.postalLine1 ?? formData.street ?? '',
-    postalLine2: initialEuRep?.postalLine2 ?? formData.streetLine2 ?? '',
-    postalCode: initialEuRep?.postalCode ?? formData.postalCode ?? '',
-    city: initialEuRep?.city ?? formData.city ?? '',
+    postalDepartment: initialEuRep?.postalDepartment ?? '',
+    postalLine1: initialEuRep?.postalLine1 ?? formData.street,
+    postalLine2: initialEuRep?.postalLine2 ?? formData.streetLine2,
+    postalCode: initialEuRep?.postalCode ?? formData.postalCode,
+    city: initialEuRep?.city ?? formData.city,
     country: initialEuRep?.country ?? 'Schweiz',
   };
 }
@@ -134,13 +191,29 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
   const tValidation = useTranslations('validation');
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
+  const euRepIntro = (
+    <p>
+      {t.rich('intro', {
+        br: () => <br />,
+      })}
+    </p>
+  );
+  const session = useSession();
+  const isLoggedIn = Boolean(session.data?.email && session.data.emailVerified);
+  const continueCtaLabel = tQuestionnaire('createPolicy');
+  const showContinueCaret = !isLoggedIn;
   const contracts = useEuRepContracts();
   const subscriptions = useSubscriptions();
-  const matchedContract = findEuRepContractForLegalEntity(
-    contracts.data ?? [],
-    formData.companyName,
-    subscriptions.data ?? []
-  );
+  const questionnaireLegalEntity = formData.companyName.trim();
+  const matchedContract = isLoggedIn
+    ? findEuRepContractForLegalEntity(
+        contracts.data ?? [],
+        questionnaireLegalEntity,
+        subscriptions.data ?? []
+      )
+    : undefined;
+  const isResolvingExistingContract =
+    isLoggedIn && (session.isLoading || contracts.isLoading || subscriptions.isLoading);
 
   const yesNo = [
     { value: 'yes', label: tEuRepQ('yes') },
@@ -177,6 +250,9 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
   const [errors, setErrors] = useState<FieldErrors>({});
   const [validationAttempt, setValidationAttempt] = useState(0);
   const skipConfirm = useOverlayState();
+  const reduceMotion = useReducedMotion();
+  const euRepOfferRef = useRef<HTMLDivElement>(null);
+  const euRepThirdPartyRef = useRef<HTMLDivElement>(null);
 
   const offerVariant = euRepOfferVariant({ hasNamedEuRep, namedDatenschutzpartner });
   const isOfferActive = offerVariant === 'new' || offerSelected;
@@ -194,6 +270,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
     plan: isOfferActive ? selectedPlanId : undefined,
     legalEntity,
     forwardingEmail,
+    postalDepartment: postal.postalDepartment,
     postalLine1: postal.postalLine1,
     postalLine2: postal.postalLine2,
     postalCode: postal.postalCode,
@@ -203,6 +280,35 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
   const thirdPartyVisible = showThirdPartyRepFields(euRepDraft);
   const showEuRepOffer =
     offerVariant === 'new' ? hasNamedEuRep === 'no' : offerVariant === 'switch' && offerSelected;
+  const borderedColumnLayoutKey = `${namedDatenschutzpartner}:${hasNamedEuRep}:${thirdPartyVisible}:${showEuRepOffer}`;
+
+  useEffect(() => {
+    const scrollTarget = showEuRepOffer
+      ? euRepOfferRef.current
+      : thirdPartyVisible
+        ? euRepThirdPartyRef.current
+        : null;
+
+    if (!scrollTarget) return;
+
+    let cancelled = false;
+    const scrollDelayMs = reduceMotion ? 0 : 300;
+
+    const timer = window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+
+        smoothScrollElementIntoView(scrollTarget, {
+          behavior: reduceMotion ? 'auto' : 'smooth',
+        });
+      });
+    }, scrollDelayMs);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [showEuRepOffer, thirdPartyVisible, reduceMotion]);
 
   function validate(): boolean {
     const nextErrors: FieldErrors = {
@@ -227,6 +333,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
       const entityResult = euRepEntityFieldsSchema.safeParse({
         legalEntity,
         forwardingEmail,
+        postalDepartment: postal.postalDepartment ?? '',
         postalLine1: postal.postalLine1,
         postalLine2: postal.postalLine2 ?? '',
         postalCode: postal.postalCode,
@@ -293,6 +400,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
       completed.plan = selectedPlanId;
       completed.legalEntity = legalEntity.trim();
       completed.forwardingEmail = forwardingEmail.trim();
+      completed.postalDepartment = postal.postalDepartment?.trim() || undefined;
       completed.postalLine1 = postal.postalLine1.trim();
       completed.postalLine2 = postal.postalLine2?.trim() || undefined;
       completed.postalCode = postal.postalCode.trim();
@@ -351,22 +459,24 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
     finalizeComplete(false, { skipOffer: true });
   }
 
-  if (contracts.isLoading) {
+  if (isResolvingExistingContract) {
     return (
-      <StepFrame scrollWithContent centerContent>
-        <Container className="flex flex-1 flex-col">
-          <div className="border-border divide-border flex flex-1 flex-col divide-y border-x">
-            <StepHeader
-              title={t('title')}
-              description={t('intro')}
-              sideBorders={false}
-              contained={false}
-              bottomBorder={false}
-            />
-            <div className="flex flex-1 items-center justify-center py-10">
-              <Spinner aria-label={tAccount('loading')} />
+      <StepFrame scrollWithContent>
+        <Container className="flex min-h-full flex-1 flex-col">
+          <WizardBorderedColumn layoutKey="loading">
+            <div className="divide-border divide-y">
+              <StepHeader
+                title={t('title')}
+                description={euRepIntro}
+                sideBorders={false}
+                contained={false}
+                bottomBorder={false}
+              />
+              <div className="flex flex-1 items-center justify-center py-10">
+                <Spinner aria-label={tAccount('loading')} />
+              </div>
             </div>
-          </div>
+          </WizardBorderedColumn>
         </Container>
       </StepFrame>
     );
@@ -377,11 +487,19 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
       <StepFrame
         scrollWithContent
         footer={
-          <StepFooter onBack={onBack} onContinue={handleContinue} ctaLabel={tCommon('continue')} />
+          <StepFooter
+            onBack={onBack}
+            onContinue={handleContinue}
+            ctaLabel={continueCtaLabel}
+            showCtaCaret={showContinueCaret}
+          />
         }
       >
-        <Container className="flex flex-1 flex-col">
-          <div className="border-border divide-border flex flex-1 flex-col divide-y overflow-visible border-x">
+        <Container className="flex min-h-full flex-1 flex-col">
+          <WizardBorderedColumn
+            className="divide-border divide-y"
+            layoutKey={borderedColumnLayoutKey}
+          >
             <StepHeader
               title={t('title')}
               sideBorders={false}
@@ -389,7 +507,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
               bottomBorder={false}
             />
             <EuRepWizardAlreadyCovered contract={matchedContract} />
-          </div>
+          </WizardBorderedColumn>
         </Container>
       </StepFrame>
     );
@@ -405,242 +523,269 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
             onContinue={handleContinue}
             onSkip={showSkipOffer ? handleSkip : undefined}
             skipLabel={tCommon('skip')}
-            ctaLabel={tCommon('continue')}
+            ctaLabel={continueCtaLabel}
+            showCtaCaret={showContinueCaret}
           />
         }
       >
-        <Container className="flex flex-1 flex-col">
-          <div className="border-border divide-border flex flex-1 flex-col divide-y border-x">
-            <StepHeader
-              title={t('title')}
-              description={t('intro')}
-              sideBorders={false}
-              contained={false}
-              bottomBorder={false}
-            />
-            <WizardQuestionRow
-              variant="choices"
-              name="namedDatenschutzpartner"
-              options={yesNo}
-              value={namedDatenschutzpartner}
-              label={t('namedDatenschutzpartner', {
-                company: EU_REP_REPRESENTATIVE.name,
-              })}
-              required={Boolean(errors.namedDatenschutzpartner)}
-              requiredBadgeLabel={tQuestionnaire('requiredBadge')}
-              requiredShakeKey={validationAttempt}
-              onChange={(value) => {
-                const next = value as EuRepYesNo;
-                setNamedDatenschutzpartner(next);
-                if (next === 'yes') {
-                  setHasNamedEuRep('yes');
-                } else {
-                  setHasNamedEuRep('');
-                }
-                setErrors((current) => ({ ...current, namedDatenschutzpartner: undefined }));
-              }}
-            />
-
-            <Reveal show={namedDatenschutzpartner === 'yes'}>
-              <EuRepWizardCoveredSection
-                title={t('gotYouCovered')}
-                body={t('gotYouCoveredRepresentativeIntro')}
-              >
-                <EuRepRepresentativeAddress plain hideTitle />
-              </EuRepWizardCoveredSection>
-            </Reveal>
-
-            <Reveal show={namedDatenschutzpartner === 'no'}>
+        <Container className="flex min-h-full flex-1 flex-col">
+          <WizardBorderedColumn layoutKey={borderedColumnLayoutKey}>
+            <div className="divide-border divide-y">
+              <StepHeader
+                title={t('title')}
+                description={euRepIntro}
+                sideBorders={false}
+                contained={false}
+                bottomBorder={false}
+              />
               <WizardQuestionRow
                 variant="choices"
-                name="hasNamedEuRep"
+                name="namedDatenschutzpartner"
                 options={yesNo}
-                value={hasNamedEuRep}
-                label={t('hasNamedEuRep')}
-                required={Boolean(errors.hasNamedEuRep)}
+                value={namedDatenschutzpartner}
+                label={t('namedDatenschutzpartner', {
+                  company: EU_REP_REPRESENTATIVE.name,
+                })}
+                required={Boolean(errors.namedDatenschutzpartner)}
                 requiredBadgeLabel={tQuestionnaire('requiredBadge')}
                 requiredShakeKey={validationAttempt}
                 onChange={(value) => {
                   const next = value as EuRepYesNo;
-                  setHasNamedEuRep(next);
-                  setOfferSelected(next === 'no');
-                  if (next === 'no') {
-                    setSelectedPlanId('basis');
+                  setNamedDatenschutzpartner(next);
+                  if (next === 'yes') {
+                    setHasNamedEuRep('yes');
+                  } else {
+                    setHasNamedEuRep('');
                   }
-                  setErrors((current) => ({ ...current, hasNamedEuRep: undefined }));
+                  setErrors((current) => ({ ...current, namedDatenschutzpartner: undefined }));
                 }}
-                followUp={
-                  <Reveal show={thirdPartyVisible}>
-                    <div className="flex w-full flex-col gap-4 pt-6 lg:w-1/2">
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          htmlFor="thirdPartyRepName"
-                          className="text-foreground text-sm font-medium"
-                        >
-                          {tQuestionnaire('fields.thirdPartyRepName')}
-                        </label>
-                        <TextInput
-                          value={thirdPartyRepName}
-                          onChange={(event) => {
-                            setThirdPartyRepName(event.target.value);
-                            setErrors((current) => ({ ...current, thirdPartyRepName: undefined }));
-                          }}
-                        />
-                        {errors.thirdPartyRepName ? (
-                          <p className="text-danger text-xs">{errors.thirdPartyRepName}</p>
-                        ) : null}
-                      </div>
+              />
 
-                      <PostalAddressFields
-                        street={thirdPartyRepStreet}
-                        postalCode={thirdPartyRepPostalCode}
-                        city={thirdPartyRepCity}
-                        onStreetChange={(value) => {
-                          setThirdPartyRepStreet(value);
-                          setErrors((current) => ({ ...current, thirdPartyRepStreet: undefined }));
+              {namedDatenschutzpartner ? (
+                <EuRepPartnerFollowUp branch={namedDatenschutzpartner}>
+                  {(variant) =>
+                    variant === 'covered' ? (
+                      <EuRepWizardCoveredSection
+                        title={t('gotYouCovered')}
+                        body={t('gotYouCoveredRepresentativeIntro')}
+                      >
+                        <EuRepRepresentativeAddress plain hideTitle />
+                      </EuRepWizardCoveredSection>
+                    ) : (
+                      <WizardQuestionRow
+                        variant="choices"
+                        name="hasNamedEuRep"
+                        options={yesNo}
+                        value={hasNamedEuRep}
+                        label={t('hasNamedEuRep')}
+                        required={Boolean(errors.hasNamedEuRep)}
+                        requiredBadgeLabel={tQuestionnaire('requiredBadge')}
+                        requiredShakeKey={validationAttempt}
+                        onChange={(value) => {
+                          const next = value as EuRepYesNo;
+                          setHasNamedEuRep(next);
+                          setOfferSelected(next === 'no');
+                          if (next === 'no') {
+                            setSelectedPlanId('basis');
+                          }
+                          setErrors((current) => ({ ...current, hasNamedEuRep: undefined }));
                         }}
-                        onPostalCodeChange={(value) => {
-                          setThirdPartyRepPostalCode(value);
-                          setErrors((current) => ({
-                            ...current,
-                            thirdPartyRepPostalCode: undefined,
-                          }));
-                        }}
-                        onCityChange={(value) => {
-                          setThirdPartyRepCity(value);
-                          setErrors((current) => ({ ...current, thirdPartyRepCity: undefined }));
-                        }}
-                        showLine2={false}
-                        line1Error={
-                          errors.thirdPartyRepStreet ??
-                          errors.thirdPartyRepPostalCode ??
-                          errors.thirdPartyRepCity
+                        followUp={
+                          <Reveal show={thirdPartyVisible}>
+                            <div
+                              ref={euRepThirdPartyRef}
+                              className="flex w-full flex-col gap-6 pt-6 lg:w-1/2"
+                            >
+                              <div className="flex flex-col gap-1.5">
+                                <label
+                                  htmlFor="thirdPartyRepName"
+                                  className="text-foreground text-sm font-medium"
+                                >
+                                  {tQuestionnaire('fields.thirdPartyRepName')}
+                                </label>
+                                <TextInput
+                                  value={thirdPartyRepName}
+                                  onChange={(event) => {
+                                    setThirdPartyRepName(event.target.value);
+                                    setErrors((current) => ({
+                                      ...current,
+                                      thirdPartyRepName: undefined,
+                                    }));
+                                  }}
+                                />
+                                {errors.thirdPartyRepName ? (
+                                  <p className="text-danger text-xs">{errors.thirdPartyRepName}</p>
+                                ) : null}
+                              </div>
+
+                              <PostalAddressFields
+                                street={thirdPartyRepStreet}
+                                postalCode={thirdPartyRepPostalCode}
+                                city={thirdPartyRepCity}
+                                onStreetChange={(value) => {
+                                  setThirdPartyRepStreet(value);
+                                  setErrors((current) => ({
+                                    ...current,
+                                    thirdPartyRepStreet: undefined,
+                                  }));
+                                }}
+                                onPostalCodeChange={(value) => {
+                                  setThirdPartyRepPostalCode(value);
+                                  setErrors((current) => ({
+                                    ...current,
+                                    thirdPartyRepPostalCode: undefined,
+                                  }));
+                                }}
+                                onCityChange={(value) => {
+                                  setThirdPartyRepCity(value);
+                                  setErrors((current) => ({
+                                    ...current,
+                                    thirdPartyRepCity: undefined,
+                                  }));
+                                }}
+                                country={thirdPartyRepCountry}
+                                onCountryChange={(value) => {
+                                  setThirdPartyRepCountry(value);
+                                  setErrors((current) => ({
+                                    ...current,
+                                    thirdPartyRepCountry: undefined,
+                                  }));
+                                }}
+                                countryError={errors.thirdPartyRepCountry}
+                                showLine2={false}
+                                line1Error={errors.thirdPartyRepStreet}
+                                postalCodeError={errors.thirdPartyRepPostalCode}
+                                cityError={errors.thirdPartyRepCity}
+                              />
+
+                              <div className="flex flex-col gap-1.5">
+                                <label
+                                  htmlFor="thirdPartyRepEmail"
+                                  className="text-foreground text-sm font-medium"
+                                >
+                                  {tQuestionnaire('fields.thirdPartyRepEmail')}
+                                </label>
+                                <TextInput
+                                  type="email"
+                                  value={thirdPartyRepEmail}
+                                  onChange={(event) => {
+                                    setThirdPartyRepEmail(event.target.value);
+                                    setErrors((current) => ({
+                                      ...current,
+                                      thirdPartyRepEmail: undefined,
+                                    }));
+                                  }}
+                                />
+                                {errors.thirdPartyRepEmail ? (
+                                  <p className="text-danger text-xs">{errors.thirdPartyRepEmail}</p>
+                                ) : null}
+                              </div>
+
+                              {offerVariant === 'switch' && !offerSelected ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-fit rounded-full"
+                                  onPress={() => {
+                                    setHasNamedEuRep('no');
+                                    setOfferSelected(true);
+                                    setSelectedPlanId('basis');
+                                    setErrors((current) => ({
+                                      ...current,
+                                      hasNamedEuRep: undefined,
+                                      thirdPartyRepName: undefined,
+                                      thirdPartyRepStreet: undefined,
+                                      thirdPartyRepPostalCode: undefined,
+                                      thirdPartyRepCity: undefined,
+                                      thirdPartyRepCountry: undefined,
+                                      thirdPartyRepEmail: undefined,
+                                    }));
+                                  }}
+                                >
+                                  {t('switchToDatenschutzpartner')}
+                                </Button>
+                              ) : null}
+                            </div>
+                          </Reveal>
                         }
                       />
+                    )
+                  }
+                </EuRepPartnerFollowUp>
+              ) : null}
+            </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          htmlFor="thirdPartyRepCountry"
-                          className="text-foreground text-sm font-medium"
-                        >
-                          {tQuestionnaire('fields.thirdPartyRepCountry')}
-                        </label>
-                        <CountryAutocomplete
-                          value={thirdPartyRepCountry}
-                          placeholder={tQuestionnaire('placeholders.select')}
-                          onChange={(value) => {
-                            setThirdPartyRepCountry(value);
+            {namedDatenschutzpartner === 'no' ? (
+              <div
+                className={cn('flex min-h-0 flex-col overflow-visible', showEuRepOffer && 'flex-1')}
+              >
+                <Reveal
+                  show={Boolean(showEuRepOffer && offerVariant)}
+                  fill={showEuRepOffer}
+                  overflowVisible
+                >
+                  <div
+                    ref={euRepOfferRef}
+                    className="border-border flex min-h-0 flex-1 flex-col overflow-visible border-t"
+                  >
+                    <div className="flex min-h-0 flex-1 flex-col overflow-visible">
+                      {offerVariant ? (
+                        <EuRepWizardOffer
+                          variant={offerVariant}
+                          selected={offerSelected}
+                          onSelectedChange={(value) => {
+                            setOfferSelected(value);
+                            if (!value) {
+                              setErrors((current) => ({
+                                ...current,
+                                legalEntity: undefined,
+                                forwardingEmail: undefined,
+                                postalDepartment: undefined,
+                                postalLine1: undefined,
+                                postalLine2: undefined,
+                                postalCode: undefined,
+                                city: undefined,
+                                country: undefined,
+                              }));
+                            }
+                          }}
+                          legalEntity={legalEntity}
+                          forwardingEmail={forwardingEmail}
+                          onLegalEntityChange={(value) => {
+                            setLegalEntity(value);
+                            setErrors((current) => ({ ...current, legalEntity: undefined }));
+                          }}
+                          onForwardingEmailChange={(value) => {
+                            setForwardingEmail(value);
+                            setErrors((current) => ({ ...current, forwardingEmail: undefined }));
+                          }}
+                          legalEntityError={errors.legalEntity}
+                          forwardingEmailError={errors.forwardingEmail}
+                          postal={postal}
+                          onPostalChange={(patch) => {
+                            setPostal((current) => ({ ...current, ...patch }));
                             setErrors((current) => ({
                               ...current,
-                              thirdPartyRepCountry: undefined,
+                              ...Object.fromEntries(
+                                (Object.keys(patch) as Array<keyof EuRepPostalFields>).map(
+                                  (key) => [key, undefined]
+                                )
+                              ),
                             }));
                           }}
+                          postalErrors={errors}
+                          selectedPlanId={selectedPlanId}
+                          onPlanChange={setSelectedPlanId}
                         />
-                        {errors.thirdPartyRepCountry ? (
-                          <p className="text-danger text-xs">{errors.thirdPartyRepCountry}</p>
-                        ) : null}
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          htmlFor="thirdPartyRepEmail"
-                          className="text-foreground text-sm font-medium"
-                        >
-                          {tQuestionnaire('fields.thirdPartyRepEmail')}
-                        </label>
-                        <TextInput
-                          type="email"
-                          value={thirdPartyRepEmail}
-                          onChange={(event) => {
-                            setThirdPartyRepEmail(event.target.value);
-                            setErrors((current) => ({ ...current, thirdPartyRepEmail: undefined }));
-                          }}
-                        />
-                        {errors.thirdPartyRepEmail ? (
-                          <p className="text-danger text-xs">{errors.thirdPartyRepEmail}</p>
-                        ) : null}
-                      </div>
-
-                      {offerVariant === 'switch' && !offerSelected ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-fit rounded-full"
-                          onPress={() => {
-                            setHasNamedEuRep('no');
-                            setOfferSelected(true);
-                            setSelectedPlanId('basis');
-                            setErrors((current) => ({
-                              ...current,
-                              hasNamedEuRep: undefined,
-                              thirdPartyRepName: undefined,
-                              thirdPartyRepStreet: undefined,
-                              thirdPartyRepPostalCode: undefined,
-                              thirdPartyRepCity: undefined,
-                              thirdPartyRepCountry: undefined,
-                              thirdPartyRepEmail: undefined,
-                            }));
-                          }}
-                        >
-                          {t('switchToDatenschutzpartner')}
-                        </Button>
                       ) : null}
                     </div>
-                  </Reveal>
-                }
-              />
-            </Reveal>
-
-            <Reveal show={showEuRepOffer} variant="fade">
-              {offerVariant ? (
-                <EuRepWizardOffer
-                  variant={offerVariant}
-                  selected={offerSelected}
-                  onSelectedChange={(value) => {
-                    setOfferSelected(value);
-                    if (!value) {
-                      setErrors((current) => ({
-                        ...current,
-                        legalEntity: undefined,
-                        forwardingEmail: undefined,
-                        postalLine1: undefined,
-                        postalLine2: undefined,
-                        postalCode: undefined,
-                        city: undefined,
-                        country: undefined,
-                      }));
-                    }
-                  }}
-                  legalEntity={legalEntity}
-                  forwardingEmail={forwardingEmail}
-                  onLegalEntityChange={(value) => {
-                    setLegalEntity(value);
-                    setErrors((current) => ({ ...current, legalEntity: undefined }));
-                  }}
-                  onForwardingEmailChange={(value) => {
-                    setForwardingEmail(value);
-                    setErrors((current) => ({ ...current, forwardingEmail: undefined }));
-                  }}
-                  legalEntityError={errors.legalEntity}
-                  forwardingEmailError={errors.forwardingEmail}
-                  postal={postal}
-                  onPostalChange={(patch) => {
-                    setPostal((current) => ({ ...current, ...patch }));
-                    setErrors((current) => {
-                      const next = { ...current };
-                      for (const key of Object.keys(patch) as Array<keyof EuRepPostalFields>) {
-                        delete next[key];
-                      }
-                      return next;
-                    });
-                  }}
-                  postalErrors={errors}
-                  selectedPlanId={selectedPlanId}
-                  onPlanChange={setSelectedPlanId}
-                />
-              ) : null}
-            </Reveal>
-          </div>
+                  </div>
+                </Reveal>
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1" aria-hidden />
+            )}
+          </WizardBorderedColumn>
         </Container>
       </StepFrame>
 

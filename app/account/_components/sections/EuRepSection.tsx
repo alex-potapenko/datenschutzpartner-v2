@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState, type Key } from 'react';
+import { useMemo, type Key } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { EU_REP_FAQ_CATEGORY_IDS, EU_REP_FAQ_ITEMS_BY_CATEGORY } from '@/lib/faq-content/constants';
 import {
@@ -25,6 +26,7 @@ import { MembershipPanel } from './MembershipPanel';
 import {
   AnimatedServiceTabContent,
   EU_REP_TAB_IDS,
+  parseEuRepTab,
   useServiceTabs,
   type ServiceTabId,
 } from './service-tabs';
@@ -68,8 +70,12 @@ export function EuRepSection() {
   const tTabs = useTranslations('account.serviceTabs');
   const tSubs = useTranslations('account.subscriptions');
   const tDocuments = useTranslations('account.documents');
-  const [tab, setTab] = useState<ServiceTabId>('subscription');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const tabs = useServiceTabs(EU_REP_TAB_IDS);
+  const tabFromUrl = parseEuRepTab(searchParams.get('tab')) ?? 'subscription';
+  const tab = tabFromUrl;
 
   const contracts = useEuRepContracts();
   const subscriptions = useSubscriptions();
@@ -81,7 +87,7 @@ export function EuRepSection() {
     return (
       (subscriptions.data ?? []).find((row) => row.id === activeContract.subscriptionId) ?? null
     );
-  }, [activeContract?.subscriptionId, subscriptions.data]);
+  }, [activeContract, subscriptions.data]);
 
   const hasEuRepEntity = Boolean(activeContract);
   const canDelete = canDeleteEuRepEntity(euRepSubscription);
@@ -165,7 +171,10 @@ export function EuRepSection() {
       tabsAriaLabel={tTabs('ariaLabel')}
       selectedTab={tab}
       onTabChange={(key: Key) => {
-        setTab(key as ServiceTabId);
+        const next = key as ServiceTabId;
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', next);
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
       }}
     >
       <AnimatedServiceTabContent tabKey={tab} tabOrder={EU_REP_TAB_IDS}>

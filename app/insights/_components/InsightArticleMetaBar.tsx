@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
-import { getLocale, getTranslations } from 'next-intl/server';
-import { isLiveInsightTab, type InsightArticle } from '@/lib/insights-content';
-import { formatInsightLiveAt, isUpcomingWebinar } from '@/lib/webinar-calendar';
-import type { Locale } from '@/i18n/config';
-import { InsightArticleCalendarButton } from './InsightArticleCalendarButton';
+import { getTranslations } from 'next-intl/server';
+import type { InsightArticle } from '@/lib/insights-content';
 import { InsightArticleShare } from './InsightArticleShare';
 import { INSIGHT_META_LABEL_CLASS, INSIGHT_META_VALUE_CLASS } from './insight-article-layout';
 
@@ -45,34 +42,16 @@ function MetaSection({ children }: { children: ReactNode }) {
 
 export async function InsightArticleMetaBar({ article }: InsightArticleMetaBarProps) {
   const t = await getTranslations('insights');
-  const locale = (await getLocale()) as Locale;
-  const isLiveSession = isLiveInsightTab(article.tab);
-  const liveAtFormatted =
-    isLiveSession && article.liveAt ? formatInsightLiveAt(article.liveAt, locale) : null;
 
   return (
     <aside className="flex flex-col gap-8">
-      {isLiveSession && article.presenter && (
-        <PersonMetaBlock label={t('presenter')} name={article.presenter} />
-      )}
+      {article.author && <PersonMetaBlock label={t('author')} name={article.author} />}
 
       <MetaSection>
-        <MetaLabel>{isLiveSession ? t('liveAt') : t('published')}</MetaLabel>
-        <time className={INSIGHT_META_VALUE_CLASS} dateTime={article.liveAt ?? article.date}>
-          {liveAtFormatted ?? article.date}
+        <MetaLabel>{t('published')}</MetaLabel>
+        <time className={INSIGHT_META_VALUE_CLASS} dateTime={article.date}>
+          {article.date}
         </time>
-        {isLiveSession &&
-          article.liveAt &&
-          article.liveAtDurationMinutes &&
-          isUpcomingWebinar(article.liveAt, article.liveAtDurationMinutes) && (
-            <InsightArticleCalendarButton
-              slug={article.slug}
-              title={article.title}
-              description={article.description}
-              liveAt={article.liveAt}
-              durationMinutes={article.liveAtDurationMinutes}
-            />
-          )}
       </MetaSection>
 
       <MetaSection>

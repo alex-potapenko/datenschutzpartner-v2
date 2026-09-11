@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui';
-import { displayCountryLabel } from '@/lib/swiss-country';
 import { PostalAddressFields } from '@/app/result/ui/PostalAddressFields';
 
 function Field({
@@ -38,6 +37,7 @@ function Field({
 }
 
 export type EuRepPostalFields = {
+  postalDepartment?: string;
   postalLine1: string;
   postalLine2?: string;
   postalCode: string;
@@ -56,6 +56,10 @@ type EuRepContractFieldsProps = {
   postal?: EuRepPostalFields;
   onPostalChange?: (patch: Partial<EuRepPostalFields>) => void;
   postalErrors?: Partial<Record<keyof EuRepPostalFields, string>>;
+  onLegalEntityFocus?: () => void;
+  onForwardingEmailFocus?: () => void;
+  onPostalFieldFocus?: () => void;
+  addressRequiredShakeKey?: number;
   /** Render one field group or all — detail screens split fields into separate sections. */
   fields?: 'both' | 'legalEntity' | 'forwardingEmail' | 'postal';
 };
@@ -71,36 +75,92 @@ export function EuRepContractFields({
   postal,
   onPostalChange,
   postalErrors,
+  onLegalEntityFocus,
+  onForwardingEmailFocus,
+  onPostalFieldFocus,
+  addressRequiredShakeKey = 0,
   fields = 'both',
 }: EuRepContractFieldsProps) {
   const t = useTranslations('account.euRep.contract');
-  const tCommon = useTranslations('common');
-  const legalId = `${idPrefix}-legal-entity`;
+  const tQuestionnaire = useTranslations('result.questionnaireStep');
   const emailId = `${idPrefix}-forwarding-email`;
-  const showLegalEntity = fields === 'both' || fields === 'legalEntity';
   const showForwardingEmail = fields === 'both' || fields === 'forwardingEmail';
-  const showPostal = (fields === 'both' || fields === 'postal') && postal && onPostalChange;
+  const showAddress =
+    (fields === 'both' || fields === 'postal' || fields === 'legalEntity') &&
+    postal &&
+    onPostalChange;
+  const showLegalEntityInAddress = fields === 'both' || fields === 'legalEntity';
+  const showPostalLines = fields === 'both' || fields === 'postal';
+  const showAddressRequired = Boolean(
+    postalErrors?.postalLine1 || postalErrors?.postalCode || postalErrors?.city
+  );
 
   return (
     <div className="flex flex-col gap-5">
-      {showLegalEntity ? (
-        <Field
-          id={legalId}
-          label={fields === 'both' ? t('name') : undefined}
-          error={legalEntityError}
-        >
-          <Input
-            id={legalId}
-            variant="secondary"
-            value={legalEntity}
-            onChange={(event) => {
-              onLegalEntityChange(event.target.value);
-            }}
-            aria-invalid={Boolean(legalEntityError)}
-            aria-label={fields === 'legalEntity' ? t('name') : undefined}
-            fullWidth
-          />
-        </Field>
+      {showAddress ? (
+        <PostalAddressFields
+          idPrefix={idPrefix}
+          legalEntity={showLegalEntityInAddress ? legalEntity : undefined}
+          onLegalEntityChange={showLegalEntityInAddress ? onLegalEntityChange : undefined}
+          onLegalEntityFocus={onLegalEntityFocus}
+          legalEntityError={legalEntityError}
+          legalEntityRequiredLabel={legalEntityError ? tQuestionnaire('requiredBadge') : undefined}
+          legalEntityRequiredShakeKey={addressRequiredShakeKey}
+          department={showPostalLines ? (postal.postalDepartment ?? '') : undefined}
+          onDepartmentChange={
+            showPostalLines
+              ? (value) => {
+                  onPostalChange({ postalDepartment: value });
+                }
+              : undefined
+          }
+          departmentError={postalErrors?.postalDepartment}
+          street={showPostalLines ? postal.postalLine1 : ''}
+          streetLine2={showPostalLines ? postal.postalLine2 : undefined}
+          postalCode={showPostalLines ? postal.postalCode : ''}
+          city={showPostalLines ? postal.city : ''}
+          onStreetChange={(value) => {
+            onPostalChange({ postalLine1: value });
+          }}
+          onStreetLine2Change={
+            showPostalLines
+              ? (value) => {
+                  onPostalChange({ postalLine2: value });
+                }
+              : undefined
+          }
+          onPostalCodeChange={(value) => {
+            onPostalChange({ postalCode: value });
+          }}
+          onCityChange={(value) => {
+            onPostalChange({ city: value });
+          }}
+          onLegalEntityUidSelect={(company) => {
+            onPostalChange({
+              postalLine1: company.street,
+              postalCode: company.postalCode,
+              city: company.city,
+              country: company.country,
+            });
+          }}
+          onAddressFocus={onPostalFieldFocus}
+          optionalBadge={tQuestionnaire('optionalBadge')}
+          line1RequiredLabel={
+            showPostalLines && showAddressRequired ? tQuestionnaire('requiredBadge') : undefined
+          }
+          requiredShakeKey={addressRequiredShakeKey}
+          streetError={postalErrors?.postalLine1}
+          postalCodeError={postalErrors?.postalCode}
+          cityError={postalErrors?.city}
+          streetLine2Error={postalErrors?.postalLine2}
+          showLine2={showPostalLines}
+          showPostalLines={showPostalLines}
+          country={postal.country}
+          onCountryChange={(value) => {
+            onPostalChange({ country: value });
+          }}
+          countryError={postalErrors?.country}
+        />
       ) : null}
       {showForwardingEmail ? (
         <Field
@@ -118,41 +178,12 @@ export function EuRepContractFields({
             onChange={(event) => {
               onForwardingEmailChange(event.target.value);
             }}
+            onFocus={onForwardingEmailFocus}
             aria-invalid={Boolean(forwardingEmailError)}
             aria-label={fields === 'forwardingEmail' ? t('forwardingEmail') : undefined}
             fullWidth
           />
         </Field>
-      ) : null}
-      {showPostal ? (
-        <>
-          <PostalAddressFields
-            idPrefix={idPrefix}
-            street={postal.postalLine1}
-            streetLine2={postal.postalLine2}
-            postalCode={postal.postalCode}
-            city={postal.city}
-            onStreetChange={(value) => {
-              onPostalChange({ postalLine1: value });
-            }}
-            onStreetLine2Change={(value) => {
-              onPostalChange({ postalLine2: value });
-            }}
-            onPostalCodeChange={(value) => {
-              onPostalChange({ postalCode: value });
-            }}
-            onCityChange={(value) => {
-              onPostalChange({ city: value });
-            }}
-            line1Error={postalErrors?.postalLine1 ?? postalErrors?.postalCode ?? postalErrors?.city}
-            streetLine2Error={postalErrors?.postalLine2}
-          />
-          <Field id={`${idPrefix}-country`} label={t('country')}>
-            <p className="text-foreground text-sm leading-relaxed">
-              {displayCountryLabel(postal.country, tCommon('countrySwitzerland'))}
-            </p>
-          </Field>
-        </>
       ) : null}
     </div>
   );

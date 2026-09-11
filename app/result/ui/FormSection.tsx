@@ -8,7 +8,7 @@ import {
   CheckboxContent,
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { MetaBadge } from '@/components/shared/MetaBadge';
+import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
 
 interface FormSectionProps {
   title: string;
@@ -31,22 +31,45 @@ export function FormSection({ title, description, children }: FormSectionProps) 
 interface FieldProps {
   label: string;
   children: ReactNode;
+  description?: string;
+  descriptionClassName?: string;
   hint?: string;
   hintClassName?: string;
-  optionalLabel?: string;
+  required?: boolean;
+  requiredLabel?: string;
+  requiredShakeKey?: number;
 }
 
-export function Field({ label, children, hint, hintClassName, optionalLabel }: FieldProps) {
+export function Field({
+  label,
+  children,
+  description,
+  descriptionClassName,
+  hint,
+  hintClassName,
+  required,
+  requiredLabel,
+  requiredShakeKey,
+}: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-foreground text-sm leading-snug font-medium">
         {label}
-        {optionalLabel ? (
-          <MetaBadge kind="optional" className="ml-1.5 align-middle">
-            {optionalLabel}
-          </MetaBadge>
+        {requiredLabel ? (
+          <ValidationRequiredBadge
+            show={Boolean(required)}
+            shakeKey={requiredShakeKey}
+            className="ml-1.5"
+          >
+            {requiredLabel}
+          </ValidationRequiredBadge>
         ) : null}
       </label>
+      {description ? (
+        <p className={cn('text-muted text-sm leading-relaxed', descriptionClassName)}>
+          {description}
+        </p>
+      ) : null}
       {children}
       {hint ? (
         <p className={cn('text-xs leading-snug', hintClassName ?? 'text-foreground')}>{hint}</p>
@@ -65,6 +88,13 @@ interface TextInputProps {
   type?: string;
   className?: string;
   readOnly?: boolean;
+  isDisabled?: boolean;
+  autoComplete?: string;
+  'aria-invalid'?: boolean;
+  optionalLabel?: string;
+  fullWidth?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  min?: number;
 }
 
 export function TextInput({
@@ -77,6 +107,13 @@ export function TextInput({
   type = 'text',
   className,
   readOnly,
+  isDisabled,
+  autoComplete,
+  'aria-invalid': ariaInvalid,
+  optionalLabel,
+  fullWidth = true,
+  inputMode,
+  min,
 }: TextInputProps) {
   return (
     <Input
@@ -87,10 +124,15 @@ export function TextInput({
       onChange={onChange}
       onFocus={onFocus}
       onBlur={onBlur}
-      placeholder={placeholder}
-      fullWidth
+      placeholder={placeholder ?? optionalLabel}
+      fullWidth={fullWidth}
       className={className}
       readOnly={readOnly}
+      disabled={isDisabled}
+      autoComplete={autoComplete}
+      aria-invalid={ariaInvalid}
+      inputMode={inputMode}
+      min={min}
     />
   );
 }
@@ -119,8 +161,10 @@ export function RadioGroup({ options, value, onChange }: RadioGroupProps) {
             size="lg"
             variant="outline"
             className={cn(
-              'rounded-full',
-              selected && 'border-key-500 bg-key-100 text-foreground border-2'
+              'rounded-full border-0',
+              selected
+                ? 'bg-key-100 text-foreground [box-shadow:inset_0_0_0_2px_var(--key-500)]'
+                : '[box-shadow:inset_0_0_0_2px_var(--border)]'
             )}
             onPress={() => {
               onChange(opt.value);
@@ -141,7 +185,7 @@ interface AnswerPillProps {
 /** Read-only pill matching the selected state of {@link RadioGroup}. */
 export function AnswerPill({ label }: AnswerPillProps) {
   return (
-    <span className="font-display border-key-500 bg-key-100 text-foreground inline-flex w-fit items-center rounded-full border-2 px-4 py-2 text-base font-normal">
+    <span className="font-display bg-key-100 text-foreground inline-flex w-fit items-center rounded-full px-4 py-2 text-base font-normal [box-shadow:inset_0_0_0_2px_var(--key-500)]">
       {label}
     </span>
   );

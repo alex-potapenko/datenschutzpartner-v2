@@ -6,7 +6,10 @@ Stack is fixed — see `AGENTS.md`.
 
 | Path                    | Responsibility                                                                                                                                                           |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `app/academy/`          | Academy landing page, past sessions archive (`/academy/past-sessions`), and article pages.                                                                               |
+| `app/academy/`          | Marketing-only Academy landing page; all Academy access continues on the external platform.                                                                              |
+| `app/news/`             | News listing and article routes.                                                                                                                                         |
+| `app/podcasts/`         | Podcast listing and episode routes.                                                                                                                                      |
+| `app/insights/`         | Legacy redirects plus shared article presentation components.                                                                                                            |
 | `app/eu-rep/`           | EU representation landing page and the Art. 27 GDPR questionnaire (`/eu-rep/questionnaire`).                                                                             |
 | `app/scan/`             | Privacy policy generator landing page (`/scan`) with an on-page FAQ section (`#faq`); linked from the result wizard top bar.                                             |
 | `app/account/`          | Authenticated member area (`/account`, «Mein Konto»); client-side section switching (`?section=`) over a persistent sidebar shell. Trial payment is `/account/checkout`. |
@@ -19,9 +22,8 @@ Stack is fixed — see `AGENTS.md`.
 | `styles/tokens.css`     | Brand design tokens. Re-theme the whole app here.                                                                                                                        |
 | `content/legal/`        | Authoritative German legal copy (imprint, privacy, terms) rendered as static pages.                                                                                      |
 | `content/insights/`     | Optional markdown bodies for insight articles (`{slug}.{locale}.md`).                                                                                                    |
-| `content/academy/`      | Markdown bodies for Datenschutz Academy articles (`{slug}.{locale}.md`).                                                                                                 |
-| `lib/insights-content/` | Static insight data (webinars, news & questions, podcasts) with tab-aware prev/next helpers.                                                                             |
-| `lib/academy-content/`  | Academy helpers for webinars and News & Questions; content is derived from `lib/insights-content/` so both surfaces stay in sync.                                        |
+| `lib/insights-content/` | Static public insight data (news and podcasts) with tab-aware prev/next helpers.                                                                                         |
+| `lib/academy-content/`  | Landing constants, including the external Academy URL and feature keys.                                                                                                  |
 | `messages/`             | next-intl translations (de/en, default `de`).                                                                                                                            |
 | `docs/`                 | This documentation set.                                                                                                                                                  |
 

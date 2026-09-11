@@ -50,6 +50,26 @@ export const ADD_WEBSITE_WIZARD_HREF = '/result?step=website';
 /** Standalone New EU Representation checkout. */
 export const ADD_EU_REP_CHECKOUT_HREF = '/account/eu-rep/checkout';
 
+/** Full-screen questionnaire for a hosted policy's basic information. */
+export const POLICY_BASIC_INFORMATION_HREF = '/account/policy/basic-information';
+
+/** Full-screen wizard for a member-triggered policy rescan. */
+export const POLICY_MANUAL_SCAN_HREF = '/account/policy/manual-scan';
+
+export function policyBasicInformationHref(documentId: string, returnTo?: string | null) {
+  return withReturnTo(
+    `${POLICY_BASIC_INFORMATION_HREF}?document=${encodeURIComponent(documentId)}`,
+    returnTo
+  );
+}
+
+export function policyManualScanHref(documentId: string, returnTo?: string | null) {
+  return withReturnTo(
+    `${POLICY_MANUAL_SCAN_HREF}?document=${encodeURIComponent(documentId)}`,
+    returnTo
+  );
+}
+
 /** Only in-app account paths — used as Quit / Back targets. */
 export function safeAccountReturnTo(value: string | null | undefined): string | undefined {
   if (!value) return undefined;
@@ -96,6 +116,10 @@ export function addWebsiteWizardHref(returnTo?: string | null) {
 
 export function addEuRepCheckoutHref(returnTo?: string | null) {
   return withReturnTo(ADD_EU_REP_CHECKOUT_HREF, returnTo);
+}
+
+export function buildCurrentPathReturnTo(pathname: string, search: string): string {
+  return search ? `${pathname}?${search}` : pathname;
 }
 
 export function fillPolicySlotWizardHref(subscriptionId: string, returnTo?: string | null) {

@@ -49,10 +49,12 @@ export function CheckoutPriceBreakdown({
   lines,
   subtotalExclVat,
   payrexxNote,
+  header,
 }: {
   lines?: CheckoutBreakdownLine[];
   subtotalExclVat: number;
   payrexxNote?: string;
+  header?: ReactNode;
 }) {
   const tSummary = useTranslations('result.summary');
   const vatAmount = calculateVatAmount(subtotalExclVat);
@@ -60,7 +62,8 @@ export function CheckoutPriceBreakdown({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="border-border flex flex-col gap-3 border-t pt-4">
+      <div className="flex flex-col gap-3">
+        {header}
         {lines?.map((line, index) => (
           <CheckoutPriceRow key={index} {...line} />
         ))}
@@ -105,6 +108,7 @@ type ServiceCheckoutPlanCardProps = {
   breakdownLines?: CheckoutBreakdownLine[];
   subtotalExclVat: number;
   payrexxNote?: string;
+  preBreakdownFooter?: ReactNode;
   footerAction?: ReactNode;
 };
 
@@ -125,6 +129,7 @@ export function ServiceCheckoutPlanCard({
   breakdownLines,
   subtotalExclVat,
   payrexxNote,
+  preBreakdownFooter,
   footerAction,
 }: ServiceCheckoutPlanCardProps) {
   return (
@@ -134,6 +139,7 @@ export function ServiceCheckoutPlanCard({
       value={selectedPlanId}
       onPlanChange={onPlanChange}
       layout={layout}
+      fillHeight={layout === 'sidebar'}
       pricePeriod={pricePeriod}
       priceAlign={priceAlign}
       showOrderCta={false}
@@ -148,6 +154,7 @@ export function ServiceCheckoutPlanCard({
       footerClassName=""
       postFeaturesFooter={
         <CheckoutPriceBreakdown
+          header={preBreakdownFooter}
           lines={breakdownLines}
           subtotalExclVat={subtotalExclVat}
           payrexxNote={payrexxNote}

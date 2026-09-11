@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition, type ReactNode } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +14,8 @@ import {
   passwordChangeSchema,
   profileSchema,
   useChangePassword,
+  useDisableTwoFactor,
+  useEnableTwoFactor,
   useProfile,
   useUpdateProfile,
   type PasswordChange,
@@ -21,6 +23,7 @@ import {
 } from '@/api/account';
 import {
   Button,
+  Chip,
   Input,
   ModalRoot,
   ModalBackdrop,
@@ -33,7 +36,7 @@ import {
   cn,
   useOverlayState,
 } from '@/components/ui';
-import { StatusPill } from '@/components/shared/StatusPill';
+import { TotpInput } from '@/components/shared/TotpInput';
 import { DataState, AccountSection } from '../account-ui';
 
 const profileFormSchema = profileSchema.omit({ role: true, twoFactorEnabled: true });
@@ -315,13 +318,124 @@ function LanguagePreference() {
   );
 }
 
-function SecuritySection({ profile }: { profile: Profile }) {
+function EnableTwoFactorDialog({ state }: { state: OverlayState }) {
+  const t = useTranslations('account.accountDetails');
+  const enable = useEnableTwoFactor();
+  const [code, setCode] = useState('');
+
+  function close() {
+    setCode('');
+    state.close();
+  }
+
+  return (
+    <ModalRoot
+      state={{
+        ...state,
+        setOpen: (open: boolean) => {
+          if (!open) close();
+          state.setOpen(open);
+        },
+        close,
+      }}
+    >
+      <ModalBackdrop isDismissable>
+        <ModalContainer size="md">
+          <ModalDialog>
+            <ModalHeader>
+              <ModalHeading>{t('twoFactorEnableTitle')}</ModalHeading>
+            </ModalHeader>
+            <ModalBody>
+              <div className="flex flex-col gap-4">
+                <p className="text-foreground text-sm leading-relaxed">{t('twoFactorSetupBody')}</p>
+                <TotpInput
+                  aria-label={t('twoFactorCodeLabel')}
+                  value={code}
+                  isDisabled={enable.isPending}
+                  onChange={setCode}
+                />
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="outline" onPress={close}>
+                {t('dialogCancel')}
+              </Button>
+              <Button
+                variant="primary"
+                isDisabled={code.length !== 6 || enable.isPending}
+                onPress={() => {
+                  enable.mutate(
+                    { code },
+                    {
+                      onSuccess: () => {
+                        toast.success(t('twoFactorEnableSuccess'));
+                        close();
+                      },
+                      onError: () => {
+                        toast.error(t('twoFactorEnableError'));
+                      },
+                    }
+                  );
+                }}
+              >
+                {t('twoFactorEnableCta')}
+              </Button>
+            </ModalFooter>
+          </ModalDialog>
+        </ModalContainer>
+      </ModalBackdrop>
+    </ModalRoot>
+  );
+}
+
+function TwoFactorSectionActions({ profile }: { profile: Profile }) {
+  const t = useTranslations('account.accountDetails');
+  const enableDialog = useOverlayState();
+  const disable = useDisableTwoFactor();
+
+  if (profile.twoFactorEnabled) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-fit"
+        isDisabled={disable.isPending}
+        onPress={() => {
+          disable.mutate(undefined, {
+            onSuccess: () => {
+              toast.success(t('twoFactorDisableSuccess'));
+            },
+            onError: () => {
+              toast.error(t('twoFactorDisableError'));
+            },
+          });
+        }}
+      >
+        {t('twoFactorDisableCta')}
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-fit"
+        onPress={() => {
+          enableDialog.open();
+        }}
+      >
+        {t('twoFactorEnableCta')}
+      </Button>
+      <EnableTwoFactorDialog state={enableDialog} />
+    </>
+  );
+}
+
+function SecuritySection() {
   const t = useTranslations('account.accountDetails');
   const passwordDialog = useOverlayState();
-
-  if (profile.role === 'admin') {
-    return <StatusPill tone="success">{t('twoFactorEnabled')}</StatusPill>;
-  }
 
   return (
     <>
@@ -374,11 +488,36 @@ export function SettingsSection() {
       >
         {profile.data ? (
           <>
+            <AccountSection title={t('authentication')} contentClassName="gap-6">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-display text-muted text-xs font-semibold tracking-wide uppercase">
+                    {t('twoFactorTitle')}
+                  </h3>
+                  {profile.data.twoFactorEnabled ? (
+                    <Chip variant="secondary" size="sm" color="success" className="w-fit">
+                      {t('twoFactorEnabled')}
+                    </Chip>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-4">
+                  {!profile.data.twoFactorEnabled ? (
+                    <p className="text-muted text-sm leading-relaxed">
+                      {t('twoFactorDescription')}
+                    </p>
+                  ) : null}
+                  <TwoFactorSectionActions profile={profile.data} />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <h3 className="font-display text-muted text-xs font-semibold tracking-wide uppercase">
+                  {t('password')}
+                </h3>
+                <SecuritySection />
+              </div>
+            </AccountSection>
             <AccountSection title={t('languageTitle')} contentClassName="gap-0">
               <LanguagePreference />
-            </AccountSection>
-            <AccountSection title={t('password')} contentClassName="gap-0">
-              <SecuritySection profile={profile.data} />
             </AccountSection>
           </>
         ) : null}

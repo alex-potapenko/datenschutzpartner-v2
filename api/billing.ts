@@ -38,6 +38,25 @@ export const subscriptionSchema = z.object({
   includedRequests: z.number().int().nonnegative().optional(),
   /** EU Representation — inquiries already billed / used this term. */
   usedRequests: z.number().int().nonnegative().optional(),
+  /** EU Representation — dates when included or extra inquiries were used this term. */
+  requestUsages: z
+    .array(
+      z.object({
+        /** ISO date or datetime when the inquiry was handled. */
+        date: z.string(),
+      })
+    )
+    .optional(),
+  /** EU Representation — member-requested extra inquiry bundles awaiting payment. */
+  requestedExtraRequests: z
+    .array(
+      z.object({
+        id: z.string(),
+        quantity: z.number().int().positive(),
+        requestedDate: z.string(),
+      })
+    )
+    .optional(),
   status: billingStatusEnum,
   startDate: z.string(),
   lastOrderDate: z.string().nullable(),
@@ -96,8 +115,15 @@ export const euRepExtraRequestCreateSchema = z.object({
   subscriptionId: z.string().min(1),
   /** Optional representation this inquiry relates to. */
   contractId: z.string().min(1).optional(),
+  quantity: z.number().int().positive(),
 });
 export type EuRepExtraRequestCreate = z.infer<typeof euRepExtraRequestCreateSchema>;
+
+export const euRepExtraRequestWithdrawSchema = z.object({
+  subscriptionId: z.string().min(1),
+  requestId: z.string().min(1),
+});
+export type EuRepExtraRequestWithdraw = z.infer<typeof euRepExtraRequestWithdrawSchema>;
 
 export const billingKeys = {
   subscriptions: ['billing', 'subscriptions'] as const,
@@ -155,6 +181,7 @@ export function useContinueSubscription() {
       request<Subscription>(`/billing/subscriptions/${id}/continue`, { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
+      void queryClient.invalidateQueries({ queryKey: billingKeys.orders });
       void queryClient.invalidateQueries({ queryKey: documentKeys.all });
       void queryClient.invalidateQueries({ queryKey: euRepKeys.contracts });
     },
@@ -173,17 +200,30 @@ export function useUpdateSubscriptionBilling() {
   });
 }
 
-/** Bill CHF 99 for a payable EU Rep inquiry beyond the plan allowance. */
+/** Queue extra EU Rep inquiries; the invoice appears after Payrexx payment. */
 export function useCreateEuRepExtraRequest() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: EuRepExtraRequestCreate) =>
-      request<Order>('/billing/eu-rep/extra-request', {
+      request<Subscription>('/billing/eu-rep/extra-request', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: billingKeys.orders });
+      void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
+    },
+  });
+}
+
+export function useWithdrawEuRepExtraRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EuRepExtraRequestWithdraw) =>
+      request<Subscription>('/billing/eu-rep/extra-request', {
+        method: 'DELETE',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: billingKeys.subscriptions });
     },
   });
@@ -276,6 +316,20 @@ export function resolveEuRepRemainingRequests(subscription: Subscription): numbe
   return Math.max(0, included - used);
 }
 
+/** Usage dates for EU Rep inquiries this term, newest first. */
+export function listEuRepRequestUsages(subscription: Subscription): { date: string }[] {
+  return [...(subscription.requestUsages ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** Pending extra-request orders, newest first. */
+export function listEuRepRequestedExtraRequests(
+  subscription: Subscription
+): { id: string; quantity: number; requestedDate: string }[] {
+  return [...(subscription.requestedExtraRequests ?? [])].sort((a, b) =>
+    b.requestedDate.localeCompare(a.requestedDate)
+  );
+}
+
 function todayIsoDate(now = new Date()): string {
   return now.toISOString().slice(0, 10);
 }
@@ -283,6 +337,39 @@ function todayIsoDate(now = new Date()): string {
 /** Active billing records that still grant product access (trial counts as active). */
 export function isActiveSubscription(subscription: Subscription | null | undefined): boolean {
   return subscription?.status === 'active' || subscription?.status === 'processing';
+}
+
+/** Last calendar day the member keeps access after cancel or expiry. */
+export function subscriptionTermEndDate(subscription: Subscription): string | null {
+  if (subscription.nextPaymentDate) {
+    const date = new Date(subscription.nextPaymentDate);
+    date.setDate(date.getDate() - 1);
+    return date.toISOString().slice(0, 10);
+  }
+  const base = subscription.lastOrderDate ?? subscription.startDate;
+  if (!base) return null;
+  const date = new Date(`${base}T12:00:00`);
+  date.setFullYear(date.getFullYear() + 1);
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+export function hasSubscriptionAccessRemaining(endDateIso: string, now = new Date()): boolean {
+  return endDateIso.slice(0, 10) >= now.toISOString().slice(0, 10);
+}
+
+/** Whether the member can still view or use the subscribed product. */
+export function subscriptionGrantsProductAccess(
+  subscription: Subscription | null | undefined,
+  now = new Date()
+): boolean {
+  if (!subscription) return false;
+  if (isActiveSubscription(subscription)) return true;
+  if (subscription.status === 'cancelled' || subscription.status === 'expired') {
+    const termEnd = subscriptionTermEndDate(subscription);
+    return termEnd ? hasSubscriptionAccessRemaining(termEnd, now) : false;
+  }
+  return false;
 }
 
 /** Whether a subscription is still in its unpaid trial window. */

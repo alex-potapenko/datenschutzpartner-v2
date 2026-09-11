@@ -30,7 +30,26 @@
     "continue": "Continue",
     "skip": "Skip",
     "search": "Search",
-    "countrySwitzerland": "Switzerland"
+    "countrySwitzerland": "Switzerland",
+    "address": {
+      "legalEntityName": "Legal entity name",
+      "department": "Department or other",
+      "departmentPlaceholder": "Legal Department",
+      "line1": "Address line 1",
+      "line1Placeholder": "Dorfstrasse 7",
+      "line2": "Address line 2",
+      "line2Placeholder": "Postfach",
+      "postalCode": "Postal code",
+      "postalCodePlaceholder": "8000",
+      "city": "City",
+      "cityPlaceholder": "City",
+      "vatId": "VAT ID",
+      "country": "Country"
+    }
+  },
+  "newsletterConfirmation": {
+    "title": "Newsletter",
+    "doubleOptIn": "We will send a separate confirmation email for the newsletter. Open the link in that email to complete your subscription."
   },
   "trialPeriod": {
     "title": "{days}-Day Trial Period",
@@ -40,16 +59,27 @@
     "deadlineEuRep": "Pay before it ends to keep it live — otherwise access is paused.",
     "availabilityPolicyAndEuRep": "Your policy and EU representation are fully available during the trial.",
     "deadlinePolicyAndEuRep": "Pay before it ends to keep them live — otherwise access is paused.",
-    "paymentHintSelected": "Payment is available in the Subscription section of the selected service.",
-    "paymentHintEach": "Payment is available in the Subscription section of each selected service."
+    "paymentHintSelected": "Payment is available in the Subscription section of the selected product.",
+    "paymentHintEach": "Payment is available in the Subscription section of each selected product."
+  },
+  "checkout": {
+    "paymentConfirmation": {
+      "confirmingTitle": "Confirming payment",
+      "orderPaidTitle": "Order successfully paid.",
+      "orderTrialTitle": "Your order is confirmed.",
+      "viewSubscription": "View subscription",
+      "viewPolicies": "View policies"
+    }
   },
   "meta": {
     "defaultTitle": "Datenschutzpartner — Privacy Policy Generator",
     "defaultDescription": "Scan your website and generate a GDPR-compliant privacy policy in seconds."
   },
   "nav": {
-    "services": "Services",
+    "services": "Products",
     "insights": "Insights",
+    "news": "News",
+    "podcasts": "Podcasts",
     "about": "About Us",
     "contact": "Contact",
     "company": "Company",
@@ -89,7 +119,11 @@
     "privacyGenerator": "Privacy Generator",
     "euRepresentative": "EU Representation",
     "academy": "Academy",
+    "cookieBanner": "Cookie Banner",
+    "imprintGenerator": "Imprint Generator",
     "insights": "Insights",
+    "news": "News",
+    "podcasts": "Podcasts",
     "aboutUs": "About us",
     "contact": "Contact",
     "imprint": "Imprint",
@@ -108,6 +142,8 @@
     "trustCompliantSub": "compliant",
     "featureCookieTitle": "Cookie Banner Generator",
     "featureCookieDescription": "Generate a compliant cookie consent banner for your website in minutes.",
+    "featureImprintTitle": "Imprint Generator",
+    "featureImprintDescription": "A compliant imprint page, hosted next to your privacy policy.",
     "featureEuTitle": "Do you operate in the EU?",
     "featureEuDescription": "You may be legally required to appoint a representative.",
     "featureAcademyTitle": "Academy",
@@ -117,29 +153,7 @@
     "explore": "Explore",
     "scanPlaceholder": "Enter your website",
     "scanUrlAria": "Website URL",
-    "scanButton": "Scan",
-    "scanPreviewScan": "Scan",
-    "scanPreviewIssues": "Issues",
-    "scanPreviewPolicy": "Privacy Policy",
-    "scanPreviewComplete": "Complete",
-    "scanPreviewIssuesFound": "5 found",
-    "scanPreviewNotCompliant": "Not compliant",
-    "scanItemTracking": "Tracking technologies",
-    "scanItemTrackingValue": "12 detected",
-    "scanItemCookies": "Cookies in use",
-    "scanItemCookiesValue": "8 detected",
-    "scanItemAnalytics": "Analytics tools",
-    "scanItemAnalyticsValue": "Google Analytics",
-    "scanItemContactForm": "Contact form",
-    "scanItemDetected": "Detected",
-    "scanItemHosting": "Hosting",
-    "scanItemHostingValue": "EU-based",
-    "scanItemCookieBanner": "Cookie banner",
-    "scanItemPayment": "Payment processor",
-    "scanItemPaymentValue": "Stripe",
-    "scanItemGeolocation": "Geolocation",
-    "scanItemMediaCapture": "Media capture",
-    "scanItemNotDetected": "Not detected"
+    "scanButton": "Scan"
   },
   "aboutSection": {
     "title": "About us.",
@@ -180,15 +194,19 @@
     "passwordPlaceholder": "Your password",
     "twoFactorCode": "Authentication code",
     "twoFactorPlaceholder": "6-digit code",
+    "twoFactorVerifyTitle": "Authentication code",
+    "twoFactorSetupTitle": "Set up two-factor authentication",
+    "twoFactorVerifyBody": "Enter the 6-digit code from your authenticator app",
+    "twoFactorSetupBody": "Enter the 6-digit code from your authenticator app to finish setup.",
     "submit": "Log In",
     "forgotPassword": "Forgot password?",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "success": "Signed in successfully.",
+    "identifyNotice": "If a user account exists with this email address, you will receive a login link by email.",
     "errors": {
       "invalidCredentials": "Incorrect email or password.",
       "invalidCredentialsOr2fa": "Incorrect password or authentication code.",
-      "unknownEmail": "No account found for this email.",
       "generic": "Sign-in failed. Please try again."
     }
   },
@@ -246,12 +264,11 @@
   },
   "insights": {
     "metaTitle": "Insights — Datenschutzpartner",
-    "metaDescription": "Webinars, News & Questions and podcasts on data protection, Swiss FADP and GDPR from Datenschutzpartner.",
+    "metaDescription": "News and podcasts on data protection, Swiss FADP and GDPR from Datenschutzpartner.",
     "title": "Insights.",
     "allInsights": "All Insights",
     "tabs": {
-      "webinars": "Webinars",
-      "newsQuestions": "News & Questions",
+      "news": "News",
       "podcasts": "Podcasts"
     },
     "tabsNavigation": "Insights categories",
@@ -259,11 +276,7 @@
     "articleMetaTitle": "{title} — Datenschutzpartner",
     "listenToEpisode": "Listen to the episode",
     "author": "Author",
-    "presenter": "Presenter",
     "published": "Published",
-    "liveAt": "Live at",
-    "addToCalendar": "Add to calendar",
-    "authorRoleDefault": "Attorney",
     "share": "Share",
     "shareLinkedIn": "Share on LinkedIn",
     "shareBluesky": "Share on Bluesky",
@@ -281,57 +294,6 @@
   "academy": {
     "metaTitle": "Academy — Datenschutzpartner",
     "metaDescription": "Datenschutz Academy: live webinars, News & Questions and a knowledge base for implementing Swiss FADP, GDPR and the AI Act.",
-    "title": "Datenschutz Academy.",
-    "archiveTitle": "Academy library",
-    "backToOverview": "Back to Academy overview",
-    "tabs": {
-      "webinars": "Webinars",
-      "newsQuestions": "News & Questions"
-    },
-    "tabsNavigation": "Academy categories",
-    "backToAcademy": "Back to Academy",
-    "membershipPromo": {
-      "titleAll": "Watch these sessions — and 100+ more",
-      "titleWebinars": "Watch this webinar — and 100+ more",
-      "titleNewsQuestions": "Watch this News & Questions session — and 100+ more",
-      "descriptionLead": "Get a Datenschutz Academy membership and get everything you need to implement Swiss FADP, the EU GDPR and the AI Act in practice.",
-      "descriptionBody": "It includes a growing library of 100+ past events and 50+ hours on demand, and a seat at every live webinar and every News & Questions session where you can ask your own questions.",
-      "cta": "Get membership",
-      "loginPrompt": "Already a member?",
-      "loginLink": "Log in"
-    },
-    "pastSessions": {
-      "metaTitle": "Past sessions — Datenschutzpartner Academy",
-      "metaDescription": "Recordings and summaries of past Academy webinars and News & Questions sessions.",
-      "title": "Past sessions",
-      "backToAcademy": "Academy",
-      "tabsNavigation": "Past sessions categories",
-      "yearTabsNavigation": "Past sessions years",
-      "empty": "No past sessions in this category yet.",
-      "bannerMembershipTitle": "Membership",
-      "tabs": {
-        "all": "All Sessions",
-        "webinars": "Webinars",
-        "newsQuestions": "News & Questions"
-      }
-    },
-    "articleMetaTitle": "{title} — Datenschutzpartner Academy",
-    "author": "Author",
-    "presenter": "Presenter",
-    "published": "Published",
-    "liveAt": "Live at",
-    "addToCalendar": "Add to calendar",
-    "authorRoleDefault": "Attorney",
-    "share": "Share",
-    "shareLinkedIn": "Share on LinkedIn",
-    "shareBluesky": "Share on Bluesky",
-    "shareThreads": "Share on Threads",
-    "copyLink": "Copy link",
-    "linkCopied": "Link copied",
-    "linkCopiedTooltip": "Link copied to clipboard!",
-    "previousArticle": "Previous article",
-    "nextArticle": "Next article",
-    "articleNavigation": "Article navigation",
     "landing": {
       "heroTitle": "Datenschutz Academy",
       "heroHeadlineLine1": "Stay compliant.",
@@ -357,7 +319,7 @@
           }
         }
       },
-      "joinCta": "Get membership",
+      "joinCta": "Discover",
       "seeMaterialsCta": "See materials",
       "stats": {
         "ariaLabel": "Academy at a glance",
@@ -553,34 +515,34 @@
       "chosenPlan": "Chosen plan",
       "perYear": "per year",
       "perEntity": "{price} per legal entity / year",
-      "decreaseEntities": "Fewer legal entities",
-      "increaseEntities": "More legal entities",
-      "entityCountLabel": "Legal entities on this order"
+      "decreaseEntities": "Fewer contracts",
+      "increaseEntities": "More contracts",
+      "entityCountLabel": "Contracts on this order"
     },
     "pricePeriod": "/ 12 months",
     "plans": {
       "requestSingular": "request",
       "requestPlural": "requests",
-      "requestPriceAmount": "CHF 99",
+      "requestPriceAmount": "CHF 99.00",
       "requestPriceSuffixBasis": "per request",
       "requestPriceSuffixAdditional": "per additional request",
-      "requestsThereafter": "CHF 99 per additional request",
+      "requestsThereafter": "CHF 99.00 per additional request",
       "basis": {
         "name": "Basis",
         "price": "149",
-        "requests": "CHF 99 per request"
+        "requests": "CHF 99.00 per request"
       },
       "plus": {
         "name": "Plus",
         "price": "229",
-        "requests": "1 request included · CHF 99 thereafter",
-        "requestsRest": " request included · CHF 99 thereafter"
+        "requests": "1 request included · CHF 99.00 thereafter",
+        "requestsRest": " request included · CHF 99.00 thereafter"
       },
       "plus5": {
         "name": "Plus 5",
         "price": "499",
-        "requests": "5 requests included · CHF 99 thereafter",
-        "requestsRest": " requests included · CHF 99 thereafter"
+        "requests": "5 requests included · CHF 99.00 thereafter",
+        "requestsRest": " requests included · CHF 99.00 thereafter"
       }
     },
     "faqNote": "Do you have questions? Our <faq>FAQ on EU data protection representation</faq> will help you.",
@@ -733,11 +695,11 @@
     "steps": {
       "website": "Website",
       "scan": "Scan",
-      "scanning": "Scanning",
-      "questionnaire": "Questionnaire",
+      "scanning": "Website Scanner",
+      "questionnaire": "General Information",
       "euRep": "EU Representation",
       "summary": "Account",
-      "confirmation": "Get your policy"
+      "confirmation": "Account Creation"
     },
     "websiteStep": {
       "title": "Add your website",
@@ -748,7 +710,7 @@
     },
     "euRepStep": {
       "title": "EU data protection representation",
-      "intro": "Under the GDPR, companies without a seat in the EU/EEA often need to appoint an EU data protection representative. We help you document the right contact in your privacy policy — and can act as your representative if you wish.",
+      "intro": "Under the GDPR, companies without a seat in the EU/EEA often need to appoint an EU data protection representative.<br></br>We help you document the right contact in your privacy policy — and can act as your representative if you wish.",
       "hasNamedEuRep": "Have you appointed an EU data protection representative?",
       "namedDatenschutzpartner": "Have you appointed {company}?",
       "gotYouCovered": "Congrats, we've already covered your legal entity!",
@@ -765,6 +727,7 @@
       "alreadyCoveredTitle": "You're already covered",
       "alreadyCoveredIntro": "Your legal entity already has active EU representation with us — no need to purchase it again.",
       "alreadyCoveredBody": "We've already got you covered for this legal entity. This policy will be linked to your existing EU representation contract.",
+      "alreadyCoveredBodyLogged": "A contract for <entity>{legalEntity}</entity> already exists in your account. This policy will be linked to your existing EU representation contract.",
       "alreadyCoveredHint": "No additional purchase is required. Continue to summary to finish your privacy policy.",
       "alreadyCoveredLegalEntity": "Legal entity",
       "alreadyCoveredForwardingEmail": "Forwarding email",
@@ -774,13 +737,13 @@
       "answersDialogTitle": "Your answers",
       "answersDialogDone": "Done",
       "chooseAdd": "Add EU representation",
-      "chooseAnother": "Buy for another legal entity",
+      "chooseAnother": "Buy another contract",
       "existingTitle": "You already have EU representation",
       "existingBody": "Select an existing contract to link this policy at no extra charge.",
       "tabNew": "New legal entity",
       "tabExisting": "Existing",
       "tabsAriaLabel": "EU representation option",
-      "selectExistingRequired": "Select a legal entity to continue.",
+      "selectExistingRequired": "Select a contract to continue.",
       "unnamedEntity": "Unnamed legal entity",
       "existingCtaNamed": "Link this policy to {entity}",
       "chooseBudget": "Add Budget",
@@ -799,10 +762,17 @@
       "proceed": "Proceed working"
     },
     "scanStep": {
-      "scanningTitle": "Scanning {domain}...",
+      "scanningTitle": "Scanning {domain} …",
       "scanningWebsite": "Scanning your website",
       "creatingPolicy": "Creating privacy policy",
-      "scanningDescription": "Analyzing your website for data processing tools and technologies."
+      "scanningDescription": "Analyzing your website for data processing tools and technologies.",
+      "phases": {
+        "connecting": "Connecting to {domain}",
+        "discovering": "Discovering pages on your site",
+        "detecting": "Detecting tools and trackers",
+        "mapping": "Mapping data processing",
+        "creating": "Creating your privacy policy"
+      }
     },
     "summary": {
       "title": "Welcome",
@@ -811,7 +781,7 @@
       "welcomeBodyDescription": "Create an account to access your policy for {domain} and keep it up to date. Free trial period — no payment now.",
       "welcomeBackTitle": "Confirm your account",
       "welcomeBackBody": "Accept the terms to publish this policy to your account. You can complete payment later from your profile.",
-      "emailLabel": "Registration email",
+      "emailLabel": "Email",
       "emailHint": "We send a confirmation link to this address.",
       "firstNameLabel": "First name",
       "lastNameLabel": "Last name",
@@ -825,6 +795,10 @@
           "euRep": {
             "title": "EU representative, ready to go",
             "description": "Your GDPR-required representative in the EU is appointed and active through your account."
+          },
+          "trial": {
+            "title": "14-day free trial",
+            "description": "Nothing is charged automatically — you complete payment yourself before the trial ends."
           },
           "updates": {
             "title": "Stays up to date",
@@ -840,6 +814,11 @@
       "acceptTermsPrefix": "I accept the",
       "newsletter": "Send me the data protection newsletter",
       "sendConfirmationCta": "Create account",
+      "creatingAccountTitle": "Creating your account",
+      "creatingPolicyTitle": "Creating your policy",
+      "createPolicyConfirmTitle": "Create your privacy policy?",
+      "createPolicyConfirmBody": "Please make sure all details are entered correctly before we generate your policy.",
+      "keepEditing": "Keep editing",
       "continueCta": "Continue to account",
       "activate": {
         "title": "Activate your account",
@@ -851,6 +830,10 @@
         "euRepDetail": "Swiss legal entity: {entity}",
         "euRepDetailFallback": "Swiss legal entity: —",
         "pricePeriod": "/ year",
+        "orderPaidTitle": "Order successfully paid.",
+        "orderTrialTitle": "Your order is confirmed.",
+        "showPolicy": "Show policy",
+        "showContract": "Show contract",
         "goHome": "Go to Home Page"
       },
       "accountReady": "Your account is ready. The policy is now available.",
@@ -955,8 +938,14 @@
       "title": "Complete your privacy policy.",
       "scanAgain": "Scan again",
       "continue": "Continue",
+      "createPolicy": "Create policy",
+      "createPolicy": "Create policy",
       "validationError": "Please complete all required fields.",
       "optionalBadge": "Optional",
+      "officerLocaleLabels": {
+        "en": "English",
+        "de": "German"
+      },
       "requiredBadge": "Required",
       "defaults": {
         "dpoDesignation": "Data protection officer",
@@ -978,7 +967,7 @@
         "videoSurveillance": "Video surveillance"
       },
       "fields": {
-        "companyName": "Legal entity",
+        "companyName": "Legal entity name",
         "domain": "Domain name",
         "email": "Email address",
         "postalAddress": "Address",
@@ -1063,7 +1052,7 @@
       "uidLookup": {
         "label": "Company UID lookup",
         "fieldHint": "Optional — search by UID or company name to fill in the address automatically.",
-        "placeholder": "CHE-123.456.789 or company name",
+        "placeholder": "UID search",
         "hint": "Swiss commercial register (UID) lookup for companies based in Switzerland.",
         "searching": "Searching registry…",
         "resultsLabel": "Matching companies",
@@ -1305,14 +1294,15 @@
   },
   "newsletter": {
     "title": "Stay ahead of privacy law.",
-    "bodyLine1": "Get practical insights on GDPR, the Swiss FADP, and data protection compliance",
-    "bodyLine2": "delivered to your inbox. No spam, unsubscribe anytime.",
-    "placeholder": "Your email address",
+    "bodyLine1": "With our newsletter, we inform you at least once a month about current events and tips on data protection as well as news about our own offers:",
+    "firstNameLabel": "First name",
+    "lastNameLabel": "Last name",
+    "companyLabel": "Company",
+    "emailLabel": "Email address",
+    "legalText": "We use your information exclusively in connection with our data protection partners. You can unsubscribe from our newsletter at any time.<br></br>By clicking or tapping \"Subscribe,\" you confirm that you have read our <privacy>privacy policy</privacy>. If you have any questions, please <contact>contact us</contact>!",
     "subscribe": "Subscribe",
     "successTitle": "You're subscribed!",
-    "successBody": "We'll be in touch soon.",
-    "privacyPrefix": "By subscribing you agree to our",
-    "privacyLink": "Privacy Policy"
+    "successBody": "We'll be in touch soon."
   },
   "legal": {
     "imprint": {
@@ -1333,7 +1323,7 @@
   },
   "account": {
     "metaTitle": "My Account — Datenschutzpartner",
-    "metaDescription": "Manage your membership, Academy content, documents, billing and account details.",
+    "metaDescription": "Manage your products, documents, billing and account details.",
     "title": "My Account",
     "loading": "Loading your account …",
     "error": "We couldn't load this section.",
@@ -1353,11 +1343,13 @@
       "upToDate": "Up to Date"
     },
     "serviceTabs": {
-      "ariaLabel": "Service sections",
+      "ariaLabel": "Product sections",
+      "details": "Details",
       "instructions": "Instructions",
       "legalEntity": "Legal Entity",
       "preview": "Preview",
       "subscription": "Subscription",
+      "requests": "Requests",
       "faq": "FAQ"
     },
     "areaNavAriaLabel": "Account areas",
@@ -1407,20 +1399,20 @@
       "privacyPolicy": "Privacy Policy"
     },
     "contractSwitcher": {
-      "listTitle": "Your legal entities",
-      "searchEntities": "Search legal entities",
-      "noResults": "No matching legal entities",
-      "switchContract": "Switch legal entity",
+      "listTitle": "Your contracts",
+      "searchEntities": "Search contracts",
+      "noResults": "No matching contracts",
+      "switchContract": "Switch contract",
       "addContract": "Add EU representation",
       "loading": "Loading contracts …",
-      "empty": "No contract yet",
+      "empty": "No contracts yet",
       "standalone": "Standalone contract",
       "linkedPolicies": "{count, plural, one {# linked policy} other {# linked policies}}"
     },
     "dashboard": {
       "title": "Overview",
       "loading": "Loading dashboard …",
-      "productsAriaLabel": "Your services",
+      "productsAriaLabel": "Your products",
       "empty": {
         "title": "Add your first website",
         "body": "Scan a website and we generate a legally reviewed privacy policy in minutes. Everything else — EU representation, cookie banner, imprint — plugs into the same account.",
@@ -1462,7 +1454,7 @@
         "title": "Recent payments",
         "allInvoices": "All invoices",
         "colInvoice": "Invoice",
-        "colService": "Service",
+        "colService": "Product",
         "colDate": "Date",
         "colAmount": "Amount",
         "downloadPdf": "PDF",
@@ -1506,6 +1498,105 @@
         "cta": "Generate privacy policy"
       }
     },
+    "policyUpdates": {
+      "status": {
+        "title": "Policy status",
+        "created": "Created",
+        "lastUpdated": "Last updated",
+        "updateAutomatic": "Automatic",
+        "updateManual": "Manual"
+      },
+      "source": {
+        "automaticScan": "Automatic scan",
+        "manualScan": "Manual scan",
+        "basicInformation": "Basic information changed",
+        "services": "Services changed"
+      },
+      "manual": {
+        "title": "Manual update",
+        "body": "Scan your website now if it changed since the last automatic check.",
+        "remaining": "{remaining} of {total} left",
+        "exhausted": "No manual updates left",
+        "resets": "Available again on {date}",
+        "cta": "Update now",
+        "running": "Scanning …",
+        "success": "Your privacy policy has been updated.",
+        "error": "The scan could not be started.",
+        "screenTitle": "Scan your website",
+        "noChangesTitle": "Your policy is up to date!",
+        "noChangesBody": "We didn't find any changes on your website. Your privacy policy is already up to date — no update is required.",
+        "done": "Done",
+        "notFound": "This privacy policy could not be found."
+      },
+      "basic": {
+        "title": "Basic information",
+        "body": "Details the scanner cannot detect. Saving updates your privacy policy without a new scan.",
+        "edit": "Edit",
+        "gdpr": "GDPR applicable",
+        "transfersAbroad": "Data exported abroad",
+        "profiling": "Profiling",
+        "specialData": "Special categories of data",
+        "ai": "Automated or AI processing",
+        "applications": "Job applications",
+        "videoSurveillance": "Video surveillance",
+        "notSet": "—",
+        "dpoSection": "Data protection officer",
+        "screenTitle": "Edit your basic information.",
+        "save": "Update policy",
+        "reset": "Reset to defaults",
+        "confirmTitle": "Update your privacy policy?",
+        "confirmBody": "Your changes are applied to the published privacy policy right away. No new scan is started.",
+        "saved": "Basic information saved — your privacy policy has been updated.",
+        "saveError": "Your changes could not be saved.",
+        "notFound": "This privacy policy could not be found."
+      },
+      "services": {
+        "title": "Detected services",
+        "body": "Services found on your website. Hide anything the scanner got wrong, add what it missed, or request a service that is not in our list. Every change updates your privacy policy without a new scan.",
+        "add": "Add service",
+        "request": "Request service",
+        "hide": "Hide",
+        "restore": "Restore",
+        "hiddenBadge": "Hidden",
+        "manualBadge": "Added manually",
+        "empty": "No services declared yet.",
+        "hidden": "Service hidden — your privacy policy has been updated.",
+        "restored": "Service restored — your privacy policy has been updated.",
+        "added": "{name} added — your privacy policy has been updated.",
+        "close": "Close",
+        "addDialogTitle": "Add a service",
+        "addDialogBody": "Pick a service the scanner did not detect. It is added to your privacy policy immediately.",
+        "addEmpty": "No matching service. Request it instead.",
+        "addCta": "Add",
+        "requestDialogTitle": "Request a service",
+        "requestDialogBody": "Tell us which service is missing from our list. We review each request and add the service for you.",
+        "requestName": "Service name",
+        "requestUrl": "Website",
+        "requestNote": "What is it used for?",
+        "requestCta": "Send request",
+        "requestConfirmationTitle": "Request sent",
+        "requestConfirmationBody": "We'll be in touch once we've reviewed your request.",
+        "done": "Done",
+        "requested": "Thanks — we will review this service.",
+        "pendingRequests": "Requested services",
+        "requestStatus": {
+          "pending": "In review",
+          "accepted": "Accepted"
+        },
+        "withdraw": "Withdraw",
+        "withdrawn": "Request withdrawn.",
+        "withdrawError": "Your request could not be withdrawn.",
+        "categories": {
+          "communication": "Communication and CRM",
+          "embedded": "Embedded third-party content",
+          "infrastructure": "Infrastructure and payments",
+          "forms": "Forms and e-commerce",
+          "security": "Security and consent",
+          "analytics": "Analytics and advertising",
+          "accounts": "User accounts"
+        }
+      }
+    },
     "comingSoon": {
       "notify": "Notify when available",
       "notifySuccess": "We'll email you as soon as this is available for {site}.",
@@ -1535,7 +1626,7 @@
       "notSubscribed": "Not subscribed",
       "daysLeftSuffix": "{count, plural, one {day left} other {days left}}",
       "coverage": "Coverage",
-      "euRepEntities": "{count, plural, one {# legal entity} other {# legal entities}}",
+      "euRepEntities": "{count, plural, one {# contract} other {# contracts}}",
       "renewsOn": "Renews on",
       "noneForSite": "No subscription covers this website yet.",
       "noPayments": "No payments for this website yet.",
@@ -1550,11 +1641,11 @@
     },
     "allSubscriptions": {
       "title": "All subscriptions",
-      "tabsAriaLabel": "Subscription services",
+      "tabsAriaLabel": "Subscription products",
       "websitesTitle": "Websites",
       "colWebsite": "Website",
       "colRenewal": "Renewal",
-      "colLegalEntity": "Legal entity",
+      "colContracts": "Contracts",
       "serviceEmpty": "Not active on any website yet.",
       "comingSoonBody": "Not available yet — we're building it.",
       "comingSoonCta": "Learn more"
@@ -1572,7 +1663,7 @@
       "colActions": "Actions",
       "daysLeft": "{count, plural, one {# day} other {# days}}",
       "sitesCovered": "{count, plural, one {# website} other {# websites}}",
-      "entitiesCovered": "{count, plural, one {# legal entity} other {# legal entities}}",
+      "entitiesCovered": "{count, plural, one {# contract} other {# contracts}}",
       "manage": "Manage",
       "empty": "No subscriptions yet.",
       "billingDetails": "Billing details"
@@ -1634,15 +1725,26 @@
       "failed": "Payment could not be completed. Please try again.",
       "success": "Subscription added. You now have {allowance, plural, one {# active subscription} other {# active subscriptions}}.",
       "cancel": "Cancel",
-      "payCta": "Continue with payment"
+      "payCta": "Continue with payment",
+      "confirmationDetail": "{count, plural, one {# website in subscription} other {# websites in subscription}}"
     },
     "euRepCheckout": {
       "metaTitle": "EU Representation — checkout",
-      "title": "Add a new legal entity",
+      "title": "Add a new contract",
+      "guestTitle": "Get an EU Representative",
+      "accentHeaderPlaceholder": "Enter legal entity name",
+      "guestEntityStepTitle": "Enter your legal entity details",
+      "guestAccountTitle": "Create your account",
+      "guestAccountDescription": "Create an account to complete your EU representation order.",
+      "steps": {
+        "entity": "Legal Entity Details",
+        "account": "Account Creation"
+      },
       "entityIntro": "Enter the details of the legal entity you want to represent in the EU.",
+      "entitySectionTitle": "Legal entity",
       "selectPlan": "Choose your plan",
       "chosenPlan": "Chosen plan",
-      "selectQuantity": "How many legal entities?",
+      "selectQuantity": "How many contracts?",
       "entityLabel": "Legal entity {index}",
       "totalDue": "Total due today",
       "payrexxNote": "You'll be redirected to Payrexx to complete payment securely.",
@@ -1651,6 +1753,21 @@
       "failed": "Payment could not be completed. Please try again.",
       "success": "EU representation is active.",
       "payCta": "Continue with payment",
+      "checkoutConfirm": {
+        "title": "Continue with payment?",
+        "body": "Please make sure all details are entered correctly before we process your order."
+      },
+      "promoCode": {
+        "enterLink": "Enter promo code",
+        "hideLink": "Cancel",
+        "placeholder": "Enter code",
+        "apply": "Apply",
+        "remove": "Remove",
+        "applied": "Applied",
+        "invalid": "This promo code is not valid.",
+        "discountPercent": "Promo code ({code}) — {percent}% off",
+        "discountFixed": "Promo code ({code})"
+      },
       "cancelModal": {
         "title": "Quit EU representation checkout?",
         "body": "Your entered details will be lost. Are you sure you want to leave?",
@@ -1660,11 +1777,18 @@
       "guest": {
         "title": "Your account",
         "body": "Create an account to complete your EU representation order.",
-        "payCta": "Create account & continue",
+        "payCta": "Continue with payment",
         "registrationFailed": "We could not create your account. Please try again."
       },
+      "validationAlert": {
+        "title": "Required fields missing",
+        "body": "All fields in this form are required, except:",
+        "ok": "OK"
+      },
       "activation": {
-        "paymentNote": "After you confirm your email, your EU representation will be activated and payment will be processed."
+        "titleLine1": "Order successfully paid.",
+        "titleLine2": "Please activate your account",
+        "plan": "Plan: {plan}"
       }
     },
     "academy": {
@@ -1718,13 +1842,13 @@
         "intro": "Publish the representative details in your privacy policy and keep your forwarding email up to date so we can reach you when authorities or data subjects contact us.",
         "stepMention": "Mention VGS Datenschutzpartner GmbH (Hamburg) as your EU representative in the privacy policy — and in the record of processing activities where required.",
         "stepGenerator": "If you host the policy with us, link the website under Linked policies so the representative block stays in sync with your subscription.",
-        "stepForwarding": "Keep the forwarding email on each legal entity current. Requests are sent there; the address is not published in the policy.",
+        "stepForwarding": "Keep the forwarding email on each contract current. Requests are sent there; the address is not published in the policy.",
         "stepLink": "When a request exceeds your plan allowance, create a payment request (CHF 99) from the Representations tab."
       },
       "contract": {
         "title": "Covered organisation",
         "countTitle": "Representations",
-        "listTitle": "Legal entities",
+        "listTitle": "Contracts",
         "requestsTitle": "Included requests",
         "requestsHint": "Extra request: CHF {price}",
         "paymentRequestCta": "Create payment request",
@@ -1750,7 +1874,7 @@
         "buyCta": "Add",
         "buyMore": "Buy more contracts",
         "legalEntity": "Swiss legal entity",
-        "name": "Your Swiss entity legal name",
+        "name": "Legal entity name",
         "forwardingEmail": "Forwarding email",
         "forwardingEmailHint": "Where we send supervisory and data-subject requests. This address is not published in the policy.",
         "postalLine1": "Street address",
@@ -1758,15 +1882,16 @@
         "postalCode": "Postal code",
         "city": "City",
         "country": "Country",
-        "save": "Save",
+        "save": "Save changes",
         "saved": "Details saved.",
         "saveFailed": "Could not save. Please try again.",
         "detailTitle": "EU representation contract",
         "notFound": "This contract could not be found.",
-        "tabsAriaLabel": "Legal entity sections",
+        "tabsAriaLabel": "Contract sections",
         "tabs": {
           "details": "Details",
-          "subscription": "Subscription"
+          "subscription": "Subscription",
+          "requests": "Requests"
         },
         "sectionContractDetails": "Swiss legal entity",
         "sectionPublishedAddress": "Your EU representative",
@@ -1791,13 +1916,13 @@
         "removeSuccess": "EU representative removed from hosted policy.",
         "removeFailed": "Could not remove the EU representative from this hosted policy.",
         "lapseNote": "If this subscription lapses, the representative block is removed from hosted policies only.",
-        "deleteEntity": "Delete Entity",
-        "deleteTitle": "Delete this legal entity?",
-        "deleteBody": "This removes {entity} from your legal entities. You can add it again later by purchasing EU representation.",
-        "deleteConfirm": "Delete Entity",
-        "deleteCancel": "Keep entity",
-        "deleted": "Legal entity deleted.",
-        "deleteFailed": "Could not delete this legal entity. Cancel the subscription first if it is still active."
+        "deleteEntity": "Delete contract",
+        "deleteTitle": "Delete this contract?",
+        "deleteBody": "This removes the contract for {entity}. You can add a new contract later by purchasing EU representation.",
+        "deleteConfirm": "Delete contract",
+        "deleteCancel": "Keep contract",
+        "deleted": "Contract deleted.",
+        "deleteFailed": "Could not delete this contract. Cancel the subscription first if it is still active."
       }
     },
     "documents": {
@@ -1853,6 +1978,8 @@
       "countUpdateAvailable": "{count} to update"
     },
     "membershipPanel": {
+      "sectionPlan": "Plan",
+      "sectionRequests": "Requests",
       "sectionPayment": "Payment",
       "sectionRenewal": "Renewal",
       "renewalReminder": "We will remind you by email 30 days before renewal.",
@@ -1872,6 +1999,27 @@
       "colPdf": "PDF",
       "colLegalEntity": "Legal entity",
       "paidOn": "Paid on {date}",
+      "requestsIncluded": "{count, plural, one {# included} other {# included}}",
+      "requestsIncludedLabel": "Included",
+      "requestsAvailableLabel": "Available",
+      "requestsUsageLabel": "Usage",
+      "requestsAddExtraLabel": "Add extra request ({price})",
+      "requestsRequestCta": "Request",
+      "requestsRequestDialogTitle": "Request extra requests",
+      "requestsRequestDialogBody": "How many additional requests do you need? Each request is billed at {price}.",
+      "requestsRequestQuantityLabel": "Quantity",
+      "requestsRequestSubmit": "Submit request",
+      "requestsRequestedChip": "Requested {count} on {date}",
+      "requestsWithdrawCta": "Withdraw",
+      "requestsWithdrawn": "Request withdrawn.",
+      "requestsWithdrawFailed": "Your request could not be withdrawn.",
+      "requestsExtraAdded": "Extra request added ({price}).",
+      "requestsExtraFailed": "Could not add the extra request. Please try again.",
+      "requestsUsedOfIncluded": "{used} of {included} used",
+      "requestsUsedCount": "{count, plural, one {# used} other {# used}}",
+      "requestsAvailable": "{count, plural, one {# available} other {# available}}",
+      "requestUsedOn": "Used on {date}",
+      "requestsNoneUsed": "No requests used yet",
       "change": "Change",
       "billingDetailsEyebrow": "Billing details",
       "questionsTitle": "Questions?",
@@ -1937,7 +2085,7 @@
     },
     "billingHistory": {
       "colInvoice": "Invoice",
-      "colService": "Service",
+      "colService": "Product",
       "colDate": "Date",
       "colAmount": "Amount",
       "colActions": "Actions",
@@ -1992,6 +2140,7 @@
       "lastName": "Last name",
       "displayName": "Display name",
       "email": "Email",
+      "authentication": "Authentication",
       "password": "Password",
       "editProfile": "Edit profile",
       "editProfileTitle": "Edit profile",
@@ -2014,6 +2163,15 @@
       "twoFactorDescription": "Protect your account with a one-time code at sign-in.",
       "twoFactorEnabled": "Enabled",
       "twoFactorDisabled": "Not enabled",
+      "twoFactorCodeLabel": "Authentication code",
+      "twoFactorEnableTitle": "Enable two-factor authentication",
+      "twoFactorSetupBody": "Enter the 6-digit code from your authenticator app to enable two-factor authentication.",
+      "twoFactorEnableCta": "Enable",
+      "twoFactorEnableSuccess": "Two-factor authentication is now enabled.",
+      "twoFactorEnableError": "The authentication code is incorrect.",
+      "twoFactorDisableCta": "Disable",
+      "twoFactorDisableSuccess": "Two-factor authentication has been disabled.",
+      "twoFactorDisableError": "Two-factor authentication could not be disabled.",
       "aboutEyebrow": "About your account",
       "aboutIntro": "Manage the personal details linked to your member area login:",
       "aboutPersonalDetails": "Personal details",
@@ -2032,16 +2190,18 @@
       "addressesTitle": "Billing address",
       "aboutIntro": "This billing address is used for all invoices and when you complete checkout for your privacy policy or EU representation.",
       "billingEmail": "Billing email address",
-      "save": "Save billing details",
+      "save": "Save changes",
       "firstName": "First name",
       "lastName": "Last name",
-      "company": "Company (optional)",
-      "line1": "Street address",
+      "company": "Legal entity name",
+      "department": "Department or other",
+      "line1": "Address line 1",
       "line2": "Address line 2 (optional)",
       "postalCode": "Postal code",
       "city": "City",
       "country": "Country",
       "vatId": "VAT ID (optional)",
+      "optionalBadge": "Optional",
       "addressUpdated": "Billing details updated."
     },
     "logout": {
@@ -2055,6 +2215,19 @@
       "body": "Unlock live sessions, recordings and templates with an Academy membership.",
       "cta": "View membership"
     }
+  },
+  "existingPurchase": {
+    "siteTitle": "Policy already exists",
+    "siteBody": "A privacy policy for {site} already exists. Please log in.",
+    "siteBodyLogged": "A privacy policy for {site} already exists in your account.",
+    "euRepTitle": "Contract already exists",
+    "euRepBody": "A contract for {legalEntity} already exists. Please log in.",
+    "euRepBodyLoggedPrefix": "A contract for ",
+    "euRepBodyLoggedSuffix": " already exists in your account.",
+    "goToSite": "Go to policy",
+    "goToContract": "Go to contract",
+    "logIn": "Log in",
+    "cancel": "Cancel"
   },
   "validation": {
     "required": "Required",
@@ -2073,7 +2246,8 @@
     "messageMin": "Please enter at least 10 characters",
     "messageMax": "Message is too long",
     "message": "Please enter a meaningful message",
-    "vatId": "Please enter a valid VAT number"
+    "vatId": "Please enter a valid VAT number",
+    "department": "Please enter a valid department name"
   },
   "contacts": {
     "title": "Contacts",

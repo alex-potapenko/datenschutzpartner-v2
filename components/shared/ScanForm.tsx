@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, type Transition } from 'motion/react';
-import { Globe, Sparkle, cn } from '@/components/ui';
+import { Globe, Sparkle, StarFour, cn, useOverlayState } from '@/components/ui';
 import { Button } from '@/components/ui';
+import { useSession } from '@/api/auth';
+import { checkExistingSitePolicy } from '@/api/existing-purchase';
+import { ExistingPurchaseLoginDialog } from '@/components/shared/ExistingPurchaseLoginDialog';
 import { writePendingScanUrl } from '@/lib/pending-scan-url';
 import { normalizeAndValidateWebsiteUrl } from '@/lib/validation/url';
 
@@ -34,6 +37,43 @@ const SCAN_PHASE_TRANSITION: Transition = {
   duration: 0.4,
   ease: [0.22, 1, 0.36, 1],
 };
+const ICON_ORBIT_RADIUS = 5;
+const ICON_ORBIT_DURATION = 2.2;
+const SPARK_COUNT = 4;
+
+const SPARK_MIN_STOP_DISTANCE = 10;
+
+type ScanSpark = {
+  id: number;
+  endX: number;
+  endY: number;
+  stopX: number;
+  stopY: number;
+  size: number;
+  duration: number;
+  delay: number;
+};
+
+function buildScanSpark(id: number): ScanSpark {
+  const angleRad = Math.random() * Math.PI * 2;
+  const distance = 18 + Math.random() * 22;
+  const endX = Math.cos(angleRad) * distance;
+  const endY = Math.sin(angleRad) * distance;
+  const stopFactor = Math.min(
+    Math.max(SPARK_MIN_STOP_DISTANCE / distance, 0.38 + Math.random() * 0.14),
+    0.72
+  );
+  return {
+    id,
+    endX,
+    endY,
+    stopX: endX * stopFactor,
+    stopY: endY * stopFactor,
+    size: 8 + Math.random() * 6,
+    duration: 0.22 + Math.random() * 0.35,
+    delay: Math.random() * 0.55,
+  };
+}
 
 interface ScanFormProps {
   dark?: boolean;
@@ -78,6 +118,85 @@ function ScanRunningStrip({ className }: { className?: string }) {
   );
 }
 
+function ScanSparkParticle({ sparkId }: { sparkId: number }) {
+  const [cycle, setCycle] = useState(0);
+  const spark = useMemo(() => buildScanSpark(sparkId), [cycle, sparkId]);
+
+  return (
+    <motion.span
+      key={cycle}
+      className="absolute top-1/2 left-1/2"
+      initial={{ x: spark.endX, y: spark.endY, opacity: 0, scale: 1.1 }}
+      animate={{
+        x: [spark.endX, spark.stopX],
+        y: [spark.endY, spark.stopY],
+        opacity: [0, 1, 0],
+        scale: [1.1, 0.9, 0.65],
+      }}
+      transition={{
+        duration: spark.duration,
+        delay: spark.delay,
+        ease: 'easeIn',
+      }}
+      onAnimationComplete={() => {
+        setCycle((current) => current + 1);
+      }}
+    >
+      <StarFour
+        size={spark.size}
+        weight="fill"
+        className="-translate-x-1/2 -translate-y-1/2"
+        style={{ color: 'var(--accent)' }}
+      />
+    </motion.span>
+  );
+}
+
+function ScanIconSparks({ count }: { count: number }) {
+  return (
+    <span className="pointer-events-none absolute inset-0 motion-reduce:hidden" aria-hidden>
+      {Array.from({ length: count }, (_, sparkId) => (
+        <ScanSparkParticle key={sparkId} sparkId={sparkId} />
+      ))}
+    </span>
+  );
+}
+
+function OrbitingScanIcon({ icon: Icon, size }: { icon: typeof Globe; size: number }) {
+  return (
+    <>
+      <motion.span
+        className="absolute inset-0 motion-reduce:hidden"
+        animate={{ rotate: 360 }}
+        transition={{ duration: ICON_ORBIT_DURATION, repeat: Infinity, ease: 'linear' }}
+        aria-hidden
+      >
+        <motion.span
+          className="absolute top-1/2 left-1/2"
+          style={{ x: '-50%', y: `calc(-50% - ${ICON_ORBIT_RADIUS}px)` }}
+          animate={{ rotate: -360 }}
+          transition={{ duration: ICON_ORBIT_DURATION, repeat: Infinity, ease: 'linear' }}
+        >
+          <span className="relative block">
+            <ScanIconSparks count={SPARK_COUNT} />
+            <Icon size={size} weight="bold" style={{ color: 'var(--accent)' }} />
+          </span>
+        </motion.span>
+      </motion.span>
+      <span className="absolute inset-0 m-auto hidden motion-reduce:block">
+        <ScanIconSparks count={SPARK_COUNT} />
+        <Icon
+          size={size}
+          weight="bold"
+          className="relative"
+          style={{ color: 'var(--accent)' }}
+          aria-hidden
+        />
+      </span>
+    </>
+  );
+}
+
 /** 3px ring painted on the edge — does not inset/shift the inner content. */
 function ScanBorderRing({ active }: { active: boolean }) {
   return (
@@ -117,39 +236,28 @@ export function ScanForm({
   onUrlChange,
 }: ScanFormProps) {
   const router = useRouter();
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
+  const duplicateDialog = useOverlayState();
+  const [duplicateSite, setDuplicateSite] = useState<{
+    displayName: string;
+    href?: string;
+  } | null>(null);
   const t = useTranslations('landing');
   const tScan = useTranslations('result.scanStep');
   const tValidation = useTranslations('validation');
   const [url, setUrl] = useState(initialUrl ?? '');
-  const [scanDots, setScanDots] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const textMeasureRef = useRef<HTMLSpanElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const [scanWidth, setScanWidth] = useState(IDLE_PILL_WIDTH);
   const [buttonWidth, setButtonWidth] = useState(0);
-  const scanBaseLabel = scanning && scanningLabel ? scanningLabel : '';
-  const scanSuffix = scanning && scanningLabel ? '.'.repeat(scanDots) : '';
   const visibleLabel = scanning
-    ? scanBaseLabel
-      ? `${scanBaseLabel}${scanSuffix}`
-      : url || displayValue || ''
+    ? (scanningLabel ?? (url || displayValue || ''))
     : url || displayValue || '';
 
-  useEffect(() => {
-    if (!scanning || !scanningLabel) return;
-    const intervalId = window.setInterval(() => {
-      setScanDots((current) => (current + 1) % 4);
-    }, 400);
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [scanning, scanningLabel]);
-
-  useEffect(() => {
-    setScanDots(0);
-  }, [scanningPhaseKey, scanningLabel]);
-
-  const showAnimatedScanLabel = scanning && scanningLabel && scanningPhaseKey;
+  const showScanStatus = scanning && scanningLabel;
+  const showPhaseCrossfade = showScanStatus && scanningPhaseKey;
   const phaseKey = scanningPhaseKey ?? scanningLabel ?? 'scan';
   const morphsOnScan = onSubmitUrl != null;
 
@@ -170,7 +278,7 @@ export function ScanForm({
     }
   }, [scanning, visibleLabel, scanningLabel]);
 
-  function handleSubmit(e: React.SyntheticEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const normalized = normalizeScanUrl(url);
     if (!normalized) {
@@ -180,6 +288,21 @@ export function ScanForm({
     if (onSubmitUrl) {
       onSubmitUrl(normalized);
       return;
+    }
+    if (isAuthenticated) {
+      try {
+        const existing = await checkExistingSitePolicy(normalized);
+        if (existing.exists) {
+          setDuplicateSite({
+            displayName: existing.displayName ?? normalized,
+            href: existing.href,
+          });
+          duplicateDialog.open();
+          return;
+        }
+      } catch {
+        // If the duplicate check fails, don't block checkout.
+      }
     }
     writePendingScanUrl(normalized);
     const params = new URLSearchParams({ step: 'website' });
@@ -209,7 +332,7 @@ export function ScanForm({
         aria-hidden
         className="pointer-events-none invisible absolute text-base font-semibold whitespace-nowrap sm:text-lg"
       >
-        {scanning && scanningLabel ? `${scanningLabel}...` : visibleLabel}
+        {visibleLabel}
       </span>
 
       <span
@@ -241,10 +364,10 @@ export function ScanForm({
         id="scan-form"
         onSubmit={handleSubmit}
         className={cn(
-          'relative z-10 flex h-20 items-center overflow-hidden rounded-full bg-white py-3 pl-6',
-          scanning
-            ? 'pr-10'
-            : 'pr-3 shadow-[0_4px_32px_rgba(0,0,0,0.10)] transition-shadow duration-500 group-focus-within/scan:shadow-none',
+          'relative z-10 flex h-20 items-center rounded-full bg-white py-3 pl-6',
+          scanning ? 'overflow-visible pr-10' : 'overflow-hidden pr-3',
+          !scanning &&
+            'shadow-[0_4px_32px_rgba(0,0,0,0.10)] transition-shadow duration-500 group-focus-within/scan:shadow-none',
           !morphsOnScan &&
             !scanning &&
             'h-auto flex-col gap-4 overflow-visible py-0 pr-0 pl-0 shadow-none sm:h-20 sm:flex-row sm:gap-0 sm:overflow-hidden sm:py-3 sm:pr-3 sm:pl-6 sm:shadow-[0_4px_32px_rgba(0,0,0,0.10)]'
@@ -261,26 +384,30 @@ export function ScanForm({
 
         <div className="relative z-10 flex min-w-0 flex-1 items-center gap-3">
           <div
-            className="relative flex shrink-0 items-center justify-center"
+            className="relative flex shrink-0 items-center justify-center overflow-visible"
             style={{ width: GLOBE_SIZE, height: GLOBE_SIZE }}
           >
-            {showAnimatedScanLabel ? (
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={phaseKey}
-                  initial={{ opacity: 0, scale: 0.82, filter: 'blur(6px)' }}
-                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, scale: 0.82, filter: 'blur(6px)' }}
-                  transition={SCAN_PHASE_TRANSITION}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <ScanningIcon
-                    size={GLOBE_SIZE}
-                    weight="regular"
-                    style={{ color: 'var(--accent)' }}
-                  />
-                </motion.span>
-              </AnimatePresence>
+            {showScanStatus ? (
+              showPhaseCrossfade ? (
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={phaseKey}
+                    initial={{ opacity: 0, scale: 0.82, filter: 'blur(6px)' }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, scale: 0.82, filter: 'blur(6px)' }}
+                    transition={SCAN_PHASE_TRANSITION}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <ScanningIcon
+                      size={GLOBE_SIZE}
+                      weight="regular"
+                      style={{ color: 'var(--accent)' }}
+                    />
+                  </motion.span>
+                </AnimatePresence>
+              ) : (
+                <OrbitingScanIcon icon={ScanningIcon} size={GLOBE_SIZE} />
+              )
             ) : (
               <ScanningIcon
                 size={GLOBE_SIZE}
@@ -290,31 +417,42 @@ export function ScanForm({
               />
             )}
           </div>
-          {showAnimatedScanLabel ? (
+          {showScanStatus ? (
             <div
               className="relative min-w-0 overflow-hidden"
               aria-live="polite"
               aria-atomic
               role="status"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={phaseKey}
-                  initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
-                  transition={SCAN_PHASE_TRANSITION}
+              {showPhaseCrossfade ? (
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={phaseKey}
+                    initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
+                    transition={SCAN_PHASE_TRANSITION}
+                    className="block shrink-0 text-base font-semibold whitespace-nowrap sm:text-lg"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    {visibleLabel}
+                  </motion.span>
+                </AnimatePresence>
+              ) : (
+                <span
                   className="block shrink-0 text-base font-semibold whitespace-nowrap sm:text-lg"
                   style={{ color: 'var(--accent)' }}
                 >
                   {visibleLabel}
-                </motion.span>
-              </AnimatePresence>
+                </span>
+              )}
             </div>
           ) : (
             <input
               ref={inputRef}
               type="text"
+              // UX: focus scan field on landing entry
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional landing scan focus
               autoFocus={autoFocus && !scanning}
               readOnly={scanning}
               tabIndex={scanning ? -1 : 0}
@@ -372,6 +510,16 @@ export function ScanForm({
           </div>
         </motion.div>
       </form>
+      {duplicateSite ? (
+        <ExistingPurchaseLoginDialog
+          state={duplicateDialog}
+          variant="site"
+          displayName={duplicateSite.displayName}
+          mode={isAuthenticated ? 'logged' : 'guest'}
+          returnTo="/result?step=website"
+          entityHref={duplicateSite.href}
+        />
+      ) : null}
     </motion.div>
   );
 }

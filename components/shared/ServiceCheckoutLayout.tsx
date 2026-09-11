@@ -27,7 +27,7 @@ export function ServiceCheckoutLayout({
     <div
       className={cn(
         embedded
-          ? 'grid h-full min-h-full grid-cols-1 items-stretch lg:grid-cols-2'
+          ? 'grid h-full min-h-full grid-cols-1 items-stretch overflow-visible lg:grid-cols-2'
           : cn(
               'border-border grid grid-cols-1 items-stretch border-r border-l',
               aside ? 'lg:grid-cols-2' : centered ? 'justify-items-center' : 'lg:grid-cols-2'
@@ -35,7 +35,9 @@ export function ServiceCheckoutLayout({
       )}
     >
       {aside ? (
-        <div className="min-h-0 min-w-0 px-4 py-8 sm:px-8 sm:py-10 lg:py-12">{aside}</div>
+        <div className="min-h-0 min-w-0 overflow-visible px-4 py-8 sm:px-8 sm:py-10 lg:py-12">
+          {aside}
+        </div>
       ) : null}
       <div className={cn(planColumnClassName)}>{children}</div>
     </div>

@@ -18,7 +18,7 @@ export type ServiceSubscriptionCardProps = {
   iconTone?: 'accent' | 'trial';
   title: string;
   state: ServiceSubscriptionCardState;
-  /** Corner badge for active subscriptions — e.g. non-active status. */
+  /** Inline badge after the service title — e.g. cancelled / expired status. */
   statusBadge?: ReactNode;
   trialLabel?: string;
   daysLeft?: { remainingDays: number; totalDays: number } | null;
@@ -36,6 +36,7 @@ export type ServiceSubscriptionCardProps = {
   renewalAfterPaymentNote?: string;
   discountTooltipLabel?: string;
   discountTooltip?: (params: { minSites: number; percent: string }) => string;
+  renewalInactiveNote?: string | null;
   notSubscribedLabel?: string;
   comingSoonLabel?: string;
   description?: string;
@@ -45,6 +46,9 @@ export type ServiceSubscriptionCardProps = {
   equalHeight?: boolean;
   onAction?: () => void;
   actionLabel?: string;
+  onContinue?: () => void;
+  continueLabel?: string;
+  isContinuing?: boolean;
 };
 
 function SubscriptionOverviewMetric({
@@ -52,11 +56,13 @@ function SubscriptionOverviewMetric({
   daysLeftAriaLabel,
   daysLeftSuffix,
   urgentRemainingAtMost,
+  progressVariant = 'default',
 }: {
   daysLeft: { remainingDays: number; totalDays: number };
   daysLeftAriaLabel: string;
   daysLeftSuffix: string;
   urgentRemainingAtMost: number;
+  progressVariant?: 'default' | 'success';
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -71,27 +77,10 @@ function SubscriptionOverviewMetric({
         total={daysLeft.totalDays}
         label={daysLeftAriaLabel}
         urgentRemainingAtMost={urgentRemainingAtMost}
+        variant={progressVariant}
       />
     </div>
   );
-}
-
-function ServiceStatusBadge({
-  state,
-  statusBadge,
-  notSubscribedLabel,
-}: {
-  state: ServiceSubscriptionCardState;
-  statusBadge?: ReactNode;
-  notSubscribedLabel?: string;
-}) {
-  if (statusBadge) return statusBadge;
-
-  if (state === 'notSubscribed' && notSubscribedLabel) {
-    return <MetaBadge kind="notSubscribed">{notSubscribedLabel}</MetaBadge>;
-  }
-
-  return null;
 }
 
 /**
@@ -116,6 +105,7 @@ export function ServiceSubscriptionCard({
   renewalAfterPaymentNote,
   discountTooltipLabel,
   discountTooltip,
+  renewalInactiveNote,
   notSubscribedLabel,
   comingSoonLabel,
   description,
@@ -124,17 +114,21 @@ export function ServiceSubscriptionCard({
   equalHeight = false,
   onAction,
   actionLabel,
+  onContinue,
+  continueLabel,
+  isContinuing = false,
 }: ServiceSubscriptionCardProps) {
+  const hasDaysLeft = daysLeft != null && daysLeftSuffix != null && daysLeftAriaLabel != null;
+  const hasActivePricing =
+    state === 'active' &&
+    pricing != null &&
+    paidLabel &&
+    renewalLabel &&
+    discountTooltipLabel &&
+    discountTooltip;
   const showSubscriptionContent =
-    (state === 'active' || state === 'trial') &&
-    daysLeft != null &&
-    daysLeftSuffix != null &&
-    daysLeftAriaLabel != null;
-
-  const showHeader =
-    icon != null ||
-    statusBadge != null ||
-    (state === 'notSubscribed' && notSubscribedLabel != null);
+    (state === 'active' && (hasDaysLeft || hasActivePricing)) || (state === 'trial' && hasDaysLeft);
+  const showTrialTitleStyle = state === 'trial' && !trialLabel;
 
   return (
     <div
@@ -144,44 +138,37 @@ export function ServiceSubscriptionCard({
           : 'flex min-w-0 flex-col gap-5 p-6 sm:p-8'
       }
     >
-      {showHeader ? (
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          {icon ? (
-            <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-              style={
-                iconTone === 'trial'
-                  ? {
-                      background: 'var(--warning-soft)',
-                      color: 'var(--warning-soft-foreground)',
-                      opacity: muted ? 0.6 : 1,
-                    }
-                  : {
-                      background: `color-mix(in oklab, ${accent ?? 'var(--accent)'} 12%, transparent)`,
-                      color: accent ?? 'var(--accent)',
-                      opacity: muted ? 0.6 : 1,
-                    }
-              }
-              aria-hidden
-            >
-              {icon}
-            </span>
-          ) : null}
-          <ServiceStatusBadge
-            state={state}
-            statusBadge={statusBadge}
-            notSubscribedLabel={notSubscribedLabel}
-          />
+      {icon ? (
+        <div className="flex min-w-0 items-start">
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+            style={
+              iconTone === 'trial'
+                ? {
+                    background: 'var(--warning-soft)',
+                    color: 'var(--warning-soft-foreground)',
+                    opacity: muted ? 0.6 : 1,
+                  }
+                : {
+                    background: `color-mix(in oklab, ${accent ?? 'var(--accent)'} 12%, transparent)`,
+                    color: accent ?? 'var(--accent)',
+                    opacity: muted ? 0.6 : 1,
+                  }
+            }
+            aria-hidden
+          >
+            {icon}
+          </span>
         </div>
       ) : null}
 
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {state === 'trial' ? (
-            <p className="font-display inline-flex items-center gap-2 text-base leading-snug font-semibold text-[var(--warning-soft-foreground)]">
+          {showTrialTitleStyle ? (
+            <h2 className="inline-flex items-center gap-2 text-base leading-snug font-semibold text-[var(--warning-soft-foreground)]">
               <Timer size={16} weight="fill" className="shrink-0" aria-hidden />
               <span>{title}</span>
-            </p>
+            </h2>
           ) : (
             <h2 className="text-foreground text-base leading-snug font-semibold">{title}</h2>
           )}
@@ -195,6 +182,12 @@ export function ServiceSubscriptionCard({
               {comingSoonLabel}
             </MetaBadge>
           ) : null}
+          {statusBadge ? <span className="shrink-0">{statusBadge}</span> : null}
+          {state === 'notSubscribed' && !statusBadge && notSubscribedLabel ? (
+            <MetaBadge kind="notSubscribed" className="shrink-0">
+              {notSubscribedLabel}
+            </MetaBadge>
+          ) : null}
         </div>
 
         {showSubscriptionContent ? (
@@ -206,12 +199,15 @@ export function ServiceSubscriptionCard({
             }
           >
             <div className="flex min-w-0 flex-1 flex-col gap-4">
-              <SubscriptionOverviewMetric
-                daysLeft={daysLeft}
-                daysLeftAriaLabel={daysLeftAriaLabel}
-                daysLeftSuffix={daysLeftSuffix}
-                urgentRemainingAtMost={state === 'trial' ? 1 : 29}
-              />
+              {hasDaysLeft ? (
+                <SubscriptionOverviewMetric
+                  daysLeft={daysLeft}
+                  daysLeftAriaLabel={daysLeftAriaLabel}
+                  daysLeftSuffix={daysLeftSuffix}
+                  urgentRemainingAtMost={state === 'trial' ? 1 : 29}
+                  progressVariant={state === 'trial' ? 'success' : 'default'}
+                />
+              ) : null}
               {state === 'trial' &&
               trialPricing &&
               duePaymentLabel &&
@@ -236,12 +232,24 @@ export function ServiceSubscriptionCard({
                   renewalLabel={renewalLabel}
                   discountTooltipLabel={discountTooltipLabel}
                   discountTooltip={discountTooltip}
+                  renewalInactiveNote={renewalInactiveNote}
                 />
               ) : null}
               {state === 'trial' && onAction && actionLabel ? (
                 <Button variant="primary" size="md" className="gap-2 self-start" onPress={onAction}>
                   {actionLabel}
                   <CaretRight size={16} weight="bold" className="shrink-0" aria-hidden />
+                </Button>
+              ) : null}
+              {onContinue && continueLabel ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-fit self-start"
+                  onPress={onContinue}
+                  isDisabled={isContinuing}
+                >
+                  {continueLabel}
                 </Button>
               ) : null}
             </div>
@@ -270,6 +278,16 @@ export function ServiceSubscriptionCard({
               {actionLabel}
             </Button>
           </div>
+        ) : onContinue && continueLabel ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-fit self-start"
+            onPress={onContinue}
+            isDisabled={isContinuing}
+          >
+            {continueLabel}
+          </Button>
         ) : null}
       </div>
     </div>

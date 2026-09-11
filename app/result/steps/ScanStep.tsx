@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { FileText, Globe } from '@/components/ui';
+import { MagnifyingGlass } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 import { ScanForm } from '@/components/shared/ScanForm';
-import { SCAN_DURATION_MS } from '../content/scan-groups';
-import { useScanLoadingPhase } from '../content/use-scan-loading-phase';
+import { SCAN_PHASE_MS } from '../content/scan-groups';
 import { StepFrame } from '../ui/StepFrame';
 
 interface ScanStepProps {
@@ -17,24 +16,35 @@ interface ScanStepProps {
 
 export function ScanStep({ domain, onContinue, skipLoading }: ScanStepProps) {
   const t = useTranslations('result.scanStep');
-  const phase = useScanLoadingPhase(!skipLoading);
-  const scanningLabel = phase === 'scanning' ? t('scanningWebsite') : t('creatingPolicy');
-  const scanningIcon = phase === 'scanning' ? Globe : FileText;
+  const onContinueRef = useRef(onContinue);
+  const hasContinuedRef = useRef(false);
+
+  useEffect(() => {
+    onContinueRef.current = onContinue;
+  }, [onContinue]);
+
+  useEffect(() => {
+    hasContinuedRef.current = false;
+  }, [domain]);
 
   useEffect(() => {
     if (skipLoading) {
-      onContinue();
+      if (hasContinuedRef.current) return;
+      hasContinuedRef.current = true;
+      onContinueRef.current();
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      onContinue();
-    }, SCAN_DURATION_MS);
+      if (hasContinuedRef.current) return;
+      hasContinuedRef.current = true;
+      onContinueRef.current();
+    }, SCAN_PHASE_MS * 2);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [onContinue, skipLoading]);
+  }, [domain, skipLoading]);
 
   if (skipLoading) {
     return (
@@ -50,9 +60,8 @@ export function ScanStep({ domain, onContinue, skipLoading }: ScanStepProps) {
         <div className="border-border relative flex h-full flex-1 items-center justify-center overflow-x-hidden border-r border-l px-4 py-16 sm:px-8 sm:py-24">
           <ScanForm
             scanning
-            scanningLabel={scanningLabel}
-            scanningIcon={scanningIcon}
-            scanningPhaseKey={phase}
+            scanningLabel={t('scanningWebsite')}
+            scanningIcon={MagnifyingGlass}
             displayValue={domain}
           />
         </div>

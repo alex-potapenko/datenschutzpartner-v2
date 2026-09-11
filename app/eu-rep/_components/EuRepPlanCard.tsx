@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useId, useState, type Key } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type Key } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button, CaretDown, CaretRight, Check, Tabs } from '@/components/ui';
@@ -11,6 +11,9 @@ import {
   EuRepPlanRequestsSubline,
 } from '@/app/eu-rep/_components/EuRepPlanRequestsNote';
 import { euRepPlanIdSchema, type EuRepPlanId } from '@/api/checkout';
+import { getScrollParent } from '@/lib/utils';
+
+const INCLUDED_FEATURES_TRANSITION_MS = 200;
 
 const MEMBERSHIP_CARD_STYLE = {
   border: '2px solid rgba(255,255,255,1)',
@@ -82,6 +85,7 @@ type EuRepPlanPanelContentProps = {
   showOrderCta?: boolean;
   showPlanPricing?: boolean;
   priceAlign?: 'start' | 'center';
+  includedFeatures?: React.ReactNode;
   /** When set, only the plan note cross-fades on tab change — price and CTA stay put. */
   planChangeDirection?: number;
   previousPlanId?: EuRepPlanId;
@@ -184,6 +188,7 @@ function EuRepPlanPanelContent({
   showOrderCta = true,
   showPlanPricing = true,
   priceAlign = 'start',
+  includedFeatures,
   planChangeDirection,
   previousPlanId,
 }: EuRepPlanPanelContentProps) {
@@ -253,6 +258,7 @@ function EuRepPlanPanelContent({
                     currency="CHF"
                     amount={plan.price}
                     animatedAmount={Number.isFinite(priceValue) ? priceValue : undefined}
+                    amountFraction=".00"
                     notes={[plan.showPerYear ? pricePeriod : null]}
                     align={priceAlign}
                   />
@@ -292,6 +298,8 @@ function EuRepPlanPanelContent({
       ) : null}
 
       {showOrderCta ? orderButton : null}
+
+      {includedFeatures}
     </div>
   );
 }
@@ -307,6 +315,55 @@ function IncludedFeatures({
 }) {
   const [open, setOpen] = useState(!collapsible);
   const listId = useId();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const savedScrollTopRef = useRef<number | null>(null);
+  const savedSectionHeightRef = useRef<number | null>(null);
+  const scrollParentRef = useRef<HTMLElement | null>(null);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!collapsible) return;
+
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const behavior = reduceMotion ? 'auto' : 'smooth';
+    const delay = reduceMotion ? 0 : INCLUDED_FEATURES_TRANSITION_MS + 20;
+
+    const timer = window.setTimeout(() => {
+      const scrollParent = scrollParentRef.current ?? getScrollParent(section);
+
+      if (open) {
+        if (!scrollParent) return;
+
+        const baseHeight = savedSectionHeightRef.current ?? section.offsetHeight;
+        const expandedBy = Math.max(0, section.offsetHeight - baseHeight);
+        savedSectionHeightRef.current = null;
+
+        const scrollRect = scrollParent.getBoundingClientRect();
+        const elementRect = section.getBoundingClientRect();
+        const alignBottom = scrollParent.scrollTop + (elementRect.bottom - scrollRect.bottom);
+        const maxScroll = scrollParent.scrollHeight - scrollParent.clientHeight;
+        const targetTop = Math.min(
+          maxScroll,
+          Math.max(scrollParent.scrollTop, scrollParent.scrollTop + expandedBy, alignBottom)
+        );
+
+        scrollParent.scrollTo({ top: targetTop, behavior });
+        return;
+      }
+
+      if (scrollParent && savedScrollTopRef.current !== null) {
+        scrollParent.scrollTo({ top: savedScrollTopRef.current, behavior });
+        savedScrollTopRef.current = null;
+        scrollParentRef.current = null;
+      }
+    }, delay);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [collapsible, open, reduceMotion]);
 
   const list = (
     <ul id={collapsible ? listId : undefined} className="flex flex-col gap-2.5">
@@ -329,22 +386,41 @@ function IncludedFeatures({
   }
 
   return (
-    <div className="border-border flex flex-col border-t pt-6">
+    <div
+      ref={sectionRef}
+      className={`-mx-3 flex flex-col rounded-2xl p-4 transition-[background-color,box-shadow] duration-200 ${
+        open
+          ? 'bg-white [box-shadow:var(--shadow-soft-panel)]'
+          : 'bg-transparent [box-shadow:inset_0_0_0_1px_var(--border)] hover:bg-white hover:[box-shadow:var(--shadow-soft-panel)]'
+      }`}
+    >
       <button
         type="button"
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => {
-          setOpen((current) => !current);
+          setOpen((current) => {
+            const next = !current;
+            const section = sectionRef.current;
+            if (section && next) {
+              const scrollParent = getScrollParent(section);
+              if (scrollParent) {
+                scrollParentRef.current = scrollParent;
+                savedScrollTopRef.current = scrollParent.scrollTop;
+                savedSectionHeightRef.current = section.offsetHeight;
+              }
+            }
+            return next;
+          });
         }}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+        className="text-accent flex w-full cursor-pointer items-center justify-between gap-3 text-left"
       >
-        <span className="text-accent text-base font-semibold">{title}</span>
+        <span className="text-base font-semibold">{title}</span>
         <CaretDown
           size={16}
           weight="bold"
           aria-hidden
-          className={`text-accent shrink-0 transition-transform duration-200 ease-out ${open ? 'rotate-180' : ''}`}
+          className={`shrink-0 transition-transform duration-200 ease-out ${open ? 'rotate-180' : ''}`}
         />
       </button>
       <div
@@ -422,6 +498,10 @@ export function EuRepPlanCard({
     showOrderCta,
     showPlanPricing,
     priceAlign,
+    includedFeatures:
+      features.length > 0 && !featuresCollapsible ? (
+        <IncludedFeatures title={includedTitle} features={features} collapsible={false} />
+      ) : undefined,
     planChangeDirection: showPlanTabs ? direction : undefined,
     previousPlanId: showPlanTabs ? previousPlanId : undefined,
   };
@@ -429,7 +509,9 @@ export function EuRepPlanCard({
   const outerClassName =
     layout === 'standalone'
       ? `flex justify-center overflow-visible px-4 py-8 sm:px-8 sm:py-10${fillHeight ? ' min-h-0 flex-1' : ''}`
-      : 'flex items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:px-16 lg:py-12';
+      : fillHeight
+        ? 'flex h-full min-h-0 flex-1 items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:px-16 lg:py-12'
+        : 'flex items-start justify-center overflow-visible border-t px-4 py-8 sm:px-8 sm:py-10 lg:border-t-0 lg:px-16 lg:py-12';
 
   function handlePlanChange(planId: string) {
     const currentIndex = plans.findIndex((plan) => plan.id === selectedPlanId);
@@ -516,19 +598,17 @@ export function EuRepPlanCard({
                 </SlidingPanel>
               ) : null}
 
-              {features.length > 0 ? (
-                <IncludedFeatures
-                  title={includedTitle}
-                  features={features}
-                  collapsible={featuresCollapsible}
-                />
+              {features.length > 0 && featuresCollapsible ? (
+                <IncludedFeatures title={includedTitle} features={features} collapsible />
               ) : null}
 
               {postFeaturesFooter ? (
                 <div className={postFeaturesFooterClassName}>{postFeaturesFooter}</div>
               ) : null}
 
-              {footerAction ? <div className="pt-8">{footerAction}</div> : null}
+              {footerAction ? (
+                <div className="border-border border-t pt-6">{footerAction}</div>
+              ) : null}
             </div>
           </div>
 

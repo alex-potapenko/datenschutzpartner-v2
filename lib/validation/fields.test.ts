@@ -73,6 +73,7 @@ describe('euRepEntityFieldsSchema', () => {
     const result = euRepEntityFieldsSchema.safeParse({
       legalEntity: 'Oso AG',
       forwardingEmail: 'info@oso.com',
+      postalDepartment: '',
       postalLine1: 'Bahnhofstrasse 1',
       postalLine2: '',
       postalCode: '8001',

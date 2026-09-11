@@ -32,9 +32,9 @@ export function StepFrame({
 
   if (scrollWithContent) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-h-full flex-1 flex-col">
         {header}
-        {children}
+        <div className="flex min-h-full flex-1 flex-col">{children}</div>
         {footer}
       </div>
     );
@@ -45,9 +45,9 @@ export function StepFrame({
       {header ? <div className="shrink-0">{header}</div> : null}
       <div
         ref={bodyScrollRef}
-        className={`flex h-full min-h-0 flex-1 flex-col ${centerContent ? 'justify-center' : contentOverflowVisible ? 'overflow-visible' : 'overflow-y-auto'}`}
+        className={`flex h-full min-h-0 flex-1 flex-col overflow-y-auto ${centerContent ? 'justify-center' : ''}`}
       >
-        {children}
+        {contentOverflowVisible ? <div className="overflow-visible">{children}</div> : children}
       </div>
       {footer ? <div className="shrink-0">{footer}</div> : null}
     </div>

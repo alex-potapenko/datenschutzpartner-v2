@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { FaqCategorizedSections } from '@/components/shared/FaqCategorizedSections';
+import { FaqSectionFrame } from '@/components/shared/FaqSectionFrame';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import {
   EU_REP_FAQ_CATEGORY_IDS,
@@ -62,10 +63,8 @@ export function ServiceWizardFaqPanel({ variant }: ServiceWizardFaqPanelProps) {
         });
 
   return (
-    <div className="flex flex-col gap-10 pb-10 sm:gap-12">
-      <h1 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">{title}</h1>
-      <FaqCategorizedSections sections={sections} className="!mx-0 max-w-none" />
-      <p className="text-foreground text-base leading-relaxed">{intro}</p>
-    </div>
+    <FaqSectionFrame title={title} intro={intro} className="scroll-mt-0 border-0">
+      <FaqCategorizedSections sections={sections} />
+    </FaqSectionFrame>
   );
 }

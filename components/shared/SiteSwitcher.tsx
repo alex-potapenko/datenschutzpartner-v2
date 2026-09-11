@@ -2,7 +2,10 @@
 
 import { useState, type ComponentType, type CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
-import { Buildings, Check, Cookie, Globe, Spinner } from '@/components/ui';
+import { isPolicySubscriptionOnTrial, useSubscriptions } from '@/api/billing';
+import { Buildings, Cookie, Globe, Spinner } from '@/components/ui';
+import { MetaBadge } from '@/components/shared/MetaBadge';
+import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { cn } from '@/lib/utils';
 import { ListSearchInput } from './ListSearchInput';
 import { ListSelectorTrigger } from './ListSelectorTrigger';
@@ -90,6 +93,9 @@ function SidebarSiteList({
   listAriaLabel: string;
 }) {
   const t = useTranslations('account.siteSwitcher');
+  const tAccount = useTranslations('account');
+  const tStatus = useTranslations('account.status');
+  const subscriptions = useSubscriptions();
 
   if (sites.length === 0) {
     return <p className="text-muted px-5 py-4 text-sm">{emptyLabel}</p>;
@@ -100,6 +106,16 @@ function SidebarSiteList({
       {sites.map((site) => {
         const isActive = site.domain === activeDomain;
         const activeProducts = SITE_PRODUCT_ICONS.filter((product) => product.isActive(site));
+        const subscription = site.document?.subscriptionId
+          ? (subscriptions.data ?? []).find((row) => row.id === site.document?.subscriptionId)
+          : undefined;
+        const onTrial = subscription ? isPolicySubscriptionOnTrial(subscription) : false;
+        const inactiveStatus =
+          subscription &&
+          !onTrial &&
+          (subscription.status === 'cancelled' || subscription.status === 'expired')
+            ? subscription.status
+            : null;
 
         return (
           <button
@@ -113,25 +129,41 @@ function SidebarSiteList({
             className={cn(
               'flex min-h-12 w-full cursor-pointer items-center gap-2 px-5 text-left text-sm font-medium transition-colors',
               isActive
-                ? 'bg-key-50 text-accent shadow-[inset_2px_0_0_0_var(--accent)]'
+                ? 'bg-accent text-white'
                 : 'text-foreground hover:bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]'
             )}
           >
             <span className="min-w-0 flex-1 truncate">{site.domain}</span>
+            {onTrial ? (
+              <MetaBadge
+                kind="trial"
+                className={cn('shrink-0', isActive && 'bg-white/20 text-white')}
+              >
+                {tAccount('nav.trial')}
+              </MetaBadge>
+            ) : inactiveStatus ? (
+              <StatusPill
+                tone={statusTone(inactiveStatus)}
+                className={cn(
+                  'shrink-0',
+                  isActive &&
+                    '[--chip-bg:color-mix(in_srgb,white_20%,transparent)] [--chip-fg:white]'
+                )}
+              >
+                {tStatus(inactiveStatus)}
+              </StatusPill>
+            ) : null}
             {activeProducts.map((product) => {
               const ProductIcon = product.icon;
               return (
                 <SiteProductIcon
                   key={product.id}
                   icon={ProductIcon}
-                  color={product.color}
+                  color={isActive ? '#fff' : product.color}
                   label={t(product.labelKey)}
                 />
               );
             })}
-            {isActive ? (
-              <Check size={14} weight="bold" className="text-accent shrink-0" aria-hidden />
-            ) : null}
           </button>
         );
       })}
@@ -153,7 +185,7 @@ export function WebsiteSidebarSitePanel({ onSiteSelect }: { onSiteSelect?: () =>
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="border-border flex max-h-[calc(100dvh-var(--topbar-height,6rem)-10rem)] min-h-0 flex-col overflow-hidden border-b lg:max-h-full">
       <div className="border-border shrink-0 border-t px-5 pt-3.25 pb-3.25">
         <ListSearchInput
           value={query}
@@ -163,7 +195,7 @@ export function WebsiteSidebarSitePanel({ onSiteSelect }: { onSiteSelect?: () =>
           className="border-0 p-0"
         />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <SidebarSiteList
           sites={filteredSites}
           activeDomain={activeSite.domain}

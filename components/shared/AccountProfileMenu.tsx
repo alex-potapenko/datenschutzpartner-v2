@@ -16,7 +16,7 @@ import {
   IdentificationCard,
   Receipt,
   SignOut,
-  User,
+  UserCircle,
   useOverlayState,
 } from '@/components/ui';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -58,7 +58,7 @@ export function AccountProfileMenu({
     clearAuthToken();
     queryClient.clear();
     logout.close();
-    router.push('/login');
+    router.push('/');
   }
 
   return (
@@ -68,7 +68,7 @@ export function AccountProfileMenu({
           aria-label={t('nav.profileMenu')}
           className={cn(topBarOutlineTriggerClass)}
         >
-          <User size={14} weight="bold" aria-hidden />
+          <UserCircle size={16} weight="bold" aria-hidden />
           <span className="max-w-32 truncate">{buttonLabel}</span>
           <CaretDown size={14} aria-hidden />
         </DropdownTrigger>
@@ -80,7 +80,13 @@ export function AccountProfileMenu({
               href={onLeaveRequest ? undefined : ACCOUNT_DETAILS_HREF}
               textValue={t('nav.accountDetails')}
               className="px-3 py-2.5"
-              onAction={onLeaveRequest ? () => { handleMenuAction(); } : undefined}
+              onAction={
+                onLeaveRequest
+                  ? () => {
+                      handleMenuAction();
+                    }
+                  : undefined
+              }
             >
               <span className="flex items-center gap-3">
                 <IdentificationCard size={18} className="text-muted shrink-0" aria-hidden />
@@ -92,7 +98,13 @@ export function AccountProfileMenu({
               href={onLeaveRequest ? undefined : ALL_SUBSCRIPTIONS_ACCOUNT_HREF}
               textValue={t('nav.allSubscriptions')}
               className="px-3 py-2.5"
-              onAction={onLeaveRequest ? () => { handleMenuAction(); } : undefined}
+              onAction={
+                onLeaveRequest
+                  ? () => {
+                      handleMenuAction();
+                    }
+                  : undefined
+              }
             >
               <span className="flex items-center gap-3">
                 <Receipt size={18} className="text-muted shrink-0" aria-hidden />

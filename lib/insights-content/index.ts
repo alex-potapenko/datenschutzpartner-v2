@@ -1,13 +1,13 @@
 import type { Locale } from '@/i18n/config';
-import { INSIGHTS_CONTENT as deContent } from './de';
-import { INSIGHTS_CONTENT as enContent } from './en';
+import { NEWS_ARTICLES_DE, NEWS_ARTICLES_EN } from './news';
+import { PODCAST_ARTICLES_DE, PODCAST_ARTICLES_EN } from './podcasts';
 import {
-  LIVE_SESSION_DURATION_MINUTES,
-  NEWS_QUESTIONS_SCHEDULE,
-  WEBINAR_SCHEDULE,
-} from './webinar-schedule';
-import type { InsightArticle, InsightsTab, RawInsightArticle } from './types';
-import { INSIGHTS_PAGE_SIZE, INSIGHTS_TAB_IDS } from './types';
+  INSIGHTS_PAGE_SIZE,
+  INSIGHTS_TAB_IDS,
+  type InsightArticle,
+  type InsightsTab,
+  type RawInsightArticle,
+} from './types';
 
 export {
   HOMEPAGE_INSIGHTS_LIMIT,
@@ -22,29 +22,14 @@ function slugFromImage(): string {
   return 'article';
 }
 
-function liveScheduleForTab(tab: InsightsTab): Record<string, string> | undefined {
-  if (tab === 'webinars') {
-    return WEBINAR_SCHEDULE;
-  }
-  if (tab === 'newsQuestions') {
-    return NEWS_QUESTIONS_SCHEDULE;
-  }
-  return undefined;
-}
-
 function normalizeArticle(raw: RawInsightArticle, tab: InsightsTab): InsightArticle {
   const { slug: rawSlug, ...rest } = raw;
   const slug = rawSlug ?? slugFromImage();
-  const liveAt = liveScheduleForTab(tab)?.[slug];
 
   return {
     ...rest,
     slug,
     tab,
-    ...(liveAt && {
-      liveAt,
-      liveAtDurationMinutes: LIVE_SESSION_DURATION_MINUTES,
-    }),
   };
 }
 
@@ -52,17 +37,14 @@ function normalizeContent(
   content: Record<InsightsTab, RawInsightArticle[]>
 ): Record<InsightsTab, InsightArticle[]> {
   return {
-    webinars: content.webinars.map((article) => normalizeArticle(article, 'webinars')),
-    newsQuestions: content.newsQuestions.map((article) =>
-      normalizeArticle(article, 'newsQuestions')
-    ),
+    news: content.news.map((article) => normalizeArticle(article, 'news')),
     podcasts: content.podcasts.map((article) => normalizeArticle(article, 'podcasts')),
   };
 }
 
 const contentByLocale = {
-  de: normalizeContent(deContent),
-  en: normalizeContent(enContent),
+  de: normalizeContent({ news: NEWS_ARTICLES_DE, podcasts: PODCAST_ARTICLES_DE }),
+  en: normalizeContent({ news: NEWS_ARTICLES_EN, podcasts: PODCAST_ARTICLES_EN }),
 } as const;
 
 export function getInsightsContent(locale: Locale): Record<InsightsTab, InsightArticle[]> {
@@ -71,21 +53,14 @@ export function getInsightsContent(locale: Locale): Record<InsightsTab, InsightA
 
 export function getAllInsightArticles(locale: Locale): InsightArticle[] {
   const content = getInsightsContent(locale);
-  return [...content.webinars, ...content.newsQuestions, ...content.podcasts];
+  return [...content.news, ...content.podcasts];
 }
 
 export function getInsightArticleBySlug(locale: Locale, slug: string): InsightArticle | undefined {
   return getAllInsightArticles(locale).find((article) => article.slug === slug);
 }
 
-export function isLiveInsightTab(tab: InsightsTab): boolean {
-  return tab === 'webinars' || tab === 'newsQuestions';
-}
-
 export function parseInsightsTab(value: string | null | undefined): InsightsTab | undefined {
-  if (value === 'news') {
-    return 'newsQuestions';
-  }
   if (value && INSIGHTS_TAB_IDS.includes(value as InsightsTab)) {
     return value as InsightsTab;
   }
@@ -119,8 +94,12 @@ export function getInsightsPageArticles<T>(
 
 export function insightsListHref(tab?: InsightsTab, page?: number): string {
   const params = new URLSearchParams();
-  if (tab) params.set('tab', tab);
-  if (page && page > 1) params.set('page', String(page));
+  if (tab) {
+    params.set('tab', tab);
+  }
+  if (page && page > 1) {
+    params.set('page', String(page));
+  }
   const query = params.toString();
   return query ? `/insights?${query}` : '/insights';
 }
@@ -146,11 +125,13 @@ export function getAdjacentInsightArticles(
   };
 }
 
-export function getAllInsightSlugs(): string[] {
+export function getAllInsightSlugs(tab?: InsightsTab): string[] {
   const slugs = new Set<string>();
   for (const locale of ['de', 'en'] as const) {
     for (const article of getAllInsightArticles(locale)) {
-      slugs.add(article.slug);
+      if (!tab || article.tab === tab) {
+        slugs.add(article.slug);
+      }
     }
   }
   return [...slugs];

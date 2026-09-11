@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { isPolicySubscriptionOnTrial, useSubscriptions } from '@/api/billing';
 import { MetaBadge } from '@/components/shared/MetaBadge';
@@ -122,6 +122,25 @@ export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
   const scopeKey = isEuRepScope ? 'euRep' : 'websites';
   const [siteListOpen, setSiteListOpen] = useState(false);
   const websitePanelKey = siteListOpen ? 'site-list' : 'sections';
+  const siteListRef = useRef<HTMLDivElement>(null);
+  const siteSwitcherRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!siteListOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (siteListRef.current?.contains(target)) return;
+      if (siteSwitcherRef.current?.contains(target)) return;
+      setSiteListOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [siteListOpen]);
 
   return (
     <nav className="flex h-full min-h-0 flex-1 flex-col" aria-label={t('title')}>
@@ -136,7 +155,9 @@ export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
             <EuRepContractSidebarNav />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <SiteSwitcher isOpen={siteListOpen} onOpenChange={setSiteListOpen} />
+              <div ref={siteSwitcherRef}>
+                <SiteSwitcher isOpen={siteListOpen} onOpenChange={setSiteListOpen} />
+              </div>
               <AnimatedDirectionalPanel
                 activeKey={websitePanelKey}
                 order={WEBSITE_SIDEBAR_PANEL_ORDER}
@@ -144,11 +165,16 @@ export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
                 className="flex min-h-0 flex-1 flex-col"
               >
                 {siteListOpen ? (
-                  <WebsiteSidebarSitePanel
-                    onSiteSelect={() => {
-                      setSiteListOpen(false);
-                    }}
-                  />
+                  <div
+                    ref={siteListRef}
+                    className="flex max-h-full w-full shrink-0 flex-col self-start"
+                  >
+                    <WebsiteSidebarSitePanel
+                      onSiteSelect={() => {
+                        setSiteListOpen(false);
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="min-h-0 flex-1 overflow-y-auto">
                     <SidebarNav active={active} onNavigate={onNavigate} />

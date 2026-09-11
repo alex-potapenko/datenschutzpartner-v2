@@ -26,7 +26,7 @@ interface RegularPageProps {
   /** When false, the TopBar is omitted (e.g. focused detail views with an inline back control). */
   showTopBar?: boolean;
   /** Account area: wordmark reads "My Account", no site nav or auth button. */
-  topBarVariant?: 'default' | 'account';
+  topBarVariant?: 'public' | 'account';
   /** When false, the site footer is omitted (e.g. focused flows like questionnaires). */
   showFooter?: boolean;
   /**

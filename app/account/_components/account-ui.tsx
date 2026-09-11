@@ -4,7 +4,6 @@ import type { ReactNode, SyntheticEvent } from 'react';
 import { createContext, useContext } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDiscountPercent } from '@/api/checkout';
-import { NavigationLink } from '@/components/shared/NavigationLink';
 import {
   SECONDARY_TABS_INDICATOR_CLASS,
   SECONDARY_TABS_LIST_CLASS,
@@ -393,16 +392,23 @@ export function DaysLeftBar({
   total,
   label,
   urgentRemainingAtMost = 30,
+  variant = 'default',
 }: {
   remaining: number;
   total: number;
   label: string;
   /** Bar turns red when remaining days are at or below this threshold. */
   urgentRemainingAtMost?: number;
+  variant?: 'default' | 'success';
 }) {
   const remainingFraction = total > 0 ? Math.min(1, Math.max(0, remaining / total)) : 0;
   const isUrgent = remaining <= urgentRemainingAtMost;
   const percent = Math.round(remainingFraction * 100);
+  const fillColor = isUrgent
+    ? 'var(--feature-red)'
+    : variant === 'success'
+      ? 'var(--success)'
+      : 'var(--accent)';
 
   return (
     <div
@@ -414,10 +420,10 @@ export function DaysLeftBar({
       aria-label={label}
     >
       <div
-        className="h-full rounded-full"
+        className="h-full rounded-full transition-[width,background-color] duration-300"
         style={{
           width: `${percent}%`,
-          background: isUrgent ? 'var(--feature-red)' : 'var(--accent)',
+          background: fillColor,
         }}
       />
     </div>
@@ -683,6 +689,25 @@ export function useDateFormatter() {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+    }).format(date);
+  };
+}
+
+/** Formats an ISO date or datetime string using the active locale. */
+export function useDateTimeFormatter() {
+  const locale = useLocale();
+  const intlLocale = locale === 'de' ? 'de-CH' : 'en-GB';
+
+  return (iso: string | null | undefined) => {
+    if (!iso) return '—';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat(intlLocale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     }).format(date);
   };
 }

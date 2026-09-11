@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { StepLayout } from './ui/StepLayout';
 import type { WizardStepBarId } from './ui/WizardStepBar';
@@ -14,6 +14,7 @@ import { SummaryStep } from './steps/SummaryStep';
 import { AccountActivationScreen } from './steps/AccountActivationScreen';
 import { type GeneratedDocument } from '@/api/documents';
 import { useSession } from '@/api/auth';
+import { checkExistingSitePolicy } from '@/api/existing-purchase';
 import {
   buildVisitedSteps,
   emptyEuRepState,
@@ -34,8 +35,20 @@ import {
   type WizardProgress,
   type WizardStep,
 } from './wizard-state';
-import { privacyPolicyAccountHref, safeAccountReturnTo } from '@/lib/account-routes';
+import {
+  privacyPolicyAccountHref,
+  buildCurrentPathReturnTo,
+  safeAccountReturnTo,
+} from '@/lib/account-routes';
+import { ExistingPurchaseLoginDialog } from '@/components/shared/ExistingPurchaseLoginDialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { ConfirmingStatusScreen } from '@/components/shared/ConfirmingStatusScreen';
+import { CrossfadeScreen } from '@/components/shared/CrossfadeScreen';
+import { useOverlayState } from '@/components/ui';
 import { useRegenerateDocument } from '@/api/documents';
+import { useStartPolicyTrial } from '@/api/checkout';
+import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
+import { buildTrialCheckoutPayload } from './trial-payload';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
@@ -87,11 +100,14 @@ function syncVisitedSteps(
 
 export default function ResultContent() {
   const params = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
   const tSummary = useTranslations('result.summary');
+  const tPolicyReady = useTranslations('result.policyReady');
   const tQuestionnaire = useTranslations('result.questionnaireStep');
   const tLanding = useTranslations('landing');
   const regenerateDocument = useRegenerateDocument();
+  const startPolicyTrial = useStartPolicyTrial();
   const session = useSession();
   const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
   /** Guests need Account. While the session is still loading, keep the guest path
@@ -135,7 +151,19 @@ export default function ResultContent() {
   const [activation, setActivation] = useState<{
     email: string;
     verificationUrl?: string | null;
+    newsletter: boolean;
   } | null>(null);
+  const duplicateDialog = useOverlayState();
+  const createPolicyConfirm = useOverlayState();
+  const { phase: createPolicyPhase, run: runCreatePolicyFlow } = useConfirmingPaymentFlow();
+  const { phase: createAccountPhase, run: runCreateAccountFlow } = useConfirmingPaymentFlow();
+  const pendingCreatePolicyAction = useRef<(() => void | Promise<void>) | null>(null);
+  const [duplicateState, setDuplicateState] = useState<{
+    variant: 'site' | 'euRep';
+    displayName: string;
+    href?: string;
+  } | null>(null);
+  const loginReturnTo = buildCurrentPathReturnTo(pathname, params.toString());
 
   const progress: WizardProgress = {
     scanDone,
@@ -150,6 +178,7 @@ export default function ResultContent() {
   };
 
   const didHydrate = useRef(false);
+  const duplicateCheckDoneRef = useRef(false);
   const resetIncompleteScanRef = useRef(false);
   const progressRef = useRef(progress);
   progressRef.current = progress;
@@ -230,6 +259,44 @@ export default function ResultContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, session.isLoading]);
 
+  useEffect(() => {
+    if (!hydrated || session.isLoading || duplicateCheckDoneRef.current) return;
+    if (!isAuthenticated || !hasWebsiteUrl || questionnaireOnly) return;
+    if (step === 'website') return;
+
+    duplicateCheckDoneRef.current = true;
+
+    void (async () => {
+      try {
+        const existing = await checkExistingSitePolicy(domain);
+        if (!existing.exists) return;
+
+        setDuplicateState({
+          variant: 'site',
+          displayName: existing.displayName ?? domain,
+          href: existing.href,
+        });
+        duplicateDialog.open();
+        clearWizardState();
+        setScanDone(false);
+        setStep('website');
+        router.replace('/result?step=website', { scroll: false });
+      } catch {
+        // If the check fails, don't block the wizard.
+      }
+    })();
+  }, [
+    hydrated,
+    session.isLoading,
+    isAuthenticated,
+    hasWebsiteUrl,
+    domain,
+    step,
+    questionnaireOnly,
+    duplicateDialog,
+    router,
+  ]);
+
   // Reconcile the step from the URL against the *in-memory* progress (handles
   // browser back/forward and deep links). Reads live state, never storage, so
   // it cannot clamp back to a stale value mid-navigation.
@@ -257,7 +324,6 @@ export default function ResultContent() {
 
     const resolvedStep = resolveWizardStep(requestedStep, progressRef.current);
 
-     
     if (resolvedStep !== step) {
       setStep(resolvedStep);
       syncVisitedSteps(progress, resolvedStep, setVisitedSteps);
@@ -265,9 +331,18 @@ export default function ResultContent() {
     if (requestedStep && requestedStep !== resolvedStep) {
       syncStepInUrl(resolvedStep);
     }
-     
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, params, confirmReady, euRep, formData, scanDone, includeAccountStep, questionnaireOnly]);
+  }, [
+    hydrated,
+    params,
+    confirmReady,
+    euRep,
+    formData,
+    scanDone,
+    includeAccountStep,
+    questionnaireOnly,
+  ]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -339,7 +414,47 @@ export default function ResultContent() {
     advance(next, progress);
   }
 
-  function handleWebsiteUrlSubmit(normalizedUrl: string) {
+  async function generateGuestPolicy(
+    nextFormData: QuestionnaireFormData,
+    nextEuRep: EuRepState
+  ): Promise<boolean> {
+    try {
+      const result = await startPolicyTrial.mutateAsync(
+        buildTrialCheckoutPayload(domain, nextFormData, nextEuRep, fillSubscriptionId)
+      );
+      const document =
+        result.document ??
+        (result.documentId ? buildFallbackPolicy(domain, result.documentId) : undefined);
+      if (!document) {
+        toast.error(tPolicyReady('failed'));
+        return false;
+      }
+      setCheckoutDocument(document);
+      return true;
+    } catch {
+      toast.error(tPolicyReady('failed'));
+      return false;
+    }
+  }
+
+  async function handleWebsiteUrlSubmit(normalizedUrl: string) {
+    if (isAuthenticated) {
+      try {
+        const existing = await checkExistingSitePolicy(normalizedUrl);
+        if (existing.exists) {
+          setDuplicateState({
+            variant: 'site',
+            displayName: existing.displayName ?? normalizedUrl,
+            href: existing.href,
+          });
+          duplicateDialog.open();
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+
     const nextProgress = { ...progress, hasWebsiteUrl: true };
     const nextParams = new URLSearchParams(params.toString());
     nextParams.set('url', normalizedUrl);
@@ -385,16 +500,43 @@ export default function ResultContent() {
         return;
       }
 
-      if (isAuthenticated) {
-        goToConfirmation(nextProgress);
+      if (!isAuthenticated) {
+        requestCreatePolicy(async () => {
+          const ok = await generateGuestPolicy(mergedFormData, nextEuRep);
+          if (!ok) throw new Error('policy_generation_failed');
+          advance('summary', nextProgress);
+        });
         return;
       }
 
-      advance('summary', nextProgress);
+      requestCreatePolicy(() => {
+        goToConfirmation(nextProgress);
+      });
       return;
     }
 
     advance('eu-rep', nextProgress);
+  }
+
+  function requestCreatePolicy(action: () => void | Promise<void>) {
+    pendingCreatePolicyAction.current = action;
+    createPolicyConfirm.open();
+  }
+
+  async function handleConfirmCreatePolicy() {
+    const action = pendingCreatePolicyAction.current;
+    if (!action) return;
+
+    createPolicyConfirm.close();
+    try {
+      await runCreatePolicyFlow(async () => {
+        await action();
+      });
+    } catch {
+      // Child handlers surface their own errors (duplicate checks, API failures).
+    } finally {
+      pendingCreatePolicyAction.current = null;
+    }
   }
 
   function handleEuRepComplete(next: EuRepState, updatedFormData: QuestionnaireFormData) {
@@ -407,14 +549,20 @@ export default function ResultContent() {
       return;
     }
 
-    if (isAuthenticated) {
-      goToConfirmation(nextProgress);
+    if (!isAuthenticated) {
+      requestCreatePolicy(async () => {
+        const ok = await generateGuestPolicy(updatedFormData, next);
+        if (!ok) throw new Error('policy_generation_failed');
+        setEuRep(next);
+        setFormData(updatedFormData);
+        advance('summary', nextProgress);
+      });
       return;
     }
 
-    setEuRep(next);
-    setFormData(updatedFormData);
-    advance('summary', nextProgress);
+    requestCreatePolicy(() => {
+      goToConfirmation(nextProgress);
+    });
   }
 
   function handleScanAgain() {
@@ -471,19 +619,12 @@ export default function ResultContent() {
   const showWebsiteInputHeader = step === 'website' && Boolean(returnTo);
   const websiteHeaderText = websiteInput.trim() || tLanding('scanPlaceholder');
   const disabledStepIds = [
-    ...(questionnaireOnly || (scanDone && !questionnaireOnly) ? ['scanning'] : []),
+    ...(questionnaireOnly || scanDone ? ['scanning'] : []),
     ...(showAccountStepInBar && !euRep.done ? ['account'] : []),
   ];
   const disabledStepBarIds = disabledStepIds.length > 0 ? disabledStepIds : undefined;
 
-  const policyAlreadyGenerated = Boolean(checkoutDocument);
   const confirmQuit = hasWizardUserProgress(progress);
-
-  useEffect(() => {
-    if (step !== 'website') {
-      setWebsiteInput('');
-    }
-  }, [step]);
 
   if (!hydrated) {
     return (
@@ -508,32 +649,29 @@ export default function ResultContent() {
     );
   }
 
-  if (activation) {
-    return (
-      <AccountActivationScreen
-        variant="activation"
-        email={activation.email}
-        domain={domain}
-        euRep={euRep}
-        fillSubscriptionId={fillSubscriptionId}
-      />
-    );
+  const fullScreenKey =
+    createPolicyPhase === 'confirming'
+      ? 'creating-policy'
+      : createAccountPhase === 'confirming'
+        ? 'creating-account'
+        : activation
+          ? 'activation'
+          : step === 'confirm'
+            ? 'confirm'
+            : 'wizard';
+
+  async function handleCreateAccount<T>(register: () => Promise<T>): Promise<T> {
+    let result: T | undefined;
+    await runCreateAccountFlow(async () => {
+      result = await register();
+    });
+    if (result === undefined) {
+      throw new Error('registration_failed');
+    }
+    return result;
   }
 
-  if (step === 'confirm') {
-    return (
-      <AccountActivationScreen
-        variant="policyReady"
-        domain={domain}
-        euRep={euRep}
-        fillSubscriptionId={fillSubscriptionId}
-        formData={formData}
-        document={checkoutDocument}
-      />
-    );
-  }
-
-  return (
+  const wizardLayout = (
     <StepLayout
       step={step}
       domain={domain}
@@ -557,14 +695,16 @@ export default function ResultContent() {
           key={step}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
-          className={`flex flex-col${step === 'questionnaire' || step === 'eu-rep' ? 'flex-1' : ''}${step !== 'questionnaire' && step !== 'eu-rep' ? 'h-full min-h-0 flex-1' : ''}`}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className={`flex min-h-full flex-1 flex-col${step !== 'questionnaire' && step !== 'eu-rep' && step !== 'summary' ? 'h-full' : ''}`}
         >
           {step === 'website' && (
             <WebsiteStep
               onUrlSubmit={handleWebsiteUrlSubmit}
               onUrlChange={setWebsiteInput}
+              // UX: focus URL field when entering from account return flow
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional wizard entry focus
               autoFocus={showWebsiteInputHeader}
             />
           )}
@@ -598,11 +738,67 @@ export default function ResultContent() {
               euRep={euRep}
               fillSubscriptionId={fillSubscriptionId}
               onBack={handleBack}
+              onCreateAccount={handleCreateAccount}
               onRegistered={setActivation}
             />
           )}
         </motion.div>
       </AnimatePresence>
     </StepLayout>
+  );
+
+  return (
+    <>
+      <CrossfadeScreen screenKey={fullScreenKey}>
+        {fullScreenKey === 'creating-policy' ? (
+          <ConfirmingStatusScreen title={tSummary('creatingPolicyTitle')} />
+        ) : fullScreenKey === 'creating-account' ? (
+          <ConfirmingStatusScreen title={tSummary('creatingAccountTitle')} />
+        ) : fullScreenKey === 'activation' && activation ? (
+          <AccountActivationScreen
+            variant="activation"
+            email={activation.email}
+            newsletterOptIn={activation.newsletter}
+            domain={domain}
+            euRep={euRep}
+            fillSubscriptionId={fillSubscriptionId}
+          />
+        ) : fullScreenKey === 'confirm' ? (
+          <AccountActivationScreen
+            variant="policyReady"
+            domain={domain}
+            euRep={euRep}
+            fillSubscriptionId={fillSubscriptionId}
+            formData={formData}
+            document={checkoutDocument}
+          />
+        ) : (
+          wizardLayout
+        )}
+      </CrossfadeScreen>
+      {duplicateState && fullScreenKey === 'wizard' ? (
+        <ExistingPurchaseLoginDialog
+          state={duplicateDialog}
+          variant={duplicateState.variant}
+          displayName={duplicateState.displayName}
+          mode={isAuthenticated ? 'logged' : 'guest'}
+          returnTo={loginReturnTo}
+          entityHref={duplicateState.href}
+        />
+      ) : null}
+      {fullScreenKey === 'wizard' ? (
+        <ConfirmDialog
+          state={createPolicyConfirm}
+          title={tSummary('createPolicyConfirmTitle')}
+          body={tSummary('createPolicyConfirmBody')}
+          confirmLabel={tQuestionnaire('createPolicy')}
+          cancelLabel={tSummary('keepEditing')}
+          destructive={false}
+          onConfirm={() => {
+            void handleConfirmCreatePolicy();
+          }}
+        />
+      ) : null}
+    </>
   );
 }

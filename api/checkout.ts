@@ -255,6 +255,8 @@ export const checkoutSessionCreateSchema = z.object({
   subscriptionId: z.string().min(1).optional(),
   /** Fill a prepaid slot on this policy subscription (wizard fill-slot mode). */
   fillSubscriptionId: z.string().min(1).optional(),
+  /** Optional checkout promo code (prototype — validated server-side). */
+  promoCode: z.string().trim().min(1).optional(),
 });
 export type CheckoutSessionCreate = z.infer<typeof checkoutSessionCreateSchema>;
 

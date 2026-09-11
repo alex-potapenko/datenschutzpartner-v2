@@ -16,22 +16,29 @@ import type {
   Subscription,
   SubscriptionBillingUpdate,
   EuRepExtraRequestCreate,
+  EuRepExtraRequestWithdraw,
 } from '@/api/billing';
 import {
   isPolicySubscriptionOnTrial,
   isEuRepSubscriptionOnTrial,
   countActivePolicySites,
   countActivePolicySubscriptions,
+  resolvePolicySiteCount,
 } from '@/api/billing';
 import type { CheckoutSessionCreate, EuRepPlanId } from '@/api/checkout';
 import {
   calculateEuRepQuote,
   calculateGeneratorPolicyQuote,
-  EU_REP_EXTRA_REQUEST_PRICE,
   POLICY_TRIAL_DAYS,
   qualifyingSiteCountForCheckout,
   resolveEuRepPlan,
 } from '@/api/checkout';
+import {
+  applyPromoDiscount,
+  calculatePromoDiscountAmount,
+  normalizePromoCode,
+  resolvePromoCode,
+} from '@/lib/promo-codes';
 import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
 import {
   buildHostedPolicyPath,
@@ -42,6 +49,21 @@ import {
   resolveHostedPolicySlug,
   uniqueDocumentsBySite,
 } from '@/api/documents';
+import type {
+  PolicyBasicInformation,
+  PolicyMaintenanceState,
+  PolicyScanSettings,
+  PolicyService,
+  PolicyServiceRequest,
+  PolicyServiceRequestCreate,
+  PolicyUpdateSource,
+} from '@/api/policy-updates';
+import {
+  findPolicyServiceCatalogEntry,
+  POLICY_SERVICE_CATALOG,
+} from '@/lib/policy-services/catalog';
+import { extractDomainHost } from '@/lib/validation/url';
+import { euRepAccountHref, privacyPolicyAccountHref } from '@/lib/account-routes';
 import type {
   EuRepContract,
   EuRepContractCreate,
@@ -83,6 +105,7 @@ type AuthAccountRecord = {
   email: string;
   password: string;
   role: AccountRole;
+  twoFactorEnabled: boolean;
 };
 
 const authAccounts = createCollection<AuthAccountRecord>(
@@ -93,16 +116,25 @@ const authAccounts = createCollection<AuthAccountRecord>(
       email: MOCK_MEMBER_EMAIL,
       password: MOCK_MEMBER_PASSWORD,
       role: 'member',
+      twoFactorEnabled: false,
     },
     {
       id: '2',
       email: MOCK_DEMO_EMAIL,
       password: MOCK_DEMO_PASSWORD,
       role: 'admin',
+      twoFactorEnabled: true,
     },
   ],
   1
 );
+
+function twoFactorFlags(account: AuthAccountRecord) {
+  return {
+    requiresTwoFactor: account.twoFactorEnabled,
+    twoFactorSetupRequired: !account.twoFactorEnabled,
+  };
+}
 
 function findAuthAccountByEmail(email: string): AuthAccountRecord | undefined {
   const normalized = email.trim().toLowerCase();
@@ -126,6 +158,7 @@ function ensureAuthAccount(
     email: normalized,
     password,
     role,
+    twoFactorEnabled: false,
   });
 }
 
@@ -175,6 +208,7 @@ const billingAddress = createCollection<BillingAddress & { id: string }>(
       firstName: 'Lucas',
       lastName: 'Baumgartner',
       company: 'Baumgartner Digital AG',
+      department: 'Rechtsabteilung',
       line1: 'Bahnhofstrasse 12',
       line2: '',
       postalCode: '8001',
@@ -184,7 +218,7 @@ const billingAddress = createCollection<BillingAddress & { id: string }>(
       billingEmail: MOCK_MEMBER_EMAIL,
     },
   ],
-  1
+  2
 );
 
 const profile = createCollection<Profile & { id: string }>(
@@ -210,6 +244,7 @@ const EU_REP_BERGHOTEL_SUBSCRIPTION_ID = '58402';
 const POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID = '84729';
 const POLICY_SINGLE_ALPENBLICK_SUBSCRIPTION_ID = '86104';
 const POLICY_SINGLE_SUTTER_SUBSCRIPTION_ID = '87215';
+const POLICY_SINGLE_MUELLER_SUBSCRIPTION_ID = '88307';
 const POLICY_EXPIRED_SUBSCRIPTION_ID = '90341';
 const POLICY_TRIAL_SEEBLICK_SUBSCRIPTION_ID = '91452';
 const POLICY_TRIAL_ATELIER_SUBSCRIPTION_ID = '91453';
@@ -240,7 +275,8 @@ const subscriptions = createCollection<Subscription>(
       planId: 'plus',
       legalEntityCount: 1,
       includedRequests: 1,
-      usedRequests: 0,
+      usedRequests: 1,
+      requestUsages: [{ date: '2026-06-18T10:45:00' }],
       status: 'active',
       startDate: '2026-04-02',
       lastOrderDate: '2026-04-02',
@@ -258,21 +294,22 @@ const subscriptions = createCollection<Subscription>(
     {
       id: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
       productType: 'euRep',
-      product: 'EU Representation — Basis',
-      planId: 'basis',
+      product: 'EU Representation — Plus 5',
+      planId: 'plus5',
       legalEntityCount: 1,
-      includedRequests: 0,
-      usedRequests: 0,
+      includedRequests: 5,
+      usedRequests: 2,
+      requestUsages: [{ date: '2026-07-11T09:15:00' }, { date: '2026-05-22T14:30:00' }],
       status: 'active',
       startDate: '2026-05-18',
       lastOrderDate: '2026-05-18',
       nextPaymentDate: '2027-05-18',
       billingAddressId: '1',
       totals: {
-        product: 'EU Representation — Basis (12 Monate)',
-        subtotal: 149,
+        product: 'EU Representation — Plus 5 (12 Monate)',
+        subtotal: 499,
         discount: 0,
-        total: 149,
+        total: 499,
         currency: 'CHF',
       },
       relatedOrderIds: ['21'],
@@ -285,10 +322,10 @@ const subscriptions = createCollection<Subscription>(
       legalEntityCount: 1,
       includedRequests: 0,
       usedRequests: 0,
-      status: 'active',
-      startDate: '2026-06-01',
-      lastOrderDate: '2026-06-01',
-      nextPaymentDate: '2027-06-01',
+      status: 'expired',
+      startDate: '2025-06-01',
+      lastOrderDate: '2025-06-01',
+      nextPaymentDate: null,
       billingAddressId: '1',
       totals: {
         product: 'EU Representation — Basis (12 Monate)',
@@ -313,8 +350,8 @@ const subscriptions = createCollection<Subscription>(
       totals: {
         product: 'Privacy Policy Generator — 5 Sites (12 Monate)',
         subtotal: 445,
-        discount: 0,
-        total: 445,
+        discount: 33.38,
+        total: 411.62,
         currency: 'CHF',
       },
       relatedOrderIds: ['2'],
@@ -358,6 +395,26 @@ const subscriptions = createCollection<Subscription>(
         currency: 'CHF',
       },
       relatedOrderIds: ['22'],
+    },
+    {
+      id: POLICY_SINGLE_MUELLER_SUBSCRIPTION_ID,
+      productType: 'policy',
+      product: 'Privacy Policy — mueller-consulting.ch',
+      planId: '1',
+      siteCount: 1,
+      status: 'active',
+      startDate: '2026-01-22',
+      lastOrderDate: '2026-01-22',
+      nextPaymentDate: '2027-01-22',
+      billingAddressId: '1',
+      totals: {
+        product: 'Privacy Policy — mueller-consulting.ch (12 Monate)',
+        subtotal: 89,
+        discount: 0,
+        total: 89,
+        currency: 'CHF',
+      },
+      relatedOrderIds: ['24'],
     },
     {
       id: POLICY_EXPIRED_SUBSCRIPTION_ID,
@@ -422,7 +479,7 @@ const subscriptions = createCollection<Subscription>(
       relatedOrderIds: [],
     },
   ],
-  19
+  22
 );
 
 type CheckoutSessionRecord = {
@@ -450,9 +507,10 @@ type CheckoutSessionRecord = {
   documentId?: string;
   euRepContractId?: string;
   euRepContractIds?: string[];
+  promoCode?: string;
 };
 
-const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 3);
+const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 4);
 
 type PendingRegistration = RegisterInput & {
   id: string;
@@ -473,13 +531,69 @@ type PendingCheckoutRecord = {
   euRepLinkContractId?: string;
 };
 
-const pendingRegistrations = createCollection<PendingRegistration>('pending-registrations', [], 3);
-const pendingCheckouts = createCollection<PendingCheckoutRecord>('pending-checkouts', [], 3);
+const pendingRegistrations = createCollection<PendingRegistration>('pending-registrations', [], 4);
+const pendingCheckouts = createCollection<PendingCheckoutRecord>('pending-checkouts', [], 4);
 
 function addOneYear(isoDate: string): string {
   const date = new Date(isoDate);
   date.setFullYear(date.getFullYear() + 1);
   return date.toISOString().slice(0, 10);
+}
+
+function shouldStartNewTermOnContinue(subscription: Subscription): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (subscription.status === 'expired') return true;
+  if (!subscription.nextPaymentDate) return true;
+
+  const termEnd = addDays(subscription.nextPaymentDate, -1);
+  if (subscription.status === 'cancelled') {
+    return termEnd < today;
+  }
+
+  if (subscription.status === 'active' && subscription.nextPaymentDate < today) {
+    return true;
+  }
+
+  return false;
+}
+
+function createRenewalOrderForSubscription(subscription: Subscription, today: string): Order {
+  if (subscription.productType === 'policy') {
+    const activeSiteCount = countActivePolicySites(subscriptions.all());
+    const siteCount = resolvePolicySiteCount(subscription);
+    const quote = calculateGeneratorPolicyQuote(activeSiteCount, siteCount);
+
+    return orders.create({
+      productType: 'policy',
+      number: nextOrderNumber(),
+      date: today,
+      status: 'active',
+      total: quote.amountDue,
+      currency: 'CHF',
+      siteCount,
+      discountAmount: quote.discountAmount > 0 ? quote.discountAmount : undefined,
+      discountRate: quote.discountRate > 0 ? quote.discountRate : undefined,
+      subscriptionId: subscription.id,
+      orderKind: 'renewal',
+    });
+  }
+
+  const planId = (subscription.planId ?? 'basis') as EuRepPlanId;
+  const quote = calculateEuRepQuote(planId);
+
+  return orders.create({
+    productType: 'euRep',
+    number: nextOrderNumber(),
+    date: today,
+    status: 'active',
+    total: quote.amountDue,
+    currency: 'CHF',
+    legalEntityCount: subscription.legalEntityCount ?? 1,
+    planId,
+    orderKind: 'renewal',
+    subscriptionId: subscription.id,
+  });
 }
 
 function nextOrderNumber(): string {
@@ -582,17 +696,18 @@ function createEuRepPurchase(
 
   for (let index = 0; index < entityCount; index += 1) {
     const details = entities[index];
-    const legalEntity = details?.legalEntity?.trim() || `Legal entity ${String(index + 1)}`;
+    const legalEntity = details?.legalEntity.trim() || `Legal entity ${String(index + 1)}`;
     const defaults = defaultPostalForEntity(legalEntity);
     const created = euRepContracts.create({
       subscriptionId,
       legalEntity,
-      forwardingEmail: details?.forwardingEmail?.trim() || MOCK_MEMBER_EMAIL,
-      postalLine1: details?.postalLine1?.trim() || defaults.postalLine1,
-      postalLine2: details?.postalLine2?.trim() || undefined,
-      postalCode: details?.postalCode?.trim() || defaults.postalCode,
-      city: details?.city?.trim() || defaults.city,
-      country: details?.country?.trim() || defaults.country,
+      forwardingEmail: details?.forwardingEmail.trim() || MOCK_MEMBER_EMAIL,
+      postalLine1: details?.postalLine1.trim() || defaults.postalLine1,
+      postalDepartment: details?.postalDepartment.trim() || undefined,
+      postalLine2: details?.postalLine2.trim() || undefined,
+      postalCode: details?.postalCode.trim() || defaults.postalCode,
+      city: details?.city.trim() || defaults.city,
+      country: details?.country.trim() || defaults.country,
       linkedDocumentIds: [],
       status: 'active',
     });
@@ -660,7 +775,7 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
       : undefined;
     const swissLegalEntity =
       session.legalEntity?.trim() ||
-      session.euRepEntities?.[0]?.legalEntity?.trim() ||
+      session.euRepEntities?.[0]?.legalEntity.trim() ||
       linkedContract?.legalEntity ||
       undefined;
 
@@ -770,7 +885,7 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
     : undefined;
   const swissLegalEntity =
     session.legalEntity?.trim() ||
-    session.euRepEntities?.[0]?.legalEntity?.trim() ||
+    session.euRepEntities?.[0]?.legalEntity.trim() ||
     linkedContract?.legalEntity ||
     undefined;
 
@@ -821,7 +936,7 @@ function startPolicyTrial(input: CheckoutSessionCreate):
     : undefined;
   const swissLegalEntity =
     input.legalEntity?.trim() ||
-    input.euRepEntities?.[0]?.legalEntity?.trim() ||
+    input.euRepEntities?.[0]?.legalEntity.trim() ||
     linkedContract?.legalEntity ||
     undefined;
 
@@ -963,11 +1078,25 @@ const orders = createCollection<Order>(
       number: 'DSP-2026-1005',
       date: '2026-01-15',
       status: 'active',
-      total: 445,
+      total: 411.62,
       currency: 'CHF',
       siteCount: 5,
+      discountAmount: 33.38,
+      discountRate: 0.075,
       orderKind: 'subscription',
       subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
+    },
+    {
+      id: '24',
+      productType: 'policy',
+      number: 'DSP-2026-1042',
+      date: '2026-01-22',
+      status: 'active',
+      total: 89,
+      currency: 'CHF',
+      siteCount: 1,
+      orderKind: 'subscription',
+      subscriptionId: POLICY_SINGLE_MUELLER_SUBSCRIPTION_ID,
     },
     {
       id: '20',
@@ -1012,10 +1141,10 @@ const orders = createCollection<Order>(
       number: 'DSP-2026-1082',
       date: '2026-05-18',
       status: 'active',
-      total: 149,
+      total: 499,
       currency: 'CHF',
       legalEntityCount: 1,
-      planId: 'basis',
+      planId: 'plus5',
       orderKind: 'subscription',
       subscriptionId: EU_REP_ALPENBLICK_SUBSCRIPTION_ID,
     },
@@ -1045,7 +1174,7 @@ const orders = createCollection<Order>(
       subscriptionId: POLICY_EXPIRED_SUBSCRIPTION_ID,
     },
   ],
-  16
+  18
 );
 
 /** Latest legal year the hosted policies have been maintained through. */
@@ -1097,7 +1226,7 @@ const documents = createCollection<GeneratedDocument>(
         name: 'Privacy Policy',
         site: 'mueller-consulting.ch',
         legalEntity: 'Müller Consulting GmbH',
-        subscriptionId: POLICY_AGENCY_PREPAID_SUBSCRIPTION_ID,
+        subscriptionId: POLICY_SINGLE_MUELLER_SUBSCRIPTION_ID,
         createdDate: '2026-01-22',
         updatedDate: '2026-04-02',
       },
@@ -1130,12 +1259,34 @@ const documents = createCollection<GeneratedDocument>(
       },
     ] satisfies GeneratedDocument[]
   ).map((doc) => ({ ...doc, versions: buildPolicyVersions(doc.createdDate) })),
-  21
+  22
 );
 
 function findDocumentBySite(site: string): GeneratedDocument | undefined {
   const normalized = formatSiteDomain(site);
   return documents.all().find((doc) => formatSiteDomain(resolveDocumentSite(doc)) === normalized);
+}
+
+/** Seeded documents belong to the prototype member account — other users may reuse the same domain. */
+function findDocumentBySiteForAccount(
+  email: string | null,
+  site: string
+): GeneratedDocument | undefined {
+  if (!email || email.trim().toLowerCase() !== MOCK_MEMBER_EMAIL) {
+    return undefined;
+  }
+  return findDocumentBySite(site);
+}
+
+function findActiveEuRepContractForLegalEntity(legalEntity: string) {
+  const needle = legalEntity.trim().toLowerCase();
+  if (!needle) return undefined;
+  return euRepContracts.all().find((row) => {
+    if (row.status !== 'active') return false;
+    if (row.legalEntity.trim().toLowerCase() !== needle) return false;
+    const subscription = subscriptions.all().find((item) => item.id === row.subscriptionId);
+    return subscription?.status === 'active';
+  });
 }
 
 function inferBundledEuRepForTrialDocument(
@@ -1178,11 +1329,12 @@ function inferBundledEuRepForTrialDocument(
       {
         legalEntity: contract.legalEntity,
         forwardingEmail: contract.forwardingEmail,
+        postalDepartment: contract.postalDepartment ?? '',
         postalLine1: contract.postalLine1,
         postalLine2: contract.postalLine2 ?? '',
         postalCode: contract.postalCode,
         city: contract.city,
-        country: contract.country ?? 'Schweiz',
+        country: contract.country,
       },
     ],
   };
@@ -1255,6 +1407,7 @@ const euRepContracts = createCollection<EuRepContract>(
       subscriptionId: EU_REP_BAUMGARTNER_SUBSCRIPTION_ID,
       legalEntity: 'Baumgartner Digital AG',
       forwardingEmail: MOCK_MEMBER_EMAIL,
+      postalDepartment: 'Rechtsabteilung',
       postalLine1: 'Bahnhofstrasse 12',
       postalCode: '8001',
       city: 'Zürich',
@@ -1288,13 +1441,13 @@ const euRepContracts = createCollection<EuRepContract>(
       status: 'active',
     },
   ],
-  6
+  8
 );
 
 const SWISS_LEGAL_ENTITY_BY_SITE: Record<string, string> = {
   'sutter-web.ch': 'Baumgartner Digital AG',
   'alpenblick-hotel.ch': 'Alpenblick Hospitality AG',
-  'mueller-consulting.ch': 'Baumgartner Digital AG',
+  'mueller-consulting.ch': 'Müller Consulting GmbH',
   'seeblick-apotheke.ch': 'Baumgartner Digital AG',
   'atelier-bern.ch': 'Atelier Bern GmbH',
   'm-p.ch': 'Alpenblick Hospitality AG',
@@ -1335,6 +1488,154 @@ function findHostedPolicyByLegacy(id: string, site: string): GeneratedDocument |
   return listHostedPolicies().find(
     (row) => row.id === id && resolveDocumentSite(row) === normalizedSite
   );
+}
+
+/**
+ * Policy maintenance — operator-configurable in the real product, constants here.
+ */
+const POLICY_SCAN_SETTINGS: PolicyScanSettings = {
+  automaticScanIntervalDays: 90,
+  manualScanLimit: 3,
+  manualScanWindowWeeks: 4,
+};
+
+type PolicyMaintenanceRecord = {
+  /** Same value as the document id — one maintenance state per hosted policy. */
+  id: string;
+  lastScanDate: string | null;
+  /** ISO dates of manual scans, oldest first. */
+  manualScanDates: string[];
+  lastUpdateSource: PolicyUpdateSource | null;
+  services: PolicyService[];
+  serviceRequests: PolicyServiceRequest[];
+  basicInformation: PolicyBasicInformation;
+};
+
+const policyMaintenance = createCollection<PolicyMaintenanceRecord>('policy-maintenance', [], 2);
+
+function seedDetectedServices(): PolicyService[] {
+  const scannable = POLICY_SERVICE_CATALOG.filter((entry) => entry.scannable);
+
+  return scannable.map((entry) => ({
+    id: `svc-${entry.id}`,
+    catalogId: entry.id,
+    name: entry.name,
+    categoryId: entry.categoryId,
+    logoDomain: entry.logoDomain,
+    detected: true,
+    hidden: false,
+  }));
+}
+
+function seedBasicInformation(document: GeneratedDocument): PolicyBasicInformation {
+  const site = resolveDocumentSite(document);
+  const legalEntity = document.legalEntity ?? '';
+  const company = UID_COMPANIES.find((row) => row.name === legalEntity);
+  const fallback = defaultPostalForEntity(legalEntity);
+
+  return {
+    companyName: legalEntity,
+    domain: site,
+    email: `info@${site}`,
+    department: '',
+    street: company?.street ?? fallback.postalLine1,
+    streetLine2: '',
+    postalCode: company?.postalCode ?? fallback.postalCode,
+    city: company?.city ?? fallback.city,
+    country: company?.country ?? fallback.country,
+    hasDpo: 'no',
+    dpoCompanyName: '',
+    dpoDesignationEn: '',
+    dpoDesignationDe: '',
+    dpoDepartment: '',
+    dpoStreet: '',
+    dpoStreetLine2: '',
+    dpoPostalCode: '',
+    dpoCity: '',
+    dpoCountry: 'Schweiz',
+    dpoEmail: '',
+    gdprApplicable: 'yes',
+    offersToEU: 'yes',
+    monitorsEUBehaviour: 'no',
+    transfersAbroad: 'eea',
+    usesProfiling: 'no',
+    processesSpecialData: 'no',
+    specialDataCategories: [],
+    usesAiProcessing: 'no',
+    acceptsApplications: 'yes',
+    hasTalentPool: 'no',
+    usesVideoSurveillance: 'no',
+    videoRetention: '',
+    videoRetentionAmount: '',
+    videoRetentionUnit: '',
+    hasThirdPartyEuRep: 'no',
+    thirdPartyRepName: '',
+    thirdPartyRepStreet: '',
+    thirdPartyRepPostalCode: '',
+    thirdPartyRepCity: '',
+    thirdPartyRepCountry: '',
+    thirdPartyRepEmail: '',
+    basedInSwitzerland: 'yes',
+  };
+}
+
+function readPolicyMaintenance(document: GeneratedDocument): PolicyMaintenanceRecord {
+  const existing = policyMaintenance.all().find((row) => row.id === document.id);
+  if (existing) return existing;
+
+  return policyMaintenance.create({
+    id: document.id,
+    lastScanDate: document.createdDate,
+    manualScanDates: [],
+    lastUpdateSource: 'automaticScan',
+    services: seedDetectedServices(),
+    serviceRequests: [],
+    basicInformation: seedBasicInformation(document),
+  });
+}
+
+function countManualScansInWindow(record: PolicyMaintenanceRecord, now: Date): string[] {
+  const windowStart = new Date(now);
+  windowStart.setDate(windowStart.getDate() - POLICY_SCAN_SETTINGS.manualScanWindowWeeks * 7);
+  return record.manualScanDates.filter((iso) => new Date(iso) > windowStart);
+}
+
+function presentPolicyMaintenance(document: GeneratedDocument): PolicyMaintenanceState {
+  const record = readPolicyMaintenance(document);
+  const now = new Date();
+  const inWindow = countManualScansInWindow(record, now);
+  const oldestInWindow = inWindow[0];
+
+  return {
+    documentId: document.id,
+    createdDate: document.createdDate,
+    updatedDate: document.updatedDate,
+    lastUpdateSource: record.lastUpdateSource,
+    lastScanDate: record.lastScanDate,
+    settings: POLICY_SCAN_SETTINGS,
+    manualScansUsed: inWindow.length,
+    manualScansRemaining: Math.max(0, POLICY_SCAN_SETTINGS.manualScanLimit - inWindow.length),
+    manualScanWindowResetDate: oldestInWindow
+      ? addDays(oldestInWindow.slice(0, 10), POLICY_SCAN_SETTINGS.manualScanWindowWeeks * 7)
+      : null,
+    services: record.services,
+    serviceRequests: record.serviceRequests,
+    basicInformation: record.basicInformation,
+  };
+}
+
+/** Record a revision of the hosted policy and return the refreshed state. */
+function applyPolicyRevision(
+  document: GeneratedDocument,
+  source: PolicyUpdateSource
+): PolicyMaintenanceState {
+  const record = readPolicyMaintenance(document);
+  const today = new Date().toISOString().slice(0, 10);
+
+  policyMaintenance.update(record.id, { lastUpdateSource: source });
+  const updated = documents.update(document.id, { updatedDate: today }) ?? document;
+
+  return presentPolicyMaintenance(presentDocument(updated));
 }
 
 const UID_COMPANIES: UidCompany[] = [
@@ -1407,13 +1708,16 @@ export const handlers = [
   http.post('/api/auth/login/identify', async ({ request }) => {
     const input = (await request.json()) as LoginIdentifyInput;
     const email = input.email.trim().toLowerCase();
-    const role = accountRole(email);
+    const account = findAuthAccountByEmail(email);
 
-    if (!role) {
+    if (!account) {
       return HttpResponse.json({ message: 'unknown_email' }, { status: 404 });
     }
 
-    return HttpResponse.json({ role });
+    return HttpResponse.json({
+      role: account.role,
+      ...twoFactorFlags(account),
+    });
   }),
 
   http.post('/api/auth/login', async ({ request }) => {
@@ -1425,10 +1729,14 @@ export const handlers = [
       return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
     }
 
-    if (account.role === 'admin') {
+    if (account.twoFactorEnabled) {
       if (!input.twoFactorCode || input.twoFactorCode !== MOCK_TWO_FACTOR_CODE) {
         return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 401 });
       }
+    } else if (!input.twoFactorCode || input.twoFactorCode !== MOCK_TWO_FACTOR_CODE) {
+      return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 401 });
+    } else {
+      authAccounts.update(account.id, { twoFactorEnabled: true });
     }
 
     return HttpResponse.json({ token: loginTokenForEmail(email), email });
@@ -1512,20 +1820,28 @@ export const handlers = [
       completeCheckoutSession(session.id);
       redirectTo = '/account?accountScope=euRep&section=euRep';
     } else {
-      const trial = startPolicyTrial({
-        kind: 'generator',
-        siteCount: 1,
-        domain: pending.domain,
-        policyName: pending.policyName,
-        legalEntity: pending.legalEntity,
-        fillSubscriptionId: pending.fillSubscriptionId,
-        euRepPlanId: pending.euRepPlanId,
-        euRepEntityCount: pending.euRepEntityCount,
-        euRepEntities: pending.euRepEntities,
-        euRepLinkContractId: pending.euRepLinkContractId,
-      });
-      documentId = trial?.documentId;
-      domain = pending.domain;
+      const existingPending = pending.domain
+        ? findPendingCheckoutRecord(pending.domain)
+        : undefined;
+      if (existingPending?.documentId) {
+        documentId = existingPending.documentId;
+        domain = pending.domain;
+      } else {
+        const trial = startPolicyTrial({
+          kind: 'generator',
+          siteCount: 1,
+          domain: pending.domain,
+          policyName: pending.policyName,
+          legalEntity: pending.legalEntity,
+          fillSubscriptionId: pending.fillSubscriptionId,
+          euRepPlanId: pending.euRepPlanId,
+          euRepEntityCount: pending.euRepEntityCount,
+          euRepEntities: pending.euRepEntities,
+          euRepLinkContractId: pending.euRepLinkContractId,
+        });
+        documentId = trial?.documentId;
+        domain = pending.domain;
+      }
     }
 
     const email = pending.email.trim().toLowerCase();
@@ -1533,9 +1849,9 @@ export const handlers = [
 
     const existingProfile = profile.all()[0];
     const profilePayload = {
-      firstName: pending.firstName?.trim() ?? '',
-      lastName: pending.lastName?.trim() ?? '',
-      displayName: `${pending.firstName?.trim() ?? ''} ${pending.lastName?.trim() ?? ''}`.trim(),
+      firstName: pending.firstName.trim(),
+      lastName: pending.lastName.trim(),
+      displayName: `${pending.firstName.trim()} ${pending.lastName.trim()}`.trim(),
       email,
       newsletterOptIn: pending.newsletter,
       role: 'member' as const,
@@ -1602,14 +1918,15 @@ export const handlers = [
     const token = tokenFromRequest(request);
     const email = emailFromLoginToken(token) ?? stored?.email ?? MOCK_MEMBER_EMAIL;
     const resolvedEmail = stored?.email ?? email;
-    const role = accountRole(resolvedEmail) ?? 'member';
+    const account = findAuthAccountByEmail(resolvedEmail);
+    const role = account?.role ?? accountRole(resolvedEmail) ?? 'member';
     return HttpResponse.json({
       firstName: stored?.firstName ?? '',
       lastName: stored?.lastName ?? '',
       displayName: stored?.displayName ?? '',
       email: resolvedEmail,
       role,
-      twoFactorEnabled: role === 'admin',
+      twoFactorEnabled: account?.twoFactorEnabled ?? false,
     } satisfies Profile);
   }),
 
@@ -1617,7 +1934,8 @@ export const handlers = [
     const input = (await request.json()) as Profile;
     const existing = profile.all()[0];
     const email = input.email.trim().toLowerCase();
-    const role = accountRole(email) ?? 'member';
+    const account = findAuthAccountByEmail(email);
+    const role = account?.role ?? accountRole(email) ?? 'member';
     const payload: Profile = {
       firstName: input.firstName,
       lastName: input.lastName,
@@ -1625,7 +1943,7 @@ export const handlers = [
       email,
       newsletterOptIn: input.newsletterOptIn,
       role,
-      twoFactorEnabled: role === 'admin',
+      twoFactorEnabled: account?.twoFactorEnabled ?? false,
     };
     const saved = existing
       ? profile.update(existing.id, payload)
@@ -1646,6 +1964,61 @@ export const handlers = [
 
     authAccounts.update(account.id, { password: body.newPassword });
     return HttpResponse.json({ changed: true as const });
+  }),
+
+  http.post('/api/account/two-factor/disable', ({ request }) => {
+    const token = tokenFromRequest(request);
+    const email = emailFromLoginToken(token);
+    const account = email ? findAuthAccountByEmail(email) : undefined;
+
+    if (!account) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    authAccounts.update(account.id, { twoFactorEnabled: false });
+
+    const stored = profile.all()[0];
+    const resolvedEmail = stored?.email ?? email ?? '';
+    const role = account.role;
+
+    return HttpResponse.json({
+      firstName: stored?.firstName ?? '',
+      lastName: stored?.lastName ?? '',
+      displayName: stored?.displayName ?? '',
+      email: resolvedEmail,
+      role,
+      twoFactorEnabled: false,
+    } satisfies Profile);
+  }),
+
+  http.post('/api/account/two-factor/enable', async ({ request }) => {
+    const body = (await request.json()) as { code: string };
+    const token = tokenFromRequest(request);
+    const email = emailFromLoginToken(token);
+    const account = email ? findAuthAccountByEmail(email) : undefined;
+
+    if (!account) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    if (body.code !== MOCK_TWO_FACTOR_CODE) {
+      return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 400 });
+    }
+
+    authAccounts.update(account.id, { twoFactorEnabled: true });
+
+    const stored = profile.all()[0];
+    const resolvedEmail = stored?.email ?? email ?? '';
+    const role = account.role;
+
+    return HttpResponse.json({
+      firstName: stored?.firstName ?? '',
+      lastName: stored?.lastName ?? '',
+      displayName: stored?.displayName ?? '',
+      email: resolvedEmail,
+      role,
+      twoFactorEnabled: true,
+    } satisfies Profile);
   }),
 
   http.get('/api/billing/subscriptions/:id', ({ request, params }) => {
@@ -1675,7 +2048,46 @@ export const handlers = [
   }),
 
   http.post('/api/billing/subscriptions/:id/continue', ({ params }) => {
-    const updated = subscriptions.update(String(params.id), { status: 'active' });
+    const existing = subscriptions.all().find((row) => row.id === String(params.id));
+    if (!existing) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const startNewTerm = shouldStartNewTermOnContinue(existing);
+    const patch: Partial<Subscription> = { status: 'active' };
+
+    if (startNewTerm) {
+      patch.startDate = today;
+      patch.lastOrderDate = today;
+      patch.nextPaymentDate = addDays(today, 365);
+
+      const order = createRenewalOrderForSubscription(existing, today);
+      patch.relatedOrderIds = [...existing.relatedOrderIds, order.id];
+
+      if (existing.productType === 'policy') {
+        const activeSiteCount = countActivePolicySites(subscriptions.all());
+        const siteCount = resolvePolicySiteCount(existing);
+        const quote = calculateGeneratorPolicyQuote(activeSiteCount, siteCount);
+        patch.totals = {
+          ...existing.totals,
+          subtotal: quote.listPrice,
+          discount: quote.discountAmount,
+          total: quote.amountDue,
+        };
+      } else {
+        const planId = (existing.planId ?? 'basis') as EuRepPlanId;
+        const quote = calculateEuRepQuote(planId);
+        patch.totals = {
+          ...existing.totals,
+          subtotal: quote.amountDue,
+          discount: 0,
+          total: quote.amountDue,
+        };
+      }
+    }
+
+    const updated = subscriptions.update(String(params.id), patch);
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
     }
@@ -1700,6 +2112,7 @@ export const handlers = [
       return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
     const input = (await request.json()) as EuRepExtraRequestCreate;
+    const quantity = Math.max(1, Math.floor(input.quantity));
     const subscription = subscriptions
       .all()
       .find((row) => row.id === input.subscriptionId && row.productType === 'euRep');
@@ -1707,29 +2120,77 @@ export const handlers = [
       return HttpResponse.json({ message: 'Subscription not found' }, { status: 404 });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const order = orders.create({
-      productType: 'euRep',
-      number: nextOrderNumber(),
-      date: today,
-      status: 'active',
-      total: EU_REP_EXTRA_REQUEST_PRICE,
-      currency: 'CHF',
-      planId: subscription.planId,
-      orderKind: 'extraRequest',
-      subscriptionId: subscription.id,
+    const today = new Date().toISOString();
+    const requestId = `extra-req-${crypto.randomUUID()}`;
+
+    const updated = subscriptions.update(subscription.id, {
+      requestedExtraRequests: [
+        ...(subscription.requestedExtraRequests ?? []),
+        { id: requestId, quantity, requestedDate: today },
+      ],
     });
 
-    subscriptions.update(subscription.id, {
-      usedRequests: (subscription.usedRequests ?? 0) + 1,
-      lastOrderDate: today,
-      relatedOrderIds: [...subscription.relatedOrderIds, order.id],
+    return HttpResponse.json(updated, { status: 201 });
+  }),
+
+  http.delete('/api/billing/eu-rep/extra-request', async ({ request }) => {
+    if (!isVerifiedAccount(tokenFromRequest(request))) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    const input = (await request.json()) as EuRepExtraRequestWithdraw;
+    const subscription = subscriptions
+      .all()
+      .find((row) => row.id === input.subscriptionId && row.productType === 'euRep');
+    if (!subscription) {
+      return HttpResponse.json({ message: 'Subscription not found' }, { status: 404 });
+    }
+
+    const pending = subscription.requestedExtraRequests ?? [];
+    const match = pending.find((row) => row.id === input.requestId);
+    if (!match) {
+      return HttpResponse.json({ message: 'Request not found' }, { status: 404 });
+    }
+
+    const updated = subscriptions.update(subscription.id, {
+      requestedExtraRequests: pending.filter((row) => row.id !== input.requestId),
     });
 
-    return HttpResponse.json(order, { status: 201 });
+    return HttpResponse.json(updated);
   }),
 
   http.get('/api/documents', () => HttpResponse.json(listHostedPolicies())),
+
+  http.get('/api/check/site-policy', ({ request }) => {
+    const domain = extractDomainHost(new URL(request.url).searchParams.get('domain') ?? '');
+    if (!domain) {
+      return HttpResponse.json({ exists: false });
+    }
+    const document = findDocumentBySiteForAccount(
+      emailFromLoginToken(tokenFromRequest(request)),
+      domain
+    );
+    if (!document) {
+      return HttpResponse.json({ exists: false });
+    }
+    return HttpResponse.json({
+      exists: true,
+      displayName: formatSiteDomain(resolveDocumentSite(document)),
+      href: privacyPolicyAccountHref({ site: formatSiteDomain(resolveDocumentSite(document)) }),
+    });
+  }),
+
+  http.get('/api/check/eu-rep', ({ request }) => {
+    const legalEntity = new URL(request.url).searchParams.get('legalEntity') ?? '';
+    const contract = findActiveEuRepContractForLegalEntity(legalEntity);
+    if (!contract) {
+      return HttpResponse.json({ exists: false });
+    }
+    return HttpResponse.json({
+      exists: true,
+      displayName: contract.legalEntity,
+      href: euRepAccountHref({ contract: contract.id }),
+    });
+  }),
 
   http.get('/api/documents/:id', ({ params }) => {
     const id = String(params.id);
@@ -1759,6 +2220,167 @@ export const handlers = [
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
     return HttpResponse.json(document);
+  }),
+
+  http.get('/api/policy-services/catalog', () => HttpResponse.json(POLICY_SERVICE_CATALOG)),
+
+  http.get('/api/documents/:id/policy-state', ({ params }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+    return HttpResponse.json(presentPolicyMaintenance(presentDocument(document)));
+  }),
+
+  http.post('/api/documents/:id/policy-state/scan', ({ params }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const record = readPolicyMaintenance(document);
+    const now = new Date();
+    if (countManualScansInWindow(record, now).length >= POLICY_SCAN_SETTINGS.manualScanLimit) {
+      return HttpResponse.json({ message: 'Manual scan limit reached' }, { status: 429 });
+    }
+
+    const today = now.toISOString().slice(0, 10);
+    /* Manual rescan compares the live site to the last known snapshot — prototype default: unchanged. */
+    policyMaintenance.update(record.id, {
+      lastScanDate: today,
+      manualScanDates: [...record.manualScanDates, now.toISOString()],
+    });
+
+    return HttpResponse.json({
+      state: presentPolicyMaintenance(presentDocument(document)),
+      changesFound: false,
+    });
+  }),
+
+  http.put('/api/documents/:id/policy-state/basic-information', async ({ params, request }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const input = (await request.json()) as PolicyBasicInformation;
+    const record = readPolicyMaintenance(document);
+    policyMaintenance.update(record.id, { basicInformation: input });
+
+    if (input.companyName.trim()) {
+      documents.update(document.id, { legalEntity: input.companyName.trim() });
+    }
+
+    return HttpResponse.json(applyPolicyRevision(document, 'basicInformation'));
+  }),
+
+  http.post('/api/documents/:id/policy-state/services', async ({ params, request }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const { catalogId } = (await request.json()) as { catalogId: string };
+    const entry = findPolicyServiceCatalogEntry(catalogId);
+    if (!entry) {
+      return HttpResponse.json({ message: 'Unknown service' }, { status: 400 });
+    }
+
+    const record = readPolicyMaintenance(document);
+    const existing = record.services.find((row) => row.catalogId === catalogId);
+    if (existing) {
+      /* Re-adding a dismissed service simply puts it back into the policy. */
+      policyMaintenance.update(record.id, {
+        services: record.services.map((row) =>
+          row.catalogId === catalogId ? { ...row, hidden: false } : row
+        ),
+      });
+    } else {
+      policyMaintenance.update(record.id, {
+        services: [
+          ...record.services,
+          {
+            id: `svc-${entry.id}`,
+            catalogId: entry.id,
+            name: entry.name,
+            categoryId: entry.categoryId,
+            logoDomain: entry.logoDomain,
+            detected: false,
+            hidden: false,
+          },
+        ],
+      });
+    }
+
+    return HttpResponse.json(applyPolicyRevision(document, 'services'));
+  }),
+
+  http.patch('/api/documents/:id/policy-state/services/:serviceId', async ({ params, request }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const serviceId = String(params.serviceId);
+    const { hidden } = (await request.json()) as { hidden: boolean };
+    const record = readPolicyMaintenance(document);
+    const service = record.services.find((row) => row.id === serviceId);
+    if (!service) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    policyMaintenance.update(record.id, {
+      services: record.services.map((row) => (row.id === serviceId ? { ...row, hidden } : row)),
+    });
+
+    return HttpResponse.json(applyPolicyRevision(document, 'services'));
+  }),
+
+  http.post('/api/documents/:id/policy-state/service-requests', async ({ params, request }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const input = (await request.json()) as PolicyServiceRequestCreate;
+    const record = readPolicyMaintenance(document);
+    const today = new Date().toISOString().slice(0, 10);
+
+    policyMaintenance.update(record.id, {
+      serviceRequests: [
+        ...record.serviceRequests,
+        {
+          id: `req-${String(Date.now())}`,
+          name: input.name.trim(),
+          url: input.url?.trim() || undefined,
+          note: input.note?.trim() || undefined,
+          requestedDate: today,
+          status: 'pending',
+        },
+      ],
+    });
+
+    return HttpResponse.json(presentPolicyMaintenance(presentDocument(document)));
+  }),
+
+  http.delete('/api/documents/:id/policy-state/service-requests/:requestId', ({ params }) => {
+    const document = documents.all().find((row) => row.id === String(params.id));
+    if (!document) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    const record = readPolicyMaintenance(document);
+    const requestId = String(params.requestId);
+    const target = record.serviceRequests.find((row) => row.id === requestId);
+    if (!target) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+
+    policyMaintenance.update(record.id, {
+      serviceRequests: record.serviceRequests.filter((row) => row.id !== requestId),
+    });
+
+    return HttpResponse.json(presentPolicyMaintenance(presentDocument(document)));
   }),
 
   http.post('/api/documents/:id/regenerate', ({ params }) => {
@@ -1842,6 +2464,7 @@ export const handlers = [
       subscriptionId: input.subscriptionId,
       legalEntity: input.legalEntity,
       forwardingEmail: input.forwardingEmail,
+      postalDepartment: input.postalDepartment,
       postalLine1: input.postalLine1,
       postalLine2: input.postalLine2,
       postalCode: input.postalCode,
@@ -1885,6 +2508,7 @@ export const handlers = [
     const updated = euRepContracts.update(existing.id, {
       legalEntity: input.legalEntity,
       forwardingEmail: input.forwardingEmail,
+      postalDepartment: input.postalDepartment,
       postalLine1: input.postalLine1,
       postalLine2: input.postalLine2,
       postalCode: input.postalCode,
@@ -1934,7 +2558,7 @@ export const handlers = [
     if (!contract || contract.status !== 'active') {
       return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     }
-    const input = (await request.json()) as EuRepLinkDocuments;
+    (await request.json()) as EuRepLinkDocuments;
     return HttpResponse.json(
       euRepContracts.all().find((row) => row.id === contract.id) ?? contract
     );
@@ -2133,19 +2757,26 @@ export const handlers = [
       const entityCount = Math.max(1, input.euRepEntityCount ?? input.euRepEntities?.length ?? 1);
       const planId = input.euRepPlanId ?? 'basis';
       const quote = calculateEuRepQuote(planId, entityCount);
+      const promoDiscount = input.promoCode ? resolvePromoCode(input.promoCode) : null;
+      const listPrice = quote.amountDue;
+      const discountAmount = promoDiscount
+        ? calculatePromoDiscountAmount(listPrice, promoDiscount)
+        : 0;
+      const amountDue = promoDiscount ? applyPromoDiscount(listPrice, promoDiscount) : listPrice;
       const session = checkoutSessions.create({
         status: 'pending',
         kind: input.kind,
         siteCount: entityCount,
-        amount: quote.amountDue,
+        amount: amountDue,
         generatorAmount: 0,
-        listPrice: quote.amountDue,
-        discountRate: 0,
-        discountAmount: 0,
+        listPrice,
+        discountRate: listPrice > 0 ? discountAmount / listPrice : 0,
+        discountAmount,
         currency: 'CHF',
         euRepPlanId: planId,
         euRepEntityCount: entityCount,
         euRepEntities: input.euRepEntities,
+        promoCode: promoDiscount ? normalizePromoCode(input.promoCode ?? '') : undefined,
       });
 
       return HttpResponse.json(

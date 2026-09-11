@@ -12,7 +12,7 @@ export type ArticleCardArticle = {
 
 interface ArticleCardProps {
   article: ArticleCardArticle;
-  basePath?: '/insights' | '/academy';
+  basePath: '/insights';
   large?: boolean;
   showImage?: boolean;
   className?: string;
@@ -20,7 +20,7 @@ interface ArticleCardProps {
 
 export function ArticleCard({
   article,
-  basePath = '/insights',
+  basePath,
   large = false,
   showImage = true,
   className = '',

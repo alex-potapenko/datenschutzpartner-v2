@@ -43,6 +43,7 @@ export type PriceBlockProps = {
   currency?: string;
   amount: string;
   animatedAmount?: number;
+  amountFraction?: string;
   notes?: Array<string | null | undefined>;
   align?: 'start' | 'center';
   size?: PriceBlockSize;
@@ -53,6 +54,7 @@ export function PriceBlock({
   currency,
   amount,
   animatedAmount,
+  amountFraction,
   notes,
   align = 'start',
   size = 'default',
@@ -73,9 +75,23 @@ export function PriceBlock({
       <p className="flex flex-nowrap items-end gap-2 whitespace-nowrap">
         {currency ? <span className={currencyClassName}>{currency}</span> : null}
         {animatedAmount !== undefined ? (
-          <AnimatedRollingNumber value={animatedAmount} className={amountClassName} />
+          <span className="inline-flex items-end">
+            <AnimatedRollingNumber value={animatedAmount} className={amountClassName} />
+            {amountFraction ? (
+              <span className={currencyClassName} aria-hidden>
+                {amountFraction}
+              </span>
+            ) : null}
+          </span>
         ) : (
-          <span className={amountClassName}>{amount}</span>
+          <span className="inline-flex items-end">
+            <span className={amountClassName}>{amount}</span>
+            {amountFraction ? (
+              <span className={currencyClassName} aria-hidden>
+                {amountFraction}
+              </span>
+            ) : null}
+          </span>
         )}
       </p>
 

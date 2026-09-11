@@ -65,15 +65,26 @@ function AnimatedFullNote({
   );
 }
 
-function IncludedRequestsNote({ planId }: { planId: 'plus' | 'plus5' }) {
+function IncludedRequestsNote({
+  planId,
+  animateCount = true,
+}: {
+  planId: 'plus' | 'plus5';
+  animateCount?: boolean;
+}) {
   const t = useTranslations('euRepPage.plans');
+  const count = INCLUDED_REQUESTS[planId];
 
   return (
     <>
-      <AnimatedRollingNumber
-        value={INCLUDED_REQUESTS[planId]}
-        className="inline-flex align-baseline text-sm leading-snug font-normal tabular-nums"
-      />
+      {animateCount ? (
+        <AnimatedRollingNumber
+          value={count}
+          className="inline-flex align-baseline text-sm leading-snug font-normal tabular-nums"
+        />
+      ) : (
+        <span className="tabular-nums">{count}</span>
+      )}
       {t(`${planId}.requestsRest`)}
     </>
   );
@@ -158,14 +169,19 @@ export function EuRepPlanRequestsNote({
   previousPlanId,
   direction,
   variant = 'block',
+  tone = 'foreground',
+  animateCount = true,
 }: {
   planId: EuRepPlanId;
   previousPlanId: EuRepPlanId;
   direction: number;
   variant?: 'block' | 'inline';
+  tone?: 'foreground' | 'muted';
+  animateCount?: boolean;
 }) {
   const t = useTranslations('euRepPage.plans');
-  const className = 'text-foreground text-sm leading-snug';
+  const className =
+    tone === 'muted' ? 'text-muted text-sm leading-snug' : 'text-foreground text-sm leading-snug';
 
   if (variant === 'inline') {
     return <AnimatedInlineIncludedRequests planId={planId} />;
@@ -185,7 +201,7 @@ export function EuRepPlanRequestsNote({
     return <p className={className}>{content}</p>;
   }
 
-  const content = <IncludedRequestsNote planId={planId} />;
+  const content = <IncludedRequestsNote planId={planId} animateCount={animateCount} />;
 
   if (crossesBasisBoundary(previousPlanId, planId)) {
     return (

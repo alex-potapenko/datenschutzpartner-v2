@@ -7,7 +7,6 @@ import { INSIGHT_META_LABEL_CLASS } from './insight-article-layout';
 
 type InsightArticleShareProps = {
   title: string;
-  translationNamespace?: 'insights' | 'academy';
 };
 
 const shareIconClassName =
@@ -43,11 +42,8 @@ function buildShareUrl(
   }
 }
 
-export function InsightArticleShare({
-  title,
-  translationNamespace = 'insights',
-}: InsightArticleShareProps) {
-  const t = useTranslations(translationNamespace);
+export function InsightArticleShare({ title }: InsightArticleShareProps) {
+  const t = useTranslations('insights');
   const [copied, setCopied] = useState(false);
   const pageUrl = useSyncExternalStore(subscribeToUrl, getPageUrl, getServerPageUrl);
 

@@ -9,16 +9,10 @@ import { useSession } from '@/api/auth';
 import type { GeneratedDocument } from '@/api/documents';
 import { resolveDocumentSite } from '@/api/documents';
 import { useStartPolicyTrial } from '@/api/checkout';
-import {
-  Button,
-  CaretRight,
-  CheckCircle,
-  EnvelopeSimple,
-  FileText,
-  FlagBanner,
-  Spinner,
-} from '@/components/ui';
+import { Button, CaretRight, EnvelopeSimple, FileText, FlagBanner, Spinner } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
+import { PurchaseOrderConfirmationLayout } from '@/components/shared/PurchaseOrderConfirmationLayout';
+import { OrderConfirmationNotices } from '@/components/shared/OrderConfirmationNotices';
 import { TrialPeriodNotice } from '@/components/shared/TrialPeriodNotice';
 import { formatCheckoutChf } from '@/components/shared/ServiceCheckoutPlanCard';
 import { privacyPolicyAccountHref } from '@/lib/account-routes';
@@ -35,6 +29,7 @@ type AccountActivationScreenProps = {
   | {
       variant: 'activation';
       email: string;
+      newsletterOptIn: boolean;
     }
   | {
       variant: 'policyReady';
@@ -167,35 +162,97 @@ export function AccountActivationScreen(props: AccountActivationScreenProps) {
     }
   }
 
+  if (isPolicyReady) {
+    const orderSection = (
+      <section className="border-border overflow-hidden rounded-2xl border">
+        <div className="border-border border-b px-5 py-4 sm:px-6">
+          <p className="font-display text-foreground text-sm font-semibold">{t('servicesTitle')}</p>
+        </div>
+
+        <div className="divide-border divide-y">
+          <ServiceRow
+            icon={<FileText size={18} weight="fill" aria-hidden />}
+            accent="var(--accent)"
+            title={t('policyTitle')}
+            detail={t('policyDetail', { domain })}
+            price={formatCheckoutChf(pricing.policyAmount)}
+            pricePeriod={pricePeriod}
+          />
+          {withEuRep ? (
+            <ServiceRow
+              icon={<FlagBanner size={18} weight="fill" aria-hidden />}
+              accent="var(--feature-indigo)"
+              title={t('euRepTitle')}
+              detail={
+                euRep.legalEntity?.trim()
+                  ? t('euRepDetail', { entity: euRep.legalEntity.trim() })
+                  : t('euRepDetailFallback')
+              }
+              price={formatCheckoutChf(pricing.euRepAmount)}
+              pricePeriod={pricePeriod}
+            />
+          ) : null}
+        </div>
+      </section>
+    );
+
+    return (
+      <PurchaseOrderConfirmationLayout
+        titleLine1={t('orderTrialTitle')}
+        orderSection={orderSection}
+        afterOrder={
+          <OrderConfirmationNotices
+            trialNotice={
+              <TrialPeriodNotice
+                variant={withEuRep ? 'policyAndEuRep' : 'policy'}
+                showPaymentHint
+              />
+            }
+            newsletterOptIn={false}
+          />
+        }
+        footer={
+          <Button
+            variant="primary"
+            size="lg"
+            className="font-display h-14 gap-2 rounded-full px-8 text-base"
+            onPress={() => void handleShowPolicy()}
+            isDisabled={startTrial.isPending}
+          >
+            {startTrial.isPending ? (
+              <span className="inline-flex items-center gap-2">
+                <Spinner size="sm" aria-hidden />
+                {tPolicyReady('loading')}
+              </span>
+            ) : (
+              <>
+                {t('showPolicy')}
+                <CaretRight size={16} weight="bold" aria-hidden />
+              </>
+            )}
+          </Button>
+        }
+      />
+    );
+  }
+
   return (
     <main className="bg-background flex min-h-dvh flex-col justify-center px-4 py-10 sm:px-8 sm:py-14">
       <div className="mx-auto flex w-full max-w-[640px] flex-col gap-10">
         <div className="flex flex-col items-center gap-5 text-center">
-          <span
-            className={
-              isPolicyReady
-                ? 'bg-success-soft flex size-14 items-center justify-center rounded-2xl'
-                : 'bg-key-50 flex size-14 items-center justify-center rounded-2xl'
-            }
-          >
-            {isPolicyReady ? (
-              <CheckCircle size={28} weight="fill" className="text-success" aria-hidden />
-            ) : (
-              <EnvelopeSimple size={28} weight="fill" className="text-accent" aria-hidden />
-            )}
+          <span className="bg-key-50 flex size-14 items-center justify-center rounded-2xl">
+            <EnvelopeSimple size={28} weight="fill" className="text-accent" aria-hidden />
           </span>
           <div className="flex flex-col gap-3">
             <h1 className="font-display text-foreground text-2xl font-bold sm:text-3xl">
-              {isPolicyReady ? tPolicyReady(withEuRep ? 'titleWithEuRep' : 'title') : t('title')}
+              {t('title')}
             </h1>
-            {!isPolicyReady ? (
-              <p className="text-foreground text-base leading-relaxed text-pretty">
-                {t.rich('body', {
-                  email: variant === 'activation' ? props.email : '',
-                  strong: (chunks) => <span className="font-semibold">{chunks}</span>,
-                })}
-              </p>
-            ) : null}
+            <p className="text-foreground text-base leading-relaxed text-pretty">
+              {t.rich('body', {
+                email: props.email,
+                strong: (chunks) => <span className="font-semibold">{chunks}</span>,
+              })}
+            </p>
           </div>
         </div>
 
@@ -233,35 +290,21 @@ export function AccountActivationScreen(props: AccountActivationScreenProps) {
             </div>
           </section>
 
-          <TrialPeriodNotice variant={withEuRep ? 'policyAndEuRep' : 'policy'} showPaymentHint />
+          <OrderConfirmationNotices
+            trialNotice={
+              <TrialPeriodNotice
+                variant={withEuRep ? 'policyAndEuRep' : 'policy'}
+                showPaymentHint
+              />
+            }
+            newsletterOptIn={props.newsletterOptIn}
+          />
         </div>
 
         <div className="flex flex-col items-center text-center">
-          {isPolicyReady ? (
-            <Button
-              variant="primary"
-              size="lg"
-              className="font-display h-14 gap-2 rounded-full px-8 text-base"
-              onPress={() => void handleShowPolicy()}
-              isDisabled={startTrial.isPending}
-            >
-              {startTrial.isPending ? (
-                <span className="inline-flex items-center gap-2">
-                  <Spinner size="sm" aria-hidden />
-                  {tPolicyReady('loading')}
-                </span>
-              ) : (
-                <>
-                  {tPolicyReady('showPolicy')}
-                  <CaretRight size={16} weight="bold" aria-hidden />
-                </>
-              )}
-            </Button>
-          ) : (
-            <NavigationLink href="/" chevron="right">
-              {t('goHome')}
-            </NavigationLink>
-          )}
+          <NavigationLink href="/" chevron="right">
+            {t('goHome')}
+          </NavigationLink>
         </div>
       </div>
     </main>

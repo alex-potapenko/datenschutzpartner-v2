@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   Button,
   ModalRoot,
@@ -13,16 +14,17 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeading,
-  Question,
   useOverlayState,
 } from '@/components/ui';
 import { useSession } from '@/api/auth';
 import { Container } from '@/components/shared/Container';
-import { LocaleSwitcher } from '@/components/shared/LocaleSwitcher';
-import { AccountProfileMenu } from '@/components/shared/AccountProfileMenu';
+import { WizardTopBar } from '@/components/shared/topbars/WizardTopBar';
+import type { ServiceBrandId } from '@/components/shared/topbars/service-brands';
+import { NESTED_SCREEN_TRANSITION } from '@/components/shared/NestedScreenShell';
 
 export function ServiceWizardShell({
   serviceLabel,
+  serviceBrandId,
   quitHref,
   onQuit,
   faqHref,
@@ -30,6 +32,8 @@ export function ServiceWizardShell({
   quitDisabled = false,
   confirmQuit = true,
   showQuit = true,
+  quitLabel,
+  quitIconOnly = false,
   cancelTitle,
   cancelBody,
   cancelQuitLabel,
@@ -39,6 +43,7 @@ export function ServiceWizardShell({
   children,
 }: {
   serviceLabel: string;
+  serviceBrandId?: ServiceBrandId;
   quitHref: string;
   onQuit?: () => void;
   faqHref?: string;
@@ -49,6 +54,10 @@ export function ServiceWizardShell({
   confirmQuit?: boolean;
   /** When false, hides Quit on the left. */
   showQuit?: boolean;
+  /** Overrides the leave button label — e.g. "Back" when the flow edits an existing document. */
+  quitLabel?: string;
+  /** Renders the leave control as a back caret instead of a labelled pill. */
+  quitIconOnly?: boolean;
   cancelTitle: string;
   cancelBody: string;
   cancelQuitLabel: string;
@@ -59,6 +68,7 @@ export function ServiceWizardShell({
 }) {
   const router = useRouter();
   const tCommon = useTranslations('common');
+  const shouldReduceMotion = useReducedMotion();
   const modal = useOverlayState();
   const session = useSession();
   const isAuthenticated = Boolean(session.data?.email);
@@ -94,78 +104,55 @@ export function ServiceWizardShell({
 
   return (
     <div className="bg-background flex h-dvh flex-col overflow-hidden">
-      <div className="shrink-0 text-white" style={{ background: 'var(--accent)' }}>
-        <Container>
-          <div className="flex items-center border-r border-l border-white/20">
-            <div className="flex w-1/2 min-w-0 items-center px-4 py-5 sm:px-8">
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                {showTopBarBack ? (
-                  <Button
-                    variant="outline"
-                    size="md"
-                    className="border-white/20 text-white hover:bg-white/10"
-                    onPress={() => {
-                      setFaqOpen(false);
-                    }}
-                  >
-                    {tCommon('back')}
-                  </Button>
-                ) : null}
-                {showTopBarQuit ? (
-                  <Button
-                    variant="outline"
-                    size="md"
-                    className="border-white/20 text-white hover:bg-white/10"
-                    isDisabled={quitDisabled}
-                    onPress={handleQuitRequest}
-                  >
-                    {cancelQuitLabel}
-                  </Button>
-                ) : null}
-                {showTopBarBack || showTopBarQuit ? (
-                  <div aria-hidden className="h-6 w-px shrink-0 bg-white/20" />
-                ) : null}
-                <span className="font-display flex min-w-0 items-center truncate text-sm leading-none font-medium tracking-tight text-white lowercase">
-                  {serviceLabel}
-                </span>
-              </div>
-            </div>
-            <div className="flex w-1/2 items-center justify-end gap-2 px-4 py-5 sm:gap-3 sm:px-8">
-              <LocaleSwitcher />
-              {showFaqButton ? (
-                <Button
-                  variant="outline"
-                  size="md"
-                  className="gap-2 border-white/20 text-white hover:bg-white/10"
-                  onPress={handleFaqOpen}
-                >
-                  <Question size={16} weight="bold" />
-                  <span className="hidden sm:inline">{faqLabel}</span>
-                  <span className="sm:hidden">{faqShortLabel}</span>
-                </Button>
-              ) : null}
-              {isAuthenticated ? (
-                <AccountProfileMenu
-                  onLeaveRequest={confirmQuit && !quitDisabled ? handleQuitRequest : undefined}
-                />
-              ) : null}
-            </div>
-          </div>
-        </Container>
-      </div>
+      <WizardTopBar
+        serviceLabel={serviceLabel}
+        serviceBrandId={serviceBrandId}
+        backLabel={tCommon('back')}
+        showBack={showTopBarBack}
+        onBack={() => {
+          setFaqOpen(false);
+        }}
+        showQuit={showTopBarQuit}
+        quitLabel={quitLabel ?? cancelQuitLabel}
+        quitIconOnly={quitIconOnly}
+        onQuit={handleQuitRequest}
+        quitDisabled={quitDisabled}
+        showFaqButton={showFaqButton}
+        faqLabel={faqLabel}
+        faqShortLabel={faqShortLabel}
+        onFaqOpen={handleFaqOpen}
+        showProfileMenu={isAuthenticated && !faqOpen}
+        onLeaveRequest={confirmQuit && !quitDisabled ? handleQuitRequest : undefined}
+      />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {faqOpen && faqContent ? (
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <Container className="flex min-h-0 flex-1 flex-col">
-              <div className="border-border min-h-0 flex-1 border-r border-l px-4 py-8 sm:px-8 sm:py-10 lg:py-12">
-                {faqContent}
-              </div>
-            </Container>
-          </div>
-        ) : (
-          children
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {faqOpen && faqContent ? (
+            <motion.div
+              key="faq"
+              className="min-h-0 flex-1 overflow-y-auto"
+              initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={shouldReduceMotion ? undefined : { opacity: 0, x: 20 }}
+              transition={NESTED_SCREEN_TRANSITION}
+            >
+              <Container className="flex min-h-0 flex-1 flex-col">
+                <div className="border-border min-h-0 flex-1 border-r border-l">{faqContent}</div>
+              </Container>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="wizard"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              initial={shouldReduceMotion ? false : { opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
+              transition={NESTED_SCREEN_TRANSITION}
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <ModalRoot state={modal}>

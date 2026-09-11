@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { Check } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
@@ -54,68 +53,76 @@ export function WizardStepBar({
           className="flex items-stretch overflow-hidden border-r border-l"
           style={{ borderColor: 'rgba(255,255,255,0.12)' }}
         >
-          <AnimatePresence initial={false}>
-            {steps.map((step, index) => {
-              const done = index < current;
-              const active = index === current;
-              const visited =
-                visitedSteps?.has(step.id) ||
-                (step.id === 'account' && (visitedSteps?.has('summary') ?? false)) ||
-                (step.id === 'scanning' && (visitedSteps?.has('website') ?? false));
-              const disabled = disabledStepIds?.includes(step.id) ?? false;
-              const clickable = !active && visited && !disabled && Boolean(onStepClick);
+          {steps.map((step, index) => {
+            const done = index < current;
+            const active = index === current;
+            const visited =
+              visitedSteps?.has(step.id) ||
+              (step.id === 'account' && (visitedSteps?.has('summary') ?? false)) ||
+              (step.id === 'scanning' && (visitedSteps?.has('website') ?? false));
+            const disabled = disabledStepIds?.includes(step.id) ?? false;
+            const clickable = !active && visited && !disabled && Boolean(onStepClick);
 
-              return (
-                <motion.div
-                  key={step.id}
-                  layout
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className={`flex flex-1 items-center justify-center gap-3 overflow-hidden border-r px-2 py-4 last:border-r-0 sm:justify-start sm:px-8 sm:py-6 ${clickable ? 'cursor-pointer' : ''}`}
-                  onClick={
-                    clickable
-                      ? () => {
-                          onStepClick?.(step.id);
-                        }
-                      : undefined
-                  }
-                  style={{
-                    borderColor: 'rgba(255,255,255,0.12)',
-                    borderTop: active || done ? '3px solid white' : '3px solid transparent',
-                  }}
-                >
-                  {done ? (
-                    <div
-                      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white"
-                      aria-hidden
-                    >
-                      <Check size={14} weight="bold" style={{ color: 'var(--accent)' }} />
-                    </div>
-                  ) : (
-                    <div
-                      className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                      style={{
-                        background: active ? 'white' : 'transparent',
-                        border: active ? 'none' : '1.5px solid rgba(255,255,255,0.35)',
-                        color: active ? 'var(--accent)' : 'rgba(255,255,255,0.45)',
-                      }}
-                      aria-hidden
-                    >
-                      {index + 1}
-                    </div>
-                  )}
-                  <span
-                    className="hidden text-base font-medium whitespace-nowrap sm:inline"
-                    style={{ color: done || active ? 'white' : 'rgba(255,255,255,0.35)' }}
+            const stepContent = (
+              <>
+                {done ? (
+                  <div
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white"
+                    aria-hidden
                   >
-                    {step.label}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                    <Check size={14} weight="bold" style={{ color: 'var(--accent)' }} />
+                  </div>
+                ) : (
+                  <div
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                    style={{
+                      background: active ? 'white' : 'transparent',
+                      border: active ? 'none' : '1.5px solid rgba(255,255,255,0.35)',
+                      color: active ? 'var(--accent)' : 'rgba(255,255,255,0.45)',
+                    }}
+                    aria-hidden
+                  >
+                    {index + 1}
+                  </div>
+                )}
+                <span
+                  className="hidden text-base font-medium whitespace-nowrap sm:inline"
+                  style={{ color: done || active ? 'white' : 'rgba(255,255,255,0.35)' }}
+                >
+                  {step.label}
+                </span>
+              </>
+            );
+            const stepClassName = `flex flex-1 items-center justify-center gap-3 overflow-hidden border-r px-2 py-4 last:border-r-0 sm:justify-start sm:px-8 sm:py-6 ${clickable ? 'cursor-pointer' : ''}`;
+
+            return clickable ? (
+              <button
+                key={step.id}
+                type="button"
+                className={stepClassName}
+                onClick={() => {
+                  onStepClick?.(step.id);
+                }}
+                style={{
+                  borderColor: 'rgba(255,255,255,0.12)',
+                  borderTop: '3px solid white',
+                }}
+              >
+                {stepContent}
+              </button>
+            ) : (
+              <div
+                key={step.id}
+                className={stepClassName}
+                style={{
+                  borderColor: 'rgba(255,255,255,0.12)',
+                  borderTop: active || done ? '3px solid white' : '3px solid transparent',
+                }}
+              >
+                {stepContent}
+              </div>
+            );
+          })}
         </div>
       </Container>
     </div>

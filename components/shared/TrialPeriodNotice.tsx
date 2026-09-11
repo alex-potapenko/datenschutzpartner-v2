@@ -49,7 +49,7 @@ function TrialPeriodProgressBar({
         className="h-full rounded-full transition-[width,background-color] duration-300"
         style={{
           width: `${percent}%`,
-          background: isUrgent ? 'var(--feature-red)' : 'var(--accent)',
+          background: isUrgent ? 'var(--feature-red)' : 'var(--success)',
         }}
       />
     </div>

@@ -8,6 +8,8 @@ type BrandGlowBackdropProps = {
   centerIcon?: ReactNode;
   /** `center` fills the section (newsletter). `right` is a top-right Olympic-ring cluster. */
   placement?: 'center' | 'right';
+  /** Newsletter uses a soft edge gradient wash; hero omits it. */
+  showGradient?: boolean;
 };
 
 const GLOW_SIZE_PX = 380;
@@ -48,12 +50,21 @@ const OLYMPIC_LOGO_CENTER_X_PX =
 const OLYMPIC_LOGO_CENTER_Y_PX =
   OLYMPIC_RING_CENTERS.reduce((sum, ring) => sum + ring.y, 0) / OLYMPIC_RING_CENTERS.length;
 
-function GlowOrb({ color, style }: { color: string; style: CSSProperties }) {
+function GlowOrb({
+  color,
+  style,
+  opacity = GLOW_BASE_STYLE.opacity,
+}: {
+  color: string;
+  style: CSSProperties;
+  opacity?: number;
+}) {
   return (
     <div
       className="absolute"
       style={{
         ...GLOW_BASE_STYLE,
+        opacity,
         background: color,
         ...style,
       }}
@@ -120,21 +131,29 @@ function RightOlympicCluster({
   );
 }
 
-function CenterCluster({ markClassName }: { markClassName?: string }) {
+function CenterCluster({
+  markClassName,
+  showGradient = true,
+}: {
+  markClassName?: string;
+  showGradient?: boolean;
+}) {
   return (
     <>
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(90deg, rgba(254, 226, 226, 0.45) 0%, rgba(255, 255, 255, 0.95) 42%, rgba(255, 255, 255, 0.95) 58%, rgba(209, 250, 229, 0.4) 100%)',
-        }}
-      />
+      {showGradient ? (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(254, 226, 226, 0.22) 0%, rgba(255, 255, 255, 0.97) 42%, rgba(255, 255, 255, 0.97) 58%, rgba(209, 250, 229, 0.18) 100%)',
+          }}
+        />
+      ) : null}
       <img
         src="/dsp-mark-outline.svg"
         alt=""
         className={cn(
-          'absolute top-1/2 left-1/2 w-[480px] max-w-none -translate-x-1/2 select-none sm:w-[720px] lg:w-[960px]',
+          'absolute top-1/2 left-1/2 w-[480px] max-w-none select-none sm:w-[720px] lg:w-[960px]',
           markClassName
         )}
         style={{
@@ -144,10 +163,10 @@ function CenterCluster({ markClassName }: { markClassName?: string }) {
           zIndex: 1,
         }}
       />
-      <GlowOrb color="#ef4444" style={{ top: '-20%', left: '-5%' }} />
-      <GlowOrb color="#7c3aed" style={{ bottom: '-20%', left: '20%' }} />
-      <GlowOrb color="#3b82f6" style={{ top: '-20%', right: '15%' }} />
-      <GlowOrb color="#16a34a" style={{ right: '-5%', bottom: '-20%' }} />
+      <GlowOrb color="#ef4444" opacity={0.05} style={{ top: '-20%', left: '-5%' }} />
+      <GlowOrb color="#7c3aed" opacity={0.05} style={{ bottom: '-20%', left: '20%' }} />
+      <GlowOrb color="#3b82f6" opacity={0.05} style={{ top: '-20%', right: '15%' }} />
+      <GlowOrb color="#16a34a" opacity={0.05} style={{ right: '-5%', bottom: '-20%' }} />
     </>
   );
 }
@@ -161,6 +180,7 @@ export function BrandGlowBackdrop({
   markClassName,
   centerIcon,
   placement = 'center',
+  showGradient = true,
 }: BrandGlowBackdropProps) {
   const isRight = placement === 'right';
 
@@ -176,7 +196,7 @@ export function BrandGlowBackdrop({
       {isRight ? (
         <RightOlympicCluster markClassName={markClassName} centerIcon={centerIcon} />
       ) : (
-        <CenterCluster markClassName={markClassName} />
+        <CenterCluster markClassName={markClassName} showGradient={showGradient} />
       )}
     </div>
   );

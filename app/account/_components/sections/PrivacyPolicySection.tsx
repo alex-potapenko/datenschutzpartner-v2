@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState, type Key } from 'react';
+import { useMemo, type Key } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   GENERATOR_FAQ_CATEGORY_IDS,
   GENERATOR_FAQ_ITEMS_BY_CATEGORY,
 } from '@/lib/faq-content/constants';
-import { isActiveSubscription, useSubscriptions } from '@/api/billing';
 import { Button, Plus, Spinner } from '@/components/ui';
 import { FaqCategorizedSections } from '@/components/shared/FaqCategorizedSections';
 import { GeneratorServiceLanding } from '@/components/shared/GeneratorServiceLanding';
@@ -16,20 +15,26 @@ import { PolicyImplementationGuide } from '@/components/shared/PolicyImplementat
 import { AccountSection, AccountSectionFrame } from '../account-ui';
 import { AccountCheckoutBanner } from '../AccountCheckoutBanner';
 import { MembershipPanel } from './MembershipPanel';
+import { PolicyUpdatesTab } from './policy-updates/PolicyUpdatesTab';
 import { AnimatedServiceTabContent, useServiceTabs, type ServiceTabId } from './service-tabs';
 import { useSiteScope } from '@/components/shared/site-scope';
 import { usePendingCheckout } from '@/api/checkout';
 import { accountLocationHref, addWebsiteWizardHref } from '@/lib/account-routes';
 
-/** The hosted policy adds a `preview` tab for the document text itself. */
+/** The hosted policy adds `details` (maintenance) and `preview` (the document text). */
 const POLICY_TAB_IDS = [
+  'details',
   'subscription',
   'instructions',
   'preview',
   'faq',
 ] as const satisfies readonly ServiceTabId[];
 
+/** Tab reached without an explicit `?tab=`. */
+const DEFAULT_POLICY_TAB: ServiceTabId = 'details';
+
 function parsePolicyTab(value: string | null): ServiceTabId | undefined {
+  if (value === 'updates') return 'details';
   return POLICY_TAB_IDS.find((id) => id === value);
 }
 
@@ -66,24 +71,13 @@ export function PrivacyPolicySection() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { activeSite, isLoading: sitesLoading } = useSiteScope();
-  const subscriptions = useSubscriptions();
   const pendingCheckout = usePendingCheckout(activeSite?.document ? activeSite.domain : null);
   const tabs = useServiceTabs(POLICY_TAB_IDS);
-  const tabFromUrl = parsePolicyTab(searchParams.get('tab')) ?? 'subscription';
-  const [tab, setTab] = useState<ServiceTabId>(tabFromUrl);
-
-  useEffect(() => {
-    setTab(tabFromUrl);
-  }, [tabFromUrl]);
+  const tabFromUrl = parsePolicyTab(searchParams.get('tab')) ?? DEFAULT_POLICY_TAB;
+  const tab = tabFromUrl;
 
   const document = activeSite?.document;
-  const policySubscription = useMemo(() => {
-    if (!document?.subscriptionId) return null;
-    return (subscriptions.data ?? []).find((row) => row.id === document.subscriptionId) ?? null;
-  }, [document?.subscriptionId, subscriptions.data]);
-
-  const hasActivePolicy = Boolean(document && isActiveSubscription(policySubscription));
-  const isLoading = sitesLoading || subscriptions.isLoading;
+  const isLoading = sitesLoading;
 
   if (isLoading) {
     return (
@@ -125,7 +119,7 @@ export function PrivacyPolicySection() {
     );
   }
 
-  if (!hasActivePolicy || !document) {
+  if (!document) {
     return (
       <AccountSectionFrame
         hideTitle
@@ -146,9 +140,8 @@ export function PrivacyPolicySection() {
       selectedTab={tab}
       onTabChange={(key: Key) => {
         const next = key as ServiceTabId;
-        setTab(next);
         const nextParams = new URLSearchParams(searchParams.toString());
-        if (next === 'subscription') {
+        if (next === DEFAULT_POLICY_TAB) {
           nextParams.delete('tab');
         } else {
           nextParams.set('tab', next);
@@ -158,6 +151,12 @@ export function PrivacyPolicySection() {
       }}
     >
       <AnimatedServiceTabContent tabKey={tab} tabOrder={POLICY_TAB_IDS}>
+        {tab === 'details' ? (
+          <div className="-mx-4 min-w-0 overflow-x-clip sm:-mx-8">
+            <PolicyUpdatesTab document={document} />
+          </div>
+        ) : null}
+
         {tab === 'instructions' ? (
           <div className="-mx-4 min-w-0 overflow-x-clip sm:-mx-8">
             <PolicyImplementationGuide document={document} />

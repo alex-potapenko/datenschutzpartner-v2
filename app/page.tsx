@@ -1,15 +1,8 @@
 import {
-  Crosshair,
+  Buildings,
   Cookie,
-  ChartBar,
-  EnvelopeSimple,
-  Cloud,
   FlagBanner,
   GraduationCap,
-  Bell,
-  CreditCard,
-  MapPin,
-  Camera,
   Lock,
   ShieldCheck,
   Users,
@@ -22,91 +15,41 @@ import { ScanForm } from '@/components/shared/ScanForm';
 import { Container } from '@/components/shared/Container';
 import { TrustBadge } from '@/components/shared/TrustBadge';
 import { FeatureCard } from '@/components/shared/FeatureCard';
-import { ScanPreviewCard } from '@/components/shared/ScanPreviewCard';
+import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
+import { HeroLayerZDebug } from '@/components/shared/HeroLayerZDebug';
+import { HeroOrbitSystem } from '@/components/shared/HeroOrbitSystem';
 import { InsightsSection } from '@/components/shared/InsightsSection';
 import { AboutSection } from '@/components/shared/AboutSection';
 import { NewsletterSection } from '@/components/shared/NewsletterSection';
-import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 
 export default async function LandingPage() {
   const locale = await getLocale();
   const t = await getTranslations('landing');
-
-  const scanItems = [
-    {
-      label: t('scanItemTracking'),
-      value: t('scanItemTrackingValue'),
-      icon: <Crosshair size={18} />,
-      color: '#ef4444',
-    },
-    {
-      label: t('scanItemCookies'),
-      value: t('scanItemCookiesValue'),
-      icon: <Cookie size={18} />,
-      color: '#92400e',
-    },
-    {
-      label: t('scanItemAnalytics'),
-      value: t('scanItemAnalyticsValue'),
-      icon: <ChartBar size={18} />,
-      color: '#7c3aed',
-    },
-    {
-      label: t('scanItemContactForm'),
-      value: t('scanItemDetected'),
-      icon: <EnvelopeSimple size={18} />,
-      color: '#16a34a',
-    },
-    {
-      label: t('scanItemHosting'),
-      value: t('scanItemHostingValue'),
-      icon: <Cloud size={18} />,
-      color: '#3b82f6',
-    },
-    {
-      label: t('scanItemCookieBanner'),
-      value: t('scanItemDetected'),
-      icon: <Bell size={18} />,
-      color: '#d97706',
-    },
-    {
-      label: t('scanItemPayment'),
-      value: t('scanItemPaymentValue'),
-      icon: <CreditCard size={18} />,
-      color: '#6366f1',
-    },
-    {
-      label: t('scanItemGeolocation'),
-      value: t('scanItemDetected'),
-      icon: <MapPin size={18} />,
-      color: '#f97316',
-    },
-    {
-      label: t('scanItemMediaCapture'),
-      value: t('scanItemNotDetected'),
-      icon: <Camera size={18} />,
-      color: '#16a34a',
-    },
-  ];
-
-  const scanPreviewLabels = {
-    scan: t('scanPreviewScan'),
-    issues: t('scanPreviewIssues'),
-    privacyPolicy: t('scanPreviewPolicy'),
-    complete: t('scanPreviewComplete'),
-    issuesFound: t('scanPreviewIssuesFound'),
-    notCompliant: t('scanPreviewNotCompliant'),
-  };
+  const tNav = await getTranslations('nav');
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col">
       <TopBar />
 
       <main className="flex flex-1 flex-col">
-        <section className="border-border bg-background border-b">
-          <Container>
-            <div className="border-border grid items-start border-r border-l lg:grid-cols-2">
-              <div className="border-border flex flex-col max-lg:border-b lg:border-r">
+        <section data-hero-section className="bg-background relative w-full overflow-visible">
+          <div aria-hidden data-hero-glow className="pointer-events-none absolute inset-0 z-0">
+            <Container className="relative h-full">
+              {/* Matches the right grid cell so the glow sits exactly where the illustration is. */}
+              <div className="absolute inset-x-4 inset-y-0 sm:inset-x-8 lg:left-1/2 lg:w-auto">
+                <HeroGlowOrbs />
+              </div>
+            </Container>
+          </div>
+
+          <div className="pointer-events-none absolute inset-0">
+            <HeroOrbitSystem />
+          </div>
+
+          <Container className="relative z-20">
+            {/* Hero borders match the orbit lines rather than the global border token. */}
+            <div className="relative grid items-start border-r border-l border-black/[0.06] lg:grid-cols-2">
+              <div className="relative flex flex-col border-black/[0.08] max-lg:border-b lg:border-r">
                 <div className="flex flex-col gap-6 px-4 pt-12 pb-8 sm:gap-10 sm:px-8 sm:pt-16 lg:pt-20">
                   <h1 className="text-foreground text-2xl leading-tight font-bold sm:text-3xl lg:text-4xl">
                     {t('heroTitleLine1')}
@@ -155,36 +98,61 @@ export default async function LandingPage() {
                 </div>
               </div>
 
-              <div className="relative flex items-start justify-center px-4 pt-10 pb-12 sm:px-16 sm:pt-16 lg:h-0 lg:min-h-full lg:pt-20 lg:pb-0">
-                <div className="pointer-events-none absolute inset-0 z-0 overflow-visible">
-                  <HeroGlowOrbs />
-                </div>
-
-                <div className="hero-preview-fade relative z-10 flex w-full justify-center">
-                  <ScanPreviewCard items={scanItems} labels={scanPreviewLabels} />
-                </div>
-              </div>
+              <div
+                className="relative min-h-[280px] sm:min-h-[360px] lg:h-0 lg:min-h-full"
+                aria-hidden
+              />
             </div>
           </Container>
+
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] h-[2px] bg-[var(--accent)]"
+          />
         </section>
 
-        <section className="border-border bg-background border-b">
+        <section className="border-border bg-background relative z-10 border-b">
           <Container>
             <div className="border-border grid border-r border-l lg:grid-cols-2">
               <FeatureCard
-                icon={<FlagBanner size={48} weight="fill" />}
+                icon={<FlagBanner size={32} weight="fill" />}
+                accent="var(--feature-indigo)"
                 title={t('featureEuTitle')}
                 description={t('featureEuDescription')}
                 linkLabel={t('learnMore')}
                 href="/eu-rep"
                 borderRight
+                borderBottom
               />
               <FeatureCard
-                icon={<GraduationCap size={48} weight="fill" />}
+                icon={<GraduationCap size={32} weight="fill" />}
+                accent="var(--feature-purple)"
                 title={t('featureAcademyTitle')}
                 description={t('featureAcademyDescription')}
                 linkLabel={t('learnMore')}
                 href="/academy"
+                borderBottom
+              />
+              <FeatureCard
+                icon={<Cookie size={32} weight="fill" />}
+                accent="var(--feature-yellow)"
+                title={t('featureCookieTitle')}
+                description={t('featureCookieDescription')}
+                linkLabel={t('learnMore')}
+                href="/account?section=cookieBanner"
+                borderRight
+                comingSoon
+                comingSoonLabel={tNav('comingSoon')}
+              />
+              <FeatureCard
+                icon={<Buildings size={32} weight="fill" />}
+                accent="var(--feature-teal)"
+                title={t('featureImprintTitle')}
+                description={t('featureImprintDescription')}
+                linkLabel={t('learnMore')}
+                href="/account?section=imprint"
+                comingSoon
+                comingSoonLabel={tNav('comingSoon')}
               />
             </div>
           </Container>
@@ -196,6 +164,8 @@ export default async function LandingPage() {
 
       <NewsletterSection />
       <Footer />
+
+      {process.env.NODE_ENV !== 'production' ? <HeroLayerZDebug /> : null}
     </div>
   );
 }

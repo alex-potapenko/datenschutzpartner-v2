@@ -26,6 +26,7 @@ import { Field } from '../ui/FormSection';
 import { StepFooter } from '../ui/StepFooter';
 import { StepFrame } from '../ui/StepFrame';
 import { StepHeader } from '../ui/StepHeader';
+import { WizardBorderedColumn } from '../ui/WizardBorderedColumn';
 import { buildTrialCheckoutPayload } from '../trial-payload';
 import type { QuestionnaireFormData } from '../content/questionnaire-form';
 import { isBuyingEuRep, type EuRepState } from '../wizard-state';
@@ -36,8 +37,14 @@ interface SummaryStepProps {
   euRep: EuRepState;
   fillSubscriptionId?: string;
   onBack: () => void;
+  /** Runs registration behind the full-screen “Creating your account” state. */
+  onCreateAccount: <T>(register: () => Promise<T>) => Promise<T>;
   /** Registration succeeded — the wizard swaps in the isolated activation screen. */
-  onRegistered: (payload: { email: string; verificationUrl?: string | null }) => void;
+  onRegistered: (payload: {
+    email: string;
+    verificationUrl?: string | null;
+    newsletter: boolean;
+  }) => void;
 }
 
 type WelcomeFormValues = {
@@ -54,6 +61,7 @@ export function SummaryStep({
   euRep,
   fillSubscriptionId,
   onBack,
+  onCreateAccount,
   onRegistered,
 }: SummaryStepProps) {
   const t = useTranslations('result.summary');
@@ -61,7 +69,6 @@ export function SummaryStep({
   const tQuestionnaire = useTranslations('result.questionnaireStep');
   const tv = useTranslations('validation');
   const registerAccount = useRegister();
-
   function stopCheckboxActivation(event: SyntheticEvent) {
     event.stopPropagation();
   }
@@ -106,22 +113,29 @@ export function SummaryStep({
     const payload = buildTrialCheckoutPayload(domain, formData, euRep, fillSubscriptionId);
 
     try {
-      const result = await registerAccount.mutateAsync({
-        email: values.email,
-        firstName: values.firstName.trim(),
-        lastName: values.lastName.trim(),
-        acceptTerms: values.acceptTerms,
+      const registered = await onCreateAccount(async () =>
+        registerAccount.mutateAsync({
+          email: values.email,
+          firstName: values.firstName.trim(),
+          lastName: values.lastName.trim(),
+          acceptTerms: values.acceptTerms,
+          newsletter: values.newsletter,
+          domain: payload.domain ?? domain,
+          policyName: payload.policyName,
+          legalEntity: payload.legalEntity,
+          fillSubscriptionId: payload.fillSubscriptionId,
+          euRepEntityCount: payload.euRepEntityCount,
+          euRepPlanId: payload.euRepPlanId,
+          euRepEntities: payload.euRepEntities,
+          euRepLinkContractId: payload.euRepLinkContractId,
+        })
+      );
+
+      onRegistered({
+        email: registered.email,
+        verificationUrl: registered.verificationUrl,
         newsletter: values.newsletter,
-        domain: payload.domain ?? domain,
-        policyName: payload.policyName,
-        legalEntity: payload.legalEntity,
-        fillSubscriptionId: payload.fillSubscriptionId,
-        euRepEntityCount: payload.euRepEntityCount,
-        euRepPlanId: payload.euRepPlanId,
-        euRepEntities: payload.euRepEntities,
-        euRepLinkContractId: payload.euRepLinkContractId,
       });
-      onRegistered({ email: result.email, verificationUrl: result.verificationUrl });
     } catch {
       toast.error(t('verificationFailed'));
     }
@@ -129,6 +143,7 @@ export function SummaryStep({
 
   return (
     <StepFrame
+      scrollWithContent
       header={
         <StepHeader
           title={t('welcomeTitle')}
@@ -138,10 +153,13 @@ export function SummaryStep({
       }
       footer={<StepFooter onBack={onBack} />}
     >
-      <Container className="flex h-full min-h-0 flex-1 flex-col">
-        <div className="border-border flex h-full min-h-0 flex-1 flex-col border-x">
-          <div className="grid h-full min-h-0 flex-1 grid-cols-1 items-stretch lg:grid-cols-2">
-            <div className="border-border flex h-full min-h-0 flex-col border-r">
+      <Container className="flex min-h-full flex-1 flex-col">
+        <WizardBorderedColumn
+          className="flex min-h-0 flex-1 flex-col"
+          layoutKey={isBuyingEuRep(euRep)}
+        >
+          <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch lg:grid-cols-2">
+            <div className="border-border flex min-h-0 flex-col border-b lg:border-r lg:border-b-0">
               <div className="shrink-0 px-4 pt-8 sm:px-8 lg:pt-12">
                 <h2 className="text-foreground text-xl font-bold sm:text-2xl">
                   {t('welcomeBody')}
@@ -277,11 +295,11 @@ export function SummaryStep({
               </div>
             </div>
 
-            <div className="flex h-full min-h-0 flex-col overflow-visible px-4 py-8 sm:px-8 sm:py-10 lg:py-12">
+            <div className="flex min-h-0 flex-col overflow-visible px-4 py-8 sm:px-8 sm:py-10 lg:py-12">
               <SummaryWelcomeBenefits domain={domain} includeEuRep={isBuyingEuRep(euRep)} />
             </div>
           </div>
-        </div>
+        </WizardBorderedColumn>
       </Container>
     </StepFrame>
   );

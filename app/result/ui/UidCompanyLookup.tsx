@@ -4,29 +4,70 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { MagnifyingGlass, Spinner } from '@/components/ui';
 import { useUidCompanySearch, type UidCompany } from '@/api/uid-registry';
-import { TextInput } from '../ui/FormSection';
+import { TextInput } from './FormSection';
 
 interface UidCompanyLookupProps {
+  id?: string;
+  value: string;
+  onValueChange: (value: string) => void;
   onSelect: (company: UidCompany) => void;
+  placeholder?: string;
+  onFocus?: () => void;
+  'aria-invalid'?: boolean;
 }
 
-export function UidCompanyLookup({ onSelect }: UidCompanyLookupProps) {
+export function UidCompanyLookup({
+  id,
+  value,
+  onValueChange,
+  onSelect,
+  placeholder,
+  onFocus,
+  'aria-invalid': ariaInvalid,
+}: UidCompanyLookupProps) {
   const t = useTranslations('result.questionnaireStep.uidLookup');
-  const [query, setQuery] = useState('');
-  const search = useUidCompanySearch(query);
+  const [isOpen, setIsOpen] = useState(false);
+  const search = useUidCompanySearch(value);
   const results = search.data ?? [];
-  const showResults = query.trim().length >= 2 && !search.isLoading && results.length > 0;
+  const query = value.trim();
+  const canSearch = query.length >= 2;
+  const hasFetched = search.data !== undefined;
+  const showResults = isOpen && canSearch && hasFetched && !search.isFetching && results.length > 0;
+  const showEmpty = isOpen && canSearch && hasFetched && !search.isFetching && results.length === 0;
+
+  function selectCompany(company: UidCompany) {
+    onSelect(company);
+    onValueChange(company.name);
+    setIsOpen(false);
+    requestAnimationFrame(() => {
+      const input = id ? document.getElementById(id) : null;
+      if (input instanceof HTMLInputElement) {
+        input.focus({ preventScroll: true });
+      }
+    });
+  }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="relative flex flex-col gap-1.5">
       <div className="relative">
         <TextInput
-          value={query}
+          id={id}
+          value={value}
           onChange={(event) => {
-            setQuery(event.target.value);
+            onValueChange(event.target.value);
+            setIsOpen(true);
           }}
-          placeholder={t('placeholder')}
+          onFocus={() => {
+            setIsOpen(true);
+            onFocus?.();
+          }}
+          onBlur={() => {
+            setIsOpen(false);
+          }}
+          placeholder={placeholder ?? t('placeholder')}
           className="pr-10"
+          autoComplete="off"
+          aria-invalid={ariaInvalid}
         />
         <span className="text-muted pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">
           {search.isFetching ? (
@@ -39,7 +80,8 @@ export function UidCompanyLookup({ onSelect }: UidCompanyLookupProps) {
 
       {showResults ? (
         <ul
-          className="border-border divide-border flex flex-col divide-y overflow-hidden rounded-xl border"
+          id={`${id ?? 'uid'}-results`}
+          className="border-border bg-background absolute top-full z-10 mt-1 flex w-full flex-col overflow-hidden rounded-lg border shadow-sm"
           role="listbox"
           aria-label={t('resultsLabel')}
         >
@@ -47,12 +89,13 @@ export function UidCompanyLookup({ onSelect }: UidCompanyLookupProps) {
             <li key={company.uid}>
               <button
                 type="button"
+                tabIndex={-1}
                 role="option"
                 aria-selected="false"
-                className="hover:bg-surface flex w-full flex-col gap-0.5 px-4 py-3 text-left transition-colors"
-                onClick={() => {
-                  onSelect(company);
-                  setQuery(company.uid);
+                className="hover:bg-surface flex w-full flex-col gap-0.5 px-3 py-2.5 text-left transition-colors"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  selectCompany(company);
                 }}
               >
                 <span className="text-foreground text-sm font-medium">{company.name}</span>
@@ -65,9 +108,7 @@ export function UidCompanyLookup({ onSelect }: UidCompanyLookupProps) {
         </ul>
       ) : null}
 
-      {query.trim().length >= 2 && !search.isLoading && results.length === 0 ? (
-        <p className="text-muted text-xs">{t('empty')}</p>
-      ) : null}
+      {showEmpty ? <p className="text-muted text-xs">{t('empty')}</p> : null}
     </div>
   );
 }

@@ -171,6 +171,7 @@ describe('calculatePendingTrialCheckoutQuote', () => {
           {
             legalEntity: 'Example AG',
             forwardingEmail: 'privacy@example.ch',
+            postalDepartment: '',
             postalLine1: 'Bahnhofstrasse 1',
             postalLine2: '',
             postalCode: '8001',

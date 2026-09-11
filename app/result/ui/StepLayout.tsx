@@ -22,6 +22,8 @@ interface StepLayoutProps {
   domainHeaderPlaceholder?: boolean;
   /** Where Quit sends the user. Defaults to the marketing home. */
   quitHref?: string;
+  /** Replaces the default "discard the generator draft" behaviour on Quit. */
+  onQuit?: () => void;
   /** Scroll the domain bar with step content — long questionnaire forms. */
   scrollStepsWithContent?: boolean;
   /** Lock the wizard exit once the hosted policy already exists. */
@@ -39,6 +41,10 @@ interface StepLayoutProps {
   onStepClick?: (stepId: WizardStepBarId) => void;
   /** Hide Quit on the left — e.g. policy ready screen. */
   showQuit?: boolean;
+  /** Overrides the leave button label — e.g. "Back" when editing an existing policy. */
+  quitLabel?: string;
+  /** Renders the leave control as a back caret instead of a labelled pill. */
+  quitIconOnly?: boolean;
 }
 
 export function StepLayout({
@@ -49,6 +55,7 @@ export function StepLayout({
   domainHeader,
   domainHeaderPlaceholder = false,
   quitHref = '/',
+  onQuit,
   scrollStepsWithContent = false,
   quitDisabled = false,
   confirmQuit = true,
@@ -59,6 +66,8 @@ export function StepLayout({
   disabledStepIds,
   onStepClick,
   showQuit = true,
+  quitLabel,
+  quitIconOnly = false,
 }: StepLayoutProps) {
   const tCommon = useTranslations('common');
   const tCancel = useTranslations('result.cancelModal');
@@ -113,14 +122,20 @@ export function StepLayout({
   return (
     <ServiceWizardShell
       serviceLabel={tGenerator('label')}
+      serviceBrandId="privacyGenerator"
       quitHref={quitHref}
-      onQuit={() => {
-        clearWizardState();
-      }}
+      onQuit={
+        onQuit ??
+        (() => {
+          clearWizardState();
+        })
+      }
       faqContent={<ServiceWizardFaqPanel variant="generator" />}
       quitDisabled={quitDisabled}
       confirmQuit={confirmQuit}
       showQuit={showQuit}
+      quitLabel={quitLabel}
+      quitIconOnly={quitIconOnly}
       cancelTitle={tCancel('title')}
       cancelBody={tCancel('body')}
       cancelQuitLabel={tCancel('quit')}
