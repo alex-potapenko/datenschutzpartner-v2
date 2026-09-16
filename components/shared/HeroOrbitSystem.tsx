@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useId, useRef, type ComponentType, type CSSProperties } from 'react';
-import { useAnimationFrame, useReducedMotion } from 'motion/react';
+import { motion, useAnimationFrame, useReducedMotion } from 'motion/react';
 import {
   Camera,
   ChartBar,
@@ -88,6 +88,7 @@ const LAYER_MASK = {
 const TRAIL_RATIO = 0.42;
 const TRAIL_MAX = 240;
 const TAU = Math.PI * 2;
+const PLANET_ICON_TRANSITION = { duration: 0.32, ease: [0.32, 0.72, 0, 1] as const };
 
 const ICON_SIZE_MIN = 40;
 const ICON_SIZE_MAX = 60;
@@ -191,7 +192,12 @@ function chordLength(radius: number, arcLength: number) {
   return 2 * radius * Math.sin(arcLength / (2 * radius));
 }
 
-export function HeroOrbitSystem() {
+type HeroOrbitSystemProps = {
+  /** When false, coloured trails stay but planet icon circles are hidden. */
+  showPlanetIcons?: boolean;
+};
+
+export function HeroOrbitSystem({ showPlanetIcons = true }: HeroOrbitSystemProps) {
   const rawId = useId();
   const id = rawId.replace(/:/g, '');
   const prefersReducedMotion = useReducedMotion();
@@ -357,10 +363,18 @@ export function HeroOrbitSystem() {
               ref={(element) => {
                 iconsRef.current.set(planet.key, element);
               }}
-              className="absolute top-0 left-0 flex items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(15,23,42,0.12)]"
-              style={{ width: planet.size, height: planet.size, willChange: 'transform' }}
+              className="absolute top-0 left-0"
+              style={{ willChange: 'transform' }}
             >
-              <Icon color={planet.color} style={{ width: glyphSize, height: glyphSize }} />
+              <motion.div
+                className="flex items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(15,23,42,0.12)]"
+                style={{ width: planet.size, height: planet.size }}
+                initial={false}
+                animate={{ opacity: showPlanetIcons ? 1 : 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : PLANET_ICON_TRANSITION}
+              >
+                <Icon color={planet.color} style={{ width: glyphSize, height: glyphSize }} />
+              </motion.div>
             </div>
           );
         })}
