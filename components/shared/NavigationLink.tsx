@@ -14,14 +14,20 @@ const NAVIGATION_LINK_SIZES: Record<
   sm: { textClassName: 'text-sm', gapClassName: 'gap-0.5', iconSize: 14 },
 };
 
-export function navigationLinkClassName(size: NavigationLinkSize = 'default') {
+export function navigationLinkClassName(
+  size: NavigationLinkSize = 'default',
+  chevron: NavigationLinkBaseProps['chevron'] = 'right'
+) {
   const { textClassName, gapClassName } = NAVIGATION_LINK_SIZES[size];
 
-  return cn(
-    'inline-flex w-fit items-center font-normal text-accent underline decoration-transparent decoration-1 underline-offset-[3px] transition-[color,text-decoration-color] hover:text-[var(--link-hover)] hover:decoration-[var(--link-underline)]',
-    gapClassName,
-    textClassName
-  );
+  const linkColors =
+    'font-normal text-accent underline decoration-transparent decoration-1 underline-offset-[3px] transition-[color,text-decoration-color] hover:text-[var(--link-hover)] hover:decoration-[var(--link-underline)]';
+
+  if (chevron === 'none') {
+    return cn('inline', linkColors, textClassName);
+  }
+
+  return cn('inline-flex w-fit items-center', linkColors, gapClassName, textClassName);
 }
 
 type NavigationLinkBaseProps = {
@@ -106,7 +112,7 @@ export function NavigationLink({
   chevronWeight = 'regular',
   ...props
 }: NavigationLinkProps) {
-  const classes = cn(navigationLinkClassName(size), className);
+  const classes = cn(navigationLinkClassName(size, chevron), className);
 
   if ('as' in props && props.as === 'span') {
     return (

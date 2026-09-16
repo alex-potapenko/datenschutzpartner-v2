@@ -1413,7 +1413,7 @@
     "emailLabel": "E-Mail-Adresse",
     "optionalPlaceholder": "Optional",
     "legalDataUse": "Wir verwenden Deine Angaben ausschliesslich im Zusammenhang mit unseren Datenschutzpartnern. Du kannst Dich jederzeit von unserem Newsletter abmelden.",
-    "legalSubscribeConsent": "Mit dem Klick oder Tipp auf «Abonnieren» bestätigst Du, dass Du unsere <privacy>Datenschutzerklärung</privacy> gelesen hast. Bei Fragen <contact>kontaktiere uns</contact>!",
+    "legalSubscribeConsent": "Mit dem Klick oder Tipp auf «Abonnieren» bestätigst Du, dass Du unseren Newsletter erhalten möchtest und unsere <privacy>Datenschutzerklärung</privacy> gelesen hast. Bei Fragen <contact>kontaktiere uns</contact>!",
     "subscribe": "Abonnieren",
     "successMessage": "Danke für deine Anmeldung!"
   },
