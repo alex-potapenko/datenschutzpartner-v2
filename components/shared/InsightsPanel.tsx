@@ -3,9 +3,11 @@
 import { Suspense, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { MicrophoneStage, Newspaper, Tabs } from '@/components/ui';
+import { EnvelopeSimple, MicrophoneStage, Newspaper, Tabs } from '@/components/ui';
 import { ArticlesGrid } from './ArticlesGrid';
+import { NewsletterSubscribePanel } from './NewsletterSubscribePanel';
 import { InsightsPagination } from './InsightsPagination';
+import { AnimatedDirectionalPanel } from '@/app/account/_components/AnimatedDirectionalPanel';
 import { NavigationLink } from './NavigationLink';
 import {
   getInsightsContent,
@@ -27,8 +29,9 @@ interface InsightsPanelProps {
 }
 
 const TAB_ICONS: Record<InsightsTab, ReactNode> = {
-  news: <Newspaper size={20} weight="fill" aria-hidden />,
+  updates: <Newspaper size={20} weight="fill" aria-hidden />,
   podcasts: <MicrophoneStage size={20} weight="fill" aria-hidden />,
+  newsletter: <EnvelopeSimple size={20} weight="fill" aria-hidden />,
 };
 
 function InsightsPanelContent({
@@ -43,7 +46,7 @@ function InsightsPanelContent({
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('insights');
-  const activeTab = parseInsightsTab(searchParams.get('tab')) ?? 'news';
+  const activeTab = parseInsightsTab(searchParams.get('tab')) ?? 'updates';
   const activePage = parseInsightsPage(searchParams.get('page'));
   const content = getInsightsContent(locale);
   const isPaginated = limit === undefined;
@@ -69,6 +72,34 @@ function InsightsPanelContent({
     'text-foreground font-bold',
     heading === 'h1' ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-xl sm:text-2xl lg:text-3xl',
   ].join(' ');
+
+  function renderTabContent(tab: InsightsTab) {
+    if (tab === 'newsletter') {
+      return <NewsletterSubscribePanel showBottomBorder={false} />;
+    }
+
+    const tabArticles = content[tab];
+    const { articles, page, totalPages } = isPaginated
+      ? getInsightsPageArticles(tabArticles, activeTab === tab ? activePage : 1)
+      : {
+          articles: limit ? tabArticles.slice(0, limit) : tabArticles,
+          page: 1,
+          totalPages: 1,
+        };
+
+    return (
+      <>
+        <ArticlesGrid
+          articles={articles}
+          basePath="/insights"
+          layout={isPaginated && page > 1 ? 'uniform' : 'featured'}
+        />
+        {isPaginated && activeTab === tab ? (
+          <InsightsPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>
@@ -98,39 +129,15 @@ function InsightsPanelContent({
             ))}
           </Tabs.List>
         </Tabs.ListContainer>
-
-        {INSIGHTS_TAB_IDS.map((tab) => {
-          const tabArticles = content[tab];
-          const { articles, page, totalPages } = isPaginated
-            ? getInsightsPageArticles(tabArticles, activeTab === tab ? activePage : 1)
-            : {
-                articles: limit ? tabArticles.slice(0, limit) : tabArticles,
-                page: 1,
-                totalPages: 1,
-              };
-
-          return (
-            <Tabs.Panel
-              key={tab}
-              id={tab}
-              className={['!mt-0 p-0', panelClassName].filter(Boolean).join(' ')}
-            >
-              <ArticlesGrid
-                articles={articles}
-                basePath="/insights"
-                layout={isPaginated && page > 1 ? 'uniform' : 'featured'}
-              />
-              {isPaginated && activeTab === tab && (
-                <InsightsPagination
-                  page={page}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </Tabs.Panel>
-          );
-        })}
       </Tabs>
+
+      <AnimatedDirectionalPanel
+        activeKey={activeTab}
+        order={INSIGHTS_TAB_IDS}
+        className={['!mt-0 p-0', panelClassName].filter(Boolean).join(' ')}
+      >
+        {renderTabContent(activeTab)}
+      </AnimatedDirectionalPanel>
     </>
   );
 }

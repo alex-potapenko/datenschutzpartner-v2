@@ -38,6 +38,8 @@ interface FieldProps {
   required?: boolean;
   requiredLabel?: string;
   requiredShakeKey?: number;
+  /** When set, suppresses the required chip (inline error already shown). */
+  error?: string;
 }
 
 export function Field({
@@ -50,6 +52,7 @@ export function Field({
   required,
   requiredLabel,
   requiredShakeKey,
+  error,
 }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -58,6 +61,7 @@ export function Field({
         {requiredLabel ? (
           <ValidationRequiredBadge
             show={Boolean(required)}
+            fieldError={error}
             shakeKey={requiredShakeKey}
             className="ml-1.5"
           >

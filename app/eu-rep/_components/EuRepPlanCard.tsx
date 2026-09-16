@@ -388,7 +388,7 @@ function IncludedFeatures({
   return (
     <div
       ref={sectionRef}
-      className={`-mx-3 flex flex-col rounded-2xl p-4 transition-[background-color,box-shadow] duration-200 ${
+      className={`-mx-3 flex w-[calc(100%+1.5rem)] max-w-none flex-col overflow-hidden rounded-2xl p-4 transition-[background-color,box-shadow] duration-200 ${
         open
           ? 'bg-white [box-shadow:var(--shadow-soft-panel)]'
           : 'bg-transparent [box-shadow:inset_0_0_0_1px_var(--border)] hover:bg-white hover:[box-shadow:var(--shadow-soft-panel)]'
@@ -413,7 +413,7 @@ function IncludedFeatures({
             return next;
           });
         }}
-        className="text-accent flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+        className="text-accent flex w-full min-w-0 cursor-pointer items-center justify-between gap-3 text-left"
       >
         <span className="text-base font-semibold">{title}</span>
         <CaretDown
@@ -539,7 +539,7 @@ export function EuRepPlanCard({
 
         <div className="relative z-10 flex w-full flex-col gap-4">
           <div className="squircle w-full overflow-hidden" style={MEMBERSHIP_CARD_STYLE}>
-            <div className="flex flex-col gap-6 p-4 sm:p-8">
+            <div className="membership-soft-panel flex flex-col gap-6 p-4 sm:p-8">
               {showPlanTitle ? (
                 planTitleIcon ? (
                   <div className="flex flex-col items-center gap-3 text-center">

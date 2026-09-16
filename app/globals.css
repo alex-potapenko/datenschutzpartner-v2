@@ -285,3 +285,53 @@ li a.academy-preview-list-row-link:hover {
 .faq-accordion-row--expanded:hover {
   background: transparent;
 }
+
+/* Frosted membership cards (newsletter form, EU Rep plan card, checkout) */
+.membership-soft-panel {
+  --border: var(--border-on-soft-panel);
+}
+
+.membership-soft-panel .tabs__separator {
+  background-color: var(--border-on-soft-panel) !important;
+  opacity: 1 !important;
+}
+
+.membership-soft-panel .tabs__list {
+  background-color: var(--field-on-soft-panel) !important;
+}
+
+.membership-soft-panel .tabs__indicator {
+  background-color: var(--segment-on-soft-panel) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06) !important;
+}
+
+.membership-soft-panel .input.input--secondary {
+  --input-bg: var(--field-on-soft-panel);
+  --input-bg-hover: var(--field-on-soft-panel-hover);
+  --input-bg-focus: var(--field-on-soft-panel-focus);
+  --field-border: var(--field-on-soft-panel-border);
+  --field-border-hover: var(--field-on-soft-panel-border-hover);
+  --field-border-focus: var(--accent);
+  --field-focus: var(--field-on-soft-panel-focus);
+  background-color: var(--field-on-soft-panel) !important;
+  border-color: var(--field-on-soft-panel-border) !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) {
+  .membership-soft-panel .input.input--secondary:hover:not(:focus):not(:focus-visible),
+  .membership-soft-panel
+    .input.input--secondary[data-hovered='true']:not([data-focused='true']):not(
+      [data-focus-visible='true']
+    ) {
+    background-color: var(--field-on-soft-panel-hover) !important;
+    border-color: var(--field-on-soft-panel-border-hover) !important;
+  }
+}
+
+.membership-soft-panel .input.input--secondary:focus,
+.membership-soft-panel .input.input--secondary[data-focused='true'],
+.membership-soft-panel .input.input--secondary[data-focus-visible='true'] {
+  background-color: var(--field-on-soft-panel-focus) !important;
+  border-color: var(--accent) !important;
+}

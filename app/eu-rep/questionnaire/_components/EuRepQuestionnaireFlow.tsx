@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 import { Button, CaretRight, CheckCircle, Info, Warning } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { WizardQuestionRow } from '@/app/result/ui/WizardQuestionRow';
-import { QuestionnaireNewsletter } from './QuestionnaireNewsletter';
+import { NewsletterSubscribePanel } from '@/components/shared/NewsletterSubscribePanel';
 import { cn } from '@/lib/utils';
 
 type QuestionId = 'q1' | 'q2' | 'q3';
@@ -106,14 +106,14 @@ function OutcomeCard({
   outcome,
   showOffer,
   showDisclaimer,
-  showNewsletter,
+  showNewsletterLead,
   t,
   router,
 }: {
   outcome: OutcomeId;
   showOffer: boolean;
   showDisclaimer: boolean;
-  showNewsletter: boolean;
+  showNewsletterLead: boolean;
   t: ReturnType<typeof useTranslations<'euRepQuestionnaire'>>;
   router: ReturnType<typeof useRouter>;
 }) {
@@ -169,13 +169,8 @@ function OutcomeCard({
         </p>
       ) : null}
 
-      {showNewsletter ? (
-        <div className="border-border flex flex-col gap-4 border-t pt-4">
-          <p className="text-foreground text-base leading-relaxed">
-            {t('outcomes.newsletterLead')}
-          </p>
-          <QuestionnaireNewsletter />
-        </div>
+      {showNewsletterLead ? (
+        <p className="text-foreground text-base leading-relaxed">{t('outcomes.newsletterLead')}</p>
       ) : null}
     </div>
   );
@@ -195,7 +190,7 @@ export function EuRepQuestionnaireFlow() {
     setAnswers((prev) => updateAnswer(prev, questionId, value));
   }
 
-  const showNewsletter = outcome === 'eeaResident' || outcome === 'repNotRequired';
+  const showNewsletterSection = outcome === 'eeaResident' || outcome === 'repNotRequired';
   const showDisclaimer = outcome === 'repRequired';
   const showOffer = outcome === 'repRequired' || outcome === 'repNotRequired';
 
@@ -205,8 +200,8 @@ export function EuRepQuestionnaireFlow() {
   };
 
   return (
-    <div className="max-w-3xl">
-      <div className="flex flex-col">
+    <div className="flex flex-col">
+      <div className="flex max-w-3xl flex-col">
         {visibleQuestions.map((questionId, index) => {
           const outcomeHere = questionId === outcomeQuestionId ? outcome : null;
 
@@ -246,7 +241,7 @@ export function EuRepQuestionnaireFlow() {
                     outcome={outcomeHere}
                     showOffer={showOffer}
                     showDisclaimer={showDisclaimer}
-                    showNewsletter={showNewsletter}
+                    showNewsletterLead={showNewsletterSection}
                     t={t}
                     router={router}
                   />
@@ -256,6 +251,18 @@ export function EuRepQuestionnaireFlow() {
           );
         })}
       </div>
+
+      {showNewsletterSection ? (
+        <motion.section
+          key="questionnaire-newsletter"
+          className="border-border -mx-4 mt-12 border-t sm:-mx-8"
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={motionTransition}
+        >
+          <NewsletterSubscribePanel showBottomBorder={false} />
+        </motion.section>
+      ) : null}
     </div>
   );
 }

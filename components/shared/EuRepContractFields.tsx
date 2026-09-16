@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui';
 import { PostalAddressFields } from '@/app/result/ui/PostalAddressFields';
+import { displayCountryLabel, SWISS_COUNTRY_STORAGE } from '@/lib/swiss-country';
 
 function Field({
   id,
@@ -82,6 +83,7 @@ export function EuRepContractFields({
   fields = 'both',
 }: EuRepContractFieldsProps) {
   const t = useTranslations('account.euRep.contract');
+  const tCommon = useTranslations('common');
   const tQuestionnaire = useTranslations('result.questionnaireStep');
   const emailId = `${idPrefix}-forwarding-email`;
   const showForwardingEmail = fields === 'both' || fields === 'forwardingEmail';
@@ -140,7 +142,7 @@ export function EuRepContractFields({
               postalLine1: company.street,
               postalCode: company.postalCode,
               city: company.city,
-              country: company.country,
+              country: SWISS_COUNTRY_STORAGE,
             });
           }}
           onAddressFocus={onPostalFieldFocus}
@@ -155,10 +157,7 @@ export function EuRepContractFields({
           streetLine2Error={postalErrors?.postalLine2}
           showLine2={showPostalLines}
           showPostalLines={showPostalLines}
-          country={postal.country}
-          onCountryChange={(value) => {
-            onPostalChange({ country: value });
-          }}
+          countryDisplayLabel={displayCountryLabel(postal.country, tCommon('countrySwitzerland'))}
           countryError={postalErrors?.country}
         />
       ) : null}

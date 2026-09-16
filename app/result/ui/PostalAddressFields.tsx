@@ -131,6 +131,7 @@ export function PostalAddressFields({
             {legalEntityRequiredLabel ? (
               <ValidationRequiredBadge
                 show={Boolean(legalEntityRequiredLabel)}
+                fieldError={legalEntityError}
                 shakeKey={legalEntityRequiredShakeKey}
                 className="ml-1.5"
               >
@@ -193,6 +194,7 @@ export function PostalAddressFields({
               {line1RequiredLabel ? (
                 <ValidationRequiredBadge
                   show={Boolean(line1RequiredLabel)}
+                  fieldError={addressLineError}
                   shakeKey={requiredShakeKey}
                   className="ml-1.5"
                 >

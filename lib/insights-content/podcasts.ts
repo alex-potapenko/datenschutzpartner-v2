@@ -1,9 +1,7 @@
 import type { RawInsightArticle } from './types';
-import { insightCoverImage } from './images';
 
-function podcastImage(slug: string) {
-  return insightCoverImage(slug);
-}
+/** Podcast listings use `PodcastCoverArt` — no per-episode image URL. */
+const PODCAST_COVER_IMAGE = '';
 
 const PODCAST_BASE = 'https://podcast.datenschutzpartner.ch/episodes';
 const PODIGEE_EMBED_BASE = 'https://datenschutzplaudereien.podigee.io';
@@ -174,7 +172,7 @@ function toArticle(episode: PodcastEpisodeSource, locale: 'de' | 'en'): RawInsig
     title: locale === 'de' ? episode.titleDe : episode.titleEn,
     description: locale === 'de' ? episode.descriptionDe : episode.descriptionEn,
     readTime: episode.duration,
-    image: podcastImage(episode.slug),
+    image: PODCAST_COVER_IMAGE,
     externalUrl: `${PODCAST_BASE}/${episode.path}`,
     podigeeEmbedUrl: `${PODIGEE_EMBED_BASE}/${episode.embedPath}/embed?context=external`,
   };

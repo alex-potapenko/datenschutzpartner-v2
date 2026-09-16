@@ -35,6 +35,7 @@ export function ForgotPasswordForm() {
   const t = useTranslations('forgotPassword');
   const tv = useTranslations('validation');
   const [sent, setSent] = useState(false);
+  const [setupUrl, setSetupUrl] = useState<string | undefined>();
   const forgotPassword = useForgotPassword();
 
   const schema = useMemo(
@@ -52,7 +53,8 @@ export function ForgotPasswordForm() {
   } = useForm<ForgotPasswordInput>({ resolver: zodResolver(schema) });
 
   async function onSubmit(values: ForgotPasswordInput) {
-    await forgotPassword.mutateAsync(values);
+    const result = await forgotPassword.mutateAsync(values);
+    setSetupUrl(result.prototypeSetupUrl);
     setSent(true);
   }
 
@@ -63,9 +65,12 @@ export function ForgotPasswordForm() {
           {t('title')}
         </h1>
         <p className="text-foreground mb-6 text-center leading-relaxed">{t('success')}</p>
-        <NavigationLink href="/login" chevron="left" className="self-center">
-          {t('backToLogin')}
-        </NavigationLink>
+        {setupUrl ? (
+          <p className="text-muted bg-key-50 mb-6 rounded-lg px-4 py-3 text-center text-sm leading-relaxed">
+            {t('prototypeHint')}{' '}
+            <NavigationLink href={setupUrl}>{t('prototypeLink')}</NavigationLink>
+          </p>
+        ) : null}
       </>
     );
   }
@@ -97,12 +102,6 @@ export function ForgotPasswordForm() {
           {t('submit')}
         </Button>
       </form>
-
-      <div className="mt-6 text-center">
-        <NavigationLink href="/login" chevron="left">
-          {t('backToLogin')}
-        </NavigationLink>
-      </div>
     </>
   );
 }

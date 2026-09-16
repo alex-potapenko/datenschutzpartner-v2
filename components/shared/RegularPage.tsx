@@ -34,6 +34,8 @@ interface RegularPageProps {
    * full-bleed column layouts (e.g. a two-column contact layout with an inner border-r).
    */
   noPadding?: boolean;
+  /** Full-width blocks after the bordered content column (e.g. newsletter on insight articles). */
+  trailing?: ReactNode;
   children: ReactNode;
 }
 
@@ -52,6 +54,7 @@ export function RegularPage({
   topBarVariant,
   showFooter = true,
   noPadding = false,
+  trailing,
   children,
 }: RegularPageProps) {
   const contentClass = noPadding
@@ -91,7 +94,14 @@ export function RegularPage({
             )}
             <div className={contentClass}>{children}</div>
           </div>
+          {trailing ? (
+            <div
+              aria-hidden
+              className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
+            />
+          ) : null}
         </Container>
+        {trailing}
       </main>
       {showFooter ? <Footer /> : null}
     </div>

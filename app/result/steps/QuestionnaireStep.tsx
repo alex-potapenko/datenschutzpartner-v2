@@ -334,7 +334,7 @@ export function QuestionnaireStep({
                   street: company.street,
                   postalCode: company.postalCode,
                   city: company.city,
-                  country: company.country,
+                  country: t('defaults.country'),
                 }));
               }}
               department={form.department}
@@ -444,10 +444,10 @@ export function QuestionnaireStep({
                       onCityChange={(value) => {
                         set('dpoCity', value);
                       }}
-                      country={form.dpoCountry}
-                      onCountryChange={(value) => {
-                        set('dpoCountry', value);
-                      }}
+                      countryDisplayLabel={displayCountryLabel(
+                        form.dpoCountry,
+                        tCommon('countrySwitzerland')
+                      )}
                       optionalBadge={optionalBadge}
                       line1RequiredLabel={
                         isRequired('dpoStreet', 'dpoPostalCode', 'dpoCity')

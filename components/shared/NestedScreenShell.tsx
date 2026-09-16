@@ -23,6 +23,7 @@ type NestedScreenShellProps = {
   noPadding?: boolean;
   showTopBar?: boolean;
   topBarVariant?: 'public' | 'account';
+  trailing?: ReactNode;
 };
 
 /** Minimal nested route shell — icon back, optional service title, slide/fade enter and exit. */
@@ -39,6 +40,7 @@ export function NestedScreenShell({
   noPadding = false,
   showTopBar = true,
   topBarVariant,
+  trailing,
 }: NestedScreenShellProps) {
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
@@ -64,6 +66,7 @@ export function NestedScreenShell({
       activePath={activePath}
       showFooter={showFooter}
       noPadding
+      trailing={trailing}
       showTopBar={showTopBar}
       topBarVariant={topBarVariant}
       minimal

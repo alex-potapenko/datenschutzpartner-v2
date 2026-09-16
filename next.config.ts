@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/news',
-        destination: '/insights?tab=news',
+        destination: '/insights?tab=updates',
         permanent: true,
       },
       {
@@ -60,7 +60,13 @@ const nextConfig: NextConfig = {
       {
         source: '/insights',
         has: [{ type: 'query', key: 'tab', value: 'newsQuestions' }],
-        destination: '/insights?tab=news',
+        destination: '/insights?tab=updates',
+        permanent: true,
+      },
+      {
+        source: '/insights',
+        has: [{ type: 'query', key: 'tab', value: 'news' }],
+        destination: '/insights?tab=updates',
         permanent: true,
       },
       {

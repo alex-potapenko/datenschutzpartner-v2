@@ -712,7 +712,7 @@ export function EuRepCheckoutApp() {
     <Button
       variant="primary"
       size="lg"
-      className="font-display h-11 gap-2 rounded-full px-6 text-base sm:h-14 sm:px-8"
+      className="font-display h-11 w-full gap-2 rounded-full px-6 text-base sm:h-14 sm:px-8"
       onPress={() => {
         handlePay();
       }}
@@ -783,7 +783,6 @@ export function EuRepCheckoutApp() {
                   <p>{t('validationAlert.body')}</p>
                   <ul className="list-disc space-y-1 pl-5">
                     <li>{tQuestionnaire('fields.streetLine2')}</li>
-                    {!isAuthenticated ? <li>{tSummary('newsletter')}</li> : null}
                   </ul>
                 </div>
               </ModalBody>
@@ -897,13 +896,15 @@ export function EuRepCheckoutApp() {
 
   return (
     <ServiceCheckoutShell {...shellProps}>
-      {accentHeader}
-      <StepFrame contentOverflowVisible>
-        <ServiceCheckoutStepHeader title={t('title')} />
-        <ServiceCheckoutLayout aside={entitySection}>
-          {planCard(<div className="flex flex-col gap-5">{payButton}</div>)}
-        </ServiceCheckoutLayout>
-      </StepFrame>
+      <div className="flex min-h-0 flex-1 flex-col">
+        {accentHeader}
+        <StepFrame contentOverflowVisible>
+          <ServiceCheckoutStepHeader title={t('title')} />
+          <ServiceCheckoutLayout aside={entitySection}>
+            {planCard(<div className="flex flex-col gap-5">{payButton}</div>)}
+          </ServiceCheckoutLayout>
+        </StepFrame>
+      </div>
       {checkoutDialogs}
     </ServiceCheckoutShell>
   );

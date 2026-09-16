@@ -35,6 +35,7 @@ import {
 } from '../wizard-state';
 import { EuRepRepresentativeAddress } from '@/components/shared/EuRepRepresentativeAddress';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { displayCountryLabel, SWISS_COUNTRY_STORAGE } from '@/lib/swiss-country';
 import { cn, smoothScrollElementIntoView } from '@/lib/utils';
 
 interface EuRepStepProps {
@@ -180,7 +181,7 @@ function emptyPostal(
     postalLine2: initialEuRep?.postalLine2 ?? formData.streetLine2,
     postalCode: initialEuRep?.postalCode ?? formData.postalCode,
     city: initialEuRep?.city ?? formData.city,
-    country: initialEuRep?.country ?? 'Schweiz',
+    country: initialEuRep?.country ?? SWISS_COUNTRY_STORAGE,
   };
 }
 
@@ -232,8 +233,8 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
     initialEuRep?.thirdPartyRepPostalCode ?? ''
   );
   const [thirdPartyRepCity, setThirdPartyRepCity] = useState(initialEuRep?.thirdPartyRepCity ?? '');
-  const [thirdPartyRepCountry, setThirdPartyRepCountry] = useState(
-    initialEuRep?.thirdPartyRepCountry ?? ''
+  const [thirdPartyRepCountry] = useState(
+    initialEuRep?.thirdPartyRepCountry?.trim() || SWISS_COUNTRY_STORAGE
   );
   const [thirdPartyRepEmail, setThirdPartyRepEmail] = useState(
     initialEuRep?.thirdPartyRepEmail ?? ''
@@ -392,7 +393,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
       completed.thirdPartyRepStreet = thirdPartyRepStreet.trim();
       completed.thirdPartyRepPostalCode = thirdPartyRepPostalCode.trim();
       completed.thirdPartyRepCity = thirdPartyRepCity.trim();
-      completed.thirdPartyRepCountry = thirdPartyRepCountry.trim();
+      completed.thirdPartyRepCountry = SWISS_COUNTRY_STORAGE;
       completed.thirdPartyRepEmail = thirdPartyRepEmail.trim();
     }
 
@@ -405,7 +406,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
       completed.postalLine2 = postal.postalLine2?.trim() || undefined;
       completed.postalCode = postal.postalCode.trim();
       completed.city = postal.city.trim();
-      completed.country = postal.country.trim() || 'Schweiz';
+      completed.country = SWISS_COUNTRY_STORAGE;
       completed.declined = false;
     }
 
@@ -643,14 +644,10 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
                                     thirdPartyRepCity: undefined,
                                   }));
                                 }}
-                                country={thirdPartyRepCountry}
-                                onCountryChange={(value) => {
-                                  setThirdPartyRepCountry(value);
-                                  setErrors((current) => ({
-                                    ...current,
-                                    thirdPartyRepCountry: undefined,
-                                  }));
-                                }}
+                                countryDisplayLabel={displayCountryLabel(
+                                  thirdPartyRepCountry,
+                                  tCommon('countrySwitzerland')
+                                )}
                                 countryError={errors.thirdPartyRepCountry}
                                 showLine2={false}
                                 line1Error={errors.thirdPartyRepStreet}

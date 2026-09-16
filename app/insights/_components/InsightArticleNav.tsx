@@ -26,7 +26,7 @@ function NavCard({
 
   return (
     <Link
-      href={`/insights/${article.slug}`}
+      href={`/insights/${article.slug}?tab=${article.tab}`}
       aria-label={`${label}: ${article.title}`}
       className={[
         'group flex flex-col gap-2 p-4 transition-shadow hover:shadow-[var(--shadow-card)] sm:p-8',

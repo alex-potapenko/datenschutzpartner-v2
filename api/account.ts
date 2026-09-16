@@ -66,7 +66,7 @@ export const profileSchema = z.object({
   newsletterOptIn: z.boolean().optional(),
   /** Read-only — drives login and security UI. */
   role: accountRoleSchema,
-  /** Read-only — admins always sign in with 2FA in the prototype. */
+  /** Read-only — managed through the endpoints in api/two-factor.ts. */
   twoFactorEnabled: z.boolean().optional(),
 });
 export type Profile = z.infer<typeof profileSchema>;
@@ -138,34 +138,5 @@ export function useChangePassword() {
         method: 'PUT',
         body: JSON.stringify(input),
       }),
-  });
-}
-
-export function useEnableTwoFactor() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: { code: string }) =>
-      request<Profile>('/account/two-factor/enable', {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountKeys.profile });
-    },
-  });
-}
-
-export function useDisableTwoFactor() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () =>
-      request<Profile>('/account/two-factor/disable', {
-        method: 'POST',
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: accountKeys.profile });
-    },
   });
 }

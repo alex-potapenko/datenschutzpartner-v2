@@ -47,7 +47,11 @@ export function StepFrame({
         ref={bodyScrollRef}
         className={`flex h-full min-h-0 flex-1 flex-col overflow-y-auto ${centerContent ? 'justify-center' : ''}`}
       >
-        {contentOverflowVisible ? <div className="overflow-visible">{children}</div> : children}
+        {contentOverflowVisible ? (
+          <div className="flex min-h-full flex-1 flex-col overflow-visible">{children}</div>
+        ) : (
+          children
+        )}
       </div>
       {footer ? <div className="shrink-0">{footer}</div> : null}
     </div>

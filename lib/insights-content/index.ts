@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config';
-import { NEWS_ARTICLES_DE, NEWS_ARTICLES_EN } from './news';
+import { NEWSLETTER_ARTICLES_DE, NEWSLETTER_ARTICLES_EN } from './newsletter';
 import { PODCAST_ARTICLES_DE, PODCAST_ARTICLES_EN } from './podcasts';
+import { asUpdatesArticles } from './updates';
 import {
   INSIGHTS_PAGE_SIZE,
   INSIGHTS_TAB_IDS,
@@ -33,18 +34,26 @@ function normalizeArticle(raw: RawInsightArticle, tab: InsightsTab): InsightArti
   };
 }
 
-function normalizeContent(
-  content: Record<InsightsTab, RawInsightArticle[]>
-): Record<InsightsTab, InsightArticle[]> {
+function normalizeContent(content: {
+  updates: RawInsightArticle[];
+  podcasts: RawInsightArticle[];
+}): Record<InsightsTab, InsightArticle[]> {
   return {
-    news: content.news.map((article) => normalizeArticle(article, 'news')),
+    updates: content.updates.map((article) => normalizeArticle(article, 'updates')),
     podcasts: content.podcasts.map((article) => normalizeArticle(article, 'podcasts')),
+    newsletter: [],
   };
 }
 
 const contentByLocale = {
-  de: normalizeContent({ news: NEWS_ARTICLES_DE, podcasts: PODCAST_ARTICLES_DE }),
-  en: normalizeContent({ news: NEWS_ARTICLES_EN, podcasts: PODCAST_ARTICLES_EN }),
+  de: normalizeContent({
+    updates: asUpdatesArticles(NEWSLETTER_ARTICLES_DE, 'Aktuelles'),
+    podcasts: PODCAST_ARTICLES_DE,
+  }),
+  en: normalizeContent({
+    updates: asUpdatesArticles(NEWSLETTER_ARTICLES_EN, 'Updates'),
+    podcasts: PODCAST_ARTICLES_EN,
+  }),
 } as const;
 
 export function getInsightsContent(locale: Locale): Record<InsightsTab, InsightArticle[]> {
@@ -53,14 +62,37 @@ export function getInsightsContent(locale: Locale): Record<InsightsTab, InsightA
 
 export function getAllInsightArticles(locale: Locale): InsightArticle[] {
   const content = getInsightsContent(locale);
-  return [...content.news, ...content.podcasts];
+  return [...content.updates, ...content.podcasts];
 }
 
-export function getInsightArticleBySlug(locale: Locale, slug: string): InsightArticle | undefined {
-  return getAllInsightArticles(locale).find((article) => article.slug === slug);
+export function getInsightArticleBySlug(
+  locale: Locale,
+  slug: string,
+  preferredTab?: InsightsTab
+): InsightArticle | undefined {
+  const content = getInsightsContent(locale);
+
+  if (preferredTab) {
+    const fromPreferred = content[preferredTab].find((article) => article.slug === slug);
+    if (fromPreferred) {
+      return fromPreferred;
+    }
+  }
+
+  for (const tab of INSIGHTS_TAB_IDS) {
+    const article = content[tab].find((item) => item.slug === slug);
+    if (article) {
+      return article;
+    }
+  }
+
+  return undefined;
 }
 
 export function parseInsightsTab(value: string | null | undefined): InsightsTab | undefined {
+  if (value === 'news' || value === 'newsQuestions') {
+    return 'updates';
+  }
   if (value && INSIGHTS_TAB_IDS.includes(value as InsightsTab)) {
     return value as InsightsTab;
   }

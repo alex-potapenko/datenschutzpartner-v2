@@ -19,15 +19,64 @@ The mock you write **is** the API contract the backend team will implement.
 Contact form submissions use `api/contact-messages.ts` (`POST /api/contact-messages`) with a
 `subject` enum that routes inquiries to the right admin queue.
 
-Auth uses `api/auth.ts`: every account signs in with **email + password**
-(`POST /auth/login/identify` → `POST /auth/login`). Admins must also pass
-`twoFactorCode`. `GET /auth/session` returns `{ email, emailVerified, role? }`
+Auth uses `api/auth.ts`: `POST /auth/login/identify` returns `loginMethod`
+`password` or `magic_link`. **Members** continue with email + password
+(`POST /auth/login`); accounts with two-factor authentication also pass
+`twoFactorCode` or a `recoveryCode`. **Admins** have no password — identify
+issues a one-time link (`POST /auth/login/magic-link` with the token from the
+e-mail; prototype exposes `prototypeMagicLinkUrl` and `/login/verify?token=…`).
+Unknown e-mails still get `magic_link` on identify (no account enumeration).
+The Lucas seed account has `twoFactorSetupSuggested` — after sign-in (or after
+**Disable 2FA for Lucas** in debug info) the login screen shows an optional 2FA
+setup prompt (`suggestTwoFactorSetup` on login; dismiss via
+`POST /account/two-factor/dismiss-setup-suggestion`), then redirects to the
+account area.
+`GET /auth/session` returns `{ email, emailVerified, role? }`
 where `role` is `member` or `admin`. Registration:
 `POST /auth/register` then `POST /auth/verify-email` (double opt-in;
 prototype also returns `verificationUrl`). Verified sign-ups are added to the
 mock auth store with password `welcome`. Mock seed accounts:
 `lucas.baumgartner@gmail.com` (member, password `dspmp`) and
-`demo@datenschutzpartner.ch` (admin, password `demo`, 2FA code `123456`).
+`admin@datenschutzpartner.ch` (admin, **magic-link only**, no password).
+In the prototype, `/login` exposes **Show Debug Info** when MSW is on (before the
+e-mail step): seed credentials and **Disable 2FA for Lucas**
+(`POST /dev/disable-lucas-two-factor`). After an admin e-mail, a **Dev** chip offers
+**Email login link** (prototype magic link). `POST /dev/reseed-auth-mock` still
+exists for full mock reset.
+
+### Two-factor authentication (`api/two-factor.ts`)
+
+Real RFC 6238 TOTP — `lib/totp.ts` generates the Base32 secret and verifies codes
+with HMAC-SHA1 over Web Crypto, so any authenticator app (Google Authenticator,
+1Password, …) works against the mock. Parameters are fixed at SHA1 / 6 digits /
+30 seconds because authenticator apps ignore deviating values in the otpauth URI.
+Verification accepts ±1 period of clock drift.
+
+| Endpoint                                  | Purpose                                                                          |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `GET /account/two-factor`                 | `{ enabled, required, activatedAt, recoveryCodesRemaining, recoveryCodesTotal }` |
+| `POST /account/two-factor/setup`          | Issues a pending secret + `otpauthUri` for the QR code                           |
+| `POST /account/two-factor/activate`       | Verifies the first code, enables 2FA, returns 10 recovery codes                  |
+| `POST /account/two-factor/disable`        | Password-confirmed; clears the secret and all recovery codes                     |
+| `POST /account/two-factor/recovery-codes` | Code-confirmed regeneration; invalidates the previous set                        |
+| `POST /auth/invite/validate`              | Setup link → `{ email, needsPassword, twoFactorRequired, twoFactorEnabled }`     |
+| `POST /auth/invite/complete`              | Stores the password and exchanges the link for a session                         |
+
+The setup endpoints accept **either** a Bearer session (account settings) **or** a
+`setupToken` in the body (e-mail link), so `/set-password` and the account dialog
+share one contract. Recovery codes are single use; `POST /auth/login` accepts one
+in place of a TOTP code and burns it.
+
+Accounts flagged `twoFactorRequired` (admins) get no session from `POST /auth/login`
+until setup is done — the response carries `twoFactorSetupRequired` plus a
+`setupToken`, and the login page forwards to `/set-password?token=…`.
+`POST /auth/forgot-password` returns `prototypeSetupUrl` so the mailed link can be
+followed without an inbox; `POST /account/two-factor/setup` returns `prototypeCode`
+so the flow can be demoed without a phone. Both are prototype-only fields.
+
+**Handover note:** the mock keeps secrets in `localStorage`. A real backend stores
+them encrypted, hashes recovery codes, rate-limits activation and login, and
+requires recent authentication before `setup`.
 
 **Lucas seed (typical vs agency):** most policy subscriptions are **1 site = 1 abo**
 (wizard purchases). Separate single-site abos cover `sutter-web.ch`, `alpenblick-hotel.ch`,
@@ -209,7 +258,7 @@ inside this app; the POC stubs that redirect via `openPayrexxPortal()`.
 
 Subscriptions/orders are gated on the bearer token in `mocks/handlers.ts`:
 the member token (`lucas.baumgartner@gmail.com`) sees active policy and EU Rep
-subscriptions; the `demo@` token sees the empty states. The billing address is
+subscriptions; the `admin@` token sees the empty states. The billing address is
 shared across mock accounts (not gated). The shell renders client-side; `AccountApp`
 redirects unauthenticated visitors to `/login`, and the current password for the mock
 change-password endpoint is `dspmp`.

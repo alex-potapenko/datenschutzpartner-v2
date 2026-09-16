@@ -1,9 +1,14 @@
 type HeroGlowOrbsProps = {
   /** Default: orbs around a card. Below: orbs under an input field. */
   placement?: 'default' | 'below';
+  /**
+   * `viewport` — fixed orb sizes at breakpoints (hero, plan card).
+   * `container` — orbs scale with the nearest `@container` parent (podcast covers).
+   */
+  fit?: 'viewport' | 'container';
 };
 
-export function HeroGlowOrbs({ placement = 'default' }: HeroGlowOrbsProps) {
+export function HeroGlowOrbs({ placement = 'default', fit = 'viewport' }: HeroGlowOrbsProps) {
   const orbs =
     placement === 'below'
       ? [
@@ -19,12 +24,19 @@ export function HeroGlowOrbs({ placement = 'default' }: HeroGlowOrbsProps) {
           { bottom: '-8%', right: '-4%', background: '#16a34a' },
         ];
 
+  const orbClassName =
+    fit === 'container'
+      ? 'pointer-events-none absolute size-[52cqmin]'
+      : 'pointer-events-none absolute size-40 sm:size-56 lg:size-80';
+
+  const orbFilter = fit === 'container' ? 'blur(22cqmin)' : 'blur(96px)';
+
   return (
     <>
       {orbs.map((orb, index) => (
         <div
           key={index}
-          className="pointer-events-none absolute size-40 sm:size-56 lg:size-80"
+          className={orbClassName}
           style={{
             top: orb.top,
             right: 'right' in orb ? orb.right : undefined,
@@ -33,7 +45,7 @@ export function HeroGlowOrbs({ placement = 'default' }: HeroGlowOrbsProps) {
             borderRadius: '50%',
             background: orb.background,
             opacity: 0.16,
-            filter: 'blur(96px)',
+            filter: orbFilter,
           }}
           aria-hidden
         />

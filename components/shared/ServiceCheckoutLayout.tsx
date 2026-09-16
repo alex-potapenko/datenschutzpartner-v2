@@ -18,9 +18,16 @@ export function ServiceCheckoutLayout({
   /** Stretch plan column to match the form column height. */
   fillPlanColumn?: boolean;
 }) {
+  const stretchColumns = Boolean(aside && fillPlanColumn);
+
   const planColumnClassName = cn(
     'border-border relative min-h-0 min-w-0 overflow-visible lg:border-l',
-    aside && fillPlanColumn && 'self-stretch'
+    stretchColumns && 'flex h-full min-h-0 flex-col self-stretch'
+  );
+
+  const asideColumnClassName = cn(
+    'min-h-0 min-w-0 overflow-visible px-4 py-8 sm:px-8 sm:py-10 lg:py-12',
+    stretchColumns && 'flex h-full min-h-0 flex-col'
   );
 
   const layout = (
@@ -30,20 +37,21 @@ export function ServiceCheckoutLayout({
           ? 'grid h-full min-h-full grid-cols-1 items-stretch overflow-visible lg:grid-cols-2'
           : cn(
               'border-border grid grid-cols-1 items-stretch border-r border-l',
+              stretchColumns && 'h-full min-h-0 flex-1',
               aside ? 'lg:grid-cols-2' : centered ? 'justify-items-center' : 'lg:grid-cols-2'
             )
       )}
     >
-      {aside ? (
-        <div className="min-h-0 min-w-0 overflow-visible px-4 py-8 sm:px-8 sm:py-10 lg:py-12">
-          {aside}
-        </div>
-      ) : null}
+      {aside ? <div className={asideColumnClassName}>{aside}</div> : null}
       <div className={cn(planColumnClassName)}>{children}</div>
     </div>
   );
 
   if (embedded) return layout;
 
-  return <Container>{layout}</Container>;
+  return (
+    <Container className={stretchColumns ? 'flex min-h-0 flex-1 flex-col' : undefined}>
+      {layout}
+    </Container>
+  );
 }

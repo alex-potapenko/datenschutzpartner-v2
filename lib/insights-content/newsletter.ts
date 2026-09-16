@@ -5,10 +5,10 @@ function image(slug: string) {
   return insightCoverImage(slug);
 }
 
-export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
+export const NEWSLETTER_ARTICLES_EN: RawInsightArticle[] = [
   {
     slug: 'fdpic-warns-fraudulent-emails',
-    category: 'News',
+    category: 'Newsletter',
     date: 'June 1, 2026',
     author: 'Martin Steiger',
     title: 'FDPIC warns of fraudulent emails sent in its name',
@@ -19,7 +19,7 @@ export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
   },
   {
     slug: 'microsoft-drops-sms-two-factor-authentication',
-    category: 'News',
+    category: 'Newsletter',
     date: 'June 8, 2026',
     author: 'Martin Steiger',
     title: 'Microsoft drops SMS for two-factor authentication',
@@ -30,7 +30,7 @@ export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
   },
   {
     slug: 'zurich-idg-open-access-commentary',
-    category: 'News',
+    category: 'Newsletter',
     date: 'June 15, 2026',
     author: 'Martin Steiger',
     title: 'Open-access commentary announced for Zurich’s new IDG',
@@ -41,7 +41,7 @@ export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
   },
   {
     slug: 'fdpic-cookie-guidance',
-    category: 'News',
+    category: 'Newsletter',
     date: 'January 13, 2026',
     author: 'Martin Steiger',
     title: 'FDPIC publishes new guidance on cookies and similar technologies',
@@ -52,7 +52,7 @@ export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
   },
   {
     slug: 'ai-act-transparency-obligations',
-    category: 'News',
+    category: 'Newsletter',
     date: 'May 19, 2026',
     author: 'Martin Steiger',
     title: 'AI Act transparency obligations are approaching',
@@ -63,7 +63,7 @@ export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
   },
   {
     slug: 'private-video-surveillance-zurich',
-    category: 'News',
+    category: 'Newsletter',
     date: 'May 25, 2026',
     author: 'Martin Steiger',
     title: 'Zurich reaches compromise on private video surveillance',
@@ -74,10 +74,10 @@ export const NEWS_ARTICLES_EN: RawInsightArticle[] = [
   },
 ];
 
-export const NEWS_ARTICLES_DE: RawInsightArticle[] = [
+export const NEWSLETTER_ARTICLES_DE: RawInsightArticle[] = [
   {
     slug: 'fdpic-warns-fraudulent-emails',
-    category: 'News',
+    category: 'Newsletter',
     date: '1. Juni 2026',
     author: 'Martin Steiger',
     title: 'EDÖB warnt vor betrügerischen E-Mails in seinem Namen',
@@ -88,7 +88,7 @@ export const NEWS_ARTICLES_DE: RawInsightArticle[] = [
   },
   {
     slug: 'microsoft-drops-sms-two-factor-authentication',
-    category: 'News',
+    category: 'Newsletter',
     date: '8. Juni 2026',
     author: 'Martin Steiger',
     title: 'Microsoft verzichtet auf SMS für Zwei-Faktor-Authentifizierung',
@@ -99,7 +99,7 @@ export const NEWS_ARTICLES_DE: RawInsightArticle[] = [
   },
   {
     slug: 'zurich-idg-open-access-commentary',
-    category: 'News',
+    category: 'Newsletter',
     date: '15. Juni 2026',
     author: 'Martin Steiger',
     title: 'Open-Access-Praxiskommentar zum neuen Zürcher IDG angekündigt',
@@ -110,7 +110,7 @@ export const NEWS_ARTICLES_DE: RawInsightArticle[] = [
   },
   {
     slug: 'fdpic-cookie-guidance',
-    category: 'News',
+    category: 'Newsletter',
     date: '13. Januar 2026',
     author: 'Martin Steiger',
     title: 'EDÖB veröffentlicht neuen Leitfaden zu Cookies',
@@ -121,7 +121,7 @@ export const NEWS_ARTICLES_DE: RawInsightArticle[] = [
   },
   {
     slug: 'ai-act-transparency-obligations',
-    category: 'News',
+    category: 'Newsletter',
     date: '19. Mai 2026',
     author: 'Martin Steiger',
     title: 'Transparenzpflichten des AI Act rücken näher',
@@ -132,7 +132,7 @@ export const NEWS_ARTICLES_DE: RawInsightArticle[] = [
   },
   {
     slug: 'private-video-surveillance-zurich',
-    category: 'News',
+    category: 'Newsletter',
     date: '25. Mai 2026',
     author: 'Martin Steiger',
     title: 'Zürich findet Kompromiss bei privater Videoüberwachung',

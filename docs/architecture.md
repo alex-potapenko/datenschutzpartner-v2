@@ -22,7 +22,7 @@ Stack is fixed — see `AGENTS.md`.
 | `styles/tokens.css`     | Brand design tokens. Re-theme the whole app here.                                                                                                                        |
 | `content/legal/`        | Authoritative German legal copy (imprint, privacy, terms) rendered as static pages.                                                                                      |
 | `content/insights/`     | Optional markdown bodies for insight articles (`{slug}.{locale}.md`).                                                                                                    |
-| `lib/insights-content/` | Static public insight data (news and podcasts) with tab-aware prev/next helpers.                                                                                         |
+| `lib/insights-content/` | Static insight articles (updates, podcasts); the newsletter tab is subscription UI only. Tab-aware prev/next helpers.                                                    |
 | `lib/academy-content/`  | Landing constants, including the external Academy URL and feature keys.                                                                                                  |
 | `messages/`             | next-intl translations (de/en, default `de`).                                                                                                                            |
 | `docs/`                 | This documentation set.                                                                                                                                                  |

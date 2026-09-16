@@ -1,6 +1,10 @@
-export type InsightsTab = 'news' | 'podcasts';
+export type InsightsTab = 'updates' | 'podcasts' | 'newsletter';
 
-export const INSIGHTS_TAB_IDS = ['news', 'podcasts'] as const satisfies readonly InsightsTab[];
+export const INSIGHTS_TAB_IDS = [
+  'updates',
+  'podcasts',
+  'newsletter',
+] as const satisfies readonly InsightsTab[];
 
 export const HOMEPAGE_INSIGHTS_LIMIT = 3;
 export const INSIGHTS_PAGE_SIZE = 6;

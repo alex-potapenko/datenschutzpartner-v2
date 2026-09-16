@@ -9,6 +9,7 @@ export const RESERVED_HOSTED_POLICY_SLUGS = new Set([
   'insights',
   'login',
   'news',
+  'newsletter',
   'podcasts',
   'policies',
   'privacy',

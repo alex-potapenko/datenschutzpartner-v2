@@ -14,13 +14,17 @@ import {
   passwordChangeSchema,
   profileSchema,
   useChangePassword,
-  useDisableTwoFactor,
-  useEnableTwoFactor,
   useProfile,
   useUpdateProfile,
   type PasswordChange,
   type Profile,
 } from '@/api/account';
+import {
+  useDisableTwoFactor,
+  useRegenerateRecoveryCodes,
+  useStartTwoFactorSetup,
+  useTwoFactorStatus,
+} from '@/api/two-factor';
 import {
   Button,
   Chip,
@@ -37,6 +41,7 @@ import {
   useOverlayState,
 } from '@/components/ui';
 import { TotpInput } from '@/components/shared/TotpInput';
+import { EnableTwoFactorDialog, RecoveryCodesPanel } from '@/components/shared/two-factor';
 import { DataState, AccountSection } from '../account-ui';
 
 const profileFormSchema = profileSchema.omit({ role: true, twoFactorEnabled: true });
@@ -318,13 +323,15 @@ function LanguagePreference() {
   );
 }
 
-function EnableTwoFactorDialog({ state }: { state: OverlayState }) {
-  const t = useTranslations('account.accountDetails');
-  const enable = useEnableTwoFactor();
-  const [code, setCode] = useState('');
+function DisableTwoFactorDialog({ state }: { state: OverlayState }) {
+  const t = useTranslations('twoFactor');
+  const disable = useDisableTwoFactor();
+  const [password, setPassword] = useState('');
+  const [failed, setFailed] = useState(false);
 
   function close() {
-    setCode('');
+    setPassword('');
+    setFailed(false);
     state.close();
   }
 
@@ -340,45 +347,57 @@ function EnableTwoFactorDialog({ state }: { state: OverlayState }) {
       }}
     >
       <ModalBackdrop isDismissable>
-        <ModalContainer size="md">
+        <ModalContainer size="sm">
           <ModalDialog>
             <ModalHeader>
-              <ModalHeading>{t('twoFactorEnableTitle')}</ModalHeading>
+              <ModalHeading>{t('disableTitle')}</ModalHeading>
             </ModalHeader>
             <ModalBody>
               <div className="flex flex-col gap-4">
-                <p className="text-foreground text-sm leading-relaxed">{t('twoFactorSetupBody')}</p>
-                <TotpInput
-                  aria-label={t('twoFactorCodeLabel')}
-                  value={code}
-                  isDisabled={enable.isPending}
-                  onChange={setCode}
-                />
+                <p className="text-foreground text-sm leading-relaxed">{t('disableBody')}</p>
+                <Field
+                  id="disableTwoFactorPassword"
+                  label={t('passwordLabel')}
+                  error={failed ? t('passwordInvalid') : undefined}
+                >
+                  <Input
+                    id="disableTwoFactorPassword"
+                    type="password"
+                    autoComplete="current-password"
+                    variant="secondary"
+                    fullWidth
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      setFailed(false);
+                    }}
+                  />
+                </Field>
               </div>
             </ModalBody>
             <ModalFooter>
               <Button variant="outline" onPress={close}>
-                {t('dialogCancel')}
+                {t('cancel')}
               </Button>
               <Button
                 variant="primary"
-                isDisabled={code.length !== 6 || enable.isPending}
+                isDisabled={!password || disable.isPending}
                 onPress={() => {
-                  enable.mutate(
-                    { code },
+                  disable.mutate(
+                    { password },
                     {
                       onSuccess: () => {
-                        toast.success(t('twoFactorEnableSuccess'));
+                        toast.success(t('disableSuccess'));
                         close();
                       },
                       onError: () => {
-                        toast.error(t('twoFactorEnableError'));
+                        setFailed(true);
                       },
                     }
                   );
                 }}
               >
-                {t('twoFactorEnableCta')}
+                {t('disableCta')}
               </Button>
             </ModalFooter>
           </ModalDialog>
@@ -388,47 +407,188 @@ function EnableTwoFactorDialog({ state }: { state: OverlayState }) {
   );
 }
 
-function TwoFactorSectionActions({ profile }: { profile: Profile }) {
-  const t = useTranslations('account.accountDetails');
-  const enableDialog = useOverlayState();
-  const disable = useDisableTwoFactor();
+function RegenerateRecoveryCodesDialog({
+  state,
+  accountName,
+}: {
+  state: OverlayState;
+  accountName: string;
+}) {
+  const t = useTranslations('twoFactor');
+  const regenerate = useRegenerateRecoveryCodes();
+  const [code, setCode] = useState('');
+  const [codes, setCodes] = useState<string[]>([]);
+  const [codeInvalid, setCodeInvalid] = useState(false);
 
-  if (profile.twoFactorEnabled) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-fit"
-        isDisabled={disable.isPending}
-        onPress={() => {
-          disable.mutate(undefined, {
-            onSuccess: () => {
-              toast.success(t('twoFactorDisableSuccess'));
-            },
-            onError: () => {
-              toast.error(t('twoFactorDisableError'));
-            },
-          });
-        }}
-      >
-        {t('twoFactorDisableCta')}
-      </Button>
-    );
+  function close() {
+    setCode('');
+    setCodes([]);
+    setCodeInvalid(false);
+    state.close();
   }
 
   return (
+    <ModalRoot
+      state={{
+        ...state,
+        setOpen: (open: boolean) => {
+          if (!open) close();
+          state.setOpen(open);
+        },
+        close,
+      }}
+    >
+      <ModalBackdrop isDismissable={codes.length === 0}>
+        <ModalContainer size="md">
+          <ModalDialog>
+            <ModalHeader>
+              <ModalHeading>{t('regenerateTitle')}</ModalHeading>
+            </ModalHeader>
+            <ModalBody>
+              {codes.length > 0 ? (
+                <RecoveryCodesPanel
+                  codes={codes}
+                  accountName={accountName}
+                  confirmLabel={t('recoveryDone')}
+                  onConfirm={() => {
+                    close();
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <p className="text-foreground text-sm leading-relaxed">{t('regenerateBody')}</p>
+                  <TotpInput
+                    aria-label={t('codeLabel')}
+                    value={code}
+                    isInvalid={codeInvalid}
+                    isDisabled={regenerate.isPending}
+                    onChange={(value) => {
+                      setCode(value);
+                      setCodeInvalid(false);
+                    }}
+                  />
+                  {codeInvalid ? <p className="text-danger text-xs">{t('codeInvalid')}</p> : null}
+                </div>
+              )}
+            </ModalBody>
+            {codes.length === 0 ? (
+              <ModalFooter>
+                <Button variant="outline" onPress={close}>
+                  {t('cancel')}
+                </Button>
+                <Button
+                  variant="primary"
+                  isDisabled={code.length !== 6 || regenerate.isPending}
+                  onPress={() => {
+                    regenerate.mutate(
+                      { code },
+                      {
+                        onSuccess: (result) => {
+                          setCodes(result.recoveryCodes);
+                          toast.success(t('regenerateSuccess'));
+                        },
+                        onError: () => {
+                          setCodeInvalid(true);
+                        },
+                      }
+                    );
+                  }}
+                >
+                  {t('regenerateCta')}
+                </Button>
+              </ModalFooter>
+            ) : null}
+          </ModalDialog>
+        </ModalContainer>
+      </ModalBackdrop>
+    </ModalRoot>
+  );
+}
+
+function TwoFactorSectionActions({ profile }: { profile: Profile }) {
+  const t = useTranslations('twoFactor');
+  const status = useTwoFactorStatus();
+  const startSetup = useStartTwoFactorSetup();
+  const enableDialog = useOverlayState();
+  const disableDialog = useOverlayState();
+  const regenerateDialog = useOverlayState();
+
+  // Rendering the enable button before the status arrives would flash the
+  // wrong state for accounts that already have 2FA.
+  if (!status.data) {
+    return null;
+  }
+
+  const isEnabled = status.data.enabled;
+
+  return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-fit"
-        onPress={() => {
-          enableDialog.open();
+      {isEnabled ? (
+        <>
+          <p className="text-foreground text-sm leading-relaxed">
+            {t('recoveryAvailableLabel')} {status.data.recoveryCodesRemaining}/
+            {status.data.recoveryCodesTotal}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onPress={() => {
+                regenerateDialog.open();
+              }}
+            >
+              {t('regenerateCta')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onPress={() => {
+                disableDialog.open();
+              }}
+            >
+              {t('disableCta')}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-fit"
+          isDisabled={startSetup.isPending}
+          onPress={() => {
+            // Request the secret up front so the dialog opens with a QR code.
+            startSetup.mutate(
+              {},
+              {
+                onSuccess: () => {
+                  enableDialog.open();
+                },
+                onError: () => {
+                  toast.error(t('setupFailed'));
+                },
+              }
+            );
+          }}
+        >
+          {t('enableCta')}
+        </Button>
+      )}
+
+      {/* Mounted regardless of the status: activation flips `enabled` while the
+          dialog still has to show the recovery codes. */}
+      <EnableTwoFactorDialog
+        state={enableDialog}
+        accountName={profile.email}
+        setup={startSetup.data}
+        onClosed={() => {
+          startSetup.reset();
         }}
-      >
-        {t('twoFactorEnableCta')}
-      </Button>
-      <EnableTwoFactorDialog state={enableDialog} />
+      />
+      <DisableTwoFactorDialog state={disableDialog} />
+      <RegenerateRecoveryCodesDialog state={regenerateDialog} accountName={profile.email} />
     </>
   );
 }
@@ -478,6 +638,8 @@ export function ProfileSection() {
 export function SettingsSection() {
   const t = useTranslations('account.accountDetails');
   const profile = useProfile();
+  // Single source of truth for the badge, the copy and the actions below.
+  const twoFactor = useTwoFactorStatus();
 
   return (
     <div className="divide-border flex min-h-0 flex-1 flex-col divide-y">
@@ -494,18 +656,13 @@ export function SettingsSection() {
                   <h3 className="font-display text-muted text-xs font-semibold tracking-wide uppercase">
                     {t('twoFactorTitle')}
                   </h3>
-                  {profile.data.twoFactorEnabled ? (
+                  {twoFactor.data?.enabled ? (
                     <Chip variant="secondary" size="sm" color="success" className="w-fit">
                       {t('twoFactorEnabled')}
                     </Chip>
                   ) : null}
                 </div>
                 <div className="flex flex-col gap-4">
-                  {!profile.data.twoFactorEnabled ? (
-                    <p className="text-muted text-sm leading-relaxed">
-                      {t('twoFactorDescription')}
-                    </p>
-                  ) : null}
                   <TwoFactorSectionActions profile={profile.data} />
                 </div>
               </div>

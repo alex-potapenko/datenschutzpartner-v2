@@ -9,9 +9,18 @@ import { Button, EnvelopeSimple, Input } from '@/components/ui';
 import { Field } from '@/app/result/ui/FormSection';
 import { NavigationLink } from './NavigationLink';
 import { COMPANY_NAME_PATTERN, PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
+import { newsletterMembershipInputClassName } from '@/components/shared/newsletter-membership-input';
 
 const newsletterPanelClassName =
   'w-full rounded-2xl bg-white p-4 [box-shadow:var(--shadow-soft-panel)] sm:p-8';
+
+const SUCCESS_ICON_SURFACE = 'color-mix(in srgb, var(--accent) 8%, transparent)';
+
+type NewsletterSubscribeCardProps = {
+  /** Renders inside the EU Rep–style membership card (no outer shell). */
+  variant?: 'standalone' | 'embedded';
+  onSubmittedChange?: (submitted: boolean) => void;
+};
 
 type NewsletterFormValues = {
   firstName: string;
@@ -20,9 +29,27 @@ type NewsletterFormValues = {
   email: string;
 };
 
-export function NewsletterSubscribeCard() {
+function NewsletterSuccessContent({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 text-center">
+      <div
+        className="squircle flex size-12 shrink-0 items-center justify-center"
+        style={{ background: SUCCESS_ICON_SURFACE }}
+      >
+        <EnvelopeSimple size={24} weight="fill" style={{ color: 'var(--accent)' }} aria-hidden />
+      </div>
+      <p className="text-foreground text-base font-semibold">{message}</p>
+    </div>
+  );
+}
+
+export function NewsletterSubscribeCard({
+  variant = 'standalone',
+  onSubmittedChange,
+}: NewsletterSubscribeCardProps) {
   const t = useTranslations('newsletter');
   const tv = useTranslations('validation');
+  const optionalPlaceholder = t('optionalPlaceholder');
   const [submitted, setSubmitted] = useState(false);
 
   const schema = useMemo(
@@ -31,18 +58,15 @@ export function NewsletterSubscribeCard() {
         firstName: z
           .string()
           .trim()
-          .min(1, tv('required'))
-          .regex(PERSON_NAME_PATTERN, tv('personName')),
+          .refine((value) => value === '' || PERSON_NAME_PATTERN.test(value), tv('personName')),
         lastName: z
           .string()
           .trim()
-          .min(1, tv('required'))
-          .regex(PERSON_NAME_PATTERN, tv('personName')),
+          .refine((value) => value === '' || PERSON_NAME_PATTERN.test(value), tv('personName')),
         company: z
           .string()
           .trim()
-          .min(1, tv('required'))
-          .regex(COMPANY_NAME_PATTERN, tv('companyName')),
+          .refine((value) => value === '' || COMPANY_NAME_PATTERN.test(value), tv('companyName')),
         email: z.email(tv('email')),
       }),
     [tv]
@@ -64,110 +88,140 @@ export function NewsletterSubscribeCard() {
 
   function onSubmit() {
     setSubmitted(true);
+    onSubmittedChange?.(true);
   }
 
-  if (submitted) {
+  const outerWrapperClassName =
+    variant === 'embedded'
+      ? 'flex w-full flex-col'
+      : 'flex w-full max-w-[440px] flex-col items-center';
+
+  const formClassName = [
+    'membership-soft-panel flex w-full flex-col gap-6',
+    variant === 'embedded' ? 'relative' : newsletterPanelClassName,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  if (submitted && variant === 'standalone') {
     return (
-      <div className="flex w-full max-w-[440px] flex-col items-center">
+      <div className={outerWrapperClassName}>
         <div
-          className={`${newsletterPanelClassName} flex flex-col items-center gap-3 py-6 text-center sm:py-8`}
+          className={`${newsletterPanelClassName} flex flex-col items-center justify-center gap-4 py-6 text-center sm:py-8`}
         >
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-full"
-            style={{ background: 'rgba(47,84,134,0.08)' }}
-          >
-            <EnvelopeSimple size={24} weight="fill" style={{ color: 'var(--accent)' }} />
-          </div>
-          <p className="text-foreground text-base font-semibold">{t('successTitle')}</p>
-          <p className="text-muted text-sm">{t('successBody')}</p>
+          <NewsletterSuccessContent message={t('successMessage')} />
         </div>
+        <p className="text-muted text-center text-xs leading-relaxed">{t('legalDataUse')}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex w-full max-w-[440px] flex-col items-center">
-      <form
-        className={`${newsletterPanelClassName} flex flex-col gap-6`}
-        noValidate
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field label={t('firstNameLabel')}>
+    <div className={outerWrapperClassName}>
+      <form className={formClassName} noValidate onSubmit={handleSubmit(onSubmit)}>
+        <div
+          className={['flex flex-col gap-6', submitted ? 'invisible' : '']
+            .filter(Boolean)
+            .join(' ')}
+          aria-hidden={submitted || undefined}
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Field label={t('firstNameLabel')}>
+              <Input
+                variant="secondary"
+                fullWidth
+                className={newsletterMembershipInputClassName}
+                autoComplete="given-name"
+                placeholder={optionalPlaceholder}
+                aria-invalid={Boolean(errors.firstName)}
+                {...register('firstName')}
+              />
+              {errors.firstName ? (
+                <p className="text-danger text-xs">{errors.firstName.message}</p>
+              ) : null}
+            </Field>
+
+            <Field label={t('lastNameLabel')}>
+              <Input
+                variant="secondary"
+                fullWidth
+                className={newsletterMembershipInputClassName}
+                autoComplete="family-name"
+                placeholder={optionalPlaceholder}
+                aria-invalid={Boolean(errors.lastName)}
+                {...register('lastName')}
+              />
+              {errors.lastName ? (
+                <p className="text-danger text-xs">{errors.lastName.message}</p>
+              ) : null}
+            </Field>
+          </div>
+
+          <Field label={t('companyLabel')}>
             <Input
               variant="secondary"
               fullWidth
-              autoComplete="given-name"
-              aria-invalid={Boolean(errors.firstName)}
-              {...register('firstName')}
+              className={newsletterMembershipInputClassName}
+              autoComplete="organization"
+              placeholder={optionalPlaceholder}
+              aria-invalid={Boolean(errors.company)}
+              {...register('company')}
             />
-            {errors.firstName ? (
-              <p className="text-danger text-xs">{errors.firstName.message}</p>
+            {errors.company ? (
+              <p className="text-danger text-xs">{errors.company.message}</p>
             ) : null}
           </Field>
 
-          <Field label={t('lastNameLabel')}>
+          <Field label={t('emailLabel')}>
             <Input
               variant="secondary"
+              type="email"
               fullWidth
-              autoComplete="family-name"
-              aria-invalid={Boolean(errors.lastName)}
-              {...register('lastName')}
+              className={newsletterMembershipInputClassName}
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
+              {...register('email')}
             />
-            {errors.lastName ? (
-              <p className="text-danger text-xs">{errors.lastName.message}</p>
-            ) : null}
+            {errors.email ? <p className="text-danger text-xs">{errors.email.message}</p> : null}
           </Field>
+
+          <p className="text-foreground text-sm leading-relaxed">
+            {t.rich('legalSubscribeConsent', {
+              privacy: (chunks) => (
+                <NavigationLink href="/privacy" target="_blank" chevron="none" size="sm">
+                  {chunks}
+                </NavigationLink>
+              ),
+              contact: (chunks) => (
+                <NavigationLink href="/contact" chevron="none" size="sm">
+                  {chunks}
+                </NavigationLink>
+              ),
+            })}
+          </p>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="font-display h-14 w-full gap-2 rounded-full text-base"
+          >
+            {t('subscribe')}
+          </Button>
         </div>
 
-        <Field label={t('companyLabel')}>
-          <Input
-            variant="secondary"
-            fullWidth
-            autoComplete="organization"
-            aria-invalid={Boolean(errors.company)}
-            {...register('company')}
-          />
-          {errors.company ? <p className="text-danger text-xs">{errors.company.message}</p> : null}
-        </Field>
-
-        <Field label={t('emailLabel')}>
-          <Input
-            variant="secondary"
-            type="email"
-            fullWidth
-            autoComplete="email"
-            aria-invalid={Boolean(errors.email)}
-            {...register('email')}
-          />
-          {errors.email ? <p className="text-danger text-xs">{errors.email.message}</p> : null}
-        </Field>
-
-        <p className="text-foreground text-sm leading-relaxed">
-          {t.rich('legalText', {
-            br: () => <br />,
-            privacy: (chunks) => (
-              <NavigationLink href="/privacy" target="_blank" chevron="none" size="sm">
-                {chunks}
-              </NavigationLink>
-            ),
-            contact: (chunks) => (
-              <NavigationLink href="/contact" chevron="none" size="sm">
-                {chunks}
-              </NavigationLink>
-            ),
-          })}
-        </p>
-
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          className="font-display h-14 w-full gap-2 rounded-full text-base"
-        >
-          {t('subscribe')}
-        </Button>
+        {submitted ? (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8"
+            role="status"
+          >
+            <NewsletterSuccessContent message={t('successMessage')} />
+          </div>
+        ) : null}
       </form>
+      {variant === 'standalone' && !submitted ? (
+        <p className="text-muted text-center text-xs leading-relaxed">{t('legalDataUse')}</p>
+      ) : null}
     </div>
   );
 }

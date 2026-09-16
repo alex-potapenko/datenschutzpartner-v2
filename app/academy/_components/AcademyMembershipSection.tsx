@@ -22,7 +22,7 @@ export async function AcademyMembershipCard() {
             boxShadow: '0 12px 64px rgba(0,0,0,0.08)',
           }}
         >
-          <div className="flex flex-col gap-6 p-4 sm:p-8">
+          <div className="membership-soft-panel flex flex-col gap-6 p-4 sm:p-8">
             <h2 className="text-foreground text-center text-xl font-semibold">
               {t('membershipTitle')}
             </h2>

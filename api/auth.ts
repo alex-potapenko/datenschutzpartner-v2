@@ -18,6 +18,8 @@ export const loginSchema = z.object({
   email: z.email('validation.email'),
   password: z.string().min(1, 'validation.required'),
   twoFactorCode: z.string().optional(),
+  /** One-time code used when the authenticator app is unavailable. */
+  recoveryCode: z.string().optional(),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -28,6 +30,7 @@ export const sessionSchema = z.object({
   email: z.email().nullable(),
   emailVerified: z.boolean(),
   role: accountRoleSchema.optional(),
+  suggestTwoFactorSetup: z.boolean().optional(),
 });
 
 export const registerSchema = z
@@ -56,6 +59,17 @@ export const verifyEmailSchema = z.object({
   token: z.string().min(1, 'validation.required'),
 });
 
+export const setPasswordSchema = z
+  .object({
+    password: z.string().min(8, 'validation.passwordMin'),
+    confirmPassword: z.string().min(1, 'validation.required'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'validation.passwordMatch',
+    path: ['confirmPassword'],
+  });
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
+
 export type LoginIdentifyInput = z.infer<typeof loginIdentifySchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
@@ -63,15 +77,44 @@ export type Session = z.infer<typeof sessionSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 
+export const magicLinkLoginSchema = z.object({
+  token: z.string().min(1, 'validation.required'),
+});
+
+export type MagicLinkLoginInput = z.infer<typeof magicLinkLoginSchema>;
+
 export type LoginIdentifyResponse = {
-  role: AccountRole;
-  requiresTwoFactor: boolean;
-  twoFactorSetupRequired: boolean;
+  loginMethod: 'password' | 'magic_link';
+  role?: AccountRole;
+  requiresTwoFactor?: boolean;
+  twoFactorSetupRequired?: boolean;
+  /** Prototype helper — production sends the link by e-mail only. */
+  prototypeMagicLinkUrl?: string;
 };
 
 export type LoginResponse = {
-  token: string;
   email: string;
+  /** Absent while two-factor setup is still outstanding. */
+  token?: string;
+  /** The account must configure an authenticator before it gets a session. */
+  twoFactorSetupRequired?: boolean;
+  /** Short-lived token that authorises the setup flow without a session. */
+  setupToken?: string;
+  /** Member may configure 2FA voluntarily (e.g. first sign-in). */
+  suggestTwoFactorSetup?: boolean;
+};
+
+export type ForgotPasswordResponse = {
+  sent: true;
+  /** Prototype helper — production delivers this link by e-mail only. */
+  prototypeSetupUrl?: string;
+};
+
+export type InviteValidation = {
+  email: string;
+  needsPassword: boolean;
+  twoFactorRequired: boolean;
+  twoFactorEnabled: boolean;
 };
 
 export type RegisterResponse = {
@@ -82,6 +125,8 @@ export type RegisterResponse = {
 };
 
 export type VerifyEmailResponse = LoginResponse & {
+  /** Verification always yields a session — 2FA is configured later. */
+  token: string;
   documentId?: string;
   domain?: string;
   redirectTo?: string;
@@ -91,6 +136,7 @@ export type VerifyEmailResponse = LoginResponse & {
 
 export const authKeys = {
   session: ['auth', 'session'] as const,
+  invite: ['auth', 'invite'] as const,
 };
 
 export function useSession() {
@@ -98,6 +144,40 @@ export function useSession() {
     queryKey: authKeys.session,
     queryFn: () => request<Session>('/auth/session'),
     staleTime: 60_000,
+  });
+}
+
+/** Prototype only — restores MSW auth accounts to seed data. */
+export function useReseedAuthMock() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      request<{ ok: true }>('/dev/reseed-auth-mock', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+      void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+    },
+  });
+}
+
+/** Prototype only — clears two-factor on the Lucas member seed account. */
+export function useDisableLucasTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      request<{ ok: true }>('/dev/disable-lucas-two-factor', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+      void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+    },
   });
 }
 
@@ -118,6 +198,24 @@ export function useLogin() {
     mutationFn: (input: LoginInput) =>
       request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: (data) => {
+      if (!data.token) return;
+      setAuthToken(data.token);
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+    },
+  });
+}
+
+export function useMagicLinkLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: MagicLinkLoginInput) =>
+      request<LoginResponse>('/auth/login/magic-link', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      if (!data.token) return;
       setAuthToken(data.token);
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
     },
@@ -153,10 +251,41 @@ export function useRequireSession(returnTo?: string) {
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (input: ForgotPasswordInput) =>
-      request<{ sent: true }>('/auth/forgot-password', {
+      request<ForgotPasswordResponse>('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
+  });
+}
+
+export function useInviteValidation(token: string) {
+  return useQuery({
+    queryKey: [...authKeys.invite, token],
+    queryFn: () =>
+      request<InviteValidation>('/auth/invite/validate', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      }),
+    enabled: token.length > 0,
+    retry: false,
+  });
+}
+
+/** Stores the password (when one is needed) and exchanges the invite for a session. */
+export function useCompleteInvite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { token: string; password?: string }) =>
+      request<LoginResponse>('/auth/invite/complete', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      if (!data.token) return;
+      setAuthToken(data.token);
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+    },
   });
 }
 

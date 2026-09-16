@@ -4,12 +4,17 @@ import type { ContactMessage, ContactMessageCreate } from '@/api/contact-message
 import type {
   AccountRole,
   ForgotPasswordInput,
+  InviteValidation,
   LoginIdentifyInput,
   LoginInput,
+  LoginResponse,
   RegisterInput,
   Session,
   VerifyEmailInput,
 } from '@/api/auth';
+import type { TwoFactorActivation, TwoFactorSetup, TwoFactorStatus } from '@/api/two-factor';
+import { buildOtpauthUri, generateTotpCode, generateTotpSecret, verifyTotpCode } from '@/lib/totp';
+import { generateRecoveryCodes, recoveryCodesMatch } from '@/lib/recovery-codes';
 import type { BillingAddress, AccountSnapshot, PasswordChange, Profile } from '@/api/account';
 import type {
   Order,
@@ -94,46 +99,188 @@ function addDays(isoDate: string, days: number): string {
 
 const MOCK_MEMBER_EMAIL = 'lucas.baumgartner@gmail.com';
 const MOCK_MEMBER_PASSWORD = 'dspmp';
-const MOCK_DEMO_EMAIL = 'demo@datenschutzpartner.ch';
-const MOCK_DEMO_PASSWORD = 'demo';
-const MOCK_TWO_FACTOR_CODE = '123456';
+const MOCK_ADMIN_EMAIL = 'admin@datenschutzpartner.ch';
+const TWO_FACTOR_ISSUER = 'Datenschutzpartner';
 /** Default password for accounts created after email verification in the prototype. */
 const PROTOTYPE_REGISTERED_PASSWORD = 'welcome';
+
+type RecoveryCodeRecord = {
+  code: string;
+  usedAt: string | null;
+};
 
 type AuthAccountRecord = {
   id: string;
   email: string;
   password: string;
   role: AccountRole;
-  twoFactorEnabled: boolean;
+  /** Set once setup is confirmed — its presence is what enables 2FA. */
+  totpSecret: string | null;
+  /** Issued by /setup, promoted to totpSecret by /activate. */
+  pendingTotpSecret: string | null;
+  twoFactorActivatedAt: string | null;
+  recoveryCodes: RecoveryCodeRecord[];
+  /** Policy flag: these accounts cannot sign in before 2FA is configured. */
+  twoFactorRequired: boolean;
+  /** Optional nudge to configure 2FA after sign-in (member accounts). */
+  twoFactorSetupSuggested: boolean;
 };
 
-const authAccounts = createCollection<AuthAccountRecord>(
-  'auth-accounts',
-  [
+function createAuthAccountsSeed(): AuthAccountRecord[] {
+  return [
     {
       id: '1',
       email: MOCK_MEMBER_EMAIL,
       password: MOCK_MEMBER_PASSWORD,
       role: 'member',
-      twoFactorEnabled: false,
+      totpSecret: null,
+      pendingTotpSecret: null,
+      twoFactorActivatedAt: null,
+      recoveryCodes: [],
+      twoFactorRequired: false,
+      twoFactorSetupSuggested: true,
     },
     {
       id: '2',
-      email: MOCK_DEMO_EMAIL,
-      password: MOCK_DEMO_PASSWORD,
+      email: MOCK_ADMIN_EMAIL,
+      password: '',
       role: 'admin',
-      twoFactorEnabled: true,
+      totpSecret: null,
+      pendingTotpSecret: null,
+      twoFactorActivatedAt: null,
+      recoveryCodes: [],
+      twoFactorRequired: false,
+      twoFactorSetupSuggested: false,
     },
-  ],
-  1
+  ];
+}
+
+const authAccounts = createCollection<AuthAccountRecord>(
+  'auth-accounts',
+  createAuthAccountsSeed(),
+  5
 );
+
+function shouldSuggestTwoFactorSetup(account: AuthAccountRecord | undefined): boolean {
+  if (!account || account.role !== 'member') return false;
+  if (isTwoFactorEnabled(account)) return false;
+  return account.twoFactorSetupSuggested;
+}
+
+type MagicLoginTokenRecord = {
+  id: string;
+  token: string;
+  email: string;
+  createdAt: string;
+  consumedAt: string | null;
+};
+
+const magicLoginTokens = createCollection<MagicLoginTokenRecord>('auth-magic-login-tokens', []);
+
+function issueMagicLoginToken(email: string): MagicLoginTokenRecord {
+  const normalized = email.trim().toLowerCase();
+  return magicLoginTokens.create({
+    token: `magic-${normalized.replace(/[^a-z0-9]/gi, '-')}-${String(Date.now())}`,
+    email: normalized,
+    createdAt: new Date().toISOString(),
+    consumedAt: null,
+  });
+}
+
+function findMagicLoginToken(token: string | undefined): MagicLoginTokenRecord | undefined {
+  if (!token) return undefined;
+  return magicLoginTokens.all().find((row) => row.token === token && !row.consumedAt);
+}
+
+function isTwoFactorEnabled(account: AuthAccountRecord): boolean {
+  return Boolean(account.totpSecret);
+}
 
 function twoFactorFlags(account: AuthAccountRecord) {
   return {
-    requiresTwoFactor: account.twoFactorEnabled,
-    twoFactorSetupRequired: !account.twoFactorEnabled,
+    requiresTwoFactor: isTwoFactorEnabled(account),
+    twoFactorSetupRequired: account.twoFactorRequired && !isTwoFactorEnabled(account),
   };
+}
+
+function twoFactorStatus(account: AuthAccountRecord): TwoFactorStatus {
+  return {
+    enabled: isTwoFactorEnabled(account),
+    required: account.twoFactorRequired,
+    activatedAt: account.twoFactorActivatedAt,
+    recoveryCodesRemaining: account.recoveryCodes.filter((entry) => !entry.usedAt).length,
+    recoveryCodesTotal: account.recoveryCodes.length,
+  };
+}
+
+/** Recovery codes are single use — matching one also burns it. */
+function consumeRecoveryCode(account: AuthAccountRecord, candidate: string): boolean {
+  const match = account.recoveryCodes.find(
+    (entry) => !entry.usedAt && recoveryCodesMatch(entry.code, candidate)
+  );
+  if (!match) return false;
+
+  authAccounts.update(account.id, {
+    recoveryCodes: account.recoveryCodes.map((entry) =>
+      entry.code === match.code ? { ...entry, usedAt: new Date().toISOString() } : entry
+    ),
+  });
+  return true;
+}
+
+/**
+ * Setup tokens authorise the two-factor endpoints for users who have no
+ * session yet: invited accounts and admins forced into setup at login.
+ */
+type SetupTokenRecord = {
+  id: string;
+  token: string;
+  email: string;
+  needsPassword: boolean;
+  createdAt: string;
+  consumedAt: string | null;
+};
+
+const setupTokens = createCollection<SetupTokenRecord>('auth-setup-tokens', []);
+
+function issueSetupToken(email: string, needsPassword: boolean): SetupTokenRecord {
+  const normalized = email.trim().toLowerCase();
+  const existing = setupTokens
+    .all()
+    .find(
+      (row) => row.email === normalized && !row.consumedAt && row.needsPassword === needsPassword
+    );
+  if (existing) return existing;
+
+  return setupTokens.create({
+    token: `setup-${normalized.replace(/[^a-z0-9]/gi, '-')}-${String(Date.now())}`,
+    email: normalized,
+    needsPassword,
+    createdAt: new Date().toISOString(),
+    consumedAt: null,
+  });
+}
+
+function findSetupToken(token: string | undefined): SetupTokenRecord | undefined {
+  if (!token) return undefined;
+  return setupTokens.all().find((row) => row.token === token && !row.consumedAt);
+}
+
+/**
+ * Two-factor endpoints accept either a session (account settings) or a setup
+ * token (e-mail link). Anything else is unauthorised.
+ */
+function resolveTwoFactorAccount(
+  request: Request,
+  setupToken?: string
+): AuthAccountRecord | undefined {
+  const fromToken = findSetupToken(setupToken);
+  if (fromToken) {
+    return findAuthAccountByEmail(fromToken.email);
+  }
+
+  const email = emailFromLoginToken(tokenFromRequest(request));
+  return email ? findAuthAccountByEmail(email) : undefined;
 }
 
 function findAuthAccountByEmail(email: string): AuthAccountRecord | undefined {
@@ -158,21 +305,26 @@ function ensureAuthAccount(
     email: normalized,
     password,
     role,
-    twoFactorEnabled: false,
+    totpSecret: null,
+    pendingTotpSecret: null,
+    twoFactorActivatedAt: null,
+    recoveryCodes: [],
+    twoFactorRequired: role === 'admin',
+    twoFactorSetupSuggested: false,
   });
 }
 
 function loginTokenForEmail(email: string): string {
   const normalized = email.trim().toLowerCase();
   if (normalized === MOCK_MEMBER_EMAIL) return 'mock-member-token';
-  if (normalized === MOCK_DEMO_EMAIL) return 'mock-token';
+  if (normalized === MOCK_ADMIN_EMAIL) return 'mock-token';
   return `mock-email-${encodeURIComponent(normalized)}`;
 }
 
 function emailFromLoginToken(token: string | null): string | null {
   if (!token) return null;
   if (token === 'mock-member-token') return MOCK_MEMBER_EMAIL;
-  if (token === 'mock-token') return MOCK_DEMO_EMAIL;
+  if (token === 'mock-token') return MOCK_ADMIN_EMAIL;
   if (token.startsWith('mock-email-')) {
     return decodeURIComponent(token.slice('mock-email-'.length));
   }
@@ -1705,19 +1857,69 @@ export const handlers = [
     );
   }),
 
+  http.post('/api/dev/reseed-auth-mock', () => {
+    authAccounts.reseed(createAuthAccountsSeed());
+    setupTokens.reseed([]);
+    magicLoginTokens.reseed([]);
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.post('/api/dev/disable-lucas-two-factor', () => {
+    const account = findAuthAccountByEmail(MOCK_MEMBER_EMAIL);
+    if (account) {
+      authAccounts.update(account.id, {
+        totpSecret: null,
+        pendingTotpSecret: null,
+        twoFactorActivatedAt: null,
+        recoveryCodes: [],
+        twoFactorSetupSuggested: true,
+      });
+    }
+    return HttpResponse.json({ ok: true as const });
+  }),
+
   http.post('/api/auth/login/identify', async ({ request }) => {
     const input = (await request.json()) as LoginIdentifyInput;
     const email = input.email.trim().toLowerCase();
     const account = findAuthAccountByEmail(email);
 
     if (!account) {
-      return HttpResponse.json({ message: 'unknown_email' }, { status: 404 });
+      return HttpResponse.json({
+        loginMethod: 'magic_link',
+      });
+    }
+
+    if (account.role === 'admin') {
+      const magic = issueMagicLoginToken(email);
+      return HttpResponse.json({
+        loginMethod: 'magic_link',
+        role: account.role,
+        prototypeMagicLinkUrl: `/login/verify?token=${encodeURIComponent(magic.token)}`,
+      });
     }
 
     return HttpResponse.json({
+      loginMethod: 'password',
       role: account.role,
       ...twoFactorFlags(account),
     });
+  }),
+
+  http.post('/api/auth/login/magic-link', async ({ request }) => {
+    const body = (await request.json()) as { token?: string };
+    const row = findMagicLoginToken(body.token);
+    const account = row ? findAuthAccountByEmail(row.email) : undefined;
+
+    if (!row || !account || account.role !== 'admin') {
+      return HttpResponse.json({ message: 'invalid_token' }, { status: 400 });
+    }
+
+    magicLoginTokens.update(row.id, { consumedAt: new Date().toISOString() });
+
+    return HttpResponse.json({
+      token: loginTokenForEmail(account.email),
+      email: account.email,
+    } satisfies LoginResponse);
   }),
 
   http.post('/api/auth/login', async ({ request }) => {
@@ -1725,21 +1927,34 @@ export const handlers = [
     const email = input.email.trim().toLowerCase();
     const account = findAuthAccountByEmail(email);
 
-    if (!account || input.password !== account.password) {
+    if (!account || account.role === 'admin' || input.password !== account.password) {
       return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
     }
 
-    if (account.twoFactorEnabled) {
-      if (!input.twoFactorCode || input.twoFactorCode !== MOCK_TWO_FACTOR_CODE) {
+    if (account.totpSecret) {
+      const accepted = input.recoveryCode
+        ? consumeRecoveryCode(account, input.recoveryCode)
+        : await verifyTotpCode(account.totpSecret, input.twoFactorCode ?? '');
+
+      if (!accepted) {
         return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 401 });
       }
-    } else if (!input.twoFactorCode || input.twoFactorCode !== MOCK_TWO_FACTOR_CODE) {
-      return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 401 });
-    } else {
-      authAccounts.update(account.id, { twoFactorEnabled: true });
+    } else if (account.twoFactorRequired) {
+      // Password was correct, but the account may not have a session until
+      // an authenticator is configured.
+      return HttpResponse.json({
+        email,
+        twoFactorSetupRequired: true,
+        setupToken: issueSetupToken(email, false).token,
+      } satisfies LoginResponse);
     }
 
-    return HttpResponse.json({ token: loginTokenForEmail(email), email });
+    const accountAfterLogin = findAuthAccountByEmail(email);
+    return HttpResponse.json({
+      token: loginTokenForEmail(email),
+      email,
+      suggestTwoFactorSetup: shouldSuggestTwoFactorSetup(accountAfterLogin),
+    } satisfies LoginResponse);
   }),
 
   http.get('/api/auth/session', ({ request }) => {
@@ -1753,10 +1968,13 @@ export const handlers = [
       } satisfies Session);
     }
 
+    const account = findAuthAccountByEmail(email);
+
     return HttpResponse.json({
       email,
       emailVerified: true,
       role: accountRole(email) ?? 'member',
+      suggestTwoFactorSetup: shouldSuggestTwoFactorSetup(account),
     } satisfies Session);
   }),
 
@@ -1878,7 +2096,15 @@ export const handlers = [
     if (!input.email) {
       return HttpResponse.json({ message: 'invalid_email' }, { status: 400 });
     }
-    return HttpResponse.json({ sent: true as const });
+
+    // Production mails this link; the prototype hands it back so the flow can
+    // be walked through without an inbox. Unknown addresses get no link.
+    const account = findAuthAccountByEmail(input.email);
+    const setupUrl = account
+      ? `/set-password?token=${issueSetupToken(account.email, true).token}`
+      : undefined;
+
+    return HttpResponse.json({ sent: true as const, prototypeSetupUrl: setupUrl });
   }),
 
   http.get('/api/account/snapshot', ({ request }) => {
@@ -1926,7 +2152,7 @@ export const handlers = [
       displayName: stored?.displayName ?? '',
       email: resolvedEmail,
       role,
-      twoFactorEnabled: account?.twoFactorEnabled ?? false,
+      twoFactorEnabled: account ? isTwoFactorEnabled(account) : false,
     } satisfies Profile);
   }),
 
@@ -1943,7 +2169,7 @@ export const handlers = [
       email,
       newsletterOptIn: input.newsletterOptIn,
       role,
-      twoFactorEnabled: account?.twoFactorEnabled ?? false,
+      twoFactorEnabled: account ? isTwoFactorEnabled(account) : false,
     };
     const saved = existing
       ? profile.update(existing.id, payload)
@@ -1966,59 +2192,172 @@ export const handlers = [
     return HttpResponse.json({ changed: true as const });
   }),
 
-  http.post('/api/account/two-factor/disable', ({ request }) => {
-    const token = tokenFromRequest(request);
-    const email = emailFromLoginToken(token);
-    const account = email ? findAuthAccountByEmail(email) : undefined;
-
+  http.get('/api/account/two-factor', ({ request }) => {
+    const account = resolveTwoFactorAccount(request);
     if (!account) {
       return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
     }
-
-    authAccounts.update(account.id, { twoFactorEnabled: false });
-
-    const stored = profile.all()[0];
-    const resolvedEmail = stored?.email ?? email ?? '';
-    const role = account.role;
-
-    return HttpResponse.json({
-      firstName: stored?.firstName ?? '',
-      lastName: stored?.lastName ?? '',
-      displayName: stored?.displayName ?? '',
-      email: resolvedEmail,
-      role,
-      twoFactorEnabled: false,
-    } satisfies Profile);
+    return HttpResponse.json(twoFactorStatus(account));
   }),
 
-  http.post('/api/account/two-factor/enable', async ({ request }) => {
-    const body = (await request.json()) as { code: string };
-    const token = tokenFromRequest(request);
-    const email = emailFromLoginToken(token);
-    const account = email ? findAuthAccountByEmail(email) : undefined;
+  http.post('/api/account/two-factor/setup', async ({ request }) => {
+    const body = (await request.json()) as { setupToken?: string };
+    const account = resolveTwoFactorAccount(request, body.setupToken);
 
     if (!account) {
       return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
     }
 
-    if (body.code !== MOCK_TWO_FACTOR_CODE) {
+    // A fresh secret per setup attempt — abandoning the dialog must not leave
+    // a usable authenticator entry behind.
+    const secret = generateTotpSecret();
+    authAccounts.update(account.id, { pendingTotpSecret: secret });
+
+    return HttpResponse.json({
+      secret,
+      otpauthUri: buildOtpauthUri({
+        secret,
+        accountName: account.email,
+        issuer: TWO_FACTOR_ISSUER,
+      }),
+      issuer: TWO_FACTOR_ISSUER,
+      accountName: account.email,
+      prototypeCode: await generateTotpCode(secret),
+    } satisfies TwoFactorSetup);
+  }),
+
+  http.post('/api/account/two-factor/activate', async ({ request }) => {
+    const body = (await request.json()) as { code: string; setupToken?: string };
+    const account = resolveTwoFactorAccount(request, body.setupToken);
+
+    if (!account) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    const secret = account.pendingTotpSecret;
+    if (!secret) {
+      return HttpResponse.json({ message: 'setup_not_started' }, { status: 409 });
+    }
+
+    if (!(await verifyTotpCode(secret, body.code))) {
       return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 400 });
     }
 
-    authAccounts.update(account.id, { twoFactorEnabled: true });
-
-    const stored = profile.all()[0];
-    const resolvedEmail = stored?.email ?? email ?? '';
-    const role = account.role;
+    const recoveryCodes = generateRecoveryCodes();
+    const updated = authAccounts.update(account.id, {
+      totpSecret: secret,
+      pendingTotpSecret: null,
+      twoFactorActivatedAt: new Date().toISOString(),
+      recoveryCodes: recoveryCodes.map((code) => ({ code, usedAt: null })),
+      twoFactorSetupSuggested: false,
+    });
 
     return HttpResponse.json({
-      firstName: stored?.firstName ?? '',
-      lastName: stored?.lastName ?? '',
-      displayName: stored?.displayName ?? '',
-      email: resolvedEmail,
-      role,
-      twoFactorEnabled: true,
-    } satisfies Profile);
+      status: twoFactorStatus(updated ?? account),
+      recoveryCodes,
+    } satisfies TwoFactorActivation);
+  }),
+
+  http.post('/api/account/two-factor/dismiss-setup-suggestion', ({ request }) => {
+    const account = resolveTwoFactorAccount(request);
+
+    if (!account) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    authAccounts.update(account.id, { twoFactorSetupSuggested: false });
+
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.post('/api/account/two-factor/disable', async ({ request }) => {
+    const body = (await request.json()) as { password: string };
+    const account = resolveTwoFactorAccount(request);
+
+    if (!account) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    if (body.password !== account.password) {
+      return HttpResponse.json({ message: 'invalid_password' }, { status: 400 });
+    }
+
+    const updated = authAccounts.update(account.id, {
+      totpSecret: null,
+      pendingTotpSecret: null,
+      twoFactorActivatedAt: null,
+      recoveryCodes: [],
+    });
+
+    return HttpResponse.json(twoFactorStatus(updated ?? account));
+  }),
+
+  http.post('/api/account/two-factor/recovery-codes', async ({ request }) => {
+    const body = (await request.json()) as { code: string };
+    const account = resolveTwoFactorAccount(request);
+
+    if (!account?.totpSecret) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    if (!(await verifyTotpCode(account.totpSecret, body.code))) {
+      return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 400 });
+    }
+
+    const recoveryCodes = generateRecoveryCodes();
+    const updated = authAccounts.update(account.id, {
+      recoveryCodes: recoveryCodes.map((code) => ({ code, usedAt: null })),
+    });
+
+    return HttpResponse.json({
+      status: twoFactorStatus(updated ?? account),
+      recoveryCodes,
+    } satisfies TwoFactorActivation);
+  }),
+
+  http.post('/api/auth/invite/validate', async ({ request }) => {
+    const body = (await request.json()) as { token: string };
+    const invite = findSetupToken(body.token);
+    const account = invite ? findAuthAccountByEmail(invite.email) : undefined;
+
+    if (!invite || !account) {
+      return HttpResponse.json({ message: 'invalid_token' }, { status: 400 });
+    }
+
+    return HttpResponse.json({
+      email: account.email,
+      needsPassword: invite.needsPassword,
+      twoFactorRequired: account.twoFactorRequired,
+      twoFactorEnabled: isTwoFactorEnabled(account),
+    } satisfies InviteValidation);
+  }),
+
+  http.post('/api/auth/invite/complete', async ({ request }) => {
+    const body = (await request.json()) as { token: string; password?: string };
+    const invite = findSetupToken(body.token);
+    const account = invite ? findAuthAccountByEmail(invite.email) : undefined;
+
+    if (!invite || !account) {
+      return HttpResponse.json({ message: 'invalid_token' }, { status: 400 });
+    }
+
+    if (invite.needsPassword) {
+      if (!body.password) {
+        return HttpResponse.json({ message: 'password_required' }, { status: 400 });
+      }
+      authAccounts.update(account.id, { password: body.password });
+    }
+
+    if (account.twoFactorRequired && !isTwoFactorEnabled(account)) {
+      return HttpResponse.json({ message: 'two_factor_required' }, { status: 409 });
+    }
+
+    setupTokens.update(invite.id, { consumedAt: new Date().toISOString() });
+
+    return HttpResponse.json({
+      token: loginTokenForEmail(account.email),
+      email: account.email,
+    } satisfies LoginResponse);
   }),
 
   http.get('/api/billing/subscriptions/:id', ({ request, params }) => {

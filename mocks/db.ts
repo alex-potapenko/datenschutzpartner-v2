@@ -17,6 +17,8 @@ export interface Collection<T extends Identifiable> {
   create: (item: Omit<T, 'id'> & { id?: string }) => T;
   remove: (id: string) => boolean;
   update: (id: string, patch: Partial<Omit<T, 'id'>>) => T | undefined;
+  /** Replace persisted rows with a fresh copy of `seed` (prototype dev reset). */
+  reseed: (seed: T[]) => void;
 }
 
 /**
@@ -75,6 +77,10 @@ export function createCollection<T extends Identifiable>(
       Object.assign(existing, patch);
       persist();
       return existing;
+    },
+    reseed: (seed) => {
+      items = structuredClone(seed);
+      persist();
     },
   };
 }
