@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import type { Contact, ContactCreate } from '@/api/contacts';
 import type { ContactMessage, ContactMessageCreate } from '@/api/contact-messages';
+import type { AffiliateRegistration, AffiliateRegistrationCreate } from '@/api/affiliate';
 import type {
   AccountRole,
   ForgotPasswordInput,
@@ -351,6 +352,11 @@ const contacts = createCollection<Contact>('contacts', [
 ]);
 
 const contactMessages = createCollection<ContactMessage>('contact-messages', []);
+
+const affiliateRegistrations = createCollection<AffiliateRegistration>(
+  'affiliate-registrations',
+  []
+);
 
 const billingAddress = createCollection<BillingAddress & { id: string }>(
   'account-billing-address',
@@ -1851,6 +1857,18 @@ export const handlers = [
     return HttpResponse.json(
       contactMessages.create({
         ...input,
+        createdAt: new Date().toISOString(),
+      }),
+      { status: 201 }
+    );
+  }),
+
+  http.post('/api/affiliate-registrations', async ({ request }) => {
+    const input = (await request.json()) as AffiliateRegistrationCreate;
+    return HttpResponse.json(
+      affiliateRegistrations.create({
+        ...input,
+        status: 'pending',
         createdAt: new Date().toISOString(),
       }),
       { status: 201 }

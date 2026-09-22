@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Bell, CalendarBlank, Sparkle } from '@/components/ui';
 import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 import { NewsletterSubscribeCard } from '@/components/shared/NewsletterSubscribeCard';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const MEMBERSHIP_CARD_STYLE = {
   border: '2px solid rgba(255,255,255,1)',
@@ -111,12 +112,7 @@ export function NewsletterSubscribePanel({
         </div>
       </div>
 
-      {showBottomBorder ? (
-        <div
-          aria-hidden
-          className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-        />
-      ) : null}
+      {showBottomBorder ? <FullBleedDivider /> : null}
     </section>
   );
 }

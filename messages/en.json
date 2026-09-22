@@ -125,6 +125,7 @@
     "newsletter": "Newsletter",
     "podcasts": "Podcasts",
     "aboutUs": "About us",
+    "affiliate": "Affiliate program",
     "contact": "Contact",
     "imprint": "Imprint",
     "privacyPolicy": "Privacy Policy",
@@ -556,6 +557,65 @@
           }
         }
       }
+    }
+  },
+  "affiliatePage": {
+    "metaTitle": "Affiliate program — Datenschutzpartner",
+    "metaDescription": "A 10 percent commission on referred purchases of Datenschutzpartner offers. Participation in the affiliate program is free.",
+    "title": "Earn money now with the affiliate program of Datenschutzpartner!",
+    "registerCta": "Register for free",
+    "heroImageAlt": "Two people shaking hands over a desk after closing a deal",
+    "stats": {
+      "ariaLabel": "Affiliate program at a glance",
+      "commission": {
+        "title": "10 percent commission",
+        "description": "As an affiliate partner, you receive a commission of 10 percent on paid purchases of Datenschutzpartner offers that you have successfully referred."
+      },
+      "voucher": {
+        "title": "Voucher code with a 10 percent discount",
+        "description": "As an affiliate partner, you receive a voucher code that lets you grant a 10 percent discount on all Datenschutzpartner offers."
+      },
+      "attribution": {
+        "title": "Seven-day cookie duration",
+        "description": "Purchases count as referred if they take place within seven days of your individual affiliate link being opened (cookie duration). A purchase is attributed to the last affiliate partner who referred a new customer."
+      }
+    },
+    "howItWorks": {
+      "title": "How our affiliate program works",
+      "example": {
+        "title": "Example",
+        "steps": {
+          "publish": {
+            "title": "Publish your affiliate link",
+            "description": "You publish your individual affiliate link."
+          },
+          "subscribe": {
+            "title": "User subscribes",
+            "description": "A user follows this link and, within seven days, subscribes to EU data protection representation under Art. 27 GDPR in the “Standard” plan for CHF 249.00 net."
+          },
+          "payout": {
+            "title": "Commission paid",
+            "description": "You receive a commission of CHF 24.90 net after the new customer has paid for the subscription."
+          }
+        }
+      }
+    },
+    "registration": {
+      "cardTitle": "Register for the affiliate program — it's free!",
+      "nameLabel": "Full name",
+      "usernameLabel": "User name",
+      "usernameHint": "Letters, digits, dot, dash and underscore — this handle appears in your affiliate link.",
+      "emailLabel": "Registration email",
+      "paymentEmailLabel": "Payment email",
+      "paymentEmailHint": "We use this address to pay out your commission.",
+      "websiteLabel": "Website URL",
+      "optionalPlaceholder": "Optional",
+      "promotionLabel": "How will you promote us?",
+      "acceptTerms": "I agree to the <terms>terms of participation for the affiliate program</terms>",
+      "submit": "Register",
+      "submitting": "Registering …",
+      "successTitle": "Your promo affiliate account is awaiting approval",
+      "successBody": "We review your application and email you your affiliate link and voucher code."
     }
   },
   "euRepPage": {
@@ -1432,6 +1492,12 @@
       "metaTitle": "Terms of Service — Datenschutzpartner",
       "metaDescription": "General terms and conditions for Datenschutzpartner services.",
       "pageTitle": "Terms of Service (GTC)"
+    },
+    "affiliateTerms": {
+      "metaTitle": "Terms of participation for the affiliate program — Datenschutzpartner",
+      "metaDescription": "Rights and obligations of participants in the Datenschutzpartner affiliate program.",
+      "pageTitle": "Terms of participation for the affiliate program",
+      "backToAffiliate": "Back to the affiliate program"
     }
   },
   "account": {
@@ -2356,6 +2422,7 @@
     "country": "Please select a country from the list",
     "domain": "Please enter a valid website domain",
     "website": "Please enter a valid website URL",
+    "affiliateUsername": "Use 3–40 letters, digits, dots, dashes or underscores",
     "messageMin": "Please enter at least 10 characters",
     "messageMax": "Message is too long",
     "message": "Please enter a meaningful message",

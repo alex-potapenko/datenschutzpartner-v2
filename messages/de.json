@@ -125,6 +125,7 @@
     "newsletter": "Newsletter",
     "podcasts": "Podcasts",
     "aboutUs": "Über uns",
+    "affiliate": "Affiliate-Programm",
     "contact": "Kontakt",
     "imprint": "Impressum",
     "privacyPolicy": "Datenschutzerklärung",
@@ -556,6 +557,65 @@
           }
         }
       }
+    }
+  },
+  "affiliatePage": {
+    "metaTitle": "Affiliate-Programm — Datenschutzpartner",
+    "metaDescription": "Provision von 10 Prozent auf vermittelte Käufe von Datenschutzpartner-Angeboten. Die Teilnahme am Affiliate-Programm ist kostenlos.",
+    "title": "Jetzt Geld verdienen mit dem Affiliate-Programm von Datenschutzpartner!",
+    "registerCta": "Kostenlos registrieren",
+    "heroImageAlt": "Zwei Personen geben sich nach einem Abschluss die Hand",
+    "stats": {
+      "ariaLabel": "Affiliate-Programm auf einen Blick",
+      "commission": {
+        "title": "Provision von 10 Prozent",
+        "description": "Sie erhalten als Affiliate-Partner eine Provision von 10 Prozent auf bezahlten Käufen von Datenschutzpartner-Angeboten, die Sie erfolgreich vermittelt haben."
+      },
+      "voucher": {
+        "title": "Gutschein-Code mit 10 Prozent Rabatt",
+        "description": "Sie erhalten als Affiliate-Partner einen Gutschein-Code, mit dem Sie einen Rabatt von 10 Prozent auf allen Datenschutzpartner-Angeboten einräumen können."
+      },
+      "attribution": {
+        "title": "Sieben Tage Cookie-Laufzeit",
+        "description": "Als vermittelt gelten Käufe, die innerhalb von sieben Tagen erfolgen, nachdem Ihr individueller Affiliate-Link aufgerufen wurde (Cookie-Laufzeit). Ein Kauf wird dem letzten Affiliate-Partner zugeordnet, der einen neuen Kunden empfohlen hat."
+      }
+    },
+    "howItWorks": {
+      "title": "So funktioniert unser Affiliate-Programm",
+      "example": {
+        "title": "Beispiel",
+        "steps": {
+          "publish": {
+            "title": "Affiliate-Link veröffentlichen",
+            "description": "Sie veröffentlichen Ihren individuellen Affiliate-Link."
+          },
+          "subscribe": {
+            "title": "Abonnement durch Nutzer",
+            "description": "Ein Nutzer folgt diesem Link und abonniert innerhalb von sieben Tagen die EU-Datenschutz-Vertretung gemäss Art. 27 DSGVO in der «Standard»-Variante für CHF 249.00 netto."
+          },
+          "payout": {
+            "title": "Provision erhalten",
+            "description": "Sie erhalten eine Provision von CHF 24.90 netto, nachdem der neue Kunde das Abonnement bezahlt hat."
+          }
+        }
+      }
+    },
+    "registration": {
+      "cardTitle": "Für das Affiliate-Programm registrieren – kostenlos!",
+      "nameLabel": "Vollständiger Name",
+      "usernameLabel": "Benutzername",
+      "usernameHint": "Buchstaben, Zahlen, Punkt, Bindestrich und Unterstrich — dieser Name erscheint in Ihrem Affiliate-Link.",
+      "emailLabel": "E-Mail-Adresse für die Registrierung",
+      "paymentEmailLabel": "Zahlungs-E-Mail",
+      "paymentEmailHint": "An diese Adresse zahlen wir Ihre Provision aus.",
+      "websiteLabel": "Website-URL",
+      "optionalPlaceholder": "Optional",
+      "promotionLabel": "Wie werben Sie für uns?",
+      "acceptTerms": "Ich stimme den <terms>Teilnahmebedingungen für das Affiliate-Programm</terms> zu",
+      "submit": "Registrieren",
+      "submitting": "Registrierung läuft …",
+      "successTitle": "Dein Promo-Affiliate-Konto wartet auf Genehmigung",
+      "successBody": "Wir prüfen Deine Anmeldung und senden Dir Affiliate-Link und Gutschein-Code per E-Mail."
     }
   },
   "euRepPage": {
@@ -1432,6 +1492,12 @@
       "metaTitle": "AGB — Datenschutzpartner",
       "metaDescription": "Allgemeine Geschäftsbedingungen für Leistungen von Datenschutzpartner.",
       "pageTitle": "Allgemeine Geschäftsbedingungen (AGB)"
+    },
+    "affiliateTerms": {
+      "metaTitle": "Teilnahmebedingungen für Affiliate-Programm — Datenschutzpartner",
+      "metaDescription": "Rechte und Pflichten von Teilnehmern am Affiliate-Programm von Datenschutzpartner.",
+      "pageTitle": "Teilnahmebedingungen für Affiliate-Programm",
+      "backToAffiliate": "Zurück zum Affiliate-Programm"
     }
   },
   "account": {
@@ -2356,6 +2422,7 @@
     "country": "Bitte wähle ein Land aus der Liste",
     "domain": "Bitte gib eine gültige Website-Domain ein",
     "website": "Bitte gib eine gültige Website-URL ein",
+    "affiliateUsername": "Verwende 3–40 Buchstaben, Zahlen, Punkte, Bindestriche oder Unterstriche",
     "messageMin": "Bitte gib mindestens 10 Zeichen ein",
     "messageMax": "Die Nachricht ist zu lang",
     "message": "Bitte gib eine aussagekräftige Nachricht ein",

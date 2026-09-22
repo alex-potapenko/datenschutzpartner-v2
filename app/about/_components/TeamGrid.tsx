@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const TEAM = [
   {
@@ -92,10 +93,7 @@ export function TeamGrid() {
           <TeamMemberCard key={member.name} index={index} {...member} />
         ))}
       </div>
-      <div
-        aria-hidden
-        className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-      />
+      <FullBleedDivider />
     </section>
   );
 }

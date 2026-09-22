@@ -10,6 +10,7 @@ import { GeneratorPerSitePriceNote } from '@/components/shared/GeneratorPerSiteP
 import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
 import { VolumeDiscountThresholdsDialog } from '@/components/shared/VolumeDiscountDialog';
 import { useOverlayState } from '@/components/ui';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const INCLUDED_KEYS = [
   'services',
@@ -149,10 +150,7 @@ export function GeneratorBenefitsPanel() {
 
       <VolumeDiscountThresholdsDialog state={discountDialog} />
 
-      <div
-        aria-hidden
-        className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-      />
+      <FullBleedDivider />
     </section>
   );
 }

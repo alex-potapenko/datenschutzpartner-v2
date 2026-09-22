@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { calculateEuRepQuote, EU_REP_PLANS, type EuRepPlanId } from '@/api/checkout';
 import { Crosshair, EnvelopeSimple } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from './EuRepPlanCard';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const INCLUDED_KEYS = [
   'establishment',
@@ -170,12 +171,7 @@ export function EuRepBenefitsPanel({
         />
       </div>
 
-      {showBottomBorder ? (
-        <div
-          aria-hidden
-          className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-        />
-      ) : null}
+      {showBottomBorder ? <FullBleedDivider /> : null}
     </section>
   );
 }

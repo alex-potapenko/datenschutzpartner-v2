@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { TopBar } from '@/components/shared/TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { Container } from '@/components/shared/Container';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 interface RegularPageProps {
   /** Optional page-level heading rendered in its own top section with a bottom border. */
@@ -36,6 +37,8 @@ interface RegularPageProps {
   noPadding?: boolean;
   /** Full-width blocks after the bordered content column (e.g. newsletter on insight articles). */
   trailing?: ReactNode;
+  /** Content height only — no flex growth below short pages (e.g. insight article detail). */
+  shrinkWrapContent?: boolean;
   children: ReactNode;
 }
 
@@ -55,11 +58,13 @@ export function RegularPage({
   showFooter = true,
   noPadding = false,
   trailing,
+  shrinkWrapContent = false,
   children,
 }: RegularPageProps) {
+  const growClass = shrinkWrapContent ? '' : 'flex-1';
   const contentClass = noPadding
-    ? 'flex flex-1 flex-col'
-    : `flex flex-1 flex-col px-4 py-12 sm:px-8 sm:py-16 ${!header && !media ? 'pt-20' : ''}`;
+    ? `flex flex-col ${growClass}`
+    : `flex flex-col ${growClass} px-4 py-12 sm:px-8 sm:py-16 ${!header && !media ? 'pt-20' : ''}`;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -72,9 +77,9 @@ export function RegularPage({
           variant={topBarVariant}
         />
       ) : null}
-      <main className="border-border flex flex-1 flex-col">
-        <Container className="flex flex-1 flex-col">
-          <div className="border-border flex flex-1 flex-col border-r border-l">
+      <main className={`border-border flex flex-col ${growClass}`}>
+        <Container className={`flex flex-col ${growClass}`}>
+          <div className={`border-border flex flex-col border-r border-l ${growClass}`}>
             {media}
             {header && (
               <>
@@ -86,20 +91,12 @@ export function RegularPage({
                 >
                   {header}
                 </div>
-                <div
-                  aria-hidden
-                  className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-                />
+                <FullBleedDivider />
               </>
             )}
             <div className={contentClass}>{children}</div>
           </div>
-          {trailing ? (
-            <div
-              aria-hidden
-              className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-            />
-          ) : null}
+          {trailing ? <FullBleedDivider /> : null}
         </Container>
         {trailing}
       </main>

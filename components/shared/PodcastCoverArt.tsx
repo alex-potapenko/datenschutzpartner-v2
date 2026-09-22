@@ -15,6 +15,8 @@ type PodcastCoverArtProps = {
   /** Curved label around the microphone (i18n). */
   ringWord1: string;
   ringWord2: string;
+  /** Article hero — full-bleed, no squircle corners. */
+  rounded?: boolean;
 };
 
 /** Fixed podcast episode cover — EuRep-style glow on white, oversized white mark, microphone. */
@@ -24,20 +26,27 @@ export function PodcastCoverArt({
   size = 'featured',
   ringWord1,
   ringWord2,
+  rounded = true,
 }: PodcastCoverArtProps) {
   const isThumbnail = size === 'thumbnail';
 
   return (
     <div
       className={cn(
-        'squircle membership-soft-panel relative w-full shrink-0 overflow-hidden bg-white [box-shadow:inset_0_0_80px_color-mix(in_srgb,var(--key-500)_10%,transparent)]',
+        'membership-soft-panel relative w-full shrink-0 overflow-hidden bg-white [box-shadow:inset_0_0_80px_color-mix(in_srgb,var(--key-500)_10%,transparent)]',
+        rounded ? 'squircle' : 'rounded-none',
         isThumbnail && '@container',
         aspectClassName,
         className
       )}
       aria-hidden
     >
-      <div className="squircle pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 overflow-hidden',
+          rounded ? 'squircle' : 'rounded-none'
+        )}
+      >
         <HeroGlowOrbs fit={isThumbnail ? 'container' : 'viewport'} />
       </div>
       <div className="relative flex h-full items-center justify-center overflow-visible">

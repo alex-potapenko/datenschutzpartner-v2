@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export type LegalDocumentId = 'imprint' | 'privacy' | 'terms';
+export type LegalDocumentId = 'imprint' | 'privacy' | 'terms' | 'affiliate-terms';
 
 const CONTENT_DIR = join(process.cwd(), 'content/legal');
 

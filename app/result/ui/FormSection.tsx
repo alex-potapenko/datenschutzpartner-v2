@@ -31,6 +31,8 @@ export function FormSection({ title, description, children }: FormSectionProps) 
 interface FieldProps {
   label: string;
   children: ReactNode;
+  /** Id of the control this label belongs to — set it whenever the control has an id. */
+  htmlFor?: string;
   description?: string;
   descriptionClassName?: string;
   hint?: string;
@@ -45,6 +47,7 @@ interface FieldProps {
 export function Field({
   label,
   children,
+  htmlFor,
   description,
   descriptionClassName,
   hint,
@@ -56,7 +59,7 @@ export function Field({
 }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-foreground text-sm leading-snug font-medium">
+      <label htmlFor={htmlFor} className="text-foreground text-sm leading-snug font-medium">
         {label}
         {requiredLabel ? (
           <ValidationRequiredBadge

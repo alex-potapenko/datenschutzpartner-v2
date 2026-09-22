@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { CheckCircle } from '@/components/ui';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const STAT_KEYS = ['legallyReviewed', 'frameworks', 'flexibleUse', 'longTerm'] as const;
 
@@ -14,7 +15,7 @@ export async function GeneratorStatsRow() {
   const t = await getTranslations('generatorPage.stats');
 
   return (
-    <section className="border-border border-b" aria-label={t('ariaLabel')}>
+    <section aria-label={t('ariaLabel')}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {STAT_KEYS.map((key, index) => (
           <div
@@ -37,6 +38,7 @@ export async function GeneratorStatsRow() {
           </div>
         ))}
       </div>
+      <FullBleedDivider />
     </section>
   );
 }

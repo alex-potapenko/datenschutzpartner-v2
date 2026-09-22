@@ -18,6 +18,7 @@ import {
   INSIGHT_ARTICLE_CONTENT_CLASS,
   INSIGHT_ARTICLE_SIDEBAR_CLASS,
 } from './insight-article-layout';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 type InsightArticlePageProps = {
   article: InsightArticle;
@@ -34,15 +35,13 @@ export async function InsightArticlePage({ article, locale }: InsightArticlePage
     <NestedScreenShell
       activePath="/insights"
       noPadding
+      shrinkWrapContent
       backHref={backHref}
       backLabel={t('backToInsights')}
       detailTitle={t('title')}
     >
       <InsightArticleHero article={article} />
-      <div
-        aria-hidden
-        className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-      />
+      <FullBleedDivider />
       <div className={INSIGHT_ARTICLE_BODY_CLASS}>
         <div className={INSIGHT_ARTICLE_SIDEBAR_CLASS}>
           <InsightArticleMetaBar article={article} />

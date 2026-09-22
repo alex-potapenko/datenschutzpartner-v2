@@ -37,6 +37,7 @@ const FOOTER_SECTIONS = [
     links: [
       { key: 'insights', href: '/insights' },
       { key: 'aboutUs', href: '/about' },
+      { key: 'affiliate', href: '/affiliate' },
       { key: 'contact', href: '/contact' },
     ],
   },

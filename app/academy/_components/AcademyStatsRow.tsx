@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const STAT_KEYS = ['webinars', 'events', 'recordings', 'frameworks'] as const;
 
@@ -13,7 +14,7 @@ export async function AcademyStatsRow() {
   const t = await getTranslations('academy.landing.stats');
 
   return (
-    <section className="border-border border-b" aria-label={t('ariaLabel')}>
+    <section aria-label={t('ariaLabel')}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {STAT_KEYS.map((key, index) => (
           <div
@@ -32,6 +33,7 @@ export async function AcademyStatsRow() {
           </div>
         ))}
       </div>
+      <FullBleedDivider />
     </section>
   );
 }

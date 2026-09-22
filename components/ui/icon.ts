@@ -64,6 +64,7 @@ import {
   FlagIcon as Flag,
   FlagBannerIcon as FlagBanner,
   TagIcon as Tag,
+  SealPercentIcon as SealPercent,
 
   // Communication
   BellIcon as Bell,
@@ -173,6 +174,7 @@ export {
   Flag,
   FlagBanner,
   Tag,
+  SealPercent,
 
   // Communication
   Bell,

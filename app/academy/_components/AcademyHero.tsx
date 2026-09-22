@@ -1,12 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 import { ArrowSquareOut, GraduationCap } from '@/components/ui';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 import { ACADEMY_MEMBERSHIP_EXTERNAL_URL } from '@/lib/academy-content/constants';
 
 export async function AcademyHero() {
   const t = await getTranslations('academy.landing');
 
   return (
-    <section className="border-border bg-background border-b">
+    <section className="bg-background">
       <div className="border-border grid items-stretch lg:grid-cols-2">
         <div className="border-border order-2 flex w-full min-w-0 flex-col border-t lg:order-1 lg:border-t-0 lg:border-r">
           <div className="flex w-full flex-col gap-6 px-4 pt-12 pb-12 sm:gap-10 sm:px-8 sm:pt-20 sm:pb-20">
@@ -48,6 +49,7 @@ export async function AcademyHero() {
           style={{ backgroundImage: "url('/academy.jpg')" }}
         />
       </div>
+      <FullBleedDivider />
     </section>
   );
 }

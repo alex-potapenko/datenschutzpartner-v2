@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Flag, Gavel, GlobeHemisphereEast, Tag } from '@/components/ui';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const STAT_KEYS = ['article27', 'establishment', 'eea', 'price'] as const;
 
@@ -26,7 +27,7 @@ export async function EuRepStatsRow() {
   const t = await getTranslations('euRepPage.stats');
 
   return (
-    <section className="border-border border-b" aria-label={t('ariaLabel')}>
+    <section aria-label={t('ariaLabel')}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {STAT_KEYS.map((key, index) => (
           <div
@@ -40,6 +41,7 @@ export async function EuRepStatsRow() {
           </div>
         ))}
       </div>
+      <FullBleedDivider />
     </section>
   );
 }

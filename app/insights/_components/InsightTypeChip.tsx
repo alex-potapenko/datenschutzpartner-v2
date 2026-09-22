@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 type InsightTypeChipProps = {
   label: string;
@@ -11,12 +12,10 @@ export function InsightTypeChip({ label, className }: InsightTypeChipProps) {
     <Button
       variant="ghost"
       size="lg"
-      className={[
+      className={cn(
         'pointer-events-none w-fit border border-white/40 bg-transparent text-white shadow-none hover:bg-transparent',
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        className
+      )}
     >
       {label}
     </Button>

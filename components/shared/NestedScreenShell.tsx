@@ -4,6 +4,8 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import { RegularPage } from '@/components/shared/RegularPage';
+import { cn } from '@/lib/utils';
+import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 
 const NESTED_SCREEN_TRANSITION = { duration: 0.24, ease: 'easeOut' } as const;
 
@@ -24,6 +26,8 @@ type NestedScreenShellProps = {
   showTopBar?: boolean;
   topBarVariant?: 'public' | 'account';
   trailing?: ReactNode;
+  /** No min viewport height or flex growth — for short detail pages (insight articles). */
+  shrinkWrapContent?: boolean;
 };
 
 /** Minimal nested route shell — icon back, optional service title, slide/fade enter and exit. */
@@ -41,6 +45,7 @@ export function NestedScreenShell({
   showTopBar = true,
   topBarVariant,
   trailing,
+  shrinkWrapContent = false,
 }: NestedScreenShellProps) {
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
@@ -58,14 +63,19 @@ export function NestedScreenShell({
   const bodyClassName =
     contentClassName ??
     (noPadding
-      ? 'flex flex-1 flex-col'
-      : `flex flex-1 flex-col px-4 py-12 sm:px-8 sm:py-16 ${!pageHeader ? 'pt-20' : ''}`);
+      ? cn('flex flex-col', !shrinkWrapContent && 'flex-1')
+      : cn(
+          'flex flex-col px-4 py-12 sm:px-8 sm:py-16',
+          !pageHeader && 'pt-20',
+          !shrinkWrapContent && 'flex-1'
+        ));
 
   return (
     <RegularPage
       activePath={activePath}
       showFooter={showFooter}
       noPadding
+      shrinkWrapContent={shrinkWrapContent}
       trailing={trailing}
       showTopBar={showTopBar}
       topBarVariant={topBarVariant}
@@ -80,7 +90,7 @@ export function NestedScreenShell({
       }}
     >
       <motion.div
-        className="flex min-h-dvh flex-1 flex-col"
+        className={cn('flex flex-col', !shrinkWrapContent && 'min-h-dvh flex-1')}
         initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
         animate={isExiting ? { opacity: 0, x: 20 } : { opacity: 1, x: 0 }}
         transition={NESTED_SCREEN_TRANSITION}
@@ -93,10 +103,7 @@ export function NestedScreenShell({
         {pageHeader ? (
           <>
             <div className="flex flex-col gap-6 px-4 pt-20 pb-10 sm:px-8">{pageHeader}</div>
-            <div
-              aria-hidden
-              className="border-border relative left-1/2 w-screen -translate-x-1/2 border-b"
-            />
+            <FullBleedDivider />
           </>
         ) : null}
         <div className={bodyClassName}>{children}</div>
