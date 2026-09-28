@@ -181,8 +181,9 @@ warning if the rate went up). Cancellation is allowed any time before the charge
 
 Checkout kinds: `generator` (new policy), `generatorTopUp` (same as a new policy in
 this prototype — the dedicated checkout route redirects to `/scan`), `generatorRenewal`
-(renew one existing subscription), and `euRep` (standalone EU Representation from
-`/account/eu-rep/checkout`). Quote helpers live in `api/checkout.ts`
+(renew one existing subscription), `euRep` (standalone EU Representation from
+`/account/eu-rep/checkout`), and `subscriptionRenewal` (paid restart of a lapsed
+policy or EU Rep subscription — see below). Quote helpers live in `api/checkout.ts`
 (`calculateGeneratorPolicyQuote`, `calculateEuRepQuote`). Standalone EU Rep checkout
 selects a **plan** (`euRepPlanId`: `basis` | `plus` | `plus5`) and creates **one billing
 subscription** plus one or more legal-entity contracts (`euRepEntities[]` with
@@ -191,6 +192,24 @@ always adds **Basis** only and shares the same 14-day trial as the policy
 (`POLICY_TRIAL_DAYS`). Standalone EU Rep checkout and EU Rep added to an
 already-hosted site (or a prepaid fill-slot) have **no trial** — they are billed
 immediately.
+
+**Continue subscription** on a cancelled / expired policy or EU Rep subscription
+depends on access (`subscriptionRequiresPaidRenewal` in `api/billing.ts`):
+
+- **Access still running** (before the last paid day) — `POST /billing/subscriptions/:id/continue`
+  only turns renewal back on; no payment.
+- **Access ended** — a new paid 12-month term. The button (with a caret) opens the
+  price breakdown at `/account/renew?subscription=:id&returnTo=<subscription tab>`
+  (`ServiceCheckoutPlanCard`, priced by `calculateSubscriptionRenewalQuote`). Continuing
+  there calls `useStartSubscriptionRenewal`, which creates a `subscriptionRenewal`
+  session (`subscriptionId`, `returnUrl` = the subscription tab), and the member is
+  sent to `redirectUrl`. In the prototype that is the Payrexx
+  simulation at `/checkout/payrexx?sessionId=…` (`GET /checkout/sessions/:id` for the
+  line item + amount). Paying calls `POST /checkout/sessions/:id/complete`, which
+  creates a `renewal` order and restarts the term from today; the page then returns
+  to `returnUrl?renewed=<subscriptionId>`, where `MembershipPanel` opens the
+  **Subscription renewed** dialog (product, plan / websites, amount, invoice, new term).
+  Cancelling on Payrexx returns to `returnUrl` without changes.
 
 - `api/eu-rep.ts` — EU Representation **contracts** (`GET /eu-rep/contracts`,
   `GET /eu-rep/contracts/:id`, `PATCH /eu-rep/contracts/:id`,
@@ -216,7 +235,12 @@ immediately.
   (`MembershipPanel` for that contract) tabs.
 - `api/checkout.ts` — Payrexx checkout sessions and post-payment side effects.
   `useCreateCheckoutSession` → `POST /checkout/sessions` returns `{ id, redirectUrl,
-amount, siteCount, discountRate?, discountAmount? }`. The POC simulates Payrexx by calling
+amount, siteCount, discountRate?, discountAmount? }`. The POC simulates Payrexx in place:
+  the in-page checkouts (`/account/checkout`, `/account/generator/checkout`, logged-in
+  `/account/eu-rep/checkout`) use `usePayrexxPaymentFlow` to swap the page for
+  `PayrexxPaymentScreen` (amount incl. VAT); its **Pay** runs the purchase, **Cancel**
+  returns to the checkout. Redirect-based flows (`subscriptionRenewal`) use the same UI
+  on `/checkout/payrexx?sessionId=`. Paying calls
   `useCompleteCheckoutSession` → `POST /checkout/sessions/:id/complete`, which appends
   an `Order`, creates a **new** policy `Subscription` (or updates the named one on
   `generatorRenewal`), and (for `kind: 'generator'` with a domain) creates a hosted
@@ -250,11 +274,22 @@ therefore **never stores or displays card details** — there is no payment-meth
 resource, form, or brand/last4/expiry anywhere in the app. **PAN and CVV are never
 touched by this frontend.**
 
-Every checkout flow redirects to Payrexx's hosted checkout (`api/checkout.ts`). The
-member area never stores or displays card details — there is no payment-method resource,
-form, or brand/last4/expiry anywhere in the app. **PAN and CVV are never touched by this
-frontend.** In production, payment-method changes happen on Payrexx's hosted portal, not
-inside this app; the POC stubs that redirect via `openPayrexxPortal()`.
+Every checkout flow redirects to Payrexx's hosted checkout (`api/checkout.ts`). In
+production, payment-method changes happen on Payrexx's hosted portal, not inside this
+app; the POC stubs that redirect via `openPayrexxPortal()`.
+
+> **POC STUB — the Payrexx payment page is simulated.** Search the code for
+> `POC STUB (Payrexx)`. None of it talks to Payrexx; "Pay" just calls the mocked
+> `POST /checkout/sessions/:id/complete`. At handover:
+>
+> - delete `components/shared/PayrexxPaymentScreen.tsx`, `lib/use-payrexx-payment-flow.ts`,
+>   the `/checkout/payrexx` route, `public/brands/payrexx.png`, `public/brands/mastercard.png` and the `--payrexx*`
+>   tokens in `styles/tokens.css`;
+> - in the in-page checkouts (`AccountCheckoutApp`, `GeneratorCheckoutApp`,
+>   `EuRepCheckoutApp`), "Continue with payment" creates the session and navigates to
+>   its `redirectUrl` (the real Payrexx gateway URL from the backend);
+> - the backend completes the order from the Payrexx webhook; the page behind
+>   `returnUrl` shows the confirmation (e.g. the `renewed` param dialog).
 
 Subscriptions/orders are gated on the bearer token in `mocks/handlers.ts`:
 the member token (`lucas.baumgartner@gmail.com`) sees active policy and EU Rep

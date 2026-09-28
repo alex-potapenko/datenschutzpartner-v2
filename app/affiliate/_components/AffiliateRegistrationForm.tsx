@@ -23,6 +23,7 @@ import {
   Input,
   TextArea,
 } from '@/components/ui';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 const SUCCESS_ICON_SURFACE = 'color-mix(in srgb, var(--accent) 8%, transparent)';
 
@@ -108,7 +109,7 @@ export function AffiliateRegistrationForm() {
             aria-invalid={Boolean(errors.name)}
             {...register('name')}
           />
-          {errors.name ? <p className="text-danger text-xs">{errors.name.message}</p> : null}
+          <FieldErrorText message={errors.name?.message} />
         </Field>
 
         <Field
@@ -126,9 +127,7 @@ export function AffiliateRegistrationForm() {
             aria-invalid={Boolean(errors.username)}
             {...register('username')}
           />
-          {errors.username ? (
-            <p className="text-danger text-xs">{errors.username.message}</p>
-          ) : null}
+          <FieldErrorText message={errors.username?.message} />
         </Field>
 
         <Field label={t('emailLabel')} htmlFor="affiliate-email">
@@ -142,7 +141,7 @@ export function AffiliateRegistrationForm() {
             aria-invalid={Boolean(errors.email)}
             {...register('email')}
           />
-          {errors.email ? <p className="text-danger text-xs">{errors.email.message}</p> : null}
+          <FieldErrorText message={errors.email?.message} />
         </Field>
 
         <Field
@@ -160,9 +159,7 @@ export function AffiliateRegistrationForm() {
             aria-invalid={Boolean(errors.paymentEmail)}
             {...register('paymentEmail')}
           />
-          {errors.paymentEmail ? (
-            <p className="text-danger text-xs">{errors.paymentEmail.message}</p>
-          ) : null}
+          <FieldErrorText message={errors.paymentEmail?.message} />
         </Field>
 
         <Field label={t('websiteLabel')} htmlFor="affiliate-website">
@@ -177,9 +174,7 @@ export function AffiliateRegistrationForm() {
             aria-invalid={Boolean(errors.websiteUrl)}
             {...register('websiteUrl')}
           />
-          {errors.websiteUrl ? (
-            <p className="text-danger text-xs">{errors.websiteUrl.message}</p>
-          ) : null}
+          <FieldErrorText message={errors.websiteUrl?.message} />
         </Field>
 
         <Field label={t('promotionLabel')} htmlFor="affiliate-promotion">
@@ -192,9 +187,7 @@ export function AffiliateRegistrationForm() {
             aria-invalid={Boolean(errors.promotion)}
             {...register('promotion')}
           />
-          {errors.promotion ? (
-            <p className="text-danger text-xs">{errors.promotion.message}</p>
-          ) : null}
+          <FieldErrorText message={errors.promotion?.message} />
         </Field>
       </div>
 
@@ -235,9 +228,7 @@ export function AffiliateRegistrationForm() {
             </Checkbox>
           )}
         />
-        {errors.acceptTerms ? (
-          <p className="text-danger text-xs">{errors.acceptTerms.message}</p>
-        ) : null}
+        <FieldErrorText message={errors.acceptTerms?.message} />
       </div>
 
       <Button

@@ -11,9 +11,9 @@ import {
   Input,
 } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
 import { MetaBadge } from '@/components/shared/MetaBadge';
 import { Field } from '@/app/result/ui/FormSection';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 export type EuRepGuestAccountDraft = {
   firstName: string;
@@ -30,7 +30,6 @@ export type EuRepGuestAccountErrors = Partial<
 type EuRepCheckoutGuestCheckboxesProps = {
   value: EuRepGuestAccountDraft;
   errors: EuRepGuestAccountErrors;
-  submitCount: number;
   onChange: (patch: Partial<EuRepGuestAccountDraft>) => void;
   onClearError?: (key: keyof EuRepGuestAccountDraft) => void;
 };
@@ -38,7 +37,6 @@ type EuRepCheckoutGuestCheckboxesProps = {
 export function EuRepCheckoutGuestCheckboxes({
   value,
   errors,
-  submitCount,
   onChange,
   onClearError,
 }: EuRepCheckoutGuestCheckboxesProps) {
@@ -52,42 +50,39 @@ export function EuRepCheckoutGuestCheckboxes({
 
   return (
     <div className="flex flex-col gap-2">
-      <Checkbox
-        variant="secondary"
-        isSelected={value.acceptTerms}
-        onChange={(checked) => {
-          onChange({ acceptTerms: checked });
-          if (checked) onClearError?.('acceptTerms');
-        }}
-      >
-        <CheckboxControl>
-          <CheckboxIndicator />
-        </CheckboxControl>
-        <CheckboxContent>
-          <span className="text-sm leading-snug">
-            {tSummary('acceptTermsPrefix')}
-            <NavigationLink
-              href="/terms"
-              target="_blank"
-              chevron="none"
-              size="sm"
-              className="ml-1 inline-flex align-baseline"
-              onClick={stopCheckboxActivation}
-              onPointerDown={stopCheckboxActivation}
-            >
-              {tFooter('termsOfService')}
-              <ArrowSquareOut size={14} weight="bold" aria-hidden />
-            </NavigationLink>
-            <ValidationRequiredBadge
-              show={Boolean(errors.acceptTerms)}
-              shakeKey={submitCount}
-              className="ml-1.5"
-            >
-              {tQuestionnaire('requiredBadge')}
-            </ValidationRequiredBadge>
-          </span>
-        </CheckboxContent>
-      </Checkbox>
+      <div className="flex flex-col gap-1.5">
+        <Checkbox
+          variant="secondary"
+          isSelected={value.acceptTerms}
+          aria-invalid={Boolean(errors.acceptTerms)}
+          onChange={(checked) => {
+            onChange({ acceptTerms: checked });
+            if (checked) onClearError?.('acceptTerms');
+          }}
+        >
+          <CheckboxControl>
+            <CheckboxIndicator />
+          </CheckboxControl>
+          <CheckboxContent>
+            <span className="text-sm leading-snug">
+              {tSummary('acceptTermsPrefix')}
+              <NavigationLink
+                href="/terms"
+                target="_blank"
+                chevron="none"
+                size="sm"
+                className="ml-1 inline-flex align-baseline"
+                onClick={stopCheckboxActivation}
+                onPointerDown={stopCheckboxActivation}
+              >
+                {tFooter('termsOfService')}
+                <ArrowSquareOut size={14} weight="bold" aria-hidden />
+              </NavigationLink>
+            </span>
+          </CheckboxContent>
+        </Checkbox>
+        <FieldErrorText message={errors.acceptTerms} />
+      </div>
 
       <Checkbox
         variant="secondary"
@@ -155,7 +150,7 @@ export function EuRepCheckoutGuestFields({
               onClearError?.('firstName');
             }}
           />
-          {errors.firstName ? <p className="text-danger text-xs">{errors.firstName}</p> : null}
+          <FieldErrorText message={errors.firstName} />
         </Field>
 
         <Field label={tSummary('lastNameLabel')}>
@@ -173,7 +168,7 @@ export function EuRepCheckoutGuestFields({
               onClearError?.('lastName');
             }}
           />
-          {errors.lastName ? <p className="text-danger text-xs">{errors.lastName}</p> : null}
+          <FieldErrorText message={errors.lastName} />
         </Field>
       </div>
 
@@ -193,7 +188,7 @@ export function EuRepCheckoutGuestFields({
             onClearError?.('email');
           }}
         />
-        {errors.email ? <p className="text-danger text-xs">{errors.email}</p> : null}
+        <FieldErrorText message={errors.email} />
       </Field>
     </div>
   );

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { euRepEntityFieldsSchema } from '@/lib/validation/fields';
 import { accountKeys } from './account';
-import { billingKeys } from './billing';
+import { billingKeys, resolvePolicySiteCount, type Subscription } from './billing';
 import { documentKeys, documentSchema } from './documents';
 import { euRepKeys } from './eu-rep';
 import { env } from '@/env';
@@ -165,6 +165,8 @@ export const checkoutKindEnum = z.enum([
   'generatorTopUp',
   'generatorRenewal',
   'euRep',
+  /** Paid restart of a cancelled / expired policy or EU Rep subscription whose access ended. */
+  'subscriptionRenewal',
 ]);
 export type CheckoutKind = z.infer<typeof checkoutKindEnum>;
 
@@ -231,6 +233,42 @@ export function calculateEuRepQuote(planId: string = 'basis', entityCount = 1): 
   };
 }
 
+export type SubscriptionRenewalQuote = {
+  listPrice: number;
+  discountRate: number;
+  discountAmount: number;
+  amountDue: number;
+};
+
+/**
+ * Price of a paid restart (`subscriptionRenewal`). Policy renewals use the live
+ * active-site tier; EU Rep renews at the subscription's plan price.
+ */
+export function calculateSubscriptionRenewalQuote(
+  subscription: Subscription,
+  activePolicySiteCount: number
+): SubscriptionRenewalQuote {
+  if (subscription.productType === 'policy') {
+    const quote = calculateGeneratorPolicyQuote(
+      activePolicySiteCount,
+      resolvePolicySiteCount(subscription)
+    );
+    return {
+      listPrice: quote.listPrice,
+      discountRate: quote.discountRate,
+      discountAmount: quote.discountAmount,
+      amountDue: quote.amountDue,
+    };
+  }
+  const quote = calculateEuRepQuote(subscription.planId ?? 'basis');
+  return {
+    listPrice: quote.amountDue,
+    discountRate: 0,
+    discountAmount: 0,
+    amountDue: quote.amountDue,
+  };
+}
+
 export const euRepCheckoutEntitySchema = euRepEntityFieldsSchema;
 export type EuRepCheckoutEntity = z.infer<typeof euRepCheckoutEntitySchema>;
 
@@ -251,8 +289,10 @@ export const checkoutSessionCreateSchema = z.object({
   euRepEntities: z.array(euRepCheckoutEntitySchema).optional(),
   /** Link the new hosted policy to this existing contract (no extra EU Rep charge). */
   euRepLinkContractId: z.string().min(1).optional(),
-  /** Which policy subscription to renew (`generatorRenewal` only). */
+  /** Which subscription to renew (`generatorRenewal`, `subscriptionRenewal`). */
   subscriptionId: z.string().min(1).optional(),
+  /** In-app path Payrexx sends the member back to after paying or cancelling. */
+  returnUrl: z.string().min(1).optional(),
   /** Fill a prepaid slot on this policy subscription (wizard fill-slot mode). */
   fillSubscriptionId: z.string().min(1).optional(),
   /** Optional checkout promo code (prototype — validated server-side). */
@@ -273,9 +313,35 @@ export const checkoutSessionSchema = z.object({
 });
 export type CheckoutSession = z.infer<typeof checkoutSessionSchema>;
 
+/** Context for rendering the Payrexx order summary (POC). */
+export const checkoutSessionOrderContextSchema = z.object({
+  domain: z.string().optional(),
+  legalEntity: z.string().optional(),
+  euRepPlanId: z.string().optional(),
+  /** Display label for EU Rep plan (localized). */
+  euRepPlanLabel: z.string().optional(),
+  policyAmountExclVat: z.number().nonnegative().optional(),
+  euRepAmountExclVat: z.number().nonnegative().optional(),
+  siteCount: z.number().int().positive().optional(),
+});
+
+/** Session as shown on the (simulated) Payrexx hosted payment page. */
+export const checkoutSessionDetailsSchema = checkoutSessionSchema.extend({
+  status: z.enum(['pending', 'completed']),
+  kind: checkoutKindEnum,
+  /** Line item shown to the payer, e.g. "EU Representation — Plus". */
+  description: z.string(),
+  subscriptionId: z.string().optional(),
+  returnUrl: z.string().optional(),
+  orderContext: checkoutSessionOrderContextSchema.optional(),
+});
+export type CheckoutSessionDetails = z.infer<typeof checkoutSessionDetailsSchema>;
+
 export const checkoutCompleteResultSchema = z.object({
   sessionId: z.string(),
   orderId: z.string(),
+  /** Subscription created or renewed by this checkout. */
+  subscriptionId: z.string().optional(),
   document: documentSchema.optional(),
   activeSubscriptionCount: z.number().int().nonnegative(),
   nextPaymentDate: z.string().nullable(),
@@ -371,7 +437,37 @@ export type StartPolicyTrialResult = z.infer<typeof startPolicyTrialResultSchema
 export const checkoutKeys = {
   payrexxPortal: ['checkout', 'payrexx-portal'] as const,
   pending: ['checkout', 'pending'] as const,
+  session: (id: string) => ['checkout', 'sessions', id] as const,
 };
+
+/** Query param the subscription tab reads to show the renewal confirmation. */
+export const SUBSCRIPTION_RENEWED_PARAM = 'renewed';
+
+export function useCheckoutSession(id: string | null) {
+  return useQuery({
+    queryKey: checkoutKeys.session(id ?? ''),
+    queryFn: () => request<CheckoutSessionDetails>(`/checkout/sessions/${id ?? ''}`),
+    enabled: Boolean(id),
+  });
+}
+
+/**
+ * Start a paid restart of a subscription whose access already ended. Resolves
+ * with the Payrexx session; the caller navigates to `redirectUrl`.
+ */
+export function useStartSubscriptionRenewal() {
+  return useMutation({
+    mutationFn: (input: { subscriptionId: string; returnUrl: string }) =>
+      request<CheckoutSession>('/checkout/sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          kind: 'subscriptionRenewal',
+          subscriptionId: input.subscriptionId,
+          returnUrl: input.returnUrl,
+        } satisfies CheckoutSessionCreate),
+      }),
+  });
+}
 
 export function usePendingCheckout(site?: string | null) {
   const normalizedSite =

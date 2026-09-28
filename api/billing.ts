@@ -372,6 +372,20 @@ export function subscriptionGrantsProductAccess(
   return false;
 }
 
+/**
+ * Cancelled / expired and past its last access day — continuing starts a new
+ * paid term, so the member pays on Payrexx first. Before that day, continuing
+ * only turns renewal back on.
+ */
+export function subscriptionRequiresPaidRenewal(
+  subscription: Subscription | null | undefined,
+  now = new Date()
+): boolean {
+  if (!subscription) return false;
+  if (subscription.status !== 'cancelled' && subscription.status !== 'expired') return false;
+  return !subscriptionGrantsProductAccess(subscription, now);
+}
+
 /** Whether a subscription is still in its unpaid trial window. */
 export function isSubscriptionOnTrial(
   subscription: Subscription | undefined,

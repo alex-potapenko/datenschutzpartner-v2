@@ -42,12 +42,12 @@ export function LoginLayoutShell() {
     <LoginDevProvider>
       <main className="bg-background grid min-h-dvh grid-cols-1 lg:grid-cols-2">
         <div className="border-border order-2 flex min-h-dvh flex-col lg:order-1 lg:border-r">
-          <div className="shrink-0 px-4 lg:px-8">
+          <div className="border-border shrink-0 border-b px-4 lg:px-8">
             <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
               <LoginRouteHeader backHref={backHref} backLabel={backLabel} />
             </div>
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:py-12 lg:px-8">
+          <div className="mt-48 flex flex-1 flex-col items-center justify-start px-4 pb-8 sm:mt-52 sm:pb-12 lg:px-8">
             <div
               className={`relative mx-auto grid w-full max-w-md grid-cols-1 ${formStageMinHeightClass} lg:mx-auto`}
             >

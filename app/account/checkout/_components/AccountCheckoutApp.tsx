@@ -31,11 +31,15 @@ import {
   VolumeDiscountThresholdsDialog,
 } from '@/components/shared/VolumeDiscountDialog';
 import { privacyPolicyAccountHref, safeAccountReturnTo } from '@/lib/account-routes';
-import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
-import { ConfirmingPaymentScreen } from '@/components/shared/ConfirmingPaymentScreen';
+import { payrexxOrderLinesFromTrialCheckout } from '@/lib/payrexx-order-lines';
+import { usePayrexxOrderLineLabels } from '@/lib/use-payrexx-order-line-labels';
+import { usePayrexxPaymentFlow } from '@/lib/use-payrexx-payment-flow';
+import { PayrexxPaymentScreen } from '@/components/shared/PayrexxPaymentScreen';
 import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
 import { AccountCheckoutConfirmation } from '@/app/account/checkout/_components/AccountCheckoutConfirmation';
+import { CheckoutPaymentButtonSpinner } from '@/components/shared/CheckoutPaymentButtonSpinner';
 import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 const GENERATOR_INCLUDED_KEYS = [
   'services',
@@ -51,16 +55,16 @@ const GENERATOR_INCLUDED_KEYS = [
 function AccountCheckoutPageShell({
   backHref,
   backLabel,
-  title,
+  detailTitle,
   children,
 }: {
   backHref: string;
   backLabel: string;
-  title?: string;
+  detailTitle: string;
   children: ReactNode;
 }) {
   return (
-    <PolicyDetailPageShell backHref={backHref} backLabel={backLabel} detailTitle={title}>
+    <PolicyDetailPageShell backHref={backHref} backLabel={backLabel} detailTitle={detailTitle}>
       {children}
     </PolicyDetailPageShell>
   );
@@ -178,9 +182,8 @@ function PolicyCheckoutPanel({
         layout="standalone"
         pricePeriod={tp('pricePeriod')}
         tabsAriaLabel={tp('siteCountLabel')}
-        showPlanTitle={false}
         selectPlanTitle={t('title')}
-        includedTitle={tp('includedTitle')}
+        includedTitle={tp('includedToggle')}
         features={GENERATOR_INCLUDED_KEYS.map((key) => tGenerator(`features.${key}`))}
         legal={tGenerator.rich('legalCheckout', {
           terms: (chunks) => <Link href="/terms">{chunks}</Link>,
@@ -195,8 +198,11 @@ function PolicyCheckoutPanel({
 
 export function AccountCheckoutApp() {
   const t = useTranslations('account.checkout');
+  const tNav = useTranslations('account.nav');
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
+  const checkoutTopBarTitle = `${tNav('privacyPolicy')} Checkout`;
+  const orderLabels = usePayrexxOrderLineLabels();
   const searchParams = useSearchParams();
   const siteParam = searchParams.get('site');
   const { isChecking } = useRequireSession(ACCOUNT_CHECKOUT_HREF);
@@ -205,7 +211,8 @@ export function AccountCheckoutApp() {
   const euRepContracts = useEuRepContracts();
   const completePending = useCompletePendingCheckout(siteParam);
   const discountDialog = useOverlayState();
-  const { phase: paymentPhase, run: runPaymentConfirmation } = useConfirmingPaymentFlow();
+  // POC STUB (Payrexx): in-page simulation; production redirects to the session's Payrexx URL.
+  const payrexx = usePayrexxPaymentFlow();
   const [confirmation, setConfirmation] = useState<{
     domain: string;
     legalEntity: string;
@@ -252,41 +259,54 @@ export function AccountCheckoutApp() {
   };
   const euRepAmount = checkoutQuote?.euRepAmount ?? 0;
   const subtotalExclVat = checkoutQuote?.subtotalExclVat ?? quote.amountDue;
+  const payrexxOrderLines = useMemo(
+    () =>
+      payrexxOrderLinesFromTrialCheckout({
+        domain,
+        policyAmountExclVat: quote.amountDue,
+        euRepAmountExclVat: buyingEuRep ? euRepAmount : 0,
+        legalEntity,
+        labels: orderLabels,
+      }),
+    [buyingEuRep, domain, euRepAmount, legalEntity, orderLabels, quote.amountDue]
+  );
 
-  async function handlePay() {
-    try {
-      await runPaymentConfirmation(async () => {
-        await completePending.mutateAsync();
-        setConfirmation({
-          domain,
-          legalEntity,
-          policyAmount: quote.amountDue,
-          euRepAmount,
-          buyingEuRep,
-        });
+  function handlePay() {
+    void payrexx.open(async () => {
+      await completePending.mutateAsync();
+      setConfirmation({
+        domain,
+        legalEntity,
+        policyAmount: quote.amountDue,
+        euRepAmount,
+        buyingEuRep,
       });
+    });
+  }
+
+  async function handlePayrexxPay() {
+    try {
+      await payrexx.pay();
     } catch {
       toast.error(t('paymentFailed'));
     }
   }
 
-  const isPaying = paymentPhase !== 'idle' || completePending.isPending;
+  const isContinueLoading = payrexx.isOpening;
 
   const payButton = (
     <Button
       variant="primary"
       size="lg"
-      className="font-display h-14 w-full gap-2 rounded-full text-base"
-      onPress={() => {
-        void handlePay();
-      }}
-      isDisabled={isPaying}
+      className={cn(
+        'font-display h-14 w-full gap-2 rounded-full text-base',
+        isContinueLoading && '!opacity-100'
+      )}
+      onPress={handlePay}
+      isDisabled={isContinueLoading}
     >
-      {isPaying ? (
-        <span className="inline-flex items-center gap-2">
-          <Spinner size="sm" aria-hidden />
-          {t('processing')}
-        </span>
+      {isContinueLoading ? (
+        <CheckoutPaymentButtonSpinner label={t('processing')} />
       ) : (
         <>
           {t('payCta')}
@@ -296,45 +316,19 @@ export function AccountCheckoutApp() {
     </Button>
   );
 
-  if (isChecking || pending.isLoading || subscriptions.isLoading) {
-    return (
-      <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
-        <CheckoutStatusPanel center>
-          <Spinner aria-label={tAccount('loading')} />
-        </CheckoutStatusPanel>
-      </AccountCheckoutPageShell>
-    );
-  }
-
-  if (pending.isError) {
-    return (
-      <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
-        <CheckoutStatusPanel>
-          <p className="text-foreground text-base">{tAccount('error')}</p>
-          <Button variant="outline" onPress={() => void pending.refetch()}>
-            {tAccount('retry')}
-          </Button>
-        </CheckoutStatusPanel>
-      </AccountCheckoutPageShell>
-    );
-  }
-
-  if (!pendingData?.needed) {
-    return (
-      <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
-        <CheckoutStatusPanel>
-          <h2 className="text-foreground text-2xl font-semibold">{t('emptyTitle')}</h2>
-          <p className="text-foreground max-w-md text-sm leading-relaxed">{t('emptyBody')}</p>
-        </CheckoutStatusPanel>
-      </AccountCheckoutPageShell>
-    );
-  }
-
-  if (paymentPhase === 'confirming' || paymentPhase === 'confirmed') {
+  if (payrexx.phase !== 'idle') {
     return (
       <PaymentConfirmationCrossfade
-        phase={paymentPhase}
-        confirming={<ConfirmingPaymentScreen />}
+        phase={payrexx.phase}
+        confirming={
+          <PayrexxPaymentScreen
+            items={payrexxOrderLines}
+            amountExclVat={subtotalExclVat}
+            isPaying={payrexx.isPaying}
+            onPay={() => void handlePayrexxPay()}
+            onCancel={payrexx.cancel}
+          />
+        }
         confirmed={
           confirmation ? (
             <AccountCheckoutConfirmation
@@ -350,8 +344,58 @@ export function AccountCheckoutApp() {
     );
   }
 
+  if (isChecking || pending.isLoading || subscriptions.isLoading) {
+    return (
+      <AccountCheckoutPageShell
+        backHref={backHref}
+        backLabel={backLabel}
+        detailTitle={checkoutTopBarTitle}
+      >
+        <CheckoutStatusPanel center>
+          <Spinner aria-label={tAccount('loading')} />
+        </CheckoutStatusPanel>
+      </AccountCheckoutPageShell>
+    );
+  }
+
+  if (pending.isError) {
+    return (
+      <AccountCheckoutPageShell
+        backHref={backHref}
+        backLabel={backLabel}
+        detailTitle={checkoutTopBarTitle}
+      >
+        <CheckoutStatusPanel>
+          <p className="text-foreground text-base">{tAccount('error')}</p>
+          <Button variant="outline" onPress={() => void pending.refetch()}>
+            {tAccount('retry')}
+          </Button>
+        </CheckoutStatusPanel>
+      </AccountCheckoutPageShell>
+    );
+  }
+
+  if (!pendingData?.needed) {
+    return (
+      <AccountCheckoutPageShell
+        backHref={backHref}
+        backLabel={backLabel}
+        detailTitle={checkoutTopBarTitle}
+      >
+        <CheckoutStatusPanel>
+          <h2 className="text-foreground text-2xl font-semibold">{t('emptyTitle')}</h2>
+          <p className="text-foreground max-w-md text-sm leading-relaxed">{t('emptyBody')}</p>
+        </CheckoutStatusPanel>
+      </AccountCheckoutPageShell>
+    );
+  }
+
   return (
-    <AccountCheckoutPageShell backHref={backHref} backLabel={backLabel} title={t('title')}>
+    <AccountCheckoutPageShell
+      backHref={backHref}
+      backLabel={backLabel}
+      detailTitle={checkoutTopBarTitle}
+    >
       <PolicyCheckoutPanel
         domain={domain}
         isFillSlot={isFillSlot}

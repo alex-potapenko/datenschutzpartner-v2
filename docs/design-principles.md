@@ -24,10 +24,15 @@
 
 - **Body / UI default:** Geist (`--font-geist-sans` via `next/font/google`) — paragraphs, forms, most interface copy.
 - **Display / accent:** Geometos Neue (`next/font/local` → `--font-geometos-neue`, utility `font-display`, global `h1`–`h3`) — headlines, nav labels, buttons, and selected emphasis lines. Font file: `public/fonts/GeometosNeueBold.ttf` (bold only, mapped across the full weight range) (must be present in the repo).
+- **English button labels (`messages/en.json`):** use title case (e.g. `Continue with Payment`, `Cancel and Return`). Short conjunctions and prepositions stay lowercase unless they open the label (`and`, `to`, `with`, `for`, `in`, …). German copy is unchanged.
 
 ## Animation
 
 Use `motion/react` for transitions HeroUI/CSS can't express (page, tab, list enter/exit). Animations live in `'use client'` leaves only. Always respect `prefers-reduced-motion` — gate non-essential motion behind `useReducedMotion()` from `motion/react`.
+
+Inline validation messages under inputs, text areas, selects and checkboxes use `FieldErrorText` (`components/shared/FieldErrorText.tsx`) — never a bare `<p className="text-danger …">`. It fades and slides the line in when the message appears and out when it clears; a changed message on an already visible line does not replay the animation.
+
+Required state: a single control (label + input, text area, select, checkbox) shows its "Required" message as `FieldErrorText` under the control. The `ValidationRequiredBadge` chip next to the label is reserved for grouped questions — choice rows, the address block as a whole, and multi-control rows such as retention amount + unit.
 
 In-page anchor navigation (`href="#…"`) uses native smooth scrolling via `scroll-behavior: smooth` on `html` (also gated by `prefers-reduced-motion`).
 

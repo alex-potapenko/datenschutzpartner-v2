@@ -3,7 +3,7 @@
     "appName": "Datenschutzpartner",
     "loading": "Loading …",
     "error": "Something went wrong",
-    "retry": "Try again",
+    "retry": "Try Again",
     "notFound": "Page not found",
     "backHome": "Home Page",
     "toggleTheme": "Toggle theme",
@@ -64,11 +64,28 @@
   },
   "checkout": {
     "paymentConfirmation": {
-      "confirmingTitle": "Confirming payment",
       "orderPaidTitle": "Order successfully paid.",
       "orderTrialTitle": "Your order is confirmed.",
-      "viewSubscription": "View subscription",
-      "viewPolicies": "View policies"
+      "viewSubscription": "View Subscription",
+      "viewPolicies": "View Policies"
+    },
+    "payrexx": {
+      "metaTitle": "Payment — Payrexx",
+      "brand": "Payrexx",
+      "simulation": "Simulation",
+      "orderItems": "Products",
+      "amountLabel": "Amount due",
+      "vatNote": "incl. VAT",
+      "paymentMethod": "Payment method",
+      "testCard": "Mastercard •••• 4444",
+      "payCta": "Pay {amount}",
+      "processing": "Processing…",
+      "cancel": "Cancel and Return",
+      "failed": "The payment could not be completed. Please try again.",
+      "notFound": "This payment session no longer exists.",
+      "alreadyPaid": "This payment session has already been completed.",
+      "backToAccount": "Back to My Account",
+      "loading": "Loading payment"
     }
   },
   "meta": {
@@ -160,8 +177,8 @@
     "featureEuDescription": "You may be legally required to appoint a representative.",
     "featureAcademyTitle": "Academy",
     "featureAcademyDescription": "Learn about privacy, compliance and data protection.",
-    "getStarted": "Get started",
-    "learnMore": "Learn more",
+    "getStarted": "Get Started",
+    "learnMore": "Learn More",
     "explore": "Explore",
     "scanPlaceholder": "Enter your website",
     "scanUrlAria": "Website URL",
@@ -170,7 +187,7 @@
   "aboutSection": {
     "title": "About us.",
     "body": "With GDPR and the new Swiss Data Protection Act (FADP) in force since September 2023, we help companies, individuals and organisations navigate complex data protection law. We offer flexible, affordable solutions — from our Privacy Generator to our Academy, newsletter and podcast.",
-    "learnMore": "Learn more",
+    "learnMore": "Learn More",
     "imageAlt": "Datenschutzpartner team"
   },
   "about": {
@@ -224,7 +241,7 @@
     "twoFactorSetupTitle": "Set up two-factor authentication",
     "twoFactorVerifyBody": "Enter the 6-digit code from your authenticator app",
     "twoFactorSetupBody": "Enter the 6-digit code from your authenticator app to finish setup.",
-    "recoveryCodeBody": "Enter one of the recovery codes you saved when you set up two-factor authentication.",
+    "recoveryCodeBody": "Enter one of your saved two-factor recovery codes.",
     "recoveryCodePlaceholder": "ABCDE-FGHIJ",
     "useRecoveryCode": "Use a recovery code instead",
     "useAuthenticatorCode": "Use your authenticator code instead",
@@ -251,7 +268,7 @@
     "description": "Enter your email address and we will send you a link to reset your password.",
     "email": "Email",
     "emailPlaceholder": "jane@example.com",
-    "submit": "Send link",
+    "submit": "Send Link",
     "backToLogin": "Log In",
     "success": "If an account exists for this email, we have sent a reset link.",
     "prototypeHint": "Prototype: the email is not actually sent.",
@@ -271,9 +288,9 @@
     "requestNewLink": "Request a new link",
     "twoFactorRequiredTitle": "Secure your account",
     "twoFactorRequiredBody": "Your account requires two-factor authentication. Set it up now to finish signing in.",
-    "startTwoFactorCta": "Set up two-factor authentication",
+    "startTwoFactorCta": "Set Up Two-Factor Authentication",
     "skipTwoFactor": "Skip for now",
-    "finishCta": "Finish and sign in",
+    "finishCta": "Finish and Sign In",
     "success": "Your account is ready.",
     "completeFailed": "We could not complete the setup. Please try the link again."
   },
@@ -290,11 +307,11 @@
     "codeLabel": "Authentication code",
     "codeInvalid": "This code is not valid. Check your app and try again.",
     "prototypeHint": "Prototype: the code valid right now is {code}.",
-    "activateCta": "Enable two-factor authentication",
+    "activateCta": "Enable Two-Factor Authentication",
     "enableCta": "Enable",
     "proactiveTitle": "Secure your account",
     "proactiveBody": "Add two-factor authentication so only you can sign in, even if someone learns your password.",
-    "proactiveCta": "Set up two-factor authentication",
+    "proactiveCta": "Set Up Two-Factor Authentication",
     "proactiveLater": "Maybe later",
     "enableSuccess": "Two-factor authentication is now enabled.",
     "cancel": "Cancel",
@@ -302,12 +319,12 @@
     "recoveryBody": "Each code works once if you lose access to your authenticator app. Store them somewhere safe — they are shown only now.",
     "recoveryCopy": "Copy",
     "recoveryDownload": "Download",
-    "recoveryConfirm": "I have saved my recovery codes.",
+    "recoveryConfirm": "I Have Saved My Recovery Codes.",
     "recoveryDone": "Done",
     "recoveryAvailableLabel": "Recovery codes available:",
     "regenerateTitle": "New recovery codes",
     "regenerateBody": "Confirm with your authenticator code. The previous recovery codes stop working immediately.",
-    "regenerateCta": "Generate new codes",
+    "regenerateCta": "Generate New Codes",
     "regenerateSuccess": "New recovery codes generated.",
     "disableTitle": "Disable two-factor authentication",
     "disableBody": "Confirm with your password. Your authenticator entry and all recovery codes will be deleted.",
@@ -418,7 +435,7 @@
         }
       },
       "joinCta": "Discover",
-      "seeMaterialsCta": "See materials",
+      "seeMaterialsCta": "See Materials",
       "stats": {
         "ariaLabel": "Academy at a glance",
         "webinars": {
@@ -563,7 +580,7 @@
     "metaTitle": "Affiliate program — Datenschutzpartner",
     "metaDescription": "A 10 percent commission on referred purchases of Datenschutzpartner offers. Participation in the affiliate program is free.",
     "title": "Earn money now with the affiliate program of Datenschutzpartner!",
-    "registerCta": "Register for free",
+    "registerCta": "Register for Free",
     "heroImageAlt": "Two people shaking hands over a desk after closing a deal",
     "stats": {
       "ariaLabel": "Affiliate program at a glance",
@@ -842,7 +859,7 @@
       },
       "newsletterLead": "With our newsletter we inform you at least once a month about news and data protection tips."
     },
-    "contactCta": "Contact us",
+    "contactCta": "Contact Us",
     "back": "Back",
     "restart": "Start questionnaire again",
     "topBarBack": "Back",
@@ -902,7 +919,7 @@
       "tabsAriaLabel": "EU representation option",
       "selectExistingRequired": "Select a contract to continue.",
       "unnamedEntity": "Unnamed legal entity",
-      "existingCtaNamed": "Link this policy to {entity}",
+      "existingCtaNamed": "Link This Policy to {entity}",
       "chooseBudget": "Add Budget",
       "chooseStandard": "Add Standard",
       "choosePremium": "Add Premium",
@@ -970,13 +987,13 @@
       "emailHintSignedIn": "This is the email on your account. The policy is published to this account.",
       "acceptTermsPrefix": "I accept the",
       "newsletter": "Send me the data protection newsletter",
-      "sendConfirmationCta": "Create account",
+      "sendConfirmationCta": "Create Account",
       "creatingAccountTitle": "Creating your account",
       "creatingPolicyTitle": "Creating your policy",
       "createPolicyConfirmTitle": "Create your privacy policy?",
       "createPolicyConfirmBody": "Please make sure all details are entered correctly before we generate your policy.",
       "keepEditing": "Keep editing",
-      "continueCta": "Continue to account",
+      "continueCta": "Continue to Account",
       "activate": {
         "title": "Activate your account",
         "body": "We sent a confirmation link to <strong>{email}</strong>. Open it to activate your account.",
@@ -1005,7 +1022,7 @@
       "slotIncluded": "Prepaid on subscription #{id} — no additional generator charge",
       "fillSlotTitle": "Publish to your subscription",
       "fillSlotDescription": "This site uses a prepaid slot on subscription #{id}. Complete the setup to publish.",
-      "publishCta": "Publish policy",
+      "publishCta": "Publish Policy",
       "discountLine": "{percent}% volume discount",
       "euRepLine": "EU representation",
       "euRepLineDetailNamed": "{entity} · 12 months",
@@ -1015,9 +1032,9 @@
       "vatLine": "VAT ({rate}%)",
       "totalInclVat": "Total (incl. VAT)",
       "dueToday": "Due today",
-      "startTrialCta": "Show policy",
+      "startTrialCta": "Show Policy",
       "startTrialNote": "By clicking this button, you confirm your order and agree to pay within {days} days.",
-      "payCta": "Continue with payment",
+      "payCta": "Continue with Payment",
       "redirecting": "Redirecting to Payrexx…",
       "processing": "Starting trial…",
       "trialStarted": "Your trial has started. Your policy is being published.",
@@ -1095,7 +1112,6 @@
       "title": "Complete your privacy policy.",
       "scanAgain": "Scan again",
       "continue": "Continue",
-      "createPolicy": "Create policy",
       "createPolicy": "Create policy",
       "validationError": "Please complete all required fields.",
       "optionalBadge": "Optional",
@@ -1213,7 +1229,12 @@
         "hint": "Swiss commercial register (UID) lookup for companies based in Switzerland.",
         "searching": "Searching registry…",
         "resultsLabel": "Matching companies",
-        "empty": "No matching companies found."
+        "empty": "No matching companies found.",
+        "openSearch": "Search the commercial register",
+        "dialogTitle": "Find your company",
+        "minChars": "Enter at least 2 characters of the company name or UID.",
+        "select": "Select",
+        "selectCompany": "Select {name}"
       },
       "countryLookup": {
         "resultsLabel": "Matching countries",
@@ -1234,7 +1255,7 @@
       "fillSlotTitle": "Publish to your subscription",
       "fillSlotDescription": "This site uses a prepaid slot on subscription #{id}. Complete the setup to publish.",
       "fillSlotPlanTitle": "Prepaid site slot",
-      "publishCta": "Publish policy",
+      "publishCta": "Publish Policy",
       "discountLine": "{percent}% volume discount",
       "euRepLine": "EU representation",
       "euRepLineDetail": "One legal entity for 12 months",
@@ -1249,11 +1270,11 @@
       "processing": "Processing payment…",
       "paymentConfirmed": "Payment confirmed.",
       "paymentFailed": "Payment could not be completed. Please try again.",
-      "payCta": "Pay {total} & publish"
+      "payCta": "Pay {total} & Publish"
     },
     "generatedPolicy": {
       "successBody": "Payment confirmed. Your policy is hosted on our servers and will be kept legally up to date automatically — you'll find it any time in your account.",
-      "goToAccount": "Go to my account"
+      "goToAccount": "Go to My Account"
     }
   },
   "generatorPage": {
@@ -1497,7 +1518,7 @@
       "metaTitle": "Terms of participation for the affiliate program — Datenschutzpartner",
       "metaDescription": "Rights and obligations of participants in the Datenschutzpartner affiliate program.",
       "pageTitle": "Terms of participation for the affiliate program",
-      "backToAffiliate": "Back to the affiliate program"
+      "backToAffiliate": "Back to the Affiliate Program"
     }
   },
   "account": {
@@ -1506,7 +1527,7 @@
     "title": "My Account",
     "loading": "Loading your account …",
     "error": "We couldn't load this section.",
-    "retry": "Try again",
+    "retry": "Try Again",
     "membershipStatus": {
       "active": "Academy member",
       "processing": "Processing",
@@ -1595,16 +1616,16 @@
       "empty": {
         "title": "Add your first website",
         "body": "Scan a website and we generate a legally reviewed privacy policy in minutes. Everything else — EU representation, cookie banner, imprint — plugs into the same account.",
-        "cta": "Add website"
+        "cta": "Add Website"
       },
       "addSite": {
         "eyebrow": "More websites",
         "title": "Run another site? Add it in minutes.",
-        "cta": "Add website"
+        "cta": "Add Website"
       },
       "products": {
         "open": "Open",
-        "learnMore": "Learn more",
+        "learnMore": "Learn More",
         "daysLeft": "{count, plural, one {# day left} other {# days left}}",
         "privacyPolicy": {
           "body": "Hosted, always up to date, and embedded on your website.",
@@ -1669,12 +1690,12 @@
       "empty": {
         "title": "No website selected",
         "body": "Add a website to generate its privacy policy.",
-        "cta": "Add website"
+        "cta": "Add Website"
       },
       "noPolicy": {
         "title": "No privacy policy yet",
         "body": "This website does not have a hosted privacy policy. Generate one when you are ready.",
-        "cta": "Generate privacy policy"
+        "cta": "Generate Privacy Policy"
       }
     },
     "policyUpdates": {
@@ -1697,7 +1718,7 @@
         "remaining": "{remaining} of {total} left",
         "exhausted": "No manual updates left",
         "resets": "Available again on {date}",
-        "cta": "Update now",
+        "cta": "Update Now",
         "running": "Scanning …",
         "success": "Your privacy policy has been updated.",
         "error": "The scan could not be started.",
@@ -1721,7 +1742,7 @@
         "notSet": "—",
         "dpoSection": "Data protection officer",
         "screenTitle": "Edit your basic information.",
-        "save": "Update policy",
+        "save": "Update Policy",
         "reset": "Reset to defaults",
         "confirmTitle": "Update your privacy policy?",
         "confirmBody": "Your changes are applied to the published privacy policy right away. No new scan is started.",
@@ -1732,7 +1753,7 @@
       "services": {
         "title": "Detected services",
         "body": "Services found on your website. Hide anything the scanner got wrong, add what it missed, or request a service that is not in our list. Every change updates your privacy policy without a new scan.",
-        "add": "Add service",
+        "add": "Add Service",
         "request": "Request service",
         "hide": "Hide",
         "restore": "Restore",
@@ -1752,7 +1773,7 @@
         "requestName": "Service name",
         "requestUrl": "Website",
         "requestNote": "What is it used for?",
-        "requestCta": "Send request",
+        "requestCta": "Send Request",
         "requestConfirmationTitle": "Request sent",
         "requestConfirmationBody": "We'll be in touch once we've reviewed your request.",
         "done": "Done",
@@ -1777,7 +1798,7 @@
       }
     },
     "comingSoon": {
-      "notify": "Notify when available",
+      "notify": "Notify When Available",
       "notifySuccess": "We'll email you as soon as this is available for {site}.",
       "yourAccount": "your account",
       "cookieBanner": {
@@ -1810,12 +1831,13 @@
       "noneForSite": "No subscription covers this website yet.",
       "noPayments": "No payments for this website yet.",
       "allSubscriptionsHint": "Looking for everything across all websites?",
-      "allSubscriptionsCta": "All subscriptions",
+      "allSubscriptionsCta": "All Subscriptions",
       "paidLabel": "Paid",
       "renewalLabel": "Renewal",
       "duePaymentLabel": "Due payment",
       "renewalAfterPaymentNote": "Shown after payment",
       "notifyWhenAvailable": "Notify",
+      "comingSoonNotifyNote": "We'll email you as soon as this product is available.",
       "enable": "Enable"
     },
     "allSubscriptions": {
@@ -1827,7 +1849,7 @@
       "colContracts": "Contracts",
       "serviceEmpty": "Not active on any website yet.",
       "comingSoonBody": "Not available yet — we're building it.",
-      "comingSoonCta": "Learn more"
+      "comingSoonCta": "Learn More"
     },
     "subscriptions": {
       "title": "Subscription overview",
@@ -1847,6 +1869,15 @@
       "empty": "No subscriptions yet.",
       "billingDetails": "Billing details"
     },
+    "renewalCheckout": {
+      "metaTitle": "Renew subscription — Datenschutzpartner",
+      "title": "Renew subscription",
+      "emptyTitle": "Nothing to pay right now",
+      "emptyBody": "This subscription does not need a paid renewal.",
+      "failed": "The payment could not be started. Please try again.",
+      "websitesDetail": "{count, plural, one {# website} other {# websites}} · 12 months",
+      "euRepPlanLine": "EU representation — {plan}"
+    },
     "checkout": {
       "metaTitle": "Checkout — Datenschutzpartner",
       "title": "Complete your order",
@@ -1855,7 +1886,7 @@
       "emptyBody": "There is no open trial checkout for your account.",
       "redirecting": "Redirecting to Payrexx…",
       "processing": "Processing payment…",
-      "payCta": "Continue with payment",
+      "payCta": "Continue with Payment",
       "paymentConfirmed": "Payment confirmed.",
       "paymentFailed": "Payment could not be completed. Please try again.",
       "cancelModal": {
@@ -1873,7 +1904,7 @@
       "trialEndsOn": "Trial ends on {date}",
       "trialExplainerLead": "Your privacy policy is fully available during your trial.",
       "trialExplainerBody": "To keep your policy active and hosted on your website, complete your payment before the trial ends. If we don't receive your payment in time, access to your policy will be paused.",
-      "cta": "Go to checkout"
+      "cta": "Go to Checkout"
     },
     "generatorCheckout": {
       "metaTitle": "New policy — Privacy Policy Generator",
@@ -1904,7 +1935,7 @@
       "failed": "Payment could not be completed. Please try again.",
       "success": "Subscription added. You now have {allowance, plural, one {# active subscription} other {# active subscriptions}}.",
       "cancel": "Cancel",
-      "payCta": "Continue with payment",
+      "payCta": "Continue with Payment",
       "confirmationDetail": "{count, plural, one {# website in subscription} other {# websites in subscription}}"
     },
     "euRepCheckout": {
@@ -1931,7 +1962,7 @@
       "processing": "Processing payment…",
       "failed": "Payment could not be completed. Please try again.",
       "success": "EU representation is active.",
-      "payCta": "Continue with payment",
+      "payCta": "Continue with Payment",
       "checkoutConfirm": {
         "title": "Continue with payment?",
         "body": "Please make sure all details are entered correctly before we process your order."
@@ -1956,7 +1987,7 @@
       "guest": {
         "title": "Your account",
         "body": "Create an account to complete your EU representation order.",
-        "payCta": "Continue with payment",
+        "payCta": "Continue with Payment",
         "registrationFailed": "We could not create your account. Please try again."
       },
       "validationAlert": {
@@ -2030,7 +2061,7 @@
         "listTitle": "Contracts",
         "requestsTitle": "Included requests",
         "requestsHint": "Extra request: CHF {price}",
-        "paymentRequestCta": "Create payment request",
+        "paymentRequestCta": "Create Payment Request",
         "paymentRequestSuccess": "Payment request created for CHF {price}.",
         "paymentRequestFailed": "Could not create the payment request. Please try again.",
         "colLegalEntity": "Legal entity",
@@ -2061,7 +2092,7 @@
         "postalCode": "Postal code",
         "city": "City",
         "country": "Country",
-        "save": "Save changes",
+        "save": "Save Changes",
         "saved": "Details saved.",
         "saveFailed": "Could not save. Please try again.",
         "detailTitle": "EU representation contract",
@@ -2124,12 +2155,12 @@
       "cookieNotSetup": "Not set up",
       "representationNone": "—",
       "detailTitle": "Privacy policy",
-      "backToList": "Back to policies",
+      "backToList": "Back to Policies",
       "exportStarted": "Export started. Your HTML download will begin shortly.",
       "update": "Update",
       "create": "New Policy",
       "empty": "You haven't generated any documents yet.",
-      "emptyCta": "Create your first document",
+      "emptyCta": "Create Your First Document",
       "euRepBadge": "EU Rep",
       "statusFilterLabel": "Filter by status",
       "statusAll": "All policies",
@@ -2183,7 +2214,7 @@
       "requestsAvailableLabel": "Available",
       "requestsUsageLabel": "Usage",
       "requestsAddExtraLabel": "Add extra request ({price})",
-      "requestsRequestCta": "Request",
+      "requestsRequestCta": "Order",
       "requestsRequestDialogTitle": "Request extra requests",
       "requestsRequestDialogBody": "How many additional requests do you need? Each request is billed at {price}.",
       "requestsRequestQuantityLabel": "Quantity",
@@ -2212,10 +2243,25 @@
       "continueSubscription": "Continue subscription",
       "cancelled": "Subscription cancelled.",
       "continued": "Subscription continued.",
+      "renewedDialog": {
+        "title": "Subscription renewed",
+        "body": "Thank you — your payment was received and a new 12-month term has started.",
+        "product": "Product",
+        "plan": "Plan",
+        "websites": "Websites",
+        "amountPaid": "Amount paid (incl. VAT)",
+        "invoice": "Invoice",
+        "paidOn": "Paid on",
+        "term": "New term",
+        "termRange": "{start} – {end}",
+        "nextRenewal": "Next renewal",
+        "done": "Done"
+      },
       "expiredOn": "Expired on {date}",
       "cancelledWithAccess": "Your subscription was cancelled, but you still have access until {date}.",
       "expiredWithAccess": "Your subscription has expired, but you still have access until {date}.",
       "cancelledOn": "Cancelled on {date}",
+      "accessUntil": "Access until {date}",
       "empty": "You have no active subscription for this product.",
       "notFound": "This subscription could not be found.",
       "products": {
@@ -2275,7 +2321,7 @@
       "addressTitle": "Choose billing address",
       "addressEmpty": "No saved billing addresses yet.",
       "manageLink": "Manage billing addresses",
-      "confirm": "Use selected",
+      "confirm": "Use Selected",
       "saved": "Billing details updated."
     },
     "payrexx": {
@@ -2369,7 +2415,7 @@
       "addressesTitle": "Billing address",
       "aboutIntro": "This billing address is used for all invoices and when you complete checkout for your privacy policy or EU representation.",
       "billingEmail": "Billing email address",
-      "save": "Save changes",
+      "save": "Save Changes",
       "firstName": "First name",
       "lastName": "Last name",
       "company": "Legal entity name",
@@ -2386,13 +2432,13 @@
     "logout": {
       "confirmTitle": "Log out?",
       "confirmBody": "You'll need to sign in again to access your account.",
-      "confirm": "Log out",
-      "cancel": "Stay signed in"
+      "confirm": "Log Out",
+      "cancel": "Stay Signed In"
     },
     "nonMember": {
       "title": "Become an Academy member",
       "body": "Unlock live sessions, recordings and templates with an Academy membership.",
-      "cta": "View membership"
+      "cta": "View Membership"
     }
   },
   "existingPurchase": {
@@ -2403,9 +2449,9 @@
     "euRepBody": "A contract for {legalEntity} already exists. Please log in.",
     "euRepBodyLoggedPrefix": "A contract for ",
     "euRepBodyLoggedSuffix": " already exists in your account.",
-    "goToSite": "Go to policy",
-    "goToContract": "Go to contract",
-    "logIn": "Log in",
+    "goToSite": "Go to Policy",
+    "goToContract": "Go to Contract",
+    "logIn": "Log In",
     "cancel": "Cancel"
   },
   "validation": {

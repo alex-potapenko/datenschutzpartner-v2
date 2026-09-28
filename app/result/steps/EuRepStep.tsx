@@ -50,6 +50,7 @@ import {
   euRepThirdPartyRepSchema,
   mapZodFieldErrors,
 } from '@/lib/validation/fields';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 const revealEase = [0.25, 0.1, 0.25, 1] as const;
 
@@ -614,9 +615,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
                                     }));
                                   }}
                                 />
-                                {errors.thirdPartyRepName ? (
-                                  <p className="text-danger text-xs">{errors.thirdPartyRepName}</p>
-                                ) : null}
+                                <FieldErrorText message={errors.thirdPartyRepName} />
                               </div>
 
                               <PostalAddressFields
@@ -673,9 +672,7 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
                                     }));
                                   }}
                                 />
-                                {errors.thirdPartyRepEmail ? (
-                                  <p className="text-danger text-xs">{errors.thirdPartyRepEmail}</p>
-                                ) : null}
+                                <FieldErrorText message={errors.thirdPartyRepEmail} />
                               </div>
 
                               {offerVariant === 'switch' && !offerSelected ? (

@@ -41,6 +41,11 @@
   --warning: #d97706;
   --feature-purple: #7c3aed;
   --feature-red: #dc2626;
+  /* POC STUB (Payrexx): only used by the payment simulation — delete with it. */
+  --payrexx: #00aff0;
+  --payrexx-hover: color-mix(in srgb, var(--payrexx) 85%, #000);
+  /* White on #00aff0 is ~2.4:1 — below WCAG AA, so text stays dark. */
+  --payrexx-foreground: var(--key-950);
   /* Tailwind v4 defaults (theme.css) — literal OKLCH so tree-shaking cannot drop them */
   --feature-indigo: oklch(58.5% 0.233 277.117); /* indigo-500 */
   --feature-yellow: oklch(79.5% 0.184 86.047); /* yellow-500 */

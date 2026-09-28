@@ -64,11 +64,28 @@
   },
   "checkout": {
     "paymentConfirmation": {
-      "confirmingTitle": "Zahlung wird bestätigt",
       "orderPaidTitle": "Bestellung erfolgreich bezahlt.",
       "orderTrialTitle": "Deine Bestellung ist bestätigt.",
       "viewSubscription": "Abonnement anzeigen",
       "viewPolicies": "Richtlinien anzeigen"
+    },
+    "payrexx": {
+      "metaTitle": "Zahlung — Payrexx",
+      "brand": "Payrexx",
+      "simulation": "Simulation",
+      "orderItems": "Produkte",
+      "amountLabel": "Zu zahlender Betrag",
+      "vatNote": "inkl. MWST",
+      "paymentMethod": "Zahlungsmethode",
+      "testCard": "Mastercard •••• 4444",
+      "payCta": "{amount} bezahlen",
+      "processing": "Wird verarbeitet…",
+      "cancel": "Abbrechen und zurück",
+      "failed": "Die Zahlung konnte nicht abgeschlossen werden. Bitte versuche es erneut.",
+      "notFound": "Diese Zahlungssitzung existiert nicht mehr.",
+      "alreadyPaid": "Diese Zahlungssitzung wurde bereits abgeschlossen.",
+      "backToAccount": "Zurück zu meinem Konto",
+      "loading": "Zahlung wird geladen"
     }
   },
   "meta": {
@@ -1213,7 +1230,12 @@
         "hint": "Abfrage des Schweizer Handelsregisters (UID) für in der Schweiz ansässige Unternehmen.",
         "searching": "Register wird durchsucht…",
         "resultsLabel": "Passende Unternehmen",
-        "empty": "Keine passenden Unternehmen gefunden."
+        "empty": "Keine passenden Unternehmen gefunden.",
+        "openSearch": "Im Handelsregister suchen",
+        "dialogTitle": "Unternehmen suchen",
+        "minChars": "Geben Sie mindestens 2 Zeichen des Firmennamens oder der UID ein.",
+        "select": "Auswählen",
+        "selectCompany": "{name} auswählen"
       },
       "countryLookup": {
         "resultsLabel": "Passende Länder",
@@ -1816,6 +1838,7 @@
       "duePaymentLabel": "Fällige Zahlung",
       "renewalAfterPaymentNote": "Wird nach der Zahlung angezeigt",
       "notifyWhenAvailable": "Benachrichtigen",
+      "comingSoonNotifyNote": "Wir benachrichtigen Dich per E-Mail, sobald dieses Produkt verfügbar ist.",
       "enable": "Aktivieren"
     },
     "allSubscriptions": {
@@ -1846,6 +1869,15 @@
       "manage": "Verwalten",
       "empty": "Noch keine Abonnements.",
       "billingDetails": "Rechnungsdaten"
+    },
+    "renewalCheckout": {
+      "metaTitle": "Abo erneuern — Datenschutzpartner",
+      "title": "Abo erneuern",
+      "emptyTitle": "Aktuell nichts zu bezahlen",
+      "emptyBody": "Dieses Abo benötigt keine kostenpflichtige Erneuerung.",
+      "failed": "Die Zahlung konnte nicht gestartet werden. Bitte versuche es erneut.",
+      "websitesDetail": "{count, plural, one {# Website} other {# Websites}} · 12 Monate",
+      "euRepPlanLine": "EU-Vertretung — {plan}"
     },
     "checkout": {
       "metaTitle": "Checkout — Datenschutzpartner",
@@ -2183,7 +2215,7 @@
       "requestsAvailableLabel": "Verfügbar",
       "requestsUsageLabel": "Nutzung",
       "requestsAddExtraLabel": "Zusätzliche Anfrage hinzufügen ({price})",
-      "requestsRequestCta": "Anfragen",
+      "requestsRequestCta": "Bestellen",
       "requestsRequestDialogTitle": "Zusätzliche Anfragen bestellen",
       "requestsRequestDialogBody": "Wie viele zusätzliche Anfragen benötigst Du? Jede Anfrage kostet {price}.",
       "requestsRequestQuantityLabel": "Anzahl",
@@ -2212,10 +2244,25 @@
       "continueSubscription": "Abo fortsetzen",
       "cancelled": "Abo gekündigt.",
       "continued": "Abo fortgesetzt.",
+      "renewedDialog": {
+        "title": "Abo verlängert",
+        "body": "Danke — Deine Zahlung ist eingegangen und eine neue Laufzeit von 12 Monaten hat begonnen.",
+        "product": "Produkt",
+        "plan": "Plan",
+        "websites": "Websites",
+        "amountPaid": "Bezahlter Betrag (inkl. MWST)",
+        "invoice": "Rechnung",
+        "paidOn": "Bezahlt am",
+        "term": "Neue Laufzeit",
+        "termRange": "{start} – {end}",
+        "nextRenewal": "Nächste Verlängerung",
+        "done": "Fertig"
+      },
       "expiredOn": "Abgelaufen am {date}",
       "cancelledWithAccess": "Dein Abo wurde gekündigt, aber Du hast noch Zugriff bis {date}.",
       "expiredWithAccess": "Dein Abo ist abgelaufen, aber Du hast noch Zugriff bis {date}.",
       "cancelledOn": "Gekündigt am {date}",
+      "accessUntil": "Zugriff bis {date}",
       "empty": "Du hast für dieses Produkt kein aktives Abonnement.",
       "notFound": "Dieses Abo wurde nicht gefunden.",
       "products": {

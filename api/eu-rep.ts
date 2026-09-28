@@ -10,7 +10,11 @@ import {
   postalCodeField,
   streetAddressField,
 } from '@/lib/validation/fields';
-import { isActiveSubscription, type Subscription } from './billing';
+import {
+  isActiveSubscription,
+  subscriptionGrantsProductAccess,
+  type Subscription,
+} from './billing';
 import { billingKeys } from './billing';
 import { documentKeys, type GeneratedDocument } from './documents';
 import { request } from './client';
@@ -117,7 +121,7 @@ export function canDeleteEuRepEntity(subscription?: Subscription | null): boolea
   return !isActiveSubscription(subscription);
 }
 
-/** Active contract for the Swiss legal entity named on the questionnaire. */
+/** Contract for the Swiss legal entity named on the questionnaire whose plan still grants access. */
 export function findEuRepContractForLegalEntity(
   contracts: readonly EuRepContract[],
   legalEntity: string,
@@ -130,7 +134,7 @@ export function findEuRepContractForLegalEntity(
     if (normalizeLegalEntityName(row.legalEntity) !== needle) return false;
     if (!subscriptions) return true;
     const subscription = subscriptions.find((item) => item.id === row.subscriptionId);
-    return isActiveSubscription(subscription);
+    return subscriptionGrantsProductAccess(subscription);
   });
 }
 

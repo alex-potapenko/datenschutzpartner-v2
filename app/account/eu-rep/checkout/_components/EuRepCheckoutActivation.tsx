@@ -6,7 +6,6 @@ import { Button, CaretRight, FlagBanner } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { PurchaseOrderConfirmationLayout } from '@/components/shared/PurchaseOrderConfirmationLayout';
 import { OrderConfirmationNotices } from '@/components/shared/OrderConfirmationNotices';
-import { TrialPeriodNotice } from '@/components/shared/TrialPeriodNotice';
 import { formatCheckoutChf } from '@/components/shared/ServiceCheckoutPlanCard';
 import { euRepAccountHref } from '@/lib/account-routes';
 
@@ -115,12 +114,7 @@ export function EuRepCheckoutActivation(props: EuRepCheckoutActivationProps) {
             })
       }
       orderSection={orderSection}
-      afterOrder={
-        <OrderConfirmationNotices
-          trialNotice={isLogged ? <TrialPeriodNotice variant="euRep" showPaymentHint /> : undefined}
-          newsletterOptIn={newsletterOptIn}
-        />
-      }
+      afterOrder={<OrderConfirmationNotices newsletterOptIn={newsletterOptIn} />}
       footer={footer}
     />
   );

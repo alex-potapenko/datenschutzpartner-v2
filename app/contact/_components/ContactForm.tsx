@@ -15,6 +15,7 @@ import {
   type ContactSubject,
 } from '@/api/contact-messages';
 import { Button, Input, ListBox, Select, TextArea } from '@/components/ui';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 function Field({
   id,
@@ -35,7 +36,7 @@ function Field({
         </label>
       )}
       {children}
-      {error && <p className="text-danger mt-0.5 text-xs">{error}</p>}
+      <FieldErrorText message={error} className="mt-0.5" />
     </div>
   );
 }

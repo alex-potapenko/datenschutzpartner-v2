@@ -19,7 +19,6 @@ import {
 } from '@/components/ui';
 import { Container } from '@/components/shared/Container';
 import { MetaBadge } from '@/components/shared/MetaBadge';
-import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { SummaryWelcomeBenefits } from '../components/SummaryWelcomeBenefits';
 import { Field } from '../ui/FormSection';
@@ -30,6 +29,7 @@ import { WizardBorderedColumn } from '../ui/WizardBorderedColumn';
 import { buildTrialCheckoutPayload } from '../trial-payload';
 import type { QuestionnaireFormData } from '../content/questionnaire-form';
 import { isBuyingEuRep, type EuRepState } from '../wizard-state';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 interface SummaryStepProps {
   domain: string;
@@ -97,7 +97,7 @@ export function SummaryStep({
     register,
     control,
     handleSubmit,
-    formState: { errors, submitCount },
+    formState: { errors },
   } = useForm<WelcomeFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -177,9 +177,7 @@ export function SummaryStep({
                         aria-invalid={Boolean(errors.firstName)}
                         {...register('firstName')}
                       />
-                      {errors.firstName ? (
-                        <p className="text-danger text-xs">{errors.firstName.message}</p>
-                      ) : null}
+                      <FieldErrorText message={errors.firstName?.message} />
                     </Field>
 
                     <Field label={t('lastNameLabel')}>
@@ -190,9 +188,7 @@ export function SummaryStep({
                         aria-invalid={Boolean(errors.lastName)}
                         {...register('lastName')}
                       />
-                      {errors.lastName ? (
-                        <p className="text-danger text-xs">{errors.lastName.message}</p>
-                      ) : null}
+                      <FieldErrorText message={errors.lastName?.message} />
                     </Field>
                   </div>
 
@@ -210,52 +206,47 @@ export function SummaryStep({
                         aria-invalid={Boolean(errors.email)}
                         {...register('email')}
                       />
-                      {errors.email ? (
-                        <p className="text-danger text-xs">{errors.email.message}</p>
-                      ) : null}
+                      <FieldErrorText message={errors.email?.message} />
                     </Field>
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <Controller
-                      name="acceptTerms"
-                      control={control}
-                      render={({ field }) => (
-                        <Checkbox
-                          variant="secondary"
-                          isSelected={field.value}
-                          onChange={field.onChange}
-                        >
-                          <CheckboxControl>
-                            <CheckboxIndicator />
-                          </CheckboxControl>
-                          <CheckboxContent>
-                            <span className="text-sm leading-snug">
-                              {t('acceptTermsPrefix')}
-                              <NavigationLink
-                                href="/terms"
-                                target="_blank"
-                                chevron="none"
-                                size="sm"
-                                className="ml-1 inline-flex align-baseline"
-                                onClick={stopCheckboxActivation}
-                                onPointerDown={stopCheckboxActivation}
-                              >
-                                {tFooter('termsOfService')}
-                                <ArrowSquareOut size={14} weight="bold" aria-hidden />
-                              </NavigationLink>
-                              <ValidationRequiredBadge
-                                show={Boolean(errors.acceptTerms)}
-                                shakeKey={submitCount}
-                                className="ml-1.5"
-                              >
-                                {tQuestionnaire('requiredBadge')}
-                              </ValidationRequiredBadge>
-                            </span>
-                          </CheckboxContent>
-                        </Checkbox>
-                      )}
-                    />
+                    <div className="flex flex-col gap-1.5">
+                      <Controller
+                        name="acceptTerms"
+                        control={control}
+                        render={({ field }) => (
+                          <Checkbox
+                            variant="secondary"
+                            isSelected={field.value}
+                            onChange={field.onChange}
+                            aria-invalid={Boolean(errors.acceptTerms)}
+                          >
+                            <CheckboxControl>
+                              <CheckboxIndicator />
+                            </CheckboxControl>
+                            <CheckboxContent>
+                              <span className="text-sm leading-snug">
+                                {t('acceptTermsPrefix')}
+                                <NavigationLink
+                                  href="/terms"
+                                  target="_blank"
+                                  chevron="none"
+                                  size="sm"
+                                  className="ml-1 inline-flex align-baseline"
+                                  onClick={stopCheckboxActivation}
+                                  onPointerDown={stopCheckboxActivation}
+                                >
+                                  {tFooter('termsOfService')}
+                                  <ArrowSquareOut size={14} weight="bold" aria-hidden />
+                                </NavigationLink>
+                              </span>
+                            </CheckboxContent>
+                          </Checkbox>
+                        )}
+                      />
+                      <FieldErrorText message={errors.acceptTerms?.message} />
+                    </div>
 
                     <Controller
                       name="newsletter"

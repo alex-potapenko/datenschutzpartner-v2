@@ -8,6 +8,7 @@ import { formatTotpSecret } from '@/lib/totp';
 import { Button, Check, Copy, InputGroup, Spinner } from '@/components/ui';
 import { TotpInput } from '@/components/shared/TotpInput';
 import { QrCode } from './QrCode';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 function SetupStepIntro({ step, children }: { step: number; children: ReactNode }) {
   return (
@@ -115,7 +116,7 @@ export function TwoFactorSetupPanel({
           isDisabled={isVerifying}
           onChange={setCode}
         />
-        {isInvalid ? <p className="text-danger text-xs">{t('codeInvalid')}</p> : null}
+        <FieldErrorText message={isInvalid ? t('codeInvalid') : undefined} />
       </div>
 
       {showSubmitButton ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type Key } from 'react';
+import { useHydrated } from '@/lib/use-hydrated';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Lock, ShieldCheck, Tabs, Users } from '@/components/ui';
 import { useLocale, useTranslations } from 'next-intl';
@@ -21,7 +22,9 @@ const HERO_VARIANT_TRANSITION = { duration: 0.32, ease: [0.32, 0.72, 0, 1] as co
 export function LandingHeroSection() {
   const locale = useLocale();
   const t = useTranslations('landing');
-  const shouldReduceMotion = useReducedMotion();
+  const hydrated = useHydrated();
+  const prefersReducedMotion = useReducedMotion();
+  const shouldReduceMotion = hydrated && prefersReducedMotion;
   const [variant, setVariant] = useState<HeroVisualVariant>(
     () => env.NEXT_PUBLIC_HERO_VISUAL ?? 'orbitIcons'
   );
@@ -103,7 +106,7 @@ export function LandingHeroSection() {
             )}
             aria-hidden={!showClientPortrait}
           >
-            {showVariantSwitcher ? (
+            {showVariantSwitcher && hydrated ? (
               <Tabs
                 variant="primary"
                 selectedKey={variant}
@@ -139,7 +142,7 @@ export function LandingHeroSection() {
                 <motion.div
                   key="hero-client-portrait"
                   className="relative flex h-full min-h-[inherit] flex-col justify-end px-4 sm:px-8"
-                  initial={shouldReduceMotion ? false : { opacity: 0 }}
+                  initial={false}
                   animate={{ opacity: 1 }}
                   exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                   transition={shouldReduceMotion ? { duration: 0 } : HERO_VARIANT_TRANSITION}

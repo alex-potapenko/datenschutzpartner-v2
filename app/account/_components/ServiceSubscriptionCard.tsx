@@ -39,6 +39,8 @@ export type ServiceSubscriptionCardProps = {
   renewalInactiveNote?: string | null;
   notSubscribedLabel?: string;
   comingSoonLabel?: string;
+  /** Shown above the description on coming-soon cards (no CTA). */
+  comingSoonNotice?: string;
   description?: string;
   muted?: boolean;
   aside?: ReactNode;
@@ -49,6 +51,8 @@ export type ServiceSubscriptionCardProps = {
   onContinue?: () => void;
   continueLabel?: string;
   isContinuing?: boolean;
+  /** Continue leads to the paid renewal checkout instead of acting in place. */
+  continueOpensCheckout?: boolean;
 };
 
 function SubscriptionOverviewMetric({
@@ -108,6 +112,7 @@ export function ServiceSubscriptionCard({
   renewalInactiveNote,
   notSubscribedLabel,
   comingSoonLabel,
+  comingSoonNotice,
   description,
   muted = false,
   aside,
@@ -117,7 +122,23 @@ export function ServiceSubscriptionCard({
   onContinue,
   continueLabel,
   isContinuing = false,
+  continueOpensCheckout = false,
 }: ServiceSubscriptionCardProps) {
+  const continueButton =
+    onContinue && continueLabel ? (
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-fit gap-1.5 self-start"
+        onPress={onContinue}
+        isDisabled={isContinuing}
+      >
+        {continueLabel}
+        {continueOpensCheckout ? (
+          <CaretRight size={14} weight="bold" className="shrink-0" aria-hidden />
+        ) : null}
+      </Button>
+    ) : null;
   const hasDaysLeft = daysLeft != null && daysLeftSuffix != null && daysLeftAriaLabel != null;
   const hasActivePricing =
     state === 'active' &&
@@ -241,17 +262,7 @@ export function ServiceSubscriptionCard({
                   <CaretRight size={16} weight="bold" className="shrink-0" aria-hidden />
                 </Button>
               ) : null}
-              {onContinue && continueLabel ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-fit self-start"
-                  onPress={onContinue}
-                  isDisabled={isContinuing}
-                >
-                  {continueLabel}
-                </Button>
-              ) : null}
+              {continueButton}
             </div>
 
             {aside ? (
@@ -262,6 +273,15 @@ export function ServiceSubscriptionCard({
                 />
                 <div className="flex min-w-0 flex-1 flex-col">{aside}</div>
               </>
+            ) : null}
+          </div>
+        ) : state === 'comingSoon' ? (
+          <div className="flex min-w-0 flex-col gap-0">
+            {description ? (
+              <p className="text-foreground text-sm leading-relaxed">{description}</p>
+            ) : null}
+            {comingSoonNotice ? (
+              <p className="text-foreground text-sm leading-relaxed">{comingSoonNotice}</p>
             ) : null}
           </div>
         ) : onAction && actionLabel ? (
@@ -278,17 +298,9 @@ export function ServiceSubscriptionCard({
               {actionLabel}
             </Button>
           </div>
-        ) : onContinue && continueLabel ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-fit self-start"
-            onPress={onContinue}
-            isDisabled={isContinuing}
-          >
-            {continueLabel}
-          </Button>
-        ) : null}
+        ) : (
+          continueButton
+        )}
       </div>
     </div>
   );

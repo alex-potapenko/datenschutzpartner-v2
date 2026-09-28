@@ -25,10 +25,14 @@ import {
 import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
 import { NestedScreenShell } from '@/components/shared/NestedScreenShell';
 import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
-import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
-import { ConfirmingPaymentScreen } from '@/components/shared/ConfirmingPaymentScreen';
+import { payrexxOrderLinesFromGeneratorCheckout } from '@/lib/payrexx-order-lines';
+import { usePayrexxOrderLineLabels } from '@/lib/use-payrexx-order-line-labels';
+import { usePayrexxPaymentFlow } from '@/lib/use-payrexx-payment-flow';
+import { PayrexxPaymentScreen } from '@/components/shared/PayrexxPaymentScreen';
 import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
 import { GeneratorCheckoutConfirmation } from '@/app/account/generator/checkout/_components/GeneratorCheckoutConfirmation';
+import { CheckoutPaymentButtonSpinner } from '@/components/shared/CheckoutPaymentButtonSpinner';
+import { cn } from '@/lib/utils';
 
 const GENERATOR_INCLUDED_KEYS = [
   'services',
@@ -70,6 +74,7 @@ function GeneratorUpgradePageShell({
 
 export function GeneratorCheckoutApp() {
   const t = useTranslations('account.generatorCheckout');
+  const orderLabels = usePayrexxOrderLineLabels();
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
   const tService = useTranslations('services.privacyGenerator');
@@ -81,13 +86,13 @@ export function GeneratorCheckoutApp() {
   const createSession = useCreateCheckoutSession();
   const completeSession = useCompleteCheckoutSession();
   const discountDialog = useOverlayState();
-  const { phase: paymentPhase, run: runPaymentConfirmation } = useConfirmingPaymentFlow();
+  // POC STUB (Payrexx): in-page simulation; production redirects to the session's Payrexx URL.
+  const payrexx = usePayrexxPaymentFlow();
   const [confirmation, setConfirmation] = useState<{
     siteCount: number;
     amountDue: number;
   } | null>(null);
-  const isProcessing =
-    paymentPhase !== 'idle' || createSession.isPending || completeSession.isPending;
+  const isContinueLoading = payrexx.isOpening;
 
   const activeSites = countActivePolicySites(subscriptions.data ?? []);
   const qualifyingSites = qualifyingSiteCountForCheckout(activeSites, 'generator', siteCount);
@@ -151,17 +156,29 @@ export function GeneratorCheckoutApp() {
   ]);
 
   const isDataLoading = subscriptions.isLoading;
+  const payrexxOrderLines = useMemo(
+    () =>
+      payrexxOrderLinesFromGeneratorCheckout({
+        siteCount,
+        labels: orderLabels,
+      }),
+    [orderLabels, siteCount]
+  );
 
-  async function handlePay() {
-    try {
-      await runPaymentConfirmation(async () => {
-        const checkoutSession = await createSession.mutateAsync({
-          kind: 'generator',
-          siteCount,
-        });
-        await completeSession.mutateAsync(checkoutSession.id);
-        setConfirmation({ siteCount, amountDue: quote.amountDue });
+  function handlePay() {
+    void payrexx.open(async () => {
+      const checkoutSession = await createSession.mutateAsync({
+        kind: 'generator',
+        siteCount,
       });
+      await completeSession.mutateAsync(checkoutSession.id);
+      setConfirmation({ siteCount, amountDue: quote.amountDue });
+    });
+  }
+
+  async function handlePayrexxPay() {
+    try {
+      await payrexx.pay();
     } catch {
       toast.error(t('failed'));
     }
@@ -177,11 +194,19 @@ export function GeneratorCheckoutApp() {
     );
   }
 
-  if (paymentPhase === 'confirming' || paymentPhase === 'confirmed') {
+  if (payrexx.phase !== 'idle') {
     return (
       <PaymentConfirmationCrossfade
-        phase={paymentPhase}
-        confirming={<ConfirmingPaymentScreen />}
+        phase={payrexx.phase}
+        confirming={
+          <PayrexxPaymentScreen
+            items={payrexxOrderLines}
+            amountExclVat={quote.amountDue}
+            isPaying={payrexx.isPaying}
+            onPay={() => void handlePayrexxPay()}
+            onCancel={payrexx.cancel}
+          />
+        }
         confirmed={
           confirmation ? (
             <GeneratorCheckoutConfirmation
@@ -264,15 +289,15 @@ export function GeneratorCheckoutApp() {
           <Button
             variant="primary"
             size="lg"
-            className="font-display h-14 w-full gap-2 rounded-full text-base"
-            onPress={() => void handlePay()}
-            isDisabled={isProcessing}
+            className={cn(
+              'font-display h-14 w-full gap-2 rounded-full text-base',
+              isContinueLoading && '!opacity-100'
+            )}
+            onPress={handlePay}
+            isDisabled={isContinueLoading}
           >
-            {isProcessing ? (
-              <span className="inline-flex items-center gap-2">
-                <Spinner size="sm" aria-hidden />
-                {t('processing')}
-              </span>
+            {isContinueLoading ? (
+              <CheckoutPaymentButtonSpinner label={t('processing')} />
             ) : (
               <>
                 {t('payCta')}

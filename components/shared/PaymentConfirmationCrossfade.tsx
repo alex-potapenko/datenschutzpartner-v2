@@ -3,13 +3,15 @@
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { ConfirmingPaymentPhase } from '@/lib/use-confirming-payment-flow';
+import type { PayrexxPaymentPhase } from '@/lib/use-payrexx-payment-flow';
 
 export function PaymentConfirmationCrossfade({
   phase,
   confirming,
   confirmed,
 }: {
-  phase: ConfirmingPaymentPhase;
+  phase: ConfirmingPaymentPhase | PayrexxPaymentPhase;
+  /** Shown while `phase` is `confirming` or `payrexx`. */
   confirming: ReactNode;
   confirmed: ReactNode;
 }) {
@@ -18,7 +20,7 @@ export function PaymentConfirmationCrossfade({
 
   return (
     <AnimatePresence mode="wait">
-      {phase === 'confirming' ? (
+      {phase === 'confirming' || phase === 'payrexx' ? (
         <motion.div
           key="confirming"
           initial={{ opacity: 1 }}

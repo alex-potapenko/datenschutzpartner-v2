@@ -8,6 +8,7 @@ import { useForgotPassword, type ForgotPasswordInput } from '@/api/auth';
 import { Button, Input } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { z } from 'zod';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 function Field({
   id,
@@ -26,7 +27,7 @@ function Field({
         {label}
       </label>
       {children}
-      {error && <p className="text-danger mt-0.5 text-xs">{error}</p>}
+      <FieldErrorText message={error} className="mt-0.5" />
     </div>
   );
 }

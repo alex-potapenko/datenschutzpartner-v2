@@ -91,6 +91,7 @@ interface TextInputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: string;
   className?: string;
@@ -98,6 +99,10 @@ interface TextInputProps {
   isDisabled?: boolean;
   autoComplete?: string;
   'aria-invalid'?: boolean;
+  'aria-controls'?: string;
+  'aria-expanded'?: boolean;
+  'aria-autocomplete'?: 'list' | 'none' | 'inline' | 'both';
+  'aria-haspopup'?: 'dialog' | 'listbox' | 'menu' | boolean;
   optionalLabel?: string;
   fullWidth?: boolean;
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
@@ -110,6 +115,7 @@ export function TextInput({
   onChange,
   onFocus,
   onBlur,
+  onClick,
   placeholder,
   type = 'text',
   className,
@@ -117,6 +123,10 @@ export function TextInput({
   isDisabled,
   autoComplete,
   'aria-invalid': ariaInvalid,
+  'aria-controls': ariaControls,
+  'aria-expanded': ariaExpanded,
+  'aria-autocomplete': ariaAutocomplete,
+  'aria-haspopup': ariaHaspopup,
   optionalLabel,
   fullWidth = true,
   inputMode,
@@ -131,6 +141,7 @@ export function TextInput({
       onChange={onChange}
       onFocus={onFocus}
       onBlur={onBlur}
+      onClick={onClick}
       placeholder={placeholder ?? optionalLabel}
       fullWidth={fullWidth}
       className={className}
@@ -138,6 +149,10 @@ export function TextInput({
       disabled={isDisabled}
       autoComplete={autoComplete}
       aria-invalid={ariaInvalid}
+      aria-controls={ariaControls}
+      aria-expanded={ariaExpanded}
+      aria-autocomplete={ariaAutocomplete}
+      aria-haspopup={ariaHaspopup}
       inputMode={inputMode}
       min={min}
     />

@@ -43,6 +43,7 @@ import {
 import { TotpInput } from '@/components/shared/TotpInput';
 import { EnableTwoFactorDialog, RecoveryCodesPanel } from '@/components/shared/two-factor';
 import { DataState, AccountSection } from '../account-ui';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 const profileFormSchema = profileSchema.omit({ role: true, twoFactorEnabled: true });
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -66,7 +67,7 @@ function Field({
         {label}
       </label>
       {children}
-      {error ? <p className="text-danger text-xs">{error}</p> : null}
+      <FieldErrorText message={error} />
     </div>
   );
 }
@@ -467,7 +468,7 @@ function RegenerateRecoveryCodesDialog({
                       setCodeInvalid(false);
                     }}
                   />
-                  {codeInvalid ? <p className="text-danger text-xs">{t('codeInvalid')}</p> : null}
+                  <FieldErrorText message={codeInvalid ? t('codeInvalid') : undefined} />
                 </div>
               )}
             </ModalBody>

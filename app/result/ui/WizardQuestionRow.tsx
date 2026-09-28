@@ -2,6 +2,7 @@ import type { ChangeEvent, ReactNode } from 'react';
 import type { UidCompany } from '@/api/uid-registry';
 import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
 import { MetaBadge } from '@/components/shared/MetaBadge';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 import { cn } from '@/lib/utils';
 import { PostalAddressFields } from './PostalAddressFields';
 import { Field, RadioGroup, TextInput } from './FormSection';
@@ -104,8 +105,7 @@ export type WizardQuestionRowProps = WizardQuestionRowShared &
         legalEntity?: string;
         onLegalEntityChange?: (value: string) => void;
         onLegalEntityUidSelect?: (company: UidCompany) => void;
-        legalEntityRequiredLabel?: string;
-        legalEntityRequiredShakeKey?: number;
+        legalEntityError?: string;
         department?: string;
         onDepartmentChange?: (value: string) => void;
         departmentError?: string;
@@ -115,8 +115,8 @@ export type WizardQuestionRowProps = WizardQuestionRowShared &
         showLine2?: boolean;
         idPrefix?: string;
         line1Error?: string;
-        line1RequiredLabel?: string;
-        requiredShakeKey?: number;
+        postalCodeError?: string;
+        cityError?: string;
         streetLine2Error?: string;
       }
   );
@@ -144,15 +144,19 @@ function renderAnswer(props: WizardQuestionRowProps) {
 
   if (props.variant === 'text') {
     return (
-      <TextInput
-        type={props.inputType}
-        value={props.value}
-        onChange={props.onChange}
-        placeholder={props.placeholder}
-        readOnly={props.readOnly}
-        className={props.inputClassName}
-        optionalLabel={props.optional ? props.optionalBadgeLabel : undefined}
-      />
+      <>
+        <TextInput
+          type={props.inputType}
+          value={props.value}
+          onChange={props.onChange}
+          placeholder={props.placeholder}
+          readOnly={props.readOnly}
+          className={props.inputClassName}
+          optionalLabel={props.optional ? props.optionalBadgeLabel : undefined}
+          aria-invalid={Boolean(props.required)}
+        />
+        <FieldErrorText message={props.required ? props.requiredBadgeLabel : undefined} />
+      </>
     );
   }
 
@@ -162,8 +166,7 @@ function renderAnswer(props: WizardQuestionRowProps) {
         legalEntity={props.legalEntity}
         onLegalEntityChange={props.onLegalEntityChange}
         onLegalEntityUidSelect={props.onLegalEntityUidSelect}
-        legalEntityRequiredLabel={props.legalEntityRequiredLabel}
-        legalEntityRequiredShakeKey={props.legalEntityRequiredShakeKey}
+        legalEntityError={props.legalEntityError}
         department={props.department}
         onDepartmentChange={props.onDepartmentChange}
         departmentError={props.departmentError}
@@ -178,10 +181,10 @@ function renderAnswer(props: WizardQuestionRowProps) {
         countryDisplayLabel={props.countryDisplayLabel}
         showLine2={props.showLine2 ?? Boolean(props.onStreetLine2Change)}
         optionalBadge={props.optionalBadgeLabel}
-        line1RequiredLabel={props.line1RequiredLabel}
-        requiredShakeKey={props.requiredShakeKey}
         idPrefix={props.idPrefix}
         line1Error={props.line1Error}
+        postalCodeError={props.postalCodeError}
+        cityError={props.cityError}
         streetLine2Error={props.streetLine2Error}
       />
     );
@@ -222,13 +225,14 @@ export function WizardQuestionRow(props: WizardQuestionRowProps) {
   );
 
   if (fieldLabel) {
+    const showRequiredChip = props.variant !== 'text';
     return (
       <div id={id} className={rowClassName}>
         <Field
           label={label}
           description={description}
           required={required}
-          requiredLabel={requiredBadgeLabel}
+          requiredLabel={showRequiredChip ? requiredBadgeLabel : undefined}
           requiredShakeKey={requiredShakeKey}
           hint={hint}
           hintClassName="text-muted"

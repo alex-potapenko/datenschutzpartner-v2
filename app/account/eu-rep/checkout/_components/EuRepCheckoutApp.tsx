@@ -18,6 +18,7 @@ import {
 } from '@/api/checkout';
 import { EU_REP_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
 import { safeEuRepCheckoutReturnTo } from '@/lib/account-routes';
+import { cn } from '@/lib/utils';
 import type { EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
 import {
   EuRepContractFields,
@@ -58,7 +59,11 @@ import {
 } from '@/components/ui';
 import { PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
 import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
-import { ConfirmingPaymentScreen } from '@/components/shared/ConfirmingPaymentScreen';
+import { payrexxOrderLinesFromEuRepCheckout } from '@/lib/payrexx-order-lines';
+import { usePayrexxOrderLineLabels } from '@/lib/use-payrexx-order-line-labels';
+import { usePayrexxPaymentFlow } from '@/lib/use-payrexx-payment-flow';
+import { CheckoutPaymentButtonSpinner } from '@/components/shared/CheckoutPaymentButtonSpinner';
+import { PayrexxPaymentScreen } from '@/components/shared/PayrexxPaymentScreen';
 import { ConfirmingStatusScreen } from '@/components/shared/ConfirmingStatusScreen';
 import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -282,6 +287,7 @@ export function EuRepCheckoutApp() {
   const tGuest = useTranslations('account.euRepCheckout.guest');
   const tSummary = useTranslations('result.summary');
   const tCommon = useTranslations('common');
+  const orderLabels = usePayrexxOrderLineLabels();
   const tQuestionnaire = useTranslations('result.questionnaireStep');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -304,15 +310,14 @@ export function EuRepCheckoutApp() {
   const [errors, setErrors] = useState<EntityErrors>({});
   const [guestAccount, setGuestAccount] = useState<EuRepGuestAccountDraft>(emptyGuestAccount);
   const [guestErrors, setGuestErrors] = useState<EuRepGuestAccountErrors>({});
-  const [guestSubmitCount, setGuestSubmitCount] = useState(0);
-  const [entitySubmitCount, setEntitySubmitCount] = useState(0);
   const [loggedOrderConfirmation, setLoggedOrderConfirmation] = useState<{
     contractId: string;
   } | null>(null);
   const [guestOrderConfirmation, setGuestOrderConfirmation] = useState<{ email: string } | null>(
     null
   );
-  const { phase: paymentPhase, run: runPaymentConfirmation } = useConfirmingPaymentFlow();
+  // POC STUB (Payrexx): in-page simulation; production redirects to the session's Payrexx URL.
+  const payrexx = usePayrexxPaymentFlow();
   const { phase: accountPhase, run: runCreateAccountFlow } = useConfirmingPaymentFlow();
   const validationModal = useOverlayState();
   const checkoutConfirm = useOverlayState();
@@ -361,9 +366,20 @@ export function EuRepCheckoutApp() {
     ];
   }, [appliedPromo, promoDiscountAmount, quote.amountDue, selectedPlanId, t, tPage]);
   const selectedPlanLabel = tPage(`plans.${selectedPlanId}.name`);
+  const payrexxOrderLines = useMemo(
+    () =>
+      payrexxOrderLinesFromEuRepCheckout({
+        planLabel: selectedPlanLabel,
+        legalEntity: entity.legalEntity,
+        labels: orderLabels,
+      }),
+    [entity.legalEntity, orderLabels, selectedPlanLabel]
+  );
   const confirmQuit = hasEntityProgress(entity) || selectedPlanId !== initialPlan;
+  const isContinueLoading = payrexx.isOpening;
   const isProcessing =
-    paymentPhase !== 'idle' ||
+    isContinueLoading ||
+    payrexx.phase !== 'idle' ||
     accountPhase !== 'idle' ||
     createSession.isPending ||
     completeSession.isPending ||
@@ -443,7 +459,6 @@ export function EuRepCheckoutApp() {
     const validation = validateEntity(entity, tValidation);
     setErrors(validation.errors);
     if (!validation.ok) {
-      setEntitySubmitCount((count) => count + 1);
       if (Object.values(validation.errors).some(Boolean)) {
         validationModal.open();
       }
@@ -497,23 +512,27 @@ export function EuRepCheckoutApp() {
       return;
     }
 
-    try {
-      await runPaymentConfirmation(async () => {
-        const checkoutSession = await createSession.mutateAsync({
-          kind: 'euRep',
-          euRepPlanId: selectedPlanId,
-          euRepEntityCount: 1,
-          euRepEntities,
-          promoCode: appliedPromoCode ?? undefined,
-        });
-        const result = await completeSession.mutateAsync(checkoutSession.id);
-        const contractId = result.euRepContractId ?? result.euRepContractIds?.[0];
-        if (!contractId) {
-          throw new Error('Missing EU rep contract id');
-        }
-        clearStoredEntity();
-        setLoggedOrderConfirmation({ contractId });
+    void payrexx.open(async () => {
+      const checkoutSession = await createSession.mutateAsync({
+        kind: 'euRep',
+        euRepPlanId: selectedPlanId,
+        euRepEntityCount: 1,
+        euRepEntities,
+        promoCode: appliedPromoCode ?? undefined,
       });
+      const result = await completeSession.mutateAsync(checkoutSession.id);
+      const contractId = result.euRepContractId ?? result.euRepContractIds?.[0];
+      if (!contractId) {
+        throw new Error('Missing EU rep contract id');
+      }
+      clearStoredEntity();
+      setLoggedOrderConfirmation({ contractId });
+    });
+  }
+
+  async function handlePayrexxPay() {
+    try {
+      await payrexx.pay();
     } catch {
       toast.error(t('failed'));
     }
@@ -532,12 +551,8 @@ export function EuRepCheckoutApp() {
     });
 
     setErrors(validation.entityErrors);
-    if (!validation.ok) {
-      setEntitySubmitCount((count) => count + 1);
-    }
     if (!isAuthenticated) {
       setGuestErrors(validation.guestErrors);
-      setGuestSubmitCount((count) => count + 1);
     }
 
     if (!validation.ok) {
@@ -622,11 +637,19 @@ export function EuRepCheckoutApp() {
     );
   }
 
-  if (paymentPhase === 'confirming' || paymentPhase === 'confirmed') {
+  if (payrexx.phase !== 'idle') {
     return (
       <PaymentConfirmationCrossfade
-        phase={paymentPhase}
-        confirming={<ConfirmingPaymentScreen />}
+        phase={payrexx.phase}
+        confirming={
+          <PayrexxPaymentScreen
+            items={payrexxOrderLines}
+            amountExclVat={checkoutSubtotal}
+            isPaying={payrexx.isPaying}
+            onPay={() => void handlePayrexxPay()}
+            onCancel={payrexx.cancel}
+          />
+        }
         confirmed={
           loggedOrderConfirmation ? (
             <EuRepCheckoutActivation
@@ -703,7 +726,6 @@ export function EuRepCheckoutApp() {
           clearAddressErrors();
         }}
         postalErrors={errors}
-        addressRequiredShakeKey={entitySubmitCount}
       />
     </section>
   );
@@ -712,17 +734,17 @@ export function EuRepCheckoutApp() {
     <Button
       variant="primary"
       size="lg"
-      className="font-display h-11 w-full gap-2 rounded-full px-6 text-base sm:h-14 sm:px-8"
+      className={cn(
+        'font-display h-11 w-full gap-2 rounded-full px-6 text-base sm:h-14 sm:px-8',
+        isContinueLoading && '!opacity-100'
+      )}
       onPress={() => {
         handlePay();
       }}
-      isDisabled={isProcessing}
+      isDisabled={isContinueLoading}
     >
-      {isProcessing ? (
-        <span className="inline-flex items-center gap-2">
-          <Spinner size="sm" aria-hidden />
-          {t('processing')}
-        </span>
+      {isContinueLoading ? (
+        <CheckoutPaymentButtonSpinner label={t('processing')} />
       ) : (
         <>
           {t('payCta')}
@@ -857,7 +879,6 @@ export function EuRepCheckoutApp() {
                             <EuRepCheckoutGuestCheckboxes
                               value={guestAccount}
                               errors={guestErrors}
-                              submitCount={guestSubmitCount}
                               onChange={handleGuestAccountChange}
                               onClearError={clearGuestError}
                             />

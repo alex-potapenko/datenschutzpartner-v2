@@ -56,7 +56,6 @@ function EuRepLegalEntityPanelContent({ contract }: { contract: EuRepContract })
   const [legalEntityError, setLegalEntityError] = useState<string>();
   const [forwardingEmailError, setForwardingEmailError] = useState<string>();
   const [postalErrors, setPostalErrors] = useState<PostalErrors>({});
-  const [addressSubmitCount, setAddressSubmitCount] = useState(0);
 
   const legalEntity = legalEntityDraft ?? contract.legalEntity;
   const forwardingEmail = forwardingEmailDraft ?? contract.forwardingEmail;
@@ -104,7 +103,6 @@ function EuRepLegalEntityPanelContent({ contract }: { contract: EuRepContract })
         city: mapped.city,
         country: mapped.country,
       });
-      setAddressSubmitCount((count) => count + 1);
       return false;
     }
 
@@ -185,7 +183,6 @@ function EuRepLegalEntityPanelContent({ contract }: { contract: EuRepContract })
             clearAddressErrors();
           }}
           postalErrors={postalErrors}
-          addressRequiredShakeKey={addressSubmitCount}
         />
         {isActive ? (
           <Button

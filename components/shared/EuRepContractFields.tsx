@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui';
 import { PostalAddressFields } from '@/app/result/ui/PostalAddressFields';
 import { displayCountryLabel, SWISS_COUNTRY_STORAGE } from '@/lib/swiss-country';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 function Field({
   id,
@@ -32,7 +33,7 @@ function Field({
       {hint && !error ? (
         <p className={hintClassName ?? 'text-muted text-xs leading-relaxed'}>{hint}</p>
       ) : null}
-      {error ? <p className="text-danger mt-0.5 text-xs">{error}</p> : null}
+      <FieldErrorText message={error} className="mt-0.5" />
     </div>
   );
 }
@@ -60,7 +61,6 @@ type EuRepContractFieldsProps = {
   onLegalEntityFocus?: () => void;
   onForwardingEmailFocus?: () => void;
   onPostalFieldFocus?: () => void;
-  addressRequiredShakeKey?: number;
   /** Render one field group or all — detail screens split fields into separate sections. */
   fields?: 'both' | 'legalEntity' | 'forwardingEmail' | 'postal';
 };
@@ -79,7 +79,6 @@ export function EuRepContractFields({
   onLegalEntityFocus,
   onForwardingEmailFocus,
   onPostalFieldFocus,
-  addressRequiredShakeKey = 0,
   fields = 'both',
 }: EuRepContractFieldsProps) {
   const t = useTranslations('account.euRep.contract');
@@ -93,9 +92,6 @@ export function EuRepContractFields({
     onPostalChange;
   const showLegalEntityInAddress = fields === 'both' || fields === 'legalEntity';
   const showPostalLines = fields === 'both' || fields === 'postal';
-  const showAddressRequired = Boolean(
-    postalErrors?.postalLine1 || postalErrors?.postalCode || postalErrors?.city
-  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -106,8 +102,6 @@ export function EuRepContractFields({
           onLegalEntityChange={showLegalEntityInAddress ? onLegalEntityChange : undefined}
           onLegalEntityFocus={onLegalEntityFocus}
           legalEntityError={legalEntityError}
-          legalEntityRequiredLabel={legalEntityError ? tQuestionnaire('requiredBadge') : undefined}
-          legalEntityRequiredShakeKey={addressRequiredShakeKey}
           department={showPostalLines ? (postal.postalDepartment ?? '') : undefined}
           onDepartmentChange={
             showPostalLines
@@ -147,10 +141,6 @@ export function EuRepContractFields({
           }}
           onAddressFocus={onPostalFieldFocus}
           optionalBadge={tQuestionnaire('optionalBadge')}
-          line1RequiredLabel={
-            showPostalLines && showAddressRequired ? tQuestionnaire('requiredBadge') : undefined
-          }
-          requiredShakeKey={addressRequiredShakeKey}
           streetError={postalErrors?.postalLine1}
           postalCodeError={postalErrors?.postalCode}
           cityError={postalErrors?.city}

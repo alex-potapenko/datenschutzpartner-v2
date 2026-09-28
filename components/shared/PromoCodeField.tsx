@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useReducedMotion } from 'motion/react';
 import { Button, Input, X } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 type PromoCodeFieldProps = {
   value: string;
@@ -123,7 +124,7 @@ export function PromoCodeField({
               {appliedCode ? t('applied') : t('apply')}
             </Button>
           </div>
-          {error ? <p className="text-danger text-xs">{error}</p> : null}
+          <FieldErrorText message={error} />
         </div>
       </div>
     </div>

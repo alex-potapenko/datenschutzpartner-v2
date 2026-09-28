@@ -17,6 +17,7 @@ import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { RecoveryCodesPanel, TwoFactorSetupPanel } from '@/components/shared/two-factor';
 import { Button, Input, Label, Spinner } from '@/components/ui';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 type Step = 'password' | 'intro' | 'two-factor' | 'recovery';
 
@@ -207,9 +208,7 @@ export function SetPasswordApp() {
             aria-invalid={Boolean(form.formState.errors.password)}
             {...form.register('password')}
           />
-          {errorMessage('password') ? (
-            <p className="text-danger text-xs">{errorMessage('password')}</p>
-          ) : null}
+          <FieldErrorText message={errorMessage('password')} />
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -223,9 +222,7 @@ export function SetPasswordApp() {
             aria-invalid={Boolean(form.formState.errors.confirmPassword)}
             {...form.register('confirmPassword')}
           />
-          {errorMessage('confirmPassword') ? (
-            <p className="text-danger text-xs">{errorMessage('confirmPassword')}</p>
-          ) : null}
+          <FieldErrorText message={errorMessage('confirmPassword')} />
         </div>
 
         <Button

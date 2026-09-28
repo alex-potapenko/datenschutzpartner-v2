@@ -10,6 +10,7 @@ import { Field } from '@/app/result/ui/FormSection';
 import { NavigationLink } from './NavigationLink';
 import { COMPANY_NAME_PATTERN, PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
 import { newsletterMembershipInputClassName } from '@/components/shared/newsletter-membership-input';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 const newsletterPanelClassName =
   'w-full rounded-2xl bg-white p-4 [box-shadow:var(--shadow-soft-panel)] sm:p-8';
@@ -136,9 +137,7 @@ export function NewsletterSubscribeCard({
                 aria-invalid={Boolean(errors.firstName)}
                 {...register('firstName')}
               />
-              {errors.firstName ? (
-                <p className="text-danger text-xs">{errors.firstName.message}</p>
-              ) : null}
+              <FieldErrorText message={errors.firstName?.message} />
             </Field>
 
             <Field label={t('lastNameLabel')}>
@@ -151,9 +150,7 @@ export function NewsletterSubscribeCard({
                 aria-invalid={Boolean(errors.lastName)}
                 {...register('lastName')}
               />
-              {errors.lastName ? (
-                <p className="text-danger text-xs">{errors.lastName.message}</p>
-              ) : null}
+              <FieldErrorText message={errors.lastName?.message} />
             </Field>
           </div>
 
@@ -167,9 +164,7 @@ export function NewsletterSubscribeCard({
               aria-invalid={Boolean(errors.company)}
               {...register('company')}
             />
-            {errors.company ? (
-              <p className="text-danger text-xs">{errors.company.message}</p>
-            ) : null}
+            <FieldErrorText message={errors.company?.message} />
           </Field>
 
           <Field label={t('emailLabel')}>
@@ -182,7 +177,7 @@ export function NewsletterSubscribeCard({
               aria-invalid={Boolean(errors.email)}
               {...register('email')}
             />
-            {errors.email ? <p className="text-danger text-xs">{errors.email.message}</p> : null}
+            <FieldErrorText message={errors.email?.message} />
           </Field>
 
           <p className="text-foreground text-sm leading-relaxed">

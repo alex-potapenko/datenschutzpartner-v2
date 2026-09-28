@@ -324,8 +324,7 @@ export function QuestionnaireStep({
               onLegalEntityChange={(value) => {
                 set('companyName', value);
               }}
-              legalEntityRequiredLabel={isRequired('companyName') ? requiredBadge : undefined}
-              legalEntityRequiredShakeKey={validationAttempt}
+              legalEntityError={isRequired('companyName') ? requiredBadge : undefined}
               onLegalEntityUidSelect={(company) => {
                 clearRequired('companyName', 'street', 'postalCode', 'city');
                 setForm((current) => ({
@@ -357,9 +356,9 @@ export function QuestionnaireStep({
               onCityChange={(value) => {
                 set('city', value);
               }}
-              line1RequiredLabel={
-                isRequired('street', 'postalCode', 'city') ? requiredBadge : undefined
-              }
+              line1Error={isRequired('street') ? requiredBadge : undefined}
+              postalCodeError={isRequired('postalCode') ? requiredBadge : undefined}
+              cityError={isRequired('city') ? requiredBadge : undefined}
               countryDisplayLabel={displayCountryLabel(form.country, tCommon('countrySwitzerland'))}
             />
             <WizardQuestionRow
@@ -449,12 +448,9 @@ export function QuestionnaireStep({
                         tCommon('countrySwitzerland')
                       )}
                       optionalBadge={optionalBadge}
-                      line1RequiredLabel={
-                        isRequired('dpoStreet', 'dpoPostalCode', 'dpoCity')
-                          ? requiredBadge
-                          : undefined
-                      }
-                      requiredShakeKey={validationAttempt}
+                      line1Error={isRequired('dpoStreet') ? requiredBadge : undefined}
+                      postalCodeError={isRequired('dpoPostalCode') ? requiredBadge : undefined}
+                      cityError={isRequired('dpoCity') ? requiredBadge : undefined}
                     />
                   </div>
                 </Reveal>

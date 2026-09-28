@@ -47,6 +47,16 @@ export const ACCOUNT_CHECKOUT_HREF = '/account/checkout';
 /** Start the generator wizard on the website-input step (not the /scan landing). */
 export const ADD_WEBSITE_WIZARD_HREF = '/result?step=website';
 
+/** Price breakdown before paying to restart a lapsed subscription. */
+export const SUBSCRIPTION_RENEWAL_HREF = '/account/renew';
+
+export function subscriptionRenewalHref(subscriptionId: string, returnTo?: string | null) {
+  return withReturnTo(
+    `${SUBSCRIPTION_RENEWAL_HREF}?subscription=${encodeURIComponent(subscriptionId)}`,
+    returnTo
+  );
+}
+
 /** Standalone New EU Representation checkout. */
 export const ADD_EU_REP_CHECKOUT_HREF = '/account/eu-rep/checkout';
 

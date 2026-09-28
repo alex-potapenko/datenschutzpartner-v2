@@ -2,10 +2,10 @@
 
 import { useTranslations } from 'next-intl';
 import type { UidCompany } from '@/api/uid-registry';
-import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { UidCompanyLookup } from './UidCompanyLookup';
 import { Field, TextInput } from './FormSection';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 /** Matches half-width fields in a two-column row with gap-6 (e.g. first name). */
 const HALF_FIELD_WIDTH_CLASS = 'w-full sm:w-[calc((100%-1.5rem)/2)]';
@@ -16,9 +16,6 @@ type PostalAddressFieldsProps = {
   onLegalEntityFocus?: () => void;
   onLegalEntityUidSelect?: (company: UidCompany) => void;
   legalEntityError?: string;
-  legalEntityRequiredLabel?: string;
-  legalEntityRequiredShakeKey?: number;
-  uidSearchPlaceholder?: string;
   vatId?: string;
   onVatIdChange?: (value: string) => void;
   vatIdError?: string;
@@ -42,8 +39,6 @@ type PostalAddressFieldsProps = {
   showLine2?: boolean;
   showLine1Label?: boolean;
   optionalBadge?: string;
-  line1RequiredLabel?: string;
-  requiredShakeKey?: number;
   idPrefix?: string;
   line1Error?: string;
   streetError?: string;
@@ -60,9 +55,6 @@ export function PostalAddressFields({
   onLegalEntityFocus,
   onLegalEntityUidSelect,
   legalEntityError,
-  legalEntityRequiredLabel,
-  legalEntityRequiredShakeKey = 0,
-  uidSearchPlaceholder,
   vatId = '',
   onVatIdChange,
   vatIdError,
@@ -85,8 +77,6 @@ export function PostalAddressFields({
   showLine2 = true,
   showLine1Label = true,
   optionalBadge,
-  line1RequiredLabel,
-  requiredShakeKey = 0,
   idPrefix,
   line1Error,
   streetError,
@@ -96,7 +86,6 @@ export function PostalAddressFields({
   onAddressFocus,
 }: PostalAddressFieldsProps) {
   const t = useTranslations('common.address');
-  const tUidLookup = useTranslations('result.questionnaireStep.uidLookup');
   const legalEntityId = idPrefix ? `${idPrefix}-legal-entity` : undefined;
   const vatIdFieldId = idPrefix ? `${idPrefix}-vat-id` : undefined;
   const streetId = idPrefix ? `${idPrefix}-street` : undefined;
@@ -126,29 +115,21 @@ export function PostalAddressFields({
     <div className="flex flex-col gap-6">
       {onLegalEntityChange ? (
         <div className="flex flex-col gap-1.5">
-          <label className="text-foreground text-sm leading-snug font-medium">
+          <label
+            htmlFor={legalEntityId}
+            className="text-foreground text-sm leading-snug font-medium"
+          >
             {t('legalEntityName')}
-            {legalEntityRequiredLabel ? (
-              <ValidationRequiredBadge
-                show={Boolean(legalEntityRequiredLabel)}
-                fieldError={legalEntityError}
-                shakeKey={legalEntityRequiredShakeKey}
-                className="ml-1.5"
-              >
-                {legalEntityRequiredLabel}
-              </ValidationRequiredBadge>
-            ) : null}
           </label>
           <UidCompanyLookup
             id={legalEntityId}
             value={legalEntity}
-            placeholder={uidSearchPlaceholder ?? tUidLookup('placeholder')}
             onValueChange={onLegalEntityChange}
             onFocus={onLegalEntityFocus}
             aria-invalid={Boolean(legalEntityError)}
             onSelect={handleUidSelect}
           />
-          {legalEntityError ? <p className="text-danger text-xs">{legalEntityError}</p> : null}
+          <FieldErrorText message={legalEntityError} />
         </div>
       ) : null}
 
@@ -166,7 +147,7 @@ export function PostalAddressFields({
               onFocus={onAddressFocus}
               aria-invalid={Boolean(vatIdError)}
             />
-            {vatIdError ? <p className="text-danger text-xs">{vatIdError}</p> : null}
+            <FieldErrorText message={vatIdError} />
           </Field>
         </div>
       ) : null}
@@ -182,25 +163,15 @@ export function PostalAddressFields({
             }}
             onFocus={onAddressFocus}
           />
-          {departmentError ? <p className="text-danger text-xs">{departmentError}</p> : null}
+          <FieldErrorText message={departmentError} />
         </Field>
       ) : null}
 
       {showPostalLines ? (
         showLine1Label ? (
           <div className="flex flex-col gap-1.5">
-            <label className="text-foreground text-sm leading-snug font-medium">
+            <label htmlFor={streetId} className="text-foreground text-sm leading-snug font-medium">
               {t('line1')}
-              {line1RequiredLabel ? (
-                <ValidationRequiredBadge
-                  show={Boolean(line1RequiredLabel)}
-                  fieldError={addressLineError}
-                  shakeKey={requiredShakeKey}
-                  className="ml-1.5"
-                >
-                  {line1RequiredLabel}
-                </ValidationRequiredBadge>
-              ) : null}
             </label>
             <TextInput
               id={streetId}
@@ -211,7 +182,7 @@ export function PostalAddressFields({
               onFocus={onAddressFocus}
               aria-invalid={addressLineInvalid}
             />
-            {addressLineError ? <p className="text-danger text-xs">{addressLineError}</p> : null}
+            <FieldErrorText message={addressLineError} />
           </div>
         ) : (
           <>
@@ -224,7 +195,7 @@ export function PostalAddressFields({
               onFocus={onAddressFocus}
               aria-invalid={addressLineInvalid}
             />
-            {addressLineError ? <p className="text-danger text-xs">{addressLineError}</p> : null}
+            <FieldErrorText message={addressLineError} />
           </>
         )
       ) : null}
@@ -240,7 +211,7 @@ export function PostalAddressFields({
             }}
             onFocus={onAddressFocus}
           />
-          {streetLine2Error ? <p className="text-danger text-xs">{streetLine2Error}</p> : null}
+          <FieldErrorText message={streetLine2Error} />
         </Field>
       ) : null}
 
@@ -259,7 +230,7 @@ export function PostalAddressFields({
               onFocus={onAddressFocus}
               aria-invalid={postalCodeInvalid}
             />
-            {postalCodeError ? <p className="text-danger text-xs">{postalCodeError}</p> : null}
+            <FieldErrorText message={postalCodeError} />
           </div>
           <div className={`${HALF_FIELD_WIDTH_CLASS} flex flex-col gap-1.5`}>
             <label htmlFor={cityId} className="text-foreground text-sm leading-snug font-medium">
@@ -274,7 +245,7 @@ export function PostalAddressFields({
               onFocus={onAddressFocus}
               aria-invalid={cityInvalid}
             />
-            {cityError ? <p className="text-danger text-xs">{cityError}</p> : null}
+            <FieldErrorText message={cityError} />
           </div>
         </div>
       ) : null}
@@ -287,7 +258,7 @@ export function PostalAddressFields({
             onChange={onCountryChange}
             aria-invalid={Boolean(countryError)}
           />
-          {countryError ? <p className="text-danger text-xs">{countryError}</p> : null}
+          <FieldErrorText message={countryError} />
         </Field>
       ) : countryDisplayLabel ? (
         <Field label={t('country')}>

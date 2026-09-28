@@ -24,7 +24,7 @@ export function navigationLinkClassName(
     'font-normal text-accent underline decoration-transparent decoration-1 underline-offset-[3px] transition-[color,text-decoration-color] hover:text-[var(--link-hover)] hover:decoration-[var(--link-underline)]';
 
   if (chevron === 'none') {
-    return cn('inline', linkColors, textClassName);
+    return cn('inline-flex w-fit max-w-full', linkColors, textClassName);
   }
 
   return cn('inline-flex w-fit items-center', linkColors, gapClassName, textClassName);

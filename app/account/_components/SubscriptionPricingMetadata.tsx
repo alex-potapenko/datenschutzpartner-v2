@@ -8,6 +8,7 @@ import {
 } from '@/api/checkout';
 import {
   resolvePolicySiteCount,
+  hasSubscriptionAccessRemaining,
   subscriptionTermEndDate,
   type Order,
   type Subscription,
@@ -79,6 +80,7 @@ export function inactiveRenewalStatusNote(
   labels: {
     cancelledOn: (params: { date: string }) => string;
     expiredOn: (params: { date: string }) => string;
+    accessUntil: (params: { date: string }) => string;
   }
 ): string | null {
   if (subscription.status !== 'cancelled' && subscription.status !== 'expired') {
@@ -89,6 +91,9 @@ export function inactiveRenewalStatusNote(
   if (!endDate) return null;
 
   const formatted = formatDate(endDate);
+  if (hasSubscriptionAccessRemaining(endDate)) {
+    return labels.accessUntil({ date: formatted });
+  }
   return subscription.status === 'expired'
     ? labels.expiredOn({ date: formatted })
     : labels.cancelledOn({ date: formatted });

@@ -82,10 +82,18 @@ describe('findEuRepContractForLegalEntity', () => {
     expect(findEuRepContractForLegalEntity(withCancelled, 'Unknown GmbH')).toBeUndefined();
   });
 
-  it('ignores an active contract whose subscription is cancelled', () => {
+  it('matches a cancelled subscription until its paid term ends', () => {
     expect(
       findEuRepContractForLegalEntity(contracts, 'Baumgartner Digital AG', [
-        subscription('sub-1', 'cancelled'),
+        { ...subscription('sub-1', 'cancelled'), nextPaymentDate: '2999-01-01' },
+      ])?.id
+    ).toBe('1');
+  });
+
+  it('ignores a cancelled subscription whose paid term has ended', () => {
+    expect(
+      findEuRepContractForLegalEntity(contracts, 'Baumgartner Digital AG', [
+        { ...subscription('sub-1', 'cancelled'), nextPaymentDate: '2020-01-01' },
       ])
     ).toBeUndefined();
   });

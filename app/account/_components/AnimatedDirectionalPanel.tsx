@@ -106,9 +106,11 @@ export function AnimatedDirectionalPanel({
           animate={{ opacity: 1, x: 0, y: 0 }}
           exit={{ opacity: 0, ...slideOffset(axis, -offset * direction) }}
           transition={SLIDE_TRANSITION}
-          className={cn('w-full min-w-0', className)}
+          className="w-full min-w-0"
         >
-          <div ref={measureRef}>{children}</div>
+          <div ref={measureRef} className={cn('w-full min-w-0', className)}>
+            {children}
+          </div>
         </motion.div>
       </AnimatePresence>
     </motion.div>

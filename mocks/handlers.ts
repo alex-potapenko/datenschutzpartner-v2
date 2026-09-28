@@ -30,12 +30,14 @@ import {
   countActivePolicySites,
   countActivePolicySubscriptions,
   resolvePolicySiteCount,
+  subscriptionGrantsProductAccess,
 } from '@/api/billing';
-import type { CheckoutSessionCreate, EuRepPlanId } from '@/api/checkout';
+import type { CheckoutSessionCreate, CheckoutSessionDetails, EuRepPlanId } from '@/api/checkout';
 import {
   calculateEuRepQuote,
   calculateGeneratorPolicyQuote,
   POLICY_TRIAL_DAYS,
+  calculateSubscriptionRenewalQuote,
   qualifyingSiteCountForCheckout,
   resolveEuRepPlan,
 } from '@/api/checkout';
@@ -379,20 +381,57 @@ const billingAddress = createCollection<BillingAddress & { id: string }>(
   2
 );
 
+const LUCAS_SEED_PROFILE: Profile & { id: string } = {
+  id: 'profile-lucas',
+  firstName: 'Lucas',
+  lastName: 'Baumgartner',
+  displayName: 'Lucas Baumgartner',
+  email: MOCK_MEMBER_EMAIL,
+  role: 'member',
+};
+
+/** v3 — per-account profiles (was a single shared row that checkout could overwrite). */
 const profile = createCollection<Profile & { id: string }>(
   'account-profile',
-  [
-    {
-      id: '1',
-      firstName: 'Lucas',
-      lastName: 'Baumgartner',
-      displayName: 'Lucas Baumgartner',
-      email: MOCK_MEMBER_EMAIL,
-      role: 'member',
-    },
-  ],
-  2
+  [LUCAS_SEED_PROFILE],
+  3
 );
+
+function normalizeProfileEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function findProfileByEmail(email: string): (Profile & { id: string }) | undefined {
+  const normalized = normalizeProfileEmail(email);
+  return profile.all().find((row) => normalizeProfileEmail(row.email) === normalized);
+}
+
+function profileIdForEmail(email: string): string {
+  const normalized = normalizeProfileEmail(email);
+  if (normalized === MOCK_MEMBER_EMAIL) return LUCAS_SEED_PROFILE.id;
+  return `profile-${normalized.replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+function resolveProfileForEmail(email: string): Profile & { id: string } {
+  const normalized = normalizeProfileEmail(email);
+  const existing = findProfileByEmail(normalized);
+  if (existing) return existing;
+
+  if (normalized === MOCK_MEMBER_EMAIL) {
+    profile.create(LUCAS_SEED_PROFILE);
+    return LUCAS_SEED_PROFILE;
+  }
+
+  const account = findAuthAccountByEmail(normalized);
+  return profile.create({
+    id: profileIdForEmail(normalized),
+    firstName: '',
+    lastName: '',
+    displayName: '',
+    email: normalized,
+    role: account?.role ?? accountRole(normalized) ?? 'member',
+  });
+}
 
 /** Billing-system numbers. Parent subscriptions keep a stable id; each invoice gets its own. */
 const EU_REP_BAUMGARTNER_SUBSCRIPTION_ID = '56218';
@@ -666,6 +705,7 @@ type CheckoutSessionRecord = {
   euRepContractId?: string;
   euRepContractIds?: string[];
   promoCode?: string;
+  returnUrl?: string;
 };
 
 const checkoutSessions = createCollection<CheckoutSessionRecord>('checkout-sessions', [], 4);
@@ -754,6 +794,33 @@ function createRenewalOrderForSubscription(subscription: Subscription, today: st
   });
 }
 
+function subscriptionRenewalQuote(subscription: Subscription) {
+  return calculateSubscriptionRenewalQuote(
+    subscription,
+    countActivePolicySites(subscriptions.all())
+  );
+}
+
+/** Reactivate with a fresh 12-month term starting today, billed as a renewal order. */
+function startNewSubscriptionTerm(existing: Subscription, today: string) {
+  const quote = subscriptionRenewalQuote(existing);
+  const order = createRenewalOrderForSubscription(existing, today);
+  const subscription = subscriptions.update(existing.id, {
+    status: 'active',
+    startDate: today,
+    lastOrderDate: today,
+    nextPaymentDate: addDays(today, 365),
+    relatedOrderIds: [...existing.relatedOrderIds, order.id],
+    totals: {
+      ...existing.totals,
+      subtotal: quote.listPrice,
+      discount: quote.discountAmount,
+      total: quote.amountDue,
+    },
+  });
+  return { subscription, order };
+}
+
 function nextOrderNumber(): string {
   const year = new Date().getFullYear();
   const seq = orders.all().length + 1200;
@@ -765,6 +832,55 @@ function policyProductLabel(siteCount: number, domain?: string): string {
     return `Privacy Policy — ${domain.replace(/^www\./, '')}`;
   }
   return `Privacy Policy Generator — ${siteCount} ${siteCount === 1 ? 'Site' : 'Sites'}`;
+}
+
+function checkoutSessionOrderContext(
+  session: CheckoutSessionRecord,
+  subscription?: Subscription
+): {
+  domain?: string;
+  legalEntity?: string;
+  euRepPlanId?: string;
+  euRepPlanLabel?: string;
+  policyAmountExclVat?: number;
+  euRepAmountExclVat?: number;
+  siteCount?: number;
+} {
+  const euRepAmount = Math.max(0, session.amount - session.generatorAmount);
+  const policyAmount = session.generatorAmount;
+
+  if (session.kind === 'subscriptionRenewal' && subscription) {
+    if (subscription.productType === 'policy') {
+      const domain = documents.all().find((row) => row.subscriptionId === subscription.id)?.site;
+      return {
+        domain,
+        policyAmountExclVat: session.amount,
+        euRepAmountExclVat: 0,
+        siteCount: session.siteCount,
+      };
+    }
+    const contract = euRepContracts.all().find((row) => row.subscriptionId === subscription.id);
+    const planId = (subscription.planId ?? 'basis') as EuRepPlanId;
+    return {
+      legalEntity: contract?.legalEntity,
+      euRepPlanId: planId,
+      euRepPlanLabel: euRepProductLabel(planId),
+      policyAmountExclVat: 0,
+      euRepAmountExclVat: session.amount,
+      siteCount: 1,
+    };
+  }
+
+  const planId = session.euRepPlanId;
+  return {
+    domain: session.domain,
+    legalEntity: session.legalEntity ?? session.euRepEntities?.[0]?.legalEntity,
+    euRepPlanId: planId,
+    euRepPlanLabel: planId ? euRepProductLabel(planId) : undefined,
+    policyAmountExclVat: policyAmount,
+    euRepAmountExclVat: euRepAmount,
+    siteCount: session.siteCount,
+  };
 }
 
 function euRepProductLabel(planId: string): string {
@@ -881,14 +997,6 @@ function createEuRepPurchase(
   };
 }
 
-function stripEuRepFromHostedPolicies(subscriptionId: string) {
-  const contracts = euRepContracts.all().filter((row) => row.subscriptionId === subscriptionId);
-
-  for (const contract of contracts) {
-    euRepContracts.update(contract.id, { linkedDocumentIds: [] });
-  }
-}
-
 function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | undefined {
   const session = checkoutSessions.all().find((row) => row.id === sessionId);
   if (!session || session.status === 'completed') {
@@ -896,6 +1004,13 @@ function completeCheckoutSession(sessionId: string): CheckoutSessionRecord | und
   }
 
   const today = new Date().toISOString().slice(0, 10);
+
+  if (session.kind === 'subscriptionRenewal') {
+    const existing = subscriptions.all().find((row) => row.id === session.subscriptionId);
+    if (!existing) return undefined;
+    const { order } = startNewSubscriptionTerm(existing, today);
+    return checkoutSessions.update(sessionId, { status: 'completed', orderId: order.id });
+  }
 
   if (session.kind === 'euRep') {
     const euResult = createEuRepPurchase(session, today);
@@ -1443,7 +1558,7 @@ function findActiveEuRepContractForLegalEntity(legalEntity: string) {
     if (row.status !== 'active') return false;
     if (row.legalEntity.trim().toLowerCase() !== needle) return false;
     const subscription = subscriptions.all().find((item) => item.id === row.subscriptionId);
-    return subscription?.status === 'active';
+    return subscriptionGrantsProductAccess(subscription);
   });
 }
 
@@ -1877,6 +1992,7 @@ export const handlers = [
 
   http.post('/api/dev/reseed-auth-mock', () => {
     authAccounts.reseed(createAuthAccountsSeed());
+    profile.reseed([LUCAS_SEED_PROFILE]);
     setupTokens.reseed([]);
     magicLoginTokens.reseed([]);
     return HttpResponse.json({ ok: true as const });
@@ -2083,7 +2199,6 @@ export const handlers = [
     const email = pending.email.trim().toLowerCase();
     ensureAuthAccount(email, 'member');
 
-    const existingProfile = profile.all()[0];
     const profilePayload = {
       firstName: pending.firstName.trim(),
       lastName: pending.lastName.trim(),
@@ -2093,10 +2208,12 @@ export const handlers = [
       role: 'member' as const,
       twoFactorEnabled: false,
     };
+    const existingProfile = findProfileByEmail(email);
+    const profileId = existingProfile?.id ?? profileIdForEmail(email);
     if (existingProfile) {
       profile.update(existingProfile.id, profilePayload);
     } else {
-      profile.create({ ...profilePayload, id: '1' });
+      profile.create({ ...profilePayload, id: profileId });
     }
 
     return HttpResponse.json({
@@ -2158,17 +2275,20 @@ export const handlers = [
   }),
 
   http.get('/api/account/profile', ({ request }) => {
-    const stored = profile.all()[0];
     const token = tokenFromRequest(request);
-    const email = emailFromLoginToken(token) ?? stored?.email ?? MOCK_MEMBER_EMAIL;
-    const resolvedEmail = stored?.email ?? email;
-    const account = findAuthAccountByEmail(resolvedEmail);
-    const role = account?.role ?? accountRole(resolvedEmail) ?? 'member';
+    const email = emailFromLoginToken(token);
+    if (!email) {
+      return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    const stored = resolveProfileForEmail(email);
+    const account = findAuthAccountByEmail(email);
+    const role = account?.role ?? accountRole(email) ?? 'member';
     return HttpResponse.json({
-      firstName: stored?.firstName ?? '',
-      lastName: stored?.lastName ?? '',
-      displayName: stored?.displayName ?? '',
-      email: resolvedEmail,
+      firstName: stored.firstName,
+      lastName: stored.lastName,
+      displayName: stored.displayName,
+      email: stored.email,
       role,
       twoFactorEnabled: account ? isTwoFactorEnabled(account) : false,
     } satisfies Profile);
@@ -2176,8 +2296,10 @@ export const handlers = [
 
   http.put('/api/account/profile', async ({ request }) => {
     const input = (await request.json()) as Profile;
-    const existing = profile.all()[0];
-    const email = input.email.trim().toLowerCase();
+    const token = tokenFromRequest(request);
+    const sessionEmail = emailFromLoginToken(token);
+    const email = normalizeProfileEmail(sessionEmail ?? input.email);
+    const existing = findProfileByEmail(email);
     const account = findAuthAccountByEmail(email);
     const role = account?.role ?? accountRole(email) ?? 'member';
     const payload: Profile = {
@@ -2189,9 +2311,10 @@ export const handlers = [
       role,
       twoFactorEnabled: account ? isTwoFactorEnabled(account) : false,
     };
+    const profileId = existing?.id ?? profileIdForEmail(email);
     const saved = existing
       ? profile.update(existing.id, payload)
-      : profile.create({ ...payload, id: '1' });
+      : profile.create({ ...payload, id: profileId });
     void saved;
     return HttpResponse.json(payload);
   }),
@@ -2394,10 +2517,8 @@ export const handlers = [
   ),
 
   http.post('/api/billing/subscriptions/:id/cancel', ({ params }) => {
+    // Access (and EU Rep coverage on hosted policies) runs until the paid term ends.
     const updated = subscriptions.update(String(params.id), { status: 'cancelled' });
-    if (updated?.productType === 'euRep') {
-      stripEuRepFromHostedPolicies(updated.id);
-    }
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
     }
@@ -2411,40 +2532,9 @@ export const handlers = [
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    const startNewTerm = shouldStartNewTermOnContinue(existing);
-    const patch: Partial<Subscription> = { status: 'active' };
-
-    if (startNewTerm) {
-      patch.startDate = today;
-      patch.lastOrderDate = today;
-      patch.nextPaymentDate = addDays(today, 365);
-
-      const order = createRenewalOrderForSubscription(existing, today);
-      patch.relatedOrderIds = [...existing.relatedOrderIds, order.id];
-
-      if (existing.productType === 'policy') {
-        const activeSiteCount = countActivePolicySites(subscriptions.all());
-        const siteCount = resolvePolicySiteCount(existing);
-        const quote = calculateGeneratorPolicyQuote(activeSiteCount, siteCount);
-        patch.totals = {
-          ...existing.totals,
-          subtotal: quote.listPrice,
-          discount: quote.discountAmount,
-          total: quote.amountDue,
-        };
-      } else {
-        const planId = (existing.planId ?? 'basis') as EuRepPlanId;
-        const quote = calculateEuRepQuote(planId);
-        patch.totals = {
-          ...existing.totals,
-          subtotal: quote.amountDue,
-          discount: 0,
-          total: quote.amountDue,
-        };
-      }
-    }
-
-    const updated = subscriptions.update(String(params.id), patch);
+    const updated = shouldStartNewTermOnContinue(existing)
+      ? startNewSubscriptionTerm(existing, today).subscription
+      : subscriptions.update(existing.id, { status: 'active' });
     if (!updated) {
       return new HttpResponse(null, { status: 404 });
     }
@@ -2473,7 +2563,7 @@ export const handlers = [
     const subscription = subscriptions
       .all()
       .find((row) => row.id === input.subscriptionId && row.productType === 'euRep');
-    if (!subscription || subscription.status !== 'active') {
+    if (!subscription || !subscriptionGrantsProductAccess(subscription)) {
       return HttpResponse.json({ message: 'Subscription not found' }, { status: 404 });
     }
 
@@ -3110,6 +3200,45 @@ export const handlers = [
   http.post('/api/checkout/sessions', async ({ request }) => {
     const input = (await request.json()) as CheckoutSessionCreate;
 
+    if (input.kind === 'subscriptionRenewal') {
+      const existing = subscriptions.all().find((row) => row.id === input.subscriptionId);
+      if (!existing) {
+        return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+      }
+      const quote = subscriptionRenewalQuote(existing);
+      const session = checkoutSessions.create({
+        status: 'pending',
+        kind: input.kind,
+        siteCount: existing.productType === 'policy' ? resolvePolicySiteCount(existing) : 1,
+        amount: quote.amountDue,
+        generatorAmount: existing.productType === 'policy' ? quote.amountDue : 0,
+        listPrice: quote.listPrice,
+        discountRate: quote.discountRate,
+        discountAmount: quote.discountAmount,
+        currency: 'CHF',
+        euRepPlanId:
+          existing.productType === 'euRep'
+            ? ((existing.planId ?? 'basis') as EuRepPlanId)
+            : undefined,
+        subscriptionId: existing.id,
+        returnUrl: input.returnUrl,
+      });
+      return HttpResponse.json(
+        {
+          id: session.id,
+          // POC STUB (Payrexx): the real backend returns the Payrexx gateway URL.
+          redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
+          amount: session.amount,
+          currency: session.currency,
+          siteCount: session.siteCount,
+          listPrice: session.listPrice,
+          discountRate: session.discountRate,
+          discountAmount: session.discountAmount,
+        },
+        { status: 201 }
+      );
+    }
+
     if (input.kind === 'euRep') {
       const entityCount = Math.max(1, input.euRepEntityCount ?? input.euRepEntities?.length ?? 1);
       const planId = input.euRepPlanId ?? 'basis';
@@ -3139,6 +3268,7 @@ export const handlers = [
       return HttpResponse.json(
         {
           id: session.id,
+          // POC STUB (Payrexx): the real backend returns the Payrexx gateway URL.
           redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
           amount: session.amount,
           currency: session.currency,
@@ -3196,6 +3326,7 @@ export const handlers = [
       return HttpResponse.json(
         {
           id: session.id,
+          // POC STUB (Payrexx): the real backend returns the Payrexx gateway URL.
           redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
           amount: session.amount,
           currency: session.currency,
@@ -3240,6 +3371,7 @@ export const handlers = [
     return HttpResponse.json(
       {
         id: session.id,
+        // POC STUB (Payrexx): the real backend returns the Payrexx gateway URL.
         redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
         amount: session.amount,
         currency: session.currency,
@@ -3250,6 +3382,33 @@ export const handlers = [
       },
       { status: 201 }
     );
+  }),
+
+  http.get('/api/checkout/sessions/:id', ({ params }) => {
+    const session = checkoutSessions.all().find((row) => row.id === String(params.id));
+    if (!session) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+    const subscription = session.subscriptionId
+      ? subscriptions.all().find((row) => row.id === session.subscriptionId)
+      : undefined;
+    return HttpResponse.json({
+      id: session.id,
+      // POC STUB (Payrexx): the real backend returns the Payrexx gateway URL.
+      redirectUrl: `/checkout/payrexx?sessionId=${session.id}`,
+      amount: session.amount,
+      currency: session.currency,
+      siteCount: session.siteCount,
+      listPrice: session.listPrice,
+      discountRate: session.discountRate,
+      discountAmount: session.discountAmount,
+      status: session.status,
+      kind: session.kind,
+      description: subscription?.totals.product ?? subscription?.product ?? 'Datenschutzpartner',
+      subscriptionId: session.subscriptionId,
+      returnUrl: session.returnUrl,
+      orderContext: checkoutSessionOrderContext(session, subscription),
+    } satisfies CheckoutSessionDetails);
   }),
 
   http.post('/api/checkout/sessions/:id/complete', ({ params }) => {
@@ -3272,6 +3431,7 @@ export const handlers = [
     return HttpResponse.json({
       sessionId: completed.id,
       orderId: completed.orderId,
+      subscriptionId: completed.subscriptionId,
       document: document ? presentDocument(document) : undefined,
       activeSubscriptionCount: countActivePolicySubscriptions(subscriptions.all()),
       nextPaymentDate: policySub?.nextPaymentDate ?? null,

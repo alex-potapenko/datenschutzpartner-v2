@@ -30,19 +30,22 @@ export function ValidationRequiredBadge({
     <AnimatePresence>
       {visible ? (
         <motion.span
-          key={shakeKey}
-          className={cn('inline-block align-middle', className)}
+          key="required"
+          className={cn('inline-flex align-middle', className)}
           initial={false}
-          animate={
-            reduceMotion ? { opacity: 1, x: 0 } : { opacity: 1, x: [0, -5, 5, -4, 4, -2, 2, 0] }
-          }
-          transition={{
-            opacity: { duration: 0.2 },
-            x: { duration: 0.5, ease: 'easeInOut' },
-          }}
+          animate={{ opacity: 1 }}
+          transition={{ opacity: { duration: 0.2 } }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
         >
-          <MetaBadge kind="required">{children}</MetaBadge>
+          <motion.span
+            key={shakeKey}
+            className="inline-flex"
+            initial={{ x: 0 }}
+            animate={reduceMotion ? { x: 0 } : { x: [0, -5, 5, -4, 4, -2, 2, 0] }}
+            transition={{ x: { duration: 0.5, ease: 'easeInOut' } }}
+          >
+            <MetaBadge kind="required">{children}</MetaBadge>
+          </motion.span>
         </motion.span>
       ) : null}
     </AnimatePresence>

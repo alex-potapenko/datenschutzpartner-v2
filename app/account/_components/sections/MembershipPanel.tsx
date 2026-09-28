@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Fragment, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
@@ -18,7 +19,9 @@ import {
   useWithdrawEuRepExtraRequest,
   useOrders,
   hasSubscriptionAccessRemaining,
+  subscriptionGrantsProductAccess,
   subscriptionCoverageEnd,
+  subscriptionRequiresPaidRenewal,
   subscriptionTermEndDate,
   useSubscriptions,
   type BillingProductType,
@@ -29,6 +32,7 @@ import {
   downloadOrderInvoice,
   EU_REP_EXTRA_REQUEST_PRICE,
   resolveEuRepPlan,
+  SUBSCRIPTION_RENEWED_PARAM,
 } from '@/api/checkout';
 import { useBillingAddress } from '@/api/account';
 import { useDocuments } from '@/api/documents';
@@ -36,6 +40,7 @@ import { useEuRepContracts } from '@/api/eu-rep';
 import {
   ArrowsClockwise,
   Button,
+  CaretRight,
   ChatTeardropText,
   CheckCircle,
   Chip,
@@ -43,6 +48,7 @@ import {
   FileText,
   Info,
   MapPin,
+  Plus,
   Question,
   Stack,
   Tooltip,
@@ -61,7 +67,12 @@ import { Field, TextInput } from '@/app/result/ui/FormSection';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
-import { ACCOUNT_BILLING_DETAILS_HREF } from '@/lib/account-routes';
+import {
+  ACCOUNT_BILLING_DETAILS_HREF,
+  accountLocationHref,
+  subscriptionRenewalHref,
+} from '@/lib/account-routes';
+import { SubscriptionRenewedDialog } from '../SubscriptionRenewedDialog';
 import { displayCountryLabel } from '@/lib/swiss-country';
 import {
   buildSubscriptionPricing,
@@ -251,7 +262,7 @@ export function EuRepRequestsSection({ subscription }: { subscription: Subscript
   const remainingRequests = resolveEuRepRemainingRequests(subscription);
   const requestUsages = listEuRepRequestUsages(subscription);
   const requestedExtraRequests = listEuRepRequestedExtraRequests(subscription);
-  const canAddExtra = subscription.status === 'active';
+  const canAddExtra = subscriptionGrantsProductAccess(subscription);
 
   return (
     <AccountSection title={t('sectionRequests')} contentClassName="gap-6">
@@ -275,16 +286,17 @@ export function EuRepRequestsSection({ subscription }: { subscription: Subscript
               >
                 {remainingRequests}
               </p>
-              {requestedExtraRequests.length === 0 ? (
+              {remainingRequests === 0 && requestedExtraRequests.length === 0 ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="shrink-0"
+                  className="shrink-0 gap-1.5"
                   isDisabled={!canAddExtra}
                   onPress={() => {
                     requestDialog.open();
                   }}
                 >
+                  <Plus size={14} weight="bold" aria-hidden />
                   {t('requestsRequestCta')}
                 </Button>
               ) : null}
@@ -363,6 +375,7 @@ function CurrentPlanPanel({
   onCancel,
   onContinue,
   isContinuing = false,
+  continueOpensCheckout = false,
   priceIncreased,
   hideHeader = false,
   hideDownload = false,
@@ -373,6 +386,8 @@ function CurrentPlanPanel({
   onCancel?: () => void;
   onContinue?: () => void;
   isContinuing?: boolean;
+  /** Continue leads to the paid renewal checkout instead of acting in place. */
+  continueOpensCheckout?: boolean;
   priceIncreased?: boolean;
   /** Policy subscription detail — title and actions live in the page header. */
   hideHeader?: boolean;
@@ -569,11 +584,14 @@ function CurrentPlanPanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-fit"
+                      className="w-fit gap-1.5"
                       onPress={onContinue}
                       isDisabled={isContinuing}
                     >
                       {t('continueSubscription')}
+                      {continueOpensCheckout ? (
+                        <CaretRight size={14} weight="bold" aria-hidden />
+                      ) : null}
                     </Button>
                   ) : null}
                 </div>
@@ -699,6 +717,9 @@ export function MembershipPanel({
   const billingAddress = useBillingAddress();
   const cancel = useCancelSubscription();
   const continueSubscription = useContinueSubscription();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const confirm = useOverlayState();
   const formatDate = useDateFormatter();
   const [cancelTarget, setCancelTarget] = useState<Subscription | null>(null);
@@ -744,6 +765,33 @@ export function MembershipPanel({
   const billingHistory = productType === 'policy' ? policyBillingHistory : euRepBillingHistory;
   const billingHistoryTitle =
     productType === 'policy' ? tGeneratorPlan('billingHistory') : t('billingHistory');
+
+  const renewedId = searchParams.get(SUBSCRIPTION_RENEWED_PARAM);
+  const renewedSubscription =
+    (renewedId && displayedSubscriptions.find((row) => row.id === renewedId)) || null;
+  const renewedOrderId = renewedSubscription?.relatedOrderIds.at(-1);
+  const renewedOrder = orders.data?.find((order) => order.id === renewedOrderId);
+
+  function closeRenewedDialog() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(SUBSCRIPTION_RENEWED_PARAM);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
+  function handleContinue(subscription: Subscription) {
+    if (subscriptionRequiresPaidRenewal(subscription)) {
+      router.push(
+        subscriptionRenewalHref(subscription.id, accountLocationHref(pathname, searchParams))
+      );
+      return;
+    }
+    continueSubscription.mutate(subscription.id, {
+      onSuccess: () => {
+        toast.success(t('continued'));
+      },
+    });
+  }
 
   function handleCancel() {
     if (!cancelTarget) return;
@@ -843,15 +891,12 @@ export function MembershipPanel({
                         subscription.status === 'expired' ||
                         (subscription.status === 'active' && !subscription.nextPaymentDate)
                           ? () => {
-                              continueSubscription.mutate(subscription.id, {
-                                onSuccess: () => {
-                                  toast.success(t('continued'));
-                                },
-                              });
+                              handleContinue(subscription);
                             }
                           : undefined
                       }
                       isContinuing={continueSubscription.isPending}
+                      continueOpensCheckout={subscriptionRequiresPaidRenewal(subscription)}
                     />
                     {isEuRep ? <EuRepRequestsSection subscription={subscription} /> : null}
                   </Fragment>
@@ -966,6 +1011,11 @@ export function MembershipPanel({
         cancelLabel={t('keepSubscription')}
         onConfirm={handleCancel}
         isPending={cancel.isPending}
+      />
+      <SubscriptionRenewedDialog
+        subscription={renewedSubscription}
+        order={renewedOrder}
+        onClose={closeRenewedDialog}
       />
     </>
   );

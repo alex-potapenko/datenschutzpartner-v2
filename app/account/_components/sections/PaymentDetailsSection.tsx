@@ -15,6 +15,7 @@ import { displayCountryLabel, SWISS_COUNTRY_STORAGE } from '@/lib/swiss-country'
 import { PostalAddressFields } from '@/app/result/ui/PostalAddressFields';
 import { Button, Input } from '@/components/ui';
 import { DataState, AccountSection } from '../account-ui';
+import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 function Field({
   id,
@@ -33,7 +34,7 @@ function Field({
         {label}
       </label>
       {children}
-      {error ? <p className="text-danger text-xs">{error}</p> : null}
+      <FieldErrorText message={error} />
     </div>
   );
 }

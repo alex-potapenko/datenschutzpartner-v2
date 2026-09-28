@@ -11,13 +11,20 @@ import {
   countActivePolicySites,
   isPolicySubscriptionOnTrial,
   resolvePolicySiteCount,
+  subscriptionRequiresPaidRenewal,
   type Subscription,
 } from '@/api/billing';
 import { calculateGeneratorPolicyQuote, usePendingCheckout } from '@/api/checkout';
 import { Buildings, Button, Cookie, FileText, Plus, Spinner } from '@/components/ui';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { useSiteScope } from '@/components/shared/site-scope';
-import { accountLocationHref, addWebsiteWizardHref, withReturnTo } from '@/lib/account-routes';
+import {
+  accountLocationHref,
+  addWebsiteWizardHref,
+  privacyPolicyAccountHref,
+  subscriptionRenewalHref,
+  withReturnTo,
+} from '@/lib/account-routes';
 import {
   AccountSection,
   AccountSectionFrame,
@@ -45,16 +52,17 @@ type ProductCardConfig = {
   subscription: Subscription | null;
   muted?: boolean;
   description?: string;
+  comingSoonNotice?: string;
   onAction?: () => void;
   actionLabel?: string;
   onContinue?: () => void;
   continueLabel?: string;
   isContinuing?: boolean;
+  continueOpensCheckout?: boolean;
 };
 
 export function SubscriptionsSection() {
   const t = useTranslations('account.siteSubscriptions');
-  const tComingSoon = useTranslations('account.comingSoon');
   const tSubs = useTranslations('account.subscriptions');
   const tMembership = useTranslations('account.membershipPanel');
   const tDashboard = useTranslations('account.dashboard');
@@ -166,6 +174,7 @@ export function SubscriptionsSection() {
         ? inactiveRenewalStatusNote(config.subscription, formatDate, {
             cancelledOn: (params) => tMembership('cancelledOn', params),
             expiredOn: (params) => tMembership('expiredOn', params),
+            accessUntil: (params) => tMembership('accessUntil', params),
           })
         : null;
 
@@ -191,6 +200,7 @@ export function SubscriptionsSection() {
       renewalInactiveNote,
       notSubscribedLabel: t('notSubscribed'),
       comingSoonLabel: tNav('comingSoon'),
+      comingSoonNotice: config.comingSoonNotice,
       description: config.description,
       muted: config.muted,
       onAction: config.onAction,
@@ -198,16 +208,9 @@ export function SubscriptionsSection() {
       onContinue: config.onContinue,
       continueLabel: config.continueLabel,
       isContinuing: config.isContinuing,
+      continueOpensCheckout: config.continueOpensCheckout,
       equalHeight: true,
     };
-  }
-
-  function notifyWhenAvailable() {
-    toast.success(
-      tComingSoon('notifySuccess', {
-        site: activeSite?.domain ?? tComingSoon('yourAccount'),
-      })
-    );
   }
 
   const policySubscription = subscriptionFor(document?.subscriptionId);
@@ -241,6 +244,15 @@ export function SubscriptionsSection() {
       subscription: policySubscription,
       onContinue: policyNeedsContinue
         ? () => {
+            if (subscriptionRequiresPaidRenewal(policySubscription)) {
+              router.push(
+                subscriptionRenewalHref(
+                  policySubscription.id,
+                  privacyPolicyAccountHref({ site: activeSite.domain, tab: 'subscription' })
+                )
+              );
+              return;
+            }
             continueSubscription.mutate(policySubscription.id, {
               onSuccess: () => {
                 toast.success(tMembership('continued'));
@@ -250,6 +262,7 @@ export function SubscriptionsSection() {
         : undefined,
       continueLabel: tMembership('continueSubscription'),
       isContinuing: continueSubscription.isPending,
+      continueOpensCheckout: subscriptionRequiresPaidRenewal(policySubscription),
       onAction: showPolicyCheckout
         ? () => {
             router.push(
@@ -269,9 +282,8 @@ export function SubscriptionsSection() {
       title: tNav('cookieBanner'),
       state: 'comingSoon',
       subscription: null,
+      comingSoonNotice: t('comingSoonNotifyNote'),
       description: tDashboard('products.cookieBanner.body'),
-      onAction: notifyWhenAvailable,
-      actionLabel: t('notifyWhenAvailable'),
     },
     {
       id: 'imprint',
@@ -280,9 +292,8 @@ export function SubscriptionsSection() {
       title: tNav('imprint'),
       state: 'comingSoon',
       subscription: null,
+      comingSoonNotice: t('comingSoonNotifyNote'),
       description: tDashboard('products.imprint.body'),
-      onAction: notifyWhenAvailable,
-      actionLabel: t('notifyWhenAvailable'),
     },
   ];
 
