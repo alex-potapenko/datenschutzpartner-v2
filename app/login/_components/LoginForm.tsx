@@ -19,10 +19,7 @@ import type { FieldErrors } from 'react-hook-form';
 import { ApiError } from '@/api/client';
 import { useIdentifyLogin, useLogin } from '@/api/auth';
 import { env } from '@/env';
-import {
-  readPrototypeMagicLoginUrl,
-  storePrototypeMagicLoginUrl,
-} from '@/lib/magic-login-prototype';
+import { storePrototypeMagicLoginUrl } from '@/lib/magic-login-prototype';
 import { useLoginDev } from './login-dev-context';
 import { storeLoginCredential } from '@/lib/store-login-credential';
 import { AnimatedDirectionalPanel } from '@/app/account/_components/AnimatedDirectionalPanel';
@@ -30,12 +27,10 @@ import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { TotpInput } from '@/components/shared/TotpInput';
 import { TwoFactorProactiveOffer } from '@/components/shared/two-factor';
-import { navigationLinkClassName } from '@/components/shared/NavigationLink';
 import {
   Button,
-  CaretRight,
   CheckCircle,
-  Chip,
+  EnvelopeSimple,
   Eye,
   EyeSlash,
   Input,
@@ -91,8 +86,11 @@ export function LoginForm() {
 
   const identify = useIdentifyLogin();
   const login = useLogin();
-  const { setStep: setDevStep } = useLoginDev();
-  const [adminMagicLinkReady, setAdminMagicLinkReady] = useState(false);
+  const {
+    setStep: setDevStep,
+    setPrototypeMagicLinkReady,
+    setPrototypeMagicLinkUrl,
+  } = useLoginDev();
 
   useEffect(() => {
     setDevStep(step);
@@ -217,16 +215,18 @@ export function LoginForm() {
       const result = await identify.mutateAsync({ email: normalizedEmail });
 
       if (result.loginMethod === 'magic_link') {
-        const isAdminLink = Boolean(result.prototypeMagicLinkUrl);
-        setAdminMagicLinkReady(isAdminLink);
-        if (result.prototypeMagicLinkUrl) {
-          storePrototypeMagicLoginUrl(result.prototypeMagicLinkUrl);
+        const magicUrl = result.prototypeMagicLinkUrl ?? null;
+        setPrototypeMagicLinkReady(Boolean(magicUrl));
+        setPrototypeMagicLinkUrl(magicUrl);
+        if (magicUrl) {
+          storePrototypeMagicLoginUrl(magicUrl);
         }
         setStep('magic_link_sent');
         return;
       }
 
-      setAdminMagicLinkReady(false);
+      setPrototypeMagicLinkReady(false);
+      setPrototypeMagicLinkUrl(null);
 
       setRequiresTwoFactor(result.requiresTwoFactor ?? false);
       setTwoFactorSetupRequired(result.twoFactorSetupRequired ?? false);
@@ -242,12 +242,14 @@ export function LoginForm() {
     setAuthFailed(false);
     setPassword(values.password);
 
-    if (requiresTwoFactor || twoFactorSetupRequired) {
+    if (requiresTwoFactor) {
       setTotpCode('');
       setStep('totp');
       return;
     }
 
+    // Admin (and similar) accounts with mandatory 2FA but no authenticator yet:
+    // password alone must issue a setup token and forward to /set-password.
     void completeLogin({});
   }
 
@@ -275,19 +277,11 @@ export function LoginForm() {
   const showConfirmedEmailChrome = step !== 'email' && !isCollapsingPostEmailBlock;
   const expandDurationMs = reduceMotion ? 0 : revealTransition.duration * 1000;
 
-  function openAdminMagicLink() {
-    const url = readPrototypeMagicLoginUrl();
-    if (!url) {
-      toast.error(t('devMagicLinkMissing'));
-      return;
-    }
-    router.push(url);
-  }
-
   function completeEmailStepReset() {
     setIsCollapsingPostEmailBlock(false);
     setStep('email');
-    setAdminMagicLinkReady(false);
+    setPrototypeMagicLinkReady(false);
+    setPrototypeMagicLinkUrl(null);
     setAuthFailed(false);
     setPassword('');
     setRequiresTwoFactor(false);
@@ -457,29 +451,19 @@ export function LoginForm() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
                           transition={motionTransition}
-                          className="flex flex-col gap-3"
+                          className="flex flex-col items-center gap-3 text-center"
                         >
-                          <p className="text-muted text-sm leading-relaxed">
+                          <span
+                            className="bg-key-50 flex size-11 shrink-0 items-center justify-center rounded-xl"
+                            aria-hidden
+                          >
+                            <EnvelopeSimple size={22} weight="fill" className="text-accent" />
+                          </span>
+                          <p className="text-foreground text-sm leading-relaxed">
                             {t('identifyNotice')}
+                            <br />
+                            {t('identifyNoticeInbox')}
                           </p>
-                          {adminMagicLinkReady && env.NEXT_PUBLIC_API_MOCKING === 'enabled' ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Chip size="sm" variant="secondary" className="text-muted uppercase">
-                                {t('devFeatureLabel')}
-                              </Chip>
-                              <button
-                                type="button"
-                                onClick={openAdminMagicLink}
-                                className={cn(
-                                  navigationLinkClassName('sm'),
-                                  'inline-flex items-center gap-0.5 border-0 bg-transparent p-0'
-                                )}
-                              >
-                                {t('devAdminMagicLink')}
-                                <CaretRight size={14} weight="bold" aria-hidden />
-                              </button>
-                            </div>
-                          ) : null}
                         </motion.div>
                       ) : null}
 

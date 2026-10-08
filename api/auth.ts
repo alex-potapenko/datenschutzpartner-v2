@@ -181,6 +181,23 @@ export function useDisableLucasTwoFactor() {
   });
 }
 
+/** Prototype only — clears two-factor on the admin seed account (lost authenticator). */
+export function useResetAdminTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      request<{ ok: true }>('/dev/reset-admin-two-factor', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+      void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+    },
+  });
+}
+
 export function useIdentifyLogin() {
   return useMutation({
     mutationFn: (input: LoginIdentifyInput) =>
@@ -205,18 +222,35 @@ export function useLogin() {
   });
 }
 
+const magicLinkLoginInflight = new Map<string, Promise<LoginResponse>>();
+
+/** Single in-flight magic-link exchange per token (React Strict Mode runs effects twice). */
+export function consumeMagicLinkLogin(token: string): Promise<LoginResponse> {
+  const normalized = token.trim();
+  const existing = magicLinkLoginInflight.get(normalized);
+  if (existing) return existing;
+
+  const promise = request<LoginResponse>('/auth/login/magic-link', {
+    method: 'POST',
+    body: JSON.stringify({ token: normalized }),
+  }).then((data) => {
+    if (data.token) {
+      setAuthToken(data.token);
+    }
+    return data;
+  });
+
+  magicLinkLoginInflight.set(normalized, promise);
+  return promise;
+}
+
 export function useMagicLinkLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: MagicLinkLoginInput) =>
-      request<LoginResponse>('/auth/login/magic-link', {
-        method: 'POST',
-        body: JSON.stringify(input),
-      }),
+    mutationFn: (input: MagicLinkLoginInput) => consumeMagicLinkLogin(input.token),
     onSuccess: (data) => {
       if (!data.token) return;
-      setAuthToken(data.token);
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
     },
   });

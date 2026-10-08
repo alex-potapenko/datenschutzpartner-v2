@@ -20,29 +20,26 @@ Contact form submissions use `api/contact-messages.ts` (`POST /api/contact-messa
 `subject` enum that routes inquiries to the right admin queue.
 
 Auth uses `api/auth.ts`: `POST /auth/login/identify` returns `loginMethod`
-`password` or `magic_link`. **Members** continue with email + password
-(`POST /auth/login`); accounts with two-factor authentication also pass
-`twoFactorCode` or a `recoveryCode`. **Admins** have no password — identify
-issues a one-time link (`POST /auth/login/magic-link` with the token from the
-e-mail; prototype exposes `prototypeMagicLinkUrl` and `/login/verify?token=…`).
-Unknown e-mails still get `magic_link` on identify (no account enumeration).
-The Lucas seed account has `twoFactorSetupSuggested` — after sign-in (or after
-**Disable 2FA for Lucas** in debug info) the login screen shows an optional 2FA
-setup prompt (`suggestTwoFactorSetup` on login; dismiss via
-`POST /account/two-factor/dismiss-setup-suggestion`), then redirects to the
-account area.
+`password` or `magic_link`. **Members** (including the Lucas seed account) sign in
+via magic link — identify issues a one-time link (`POST /auth/login/magic-link`
+with the token; prototype exposes `prototypeMagicLinkUrl` and
+`/login/verify?token=…`). **Admins and other defined accounts** continue with
+email + password (`POST /auth/login`); accounts with two-factor authentication
+also pass `twoFactorCode` or a `recoveryCode`. Unknown e-mails still get
+`magic_link` on identify (no account enumeration).
 `GET /auth/session` returns `{ email, emailVerified, role? }`
 where `role` is `member` or `admin`. Registration:
 `POST /auth/register` then `POST /auth/verify-email` (double opt-in;
 prototype also returns `verificationUrl`). Verified sign-ups are added to the
 mock auth store with password `welcome`. Mock seed accounts:
-`lucas.baumgartner@gmail.com` (member, password `dspmp`) and
-`admin@datenschutzpartner.ch` (admin, **magic-link only**, no password).
+`lucas.baumgartner@gmail.com` (member, **magic link**) and
+`admin@datenschutzpartner.ch` (admin, Martin Steiger, password `dspmp`; 2FA optional in the mock).
 In the prototype, `/login` exposes **Show Debug Info** when MSW is on (before the
 e-mail step): seed credentials and **Disable 2FA for Lucas**
-(`POST /dev/disable-lucas-two-factor`). After an admin e-mail, a **Dev** chip offers
-**Email login link** (prototype magic link). `POST /dev/reseed-auth-mock` still
-exists for full mock reset.
+(`POST /dev/disable-lucas-two-factor`, legacy local state) and **Reset admin 2FA**
+(`POST /dev/reset-admin-two-factor` when the authenticator was removed). After a member e-mail,
+a **Dev** chip offers **Email login link** (prototype magic link).
+`POST /dev/reseed-auth-mock` still exists for full mock reset.
 
 ### Two-factor authentication (`api/two-factor.ts`)
 
@@ -296,7 +293,7 @@ the member token (`lucas.baumgartner@gmail.com`) sees active policy and EU Rep
 subscriptions; the `admin@` token sees the empty states. The billing address is
 shared across mock accounts (not gated). The shell renders client-side; `AccountApp`
 redirects unauthenticated visitors to `/login`, and the current password for the mock
-change-password endpoint is `dspmp`.
+change-password endpoint for the admin seed account is `dspmp`.
 
 **Datenschutz Academy** is a public marketing landing only (`/academy`). Membership,
 sessions, and articles live on the external Academy platform; they are not part of the

@@ -1,4 +1,4 @@
-/** Prototype-only: last admin magic-link URL from identify (for dev toolbar). */
+/** Prototype-only: last member magic-link URL from identify (for dev toolbar). */
 export const MAGIC_LOGIN_URL_STORAGE_KEY = 'mp-mock:last-magic-login-url';
 
 export function storePrototypeMagicLoginUrl(url: string) {

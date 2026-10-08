@@ -1,40 +1,52 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useMagicLinkLogin } from '@/api/auth';
+import { authKeys, consumeMagicLinkLogin } from '@/api/auth';
 import { Spinner } from '@/components/ui';
 import { NavigationLink } from '@/components/shared/NavigationLink';
+
+type VerifyState = 'loading' | 'error';
 
 function LoginMagicLinkVerifyContent() {
   const t = useTranslations('login');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const token = searchParams.get('token')?.trim() ?? '';
-  const magicLink = useMagicLinkLogin();
-  const started = useRef(false);
   const returnTo = searchParams.get('returnTo') ?? '/account';
+  const [state, setState] = useState<VerifyState>('loading');
 
   useEffect(() => {
-    if (started.current) return;
     if (!token) return;
-    started.current = true;
 
-    magicLink.mutate(
-      { token },
-      {
-        onSuccess: () => {
-          toast.success(t('success'));
-          router.replace(returnTo);
-        },
-        onError: () => {
+    let cancelled = false;
+
+    void consumeMagicLinkLogin(token)
+      .then(async (data) => {
+        if (cancelled) return;
+        if (!data.token) {
+          setState('error');
           toast.error(t('magicLinkInvalid'));
-        },
-      }
-    );
-  }, [magicLink, returnTo, router, t, token]);
+          return;
+        }
+        await queryClient.invalidateQueries({ queryKey: authKeys.session });
+        toast.success(t('success'));
+        router.replace(returnTo);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState('error');
+        toast.error(t('magicLinkInvalid'));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queryClient, returnTo, router, t, token]);
 
   if (!token) {
     return (
@@ -43,6 +55,20 @@ function LoginMagicLinkVerifyContent() {
           {t('title')}
         </h1>
         <p className="text-muted text-center text-sm">{t('magicLinkMissing')}</p>
+        <NavigationLink href="/login" className="mx-auto mt-4">
+          {t('magicLinkBackToLogin')}
+        </NavigationLink>
+      </>
+    );
+  }
+
+  if (state === 'error') {
+    return (
+      <>
+        <h1 className="text-foreground mb-4 text-center text-2xl font-bold sm:text-3xl">
+          {t('title')}
+        </h1>
+        <p className="text-muted text-center text-sm">{t('magicLinkInvalid')}</p>
         <NavigationLink href="/login" className="mx-auto mt-4">
           {t('magicLinkBackToLogin')}
         </NavigationLink>

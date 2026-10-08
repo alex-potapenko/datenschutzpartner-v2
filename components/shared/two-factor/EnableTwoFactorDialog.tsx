@@ -62,6 +62,7 @@ export function EnableTwoFactorDialog({
         onSuccess: (result) => {
           setRecoveryCodes(result.recoveryCodes);
           setStage('recovery');
+          toast.success(t('enableSuccess'));
         },
         onError: () => {
           setCodeInvalid(true);
@@ -104,7 +105,6 @@ export function EnableTwoFactorDialog({
                   accountName={accountName}
                   confirmLabel={t('recoveryDone')}
                   onConfirm={() => {
-                    toast.success(t('enableSuccess'));
                     onEnabled?.();
                     close();
                   }}

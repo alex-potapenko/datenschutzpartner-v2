@@ -8,6 +8,7 @@ import { generateTotpCode } from '@/lib/totp';
 const MEMBER_EMAIL = 'lucas.baumgartner@gmail.com';
 const MEMBER_PASSWORD = 'dspmp';
 const ADMIN_EMAIL = 'admin@datenschutzpartner.ch';
+const ADMIN_PASSWORD = 'dspmp';
 
 function login(body: Record<string, unknown>) {
   return request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(body) });
@@ -23,8 +24,31 @@ describe('two-factor contract', () => {
   let recoveryCodes: string[] = [];
 
   beforeAll(async () => {
-    const session = await login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD });
-    setAuthToken(session.token ?? '');
+    const pending = await login({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    if (pending.token) {
+      setAuthToken(pending.token);
+      return;
+    }
+
+    expect(pending.setupToken).toBeTruthy();
+    const setupToken = pending.setupToken as string;
+    const initialSetup = await request<TwoFactorSetup>('/account/two-factor/setup', {
+      method: 'POST',
+      body: JSON.stringify({ setupToken }),
+    });
+    await request<TwoFactorActivation>('/account/two-factor/activate', {
+      method: 'POST',
+      body: JSON.stringify({
+        setupToken,
+        code: await generateTotpCode(initialSetup.secret),
+      }),
+    });
+    const authed = await login({
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
+      twoFactorCode: await generateTotpCode(initialSetup.secret),
+    });
+    setAuthToken(authed.token ?? '');
   });
 
   it('issues a secret and an otpauth URI', async () => {
@@ -36,7 +60,7 @@ describe('two-factor contract', () => {
     secret = setup.secret;
     expect(secret).toMatch(/^[A-Z2-7]{32}$/);
     expect(setup.otpauthUri).toContain(`secret=${secret}`);
-    expect(setup.accountName).toBe(MEMBER_EMAIL);
+    expect(setup.accountName).toBe(ADMIN_EMAIL);
   });
 
   it('rejects activation with a wrong code', async () => {
@@ -61,13 +85,13 @@ describe('two-factor contract', () => {
   });
 
   it('requires the authenticator code at login', async () => {
-    await expect(login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD })).rejects.toMatchObject({
+    await expect(login({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })).rejects.toMatchObject({
       status: 401,
     });
 
     const session = await login({
-      email: MEMBER_EMAIL,
-      password: MEMBER_PASSWORD,
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
       twoFactorCode: await generateTotpCode(secret),
     });
     expect(session.token).toBeTruthy();
@@ -77,14 +101,14 @@ describe('two-factor contract', () => {
     const [code] = recoveryCodes;
 
     const session = await login({
-      email: MEMBER_EMAIL,
-      password: MEMBER_PASSWORD,
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
       recoveryCode: code?.toLowerCase(),
     });
     expect(session.token).toBeTruthy();
 
     await expect(
-      login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD, recoveryCode: code })
+      login({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD, recoveryCode: code })
     ).rejects.toMatchObject({ status: 401 });
 
     const status = await request<TwoFactorStatus>('/account/two-factor');
@@ -101,23 +125,23 @@ describe('two-factor contract', () => {
 
     const status = await request<TwoFactorStatus>('/account/two-factor/disable', {
       method: 'POST',
-      body: JSON.stringify({ password: MEMBER_PASSWORD }),
+      body: JSON.stringify({ password: ADMIN_PASSWORD }),
     });
     expect(status.enabled).toBe(false);
     expect(status.recoveryCodesTotal).toBe(0);
   });
 });
 
-describe('admin magic-link login', () => {
+describe('member magic-link login', () => {
   it('identifies with magic_link, rejects password login, and accepts the token', async () => {
     const identified = await request<LoginIdentifyResponse>('/auth/login/identify', {
       method: 'POST',
-      body: JSON.stringify({ email: ADMIN_EMAIL }),
+      body: JSON.stringify({ email: MEMBER_EMAIL }),
     });
     expect(identified.loginMethod).toBe('magic_link');
     expect(identified.prototypeMagicLinkUrl).toContain('token=');
 
-    await expect(login({ email: ADMIN_EMAIL, password: 'anything' })).rejects.toMatchObject({
+    await expect(login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD })).rejects.toMatchObject({
       status: 401,
     });
 
@@ -130,7 +154,7 @@ describe('admin magic-link login', () => {
       body: JSON.stringify({ token }),
     });
     expect(session.token).toBeTruthy();
-    expect(session.email).toBe(ADMIN_EMAIL);
+    expect(session.email).toBe(MEMBER_EMAIL);
   });
 
   it('does not reveal unknown e-mails on identify', async () => {

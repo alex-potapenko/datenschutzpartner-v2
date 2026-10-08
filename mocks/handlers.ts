@@ -103,6 +103,7 @@ function addDays(isoDate: string, days: number): string {
 const MOCK_MEMBER_EMAIL = 'lucas.baumgartner@gmail.com';
 const MOCK_MEMBER_PASSWORD = 'dspmp';
 const MOCK_ADMIN_EMAIL = 'admin@datenschutzpartner.ch';
+const MOCK_ADMIN_PASSWORD = 'dspmp';
 const TWO_FACTOR_ISSUER = 'Datenschutzpartner';
 /** Default password for accounts created after email verification in the prototype. */
 const PROTOTYPE_REGISTERED_PASSWORD = 'welcome';
@@ -146,7 +147,7 @@ function createAuthAccountsSeed(): AuthAccountRecord[] {
     {
       id: '2',
       email: MOCK_ADMIN_EMAIL,
-      password: '',
+      password: MOCK_ADMIN_PASSWORD,
       role: 'admin',
       totpSecret: null,
       pendingTotpSecret: null,
@@ -161,7 +162,7 @@ function createAuthAccountsSeed(): AuthAccountRecord[] {
 const authAccounts = createCollection<AuthAccountRecord>(
   'auth-accounts',
   createAuthAccountsSeed(),
-  5
+  6
 );
 
 function shouldSuggestTwoFactorSetup(account: AuthAccountRecord | undefined): boolean {
@@ -188,11 +189,6 @@ function issueMagicLoginToken(email: string): MagicLoginTokenRecord {
     createdAt: new Date().toISOString(),
     consumedAt: null,
   });
-}
-
-function findMagicLoginToken(token: string | undefined): MagicLoginTokenRecord | undefined {
-  if (!token) return undefined;
-  return magicLoginTokens.all().find((row) => row.token === token && !row.consumedAt);
 }
 
 function isTwoFactorEnabled(account: AuthAccountRecord): boolean {
@@ -390,11 +386,20 @@ const LUCAS_SEED_PROFILE: Profile & { id: string } = {
   role: 'member',
 };
 
+const ADMIN_SEED_PROFILE: Profile & { id: string } = {
+  id: 'profile-admin',
+  firstName: 'Martin',
+  lastName: 'Steiger',
+  displayName: 'Martin Steiger',
+  email: MOCK_ADMIN_EMAIL,
+  role: 'admin',
+};
+
 /** v3 — per-account profiles (was a single shared row that checkout could overwrite). */
 const profile = createCollection<Profile & { id: string }>(
   'account-profile',
-  [LUCAS_SEED_PROFILE],
-  3
+  [LUCAS_SEED_PROFILE, ADMIN_SEED_PROFILE],
+  4
 );
 
 function normalizeProfileEmail(email: string): string {
@@ -409,6 +414,7 @@ function findProfileByEmail(email: string): (Profile & { id: string }) | undefin
 function profileIdForEmail(email: string): string {
   const normalized = normalizeProfileEmail(email);
   if (normalized === MOCK_MEMBER_EMAIL) return LUCAS_SEED_PROFILE.id;
+  if (normalized === MOCK_ADMIN_EMAIL) return ADMIN_SEED_PROFILE.id;
   return `profile-${normalized.replace(/[^a-z0-9]+/g, '-')}`;
 }
 
@@ -420,6 +426,11 @@ function resolveProfileForEmail(email: string): Profile & { id: string } {
   if (normalized === MOCK_MEMBER_EMAIL) {
     profile.create(LUCAS_SEED_PROFILE);
     return LUCAS_SEED_PROFILE;
+  }
+
+  if (normalized === MOCK_ADMIN_EMAIL) {
+    profile.create(ADMIN_SEED_PROFILE);
+    return ADMIN_SEED_PROFILE;
   }
 
   const account = findAuthAccountByEmail(normalized);
@@ -1992,7 +2003,7 @@ export const handlers = [
 
   http.post('/api/dev/reseed-auth-mock', () => {
     authAccounts.reseed(createAuthAccountsSeed());
-    profile.reseed([LUCAS_SEED_PROFILE]);
+    profile.reseed([LUCAS_SEED_PROFILE, ADMIN_SEED_PROFILE]);
     setupTokens.reseed([]);
     magicLoginTokens.reseed([]);
     return HttpResponse.json({ ok: true as const });
@@ -2012,6 +2023,19 @@ export const handlers = [
     return HttpResponse.json({ ok: true as const });
   }),
 
+  http.post('/api/dev/reset-admin-two-factor', () => {
+    const account = findAuthAccountByEmail(MOCK_ADMIN_EMAIL);
+    if (account) {
+      authAccounts.update(account.id, {
+        totpSecret: null,
+        pendingTotpSecret: null,
+        twoFactorActivatedAt: null,
+        recoveryCodes: [],
+      });
+    }
+    return HttpResponse.json({ ok: true as const });
+  }),
+
   http.post('/api/auth/login/identify', async ({ request }) => {
     const input = (await request.json()) as LoginIdentifyInput;
     const email = input.email.trim().toLowerCase();
@@ -2023,7 +2047,7 @@ export const handlers = [
       });
     }
 
-    if (account.role === 'admin') {
+    if (account.role === 'member') {
       const magic = issueMagicLoginToken(email);
       return HttpResponse.json({
         loginMethod: 'magic_link',
@@ -2041,14 +2065,17 @@ export const handlers = [
 
   http.post('/api/auth/login/magic-link', async ({ request }) => {
     const body = (await request.json()) as { token?: string };
-    const row = findMagicLoginToken(body.token);
+    const token = body.token?.trim();
+    const row = token ? magicLoginTokens.all().find((entry) => entry.token === token) : undefined;
     const account = row ? findAuthAccountByEmail(row.email) : undefined;
 
-    if (!row || !account || account.role !== 'admin') {
+    if (!row || !account || account.role !== 'member') {
       return HttpResponse.json({ message: 'invalid_token' }, { status: 400 });
     }
 
-    magicLoginTokens.update(row.id, { consumedAt: new Date().toISOString() });
+    if (!row.consumedAt) {
+      magicLoginTokens.update(row.id, { consumedAt: new Date().toISOString() });
+    }
 
     return HttpResponse.json({
       token: loginTokenForEmail(account.email),
@@ -2061,7 +2088,7 @@ export const handlers = [
     const email = input.email.trim().toLowerCase();
     const account = findAuthAccountByEmail(email);
 
-    if (!account || account.role === 'admin' || input.password !== account.password) {
+    if (!account || account.role === 'member' || input.password !== account.password) {
       return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
     }
 
