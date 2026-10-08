@@ -230,6 +230,7 @@
     "devDisableLucas2faDone": "Two-factor authentication disabled for Lucas.",
     "devResetAdmin2fa": "Reset admin 2FA (lost authenticator)",
     "devResetAdmin2faDone": "Admin two-factor authentication reset. Sign in with password and set up a new authenticator.",
+    "devAdminDisable2faLogin": "Disable 2FA and log in",
     "devAdminMagicLink": "Simulate email login link",
     "devMagicLinkMissing": "No login link stored. Continue with the member email first.",
     "email": "Email",

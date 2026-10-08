@@ -198,6 +198,25 @@ export function useResetAdminTwoFactor() {
   });
 }
 
+/** Prototype only — verifies admin password, clears 2FA, and returns a session. */
+export function useDevAdminLoginWithoutTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { email: string; password: string }) =>
+      request<LoginResponse>('/dev/admin-login-without-two-factor', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      if (!data.token) return;
+      setAuthToken(data.token);
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+      void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+    },
+  });
+}
+
 export function useIdentifyLogin() {
   return useMutation({
     mutationFn: (input: LoginIdentifyInput) =>

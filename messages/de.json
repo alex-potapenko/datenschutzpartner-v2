@@ -230,6 +230,7 @@
     "devDisableLucas2faDone": "2FA für Lucas wurde deaktiviert.",
     "devResetAdmin2fa": "Admin-2FA zurücksetzen (Authenticator verloren)",
     "devResetAdmin2faDone": "Admin-2FA wurde zurückgesetzt. Mit Passwort anmelden und Authenticator neu einrichten.",
+    "devAdminDisable2faLogin": "2FA deaktivieren und anmelden",
     "devAdminMagicLink": "E-Mail-Anmelde-Link simulieren",
     "devMagicLinkMissing": "Kein Anmelde-Link gespeichert. Zuerst mit der Member-E-Mail fortfahren.",
     "email": "E-Mail",

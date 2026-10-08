@@ -2036,6 +2036,28 @@ export const handlers = [
     return HttpResponse.json({ ok: true as const });
   }),
 
+  http.post('/api/dev/admin-login-without-two-factor', async ({ request }) => {
+    const body = (await request.json()) as { email?: string; password?: string };
+    const email = body.email?.trim().toLowerCase();
+    const account = email ? findAuthAccountByEmail(email) : undefined;
+
+    if (!account || account.role !== 'admin' || body.password !== account.password) {
+      return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
+    }
+
+    authAccounts.update(account.id, {
+      totpSecret: null,
+      pendingTotpSecret: null,
+      twoFactorActivatedAt: null,
+      recoveryCodes: [],
+    });
+
+    return HttpResponse.json({
+      token: loginTokenForEmail(account.email),
+      email: account.email,
+    } satisfies LoginResponse);
+  }),
+
   http.post('/api/auth/login/identify', async ({ request }) => {
     const input = (await request.json()) as LoginIdentifyInput;
     const email = input.email.trim().toLowerCase();

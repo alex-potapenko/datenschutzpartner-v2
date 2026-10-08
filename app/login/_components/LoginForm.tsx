@@ -90,6 +90,7 @@ export function LoginForm() {
     setStep: setDevStep,
     setPrototypeMagicLinkReady,
     setPrototypeMagicLinkUrl,
+    setAdminLoginBypass,
   } = useLoginDev();
 
   useEffect(() => {
@@ -218,6 +219,7 @@ export function LoginForm() {
         const magicUrl = result.prototypeMagicLinkUrl ?? null;
         setPrototypeMagicLinkReady(Boolean(magicUrl));
         setPrototypeMagicLinkUrl(magicUrl);
+        setAdminLoginBypass(null);
         if (magicUrl) {
           storePrototypeMagicLoginUrl(magicUrl);
         }
@@ -227,6 +229,7 @@ export function LoginForm() {
 
       setPrototypeMagicLinkReady(false);
       setPrototypeMagicLinkUrl(null);
+      setAdminLoginBypass(null);
 
       setRequiresTwoFactor(result.requiresTwoFactor ?? false);
       setTwoFactorSetupRequired(result.twoFactorSetupRequired ?? false);
@@ -243,6 +246,7 @@ export function LoginForm() {
     setPassword(values.password);
 
     if (requiresTwoFactor) {
+      setAdminLoginBypass({ email, password: values.password });
       setTotpCode('');
       setStep('totp');
       return;
@@ -282,6 +286,7 @@ export function LoginForm() {
     setStep('email');
     setPrototypeMagicLinkReady(false);
     setPrototypeMagicLinkUrl(null);
+    setAdminLoginBypass(null);
     setAuthFailed(false);
     setPassword('');
     setRequiresTwoFactor(false);

@@ -4,6 +4,11 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 
 export type LoginDevStep = 'email' | 'password' | 'totp' | 'magic_link_sent';
 
+export type AdminLoginBypassCredentials = {
+  email: string;
+  password: string;
+};
+
 type LoginDevContextValue = {
   step: LoginDevStep;
   setStep: (step: LoginDevStep) => void;
@@ -11,6 +16,8 @@ type LoginDevContextValue = {
   setPrototypeMagicLinkReady: (ready: boolean) => void;
   prototypeMagicLinkUrl: string | null;
   setPrototypeMagicLinkUrl: (url: string | null) => void;
+  adminLoginBypass: AdminLoginBypassCredentials | null;
+  setAdminLoginBypass: (credentials: AdminLoginBypassCredentials | null) => void;
 };
 
 const LoginDevContext = createContext<LoginDevContextValue | null>(null);
@@ -19,6 +26,9 @@ export function LoginDevProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<LoginDevStep>('email');
   const [prototypeMagicLinkReady, setPrototypeMagicLinkReady] = useState(false);
   const [prototypeMagicLinkUrl, setPrototypeMagicLinkUrl] = useState<string | null>(null);
+  const [adminLoginBypass, setAdminLoginBypass] = useState<AdminLoginBypassCredentials | null>(
+    null
+  );
 
   const value = useMemo(
     () => ({
@@ -28,8 +38,10 @@ export function LoginDevProvider({ children }: { children: ReactNode }) {
       setPrototypeMagicLinkReady,
       prototypeMagicLinkUrl,
       setPrototypeMagicLinkUrl,
+      adminLoginBypass,
+      setAdminLoginBypass,
     }),
-    [step, prototypeMagicLinkReady, prototypeMagicLinkUrl]
+    [step, prototypeMagicLinkReady, prototypeMagicLinkUrl, adminLoginBypass]
   );
 
   return <LoginDevContext.Provider value={value}>{children}</LoginDevContext.Provider>;

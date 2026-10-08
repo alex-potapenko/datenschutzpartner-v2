@@ -37,7 +37,9 @@ mock auth store with password `welcome`. Mock seed accounts:
 In the prototype, `/login` exposes **Show Debug Info** when MSW is on (before the
 e-mail step): seed credentials and **Disable 2FA for Lucas**
 (`POST /dev/disable-lucas-two-factor`, legacy local state) and **Reset admin 2FA**
-(`POST /dev/reset-admin-two-factor` when the authenticator was removed). After a member e-mail,
+(`POST /dev/reset-admin-two-factor` when the authenticator was removed). On the admin 2FA step,
+**Disable 2FA and log in** calls `POST /dev/admin-login-without-two-factor` with the e-mail and
+password from the current attempt. After a member e-mail,
 a **Dev** chip offers **Email login link** (prototype magic link).
 `POST /dev/reseed-auth-mock` still exists for full mock reset.
 

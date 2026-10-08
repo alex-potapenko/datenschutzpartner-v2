@@ -73,7 +73,9 @@ export function LoginLayoutShell() {
               </AnimatePresence>
             </div>
           </div>
-          <LoginDebugFooter />
+          <Suspense fallback={null}>
+            <LoginDebugFooter />
+          </Suspense>
         </div>
 
         <div
