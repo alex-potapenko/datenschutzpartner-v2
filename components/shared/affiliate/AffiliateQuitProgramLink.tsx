@@ -4,8 +4,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useQuitAffiliateProgram } from '@/api/affiliate';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { NavigationLink } from '@/components/shared/NavigationLink';
-import { useOverlayState } from '@/components/ui';
+import { Button, useOverlayState } from '@/components/ui';
 
 type AffiliateQuitProgramLinkProps = {
   onQuitSuccess?: () => void;
@@ -35,16 +34,16 @@ export function AffiliateQuitProgramLink({
 
   return (
     <>
-      <NavigationLink
+      <Button
+        variant="outline"
         size="sm"
-        chevron="none"
-        className={className ?? 'justify-center'}
+        className={className}
         onPress={() => {
           quitDialog.open();
         }}
       >
         {t('pendingCard.quit')}
-      </NavigationLink>
+      </Button>
 
       <ConfirmDialog
         state={quitDialog}

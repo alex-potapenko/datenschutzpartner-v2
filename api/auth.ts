@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { personNameField } from '@/lib/validation/fields';
 import { setAuthToken } from '@/lib/auth-session';
+import { accountKeys, type MemberSignInMethod } from './account';
 import { accountRoleSchema, type AccountRole } from './account-role';
 import { euRepCheckoutEntitySchema, euRepPlanIdSchema } from './checkout';
 import { request } from './client';
@@ -159,6 +160,34 @@ export function useReseedAuthMock() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
+      void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+    },
+  });
+}
+
+export const devMemberSignInMethodKey = ['dev', 'member-sign-in-method'] as const;
+
+/** Prototype only — Lucas member seed login mode (login debug footer). */
+export function useDevMemberSignInMethod() {
+  return useQuery({
+    queryKey: devMemberSignInMethodKey,
+    queryFn: () => request<{ method: MemberSignInMethod }>('/dev/member-sign-in-method'),
+  });
+}
+
+/** Prototype only — switches Lucas between magic link and password identify. */
+export function useSetDevMemberSignInMethod() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (method: MemberSignInMethod) =>
+      request<{ ok: true; method: MemberSignInMethod }>('/dev/set-member-sign-in-method', {
+        method: 'POST',
+        body: JSON.stringify({ method }),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: devMemberSignInMethodKey });
+      void queryClient.invalidateQueries({ queryKey: accountKeys.profile });
       void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
     },
   });
