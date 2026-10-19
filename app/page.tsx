@@ -4,7 +4,6 @@ import { TopBar } from '@/components/shared/TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { Container } from '@/components/shared/Container';
 import { FeatureCard } from '@/components/shared/FeatureCard';
-import { HeroLayerZDebug } from '@/components/shared/HeroLayerZDebug';
 import { LandingHeroSection } from '@/components/shared/LandingHeroSection';
 import { InsightsSection } from '@/components/shared/InsightsSection';
 import { AboutSection } from '@/components/shared/AboutSection';
@@ -72,8 +71,6 @@ export default async function LandingPage() {
       </main>
 
       <Footer />
-
-      {process.env.NODE_ENV !== 'production' ? <HeroLayerZDebug /> : null}
     </div>
   );
 }

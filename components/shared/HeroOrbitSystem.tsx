@@ -1,6 +1,14 @@
 'use client';
 
-import { Fragment, useEffect, useId, useRef, type ComponentType, type CSSProperties } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  type ComponentType,
+  type CSSProperties,
+} from 'react';
 import { motion, useAnimationFrame, useReducedMotion } from 'motion/react';
 import {
   Camera,
@@ -112,22 +120,130 @@ type Planet = {
   size: number;
 };
 
+/** Landing hero runs at half the original angular velocity. */
+const ORBIT_SPEED = 0.5;
+
 const PLANET_CONFIGS = [
-  { key: 'website', icon: Globe, color: '#2563eb', orbit: 0, phase: 0.15, speed: 0.038 },
-  { key: 'location', icon: MapPin, color: '#dc2626', orbit: 0, phase: 0.68, speed: 0.038 },
-  { key: 'tracking', icon: Crosshair, color: '#ef4444', orbit: 1, phase: 0.1, speed: 0.032 },
-  { key: 'dataStorage', icon: Database, color: '#0ea5e9', orbit: 1, phase: 0.62, speed: 0.032 },
-  { key: 'hosting', icon: Cloud, color: '#3b82f6', orbit: 2, phase: 0.34, speed: 0.026 },
-  { key: 'cookies', icon: Cookie, color: '#d97706', orbit: 2, phase: 0.86, speed: 0.026 },
-  { key: 'analytics', icon: ChartBar, color: '#7c3aed', orbit: 3, phase: 0.18, speed: 0.021 },
-  { key: 'payment', icon: CreditCard, color: '#6366f1', orbit: 3, phase: 0.7, speed: 0.021 },
-  { key: 'policy', icon: FileText, color: '#0d9488', orbit: 4, phase: 0.45, speed: 0.017 },
-  { key: 'mediaCapture', icon: Camera, color: '#db2777', orbit: 4, phase: 0.92, speed: 0.017 },
-  { key: 'consent', icon: ShieldCheck, color: '#059669', orbit: 1, phase: 0.36, speed: 0.032 },
-  { key: 'newsletter', icon: EnvelopeSimple, color: '#0891b2', orbit: 2, phase: 0.6, speed: 0.026 },
-  { key: 'encryption', icon: Lock, color: '#4f46e5', orbit: 3, phase: 0.94, speed: 0.021 },
-  { key: 'surveillance', icon: Eye, color: '#c026d3', orbit: 5, phase: 0.28, speed: 0.014 },
-  { key: 'sharing', icon: ShareNetwork, color: '#9333ea', orbit: 5, phase: 0.74, speed: 0.014 },
+  {
+    key: 'website',
+    icon: Globe,
+    color: '#2563eb',
+    orbit: 0,
+    phase: 0.15,
+    speed: 0.038 * ORBIT_SPEED,
+  },
+  {
+    key: 'location',
+    icon: MapPin,
+    color: '#dc2626',
+    orbit: 0,
+    phase: 0.68,
+    speed: 0.038 * ORBIT_SPEED,
+  },
+  {
+    key: 'tracking',
+    icon: Crosshair,
+    color: '#ef4444',
+    orbit: 1,
+    phase: 0.1,
+    speed: 0.032 * ORBIT_SPEED,
+  },
+  {
+    key: 'dataStorage',
+    icon: Database,
+    color: '#0ea5e9',
+    orbit: 1,
+    phase: 0.62,
+    speed: 0.032 * ORBIT_SPEED,
+  },
+  {
+    key: 'hosting',
+    icon: Cloud,
+    color: '#3b82f6',
+    orbit: 2,
+    phase: 0.34,
+    speed: 0.026 * ORBIT_SPEED,
+  },
+  {
+    key: 'cookies',
+    icon: Cookie,
+    color: '#d97706',
+    orbit: 2,
+    phase: 0.86,
+    speed: 0.026 * ORBIT_SPEED,
+  },
+  {
+    key: 'analytics',
+    icon: ChartBar,
+    color: '#7c3aed',
+    orbit: 3,
+    phase: 0.18,
+    speed: 0.021 * ORBIT_SPEED,
+  },
+  {
+    key: 'payment',
+    icon: CreditCard,
+    color: '#6366f1',
+    orbit: 3,
+    phase: 0.7,
+    speed: 0.021 * ORBIT_SPEED,
+  },
+  {
+    key: 'policy',
+    icon: FileText,
+    color: '#0d9488',
+    orbit: 4,
+    phase: 0.45,
+    speed: 0.017 * ORBIT_SPEED,
+  },
+  {
+    key: 'mediaCapture',
+    icon: Camera,
+    color: '#db2777',
+    orbit: 4,
+    phase: 0.92,
+    speed: 0.017 * ORBIT_SPEED,
+  },
+  {
+    key: 'consent',
+    icon: ShieldCheck,
+    color: '#059669',
+    orbit: 1,
+    phase: 0.36,
+    speed: 0.032 * ORBIT_SPEED,
+  },
+  {
+    key: 'newsletter',
+    icon: EnvelopeSimple,
+    color: '#0891b2',
+    orbit: 2,
+    phase: 0.6,
+    speed: 0.026 * ORBIT_SPEED,
+  },
+  {
+    key: 'encryption',
+    icon: Lock,
+    color: '#4f46e5',
+    orbit: 3,
+    phase: 0.94,
+    speed: 0.021 * ORBIT_SPEED,
+  },
+  {
+    key: 'surveillance',
+    icon: Eye,
+    color: '#c026d3',
+    orbit: 5,
+    phase: 0.28,
+    speed: 0.014 * ORBIT_SPEED,
+  },
+  {
+    key: 'sharing',
+    icon: ShareNetwork,
+    color: '#9333ea',
+    orbit: 5,
+    phase: 0.74,
+    speed: 0.014 * ORBIT_SPEED,
+  },
 ] as const;
 
 const PLANETS: Planet[] = PLANET_CONFIGS.map((planet) => ({
@@ -208,6 +324,7 @@ export function HeroOrbitSystem({ showPlanetIcons = true }: HeroOrbitSystemProps
   const trailCirclesRef = useRef(new Map<string, SVGCircleElement | null>());
   const trailMasksRef = useRef(new Map<string, SVGCircleElement | null>());
   const iconsRef = useRef(new Map<string, HTMLDivElement | null>());
+  const elapsedSecondsRef = useRef(0);
 
   const draw = (elapsedSeconds: number) => {
     const geometry = geometryRef.current;
@@ -271,7 +388,7 @@ export function HeroOrbitSystem({ showPlanetIcons = true }: HeroOrbitSystemProps
         );
       }
 
-      draw(0);
+      draw(elapsedSecondsRef.current);
     };
 
     applyGeometry();
@@ -283,10 +400,16 @@ export function HeroOrbitSystem({ showPlanetIcons = true }: HeroOrbitSystemProps
     };
   }, []);
 
-  useAnimationFrame((time) => {
-    if (prefersReducedMotion) return;
-    draw(time / 1000);
-  });
+  const onAnimationFrame = useCallback(
+    (_time: number, delta: number) => {
+      if (prefersReducedMotion) return;
+      elapsedSecondsRef.current += delta / 1000;
+      draw(elapsedSecondsRef.current);
+    },
+    [prefersReducedMotion]
+  );
+
+  useAnimationFrame(onAnimationFrame);
 
   return (
     <div ref={containerRef} aria-hidden className="absolute inset-0">
@@ -366,15 +489,17 @@ export function HeroOrbitSystem({ showPlanetIcons = true }: HeroOrbitSystemProps
               className="absolute top-0 left-0"
               style={{ willChange: 'transform' }}
             >
-              <motion.div
-                className="flex items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(15,23,42,0.12)]"
-                style={{ width: planet.size, height: planet.size }}
-                initial={false}
-                animate={{ opacity: showPlanetIcons ? 1 : 0 }}
-                transition={prefersReducedMotion ? { duration: 0 } : PLANET_ICON_TRANSITION}
-              >
-                <Icon color={planet.color} style={{ width: glyphSize, height: glyphSize }} />
-              </motion.div>
+              {showPlanetIcons ? (
+                <motion.div
+                  className="flex items-center justify-center rounded-full bg-white shadow-[0_6px_20px_rgba(15,23,42,0.12)]"
+                  style={{ width: planet.size, height: planet.size }}
+                  initial={false}
+                  animate={{ opacity: 1 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : PLANET_ICON_TRANSITION}
+                >
+                  <Icon color={planet.color} style={{ width: glyphSize, height: glyphSize }} />
+                </motion.div>
+              ) : null}
             </div>
           );
         })}
