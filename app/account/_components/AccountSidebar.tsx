@@ -10,12 +10,13 @@ import { SiteSwitcher, WebsiteSidebarSitePanel } from '@/components/shared/SiteS
 import { useSiteScope } from '@/components/shared/site-scope';
 import { cn } from '@/components/ui';
 import { AnimatedDirectionalPanel } from './AnimatedDirectionalPanel';
+import { AffiliateServiceSidebarNav } from './AffiliateServiceSidebarNav';
 import { EuRepContractSidebarNav } from './EuRepContractSidebarNav';
 import {
   ACCOUNT_SCOPE_IDS,
   SECTION_ACCENT,
   SECTION_ICON,
-  WEBSITE_SECTION_IDS,
+  WEBSITE_SIDEBAR_NAV_IDS,
   isComingSoonSection,
   type WebsiteSectionId,
 } from './account-sections';
@@ -40,7 +41,7 @@ export function SidebarNav({ active, onNavigate }: AccountSidebarProps) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex flex-col">
-        {WEBSITE_SECTION_IDS.map((section) => {
+        {WEBSITE_SIDEBAR_NAV_IDS.map((section) => {
           const Icon = SECTION_ICON[section];
           const accent = SECTION_ACCENT[section];
           const isActive = section === active;
@@ -119,6 +120,7 @@ export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
   const t = useTranslations('account');
   const accountScope = useAccountScope();
   const isEuRepScope = isEuRepAccountScope(accountScope);
+  const isAffiliateSection = active === 'affiliate';
   const scopeKey = isEuRepScope ? 'euRep' : 'websites';
   const [siteListOpen, setSiteListOpen] = useState(false);
   const websitePanelKey = siteListOpen ? 'site-list' : 'sections';
@@ -153,6 +155,8 @@ export function AccountSidebar({ active, onNavigate }: AccountSidebarProps) {
         >
           {isEuRepScope ? (
             <EuRepContractSidebarNav />
+          ) : isAffiliateSection ? (
+            <AffiliateServiceSidebarNav />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div ref={siteSwitcherRef}>

@@ -1,13 +1,16 @@
-import { Buildings, Cookie, FileText, House } from '@/components/ui';
+import { Buildings, Cookie, FileText, House, ShareNetwork } from '@/components/ui';
 import { fillPolicySlotWizardHref } from '@/lib/account-routes';
 
-/** Site-scoped sections in the account sidebar (My Websites). */
-export const WEBSITE_SECTION_IDS = [
+/** Per-website product sections in the sidebar (before EU Rep and Affiliate). */
+export const WEBSITE_SIDEBAR_NAV_IDS = [
   'overview',
   'privacyPolicy',
   'cookieBanner',
   'imprint',
 ] as const;
+
+/** All website-scope shell sections (sidebar order + content panel keys). */
+export const WEBSITE_SECTION_IDS = [...WEBSITE_SIDEBAR_NAV_IDS, 'affiliate'] as const;
 
 export type WebsiteSectionId = (typeof WEBSITE_SECTION_IDS)[number];
 
@@ -24,8 +27,8 @@ export type AccountSectionId = WebsiteSectionId;
 /** @deprecated Use `WEBSITE_SECTION_IDS`. */
 export const ACCOUNT_SECTION_IDS = WEBSITE_SECTION_IDS;
 
-/** @deprecated Use `WEBSITE_SECTION_IDS`. */
-export const SIDEBAR_SECTION_IDS = WEBSITE_SECTION_IDS;
+/** @deprecated Use `WEBSITE_SIDEBAR_NAV_IDS`. */
+export const SIDEBAR_SECTION_IDS = WEBSITE_SIDEBAR_NAV_IDS;
 
 export const COMING_SOON_SECTION_IDS = ['cookieBanner', 'imprint'] as const;
 
@@ -67,6 +70,7 @@ type IconComponent = typeof FileText;
 export const SECTION_ICON: Record<WebsiteSectionId, IconComponent> = {
   overview: House,
   privacyPolicy: FileText,
+  affiliate: ShareNetwork,
   cookieBanner: Cookie,
   imprint: Buildings,
 };
@@ -75,6 +79,7 @@ export const SECTION_ICON: Record<WebsiteSectionId, IconComponent> = {
 export const SECTION_ACCENT: Record<WebsiteSectionId, string> = {
   overview: 'var(--accent)',
   privacyPolicy: 'var(--accent)',
+  affiliate: 'var(--accent)',
   cookieBanner: 'var(--feature-yellow)',
   imprint: 'var(--feature-teal)',
 };

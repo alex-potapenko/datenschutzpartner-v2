@@ -3,6 +3,7 @@ import { TopBar } from '@/components/shared/TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { Container } from '@/components/shared/Container';
 import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
+import { cn } from '@/lib/utils';
 
 interface RegularPageProps {
   /** Optional page-level heading rendered in its own top section with a bottom border. */
@@ -62,9 +63,19 @@ export function RegularPage({
   children,
 }: RegularPageProps) {
   const growClass = shrinkWrapContent ? '' : 'flex-1';
-  const contentClass = noPadding
-    ? `flex flex-col ${growClass}`
-    : `flex flex-col ${growClass} px-4 py-12 sm:px-8 sm:py-16 ${!header && !media ? 'pt-20' : ''}`;
+  const accountDecorativeOverflow = topBarVariant === 'account';
+  const contentClass = cn(
+    'flex flex-col',
+    growClass,
+    accountDecorativeOverflow && 'overflow-visible',
+    !noPadding && 'px-4 py-12 sm:px-8 sm:py-16',
+    !noPadding && !header && !media && 'pt-20'
+  );
+  const columnClass = cn(
+    'border-border flex flex-col border-r border-l',
+    growClass,
+    accountDecorativeOverflow && 'overflow-visible'
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -78,8 +89,14 @@ export function RegularPage({
         />
       ) : null}
       <main className={`border-border flex flex-col ${growClass}`}>
-        <Container className={`flex flex-col ${growClass}`}>
-          <div className={`border-border flex flex-col border-r border-l ${growClass}`}>
+        <Container
+          className={cn(
+            'flex flex-col',
+            growClass,
+            accountDecorativeOverflow && 'overflow-visible'
+          )}
+        >
+          <div className={columnClass}>
             {media}
             {header && (
               <>

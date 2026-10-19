@@ -213,7 +213,7 @@ function EuRepPlanPanelContent({
   ) : (
     <Link
       href={orderHref}
-      className="font-display inline-flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-medium text-white transition-opacity hover:opacity-90"
+      className="font-display inline-flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-bold text-white transition-opacity hover:opacity-90"
       style={{ background: 'var(--accent)' }}
     >
       {orderCta}

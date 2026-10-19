@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
@@ -25,10 +25,13 @@ import { EnableTwoFactorDialog } from './EnableTwoFactorDialog';
 /** Optional 2FA nudge — used on the login screen right after sign-in. */
 export function TwoFactorProactiveOffer({
   open,
+  reopenNonce,
   accountEmail,
   onFinished,
 }: {
   open: boolean;
+  /** Bumped when the login form re-submits while this prompt is still outstanding. */
+  reopenNonce: number;
   accountEmail: string;
   onFinished: () => void;
 }) {
@@ -38,19 +41,26 @@ export function TwoFactorProactiveOffer({
   const enableDialog = useOverlayState();
   const startSetup = useStartTwoFactorSetup();
   const dismissSuggestion = useDismissTwoFactorSetupSuggestion();
-  const openedRef = useRef(false);
-
   useEffect(() => {
     if (!open) {
-      openedRef.current = false;
+      introDialog.close();
+      enableDialog.close();
       return;
     }
-    if (openedRef.current) return;
     if (!status.data || status.data.enabled) return;
+    // Setup flow is already open — do not stack the intro on top of it.
+    if (enableDialog.isOpen || startSetup.isPending || startSetup.data) return;
 
-    openedRef.current = true;
     introDialog.open();
-  }, [introDialog, open, status.data]);
+  }, [
+    enableDialog,
+    introDialog,
+    open,
+    reopenNonce,
+    startSetup.data,
+    startSetup.isPending,
+    status.data,
+  ]);
 
   function finish() {
     introDialog.close();
@@ -87,48 +97,53 @@ export function TwoFactorProactiveOffer({
 
   return (
     <>
-      <ModalRoot state={introDialog}>
-        <ModalBackdrop isDismissable={false}>
-          <ModalContainer size="sm">
-            <ModalDialog>
-              <ModalHeader>
-                <ModalHeading>{t('proactiveTitle')}</ModalHeading>
-              </ModalHeader>
-              <ModalBody>
-                <p className="text-foreground text-sm leading-relaxed">{t('proactiveBody')}</p>
-              </ModalBody>
-              <ModalFooter className="flex-col gap-2 sm:flex-col">
-                <Button
-                  variant="primary"
-                  fullWidth
-                  isDisabled={startSetup.isPending}
-                  onPress={beginSetup}
-                >
-                  {t('proactiveCta')}
-                </Button>
-                <Button
-                  variant="outline"
-                  fullWidth
-                  isDisabled={dismissSuggestion.isPending}
-                  onPress={deferTwoFactorSetup}
-                >
-                  {t('proactiveLater')}
-                </Button>
-              </ModalFooter>
-            </ModalDialog>
-          </ModalContainer>
-        </ModalBackdrop>
-      </ModalRoot>
-      <EnableTwoFactorDialog
-        state={enableDialog}
-        accountName={accountEmail}
-        setup={startSetup.data}
-        onClosed={() => {
-          startSetup.reset();
-        }}
-        onEnabled={finish}
-        onLater={deferTwoFactorSetup}
-      />
+      {introDialog.isOpen ? (
+        <ModalRoot state={introDialog}>
+          <ModalBackdrop isDismissable={false}>
+            <ModalContainer size="sm">
+              <ModalDialog>
+                <ModalHeader>
+                  <ModalHeading>{t('proactiveTitle')}</ModalHeading>
+                </ModalHeader>
+                <ModalBody>
+                  <p className="text-foreground text-sm leading-relaxed">{t('proactiveBody')}</p>
+                </ModalBody>
+                <ModalFooter className="flex-col gap-2 sm:flex-col">
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    isDisabled={startSetup.isPending}
+                    onPress={beginSetup}
+                  >
+                    {t('proactiveCta')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    isDisabled={dismissSuggestion.isPending}
+                    onPress={deferTwoFactorSetup}
+                  >
+                    {t('proactiveLater')}
+                  </Button>
+                </ModalFooter>
+              </ModalDialog>
+            </ModalContainer>
+          </ModalBackdrop>
+        </ModalRoot>
+      ) : null}
+      {enableDialog.isOpen ? (
+        <EnableTwoFactorDialog
+          state={enableDialog}
+          accountName={accountEmail}
+          setup={startSetup.data}
+          isLaterPending={dismissSuggestion.isPending}
+          onClosed={() => {
+            startSetup.reset();
+          }}
+          onEnabled={finish}
+          onLater={deferTwoFactorSetup}
+        />
+      ) : null}
     </>
   );
 }

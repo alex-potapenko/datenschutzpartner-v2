@@ -1,14 +1,11 @@
-import { getTranslations } from 'next-intl/server';
+'use client';
+
+import { useTranslations } from 'next-intl';
 
 const STEP_KEYS = ['publish', 'subscribe', 'payout'] as const;
 
-const STEP_MARKER_STYLE = {
-  color: 'var(--accent)',
-  background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-} as const;
-
-export async function AffiliateExampleTimeline() {
-  const t = await getTranslations('affiliatePage.howItWorks.example');
+export function AffiliateProgramExampleTimeline() {
+  const t = useTranslations('affiliatePage.howItWorks.example');
 
   return (
     <ol className="flex flex-col" aria-label={t('title')}>
@@ -19,8 +16,7 @@ export async function AffiliateExampleTimeline() {
           <li key={key} className="flex gap-4">
             <div className="flex flex-col items-center">
               <div
-                className="flex size-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
-                style={STEP_MARKER_STYLE}
+                className="bg-key-500 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
                 aria-hidden
               >
                 {index + 1}

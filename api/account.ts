@@ -58,6 +58,14 @@ export type Address = z.infer<typeof addressSchema>;
 
 export { accountRoleSchema, type AccountRole } from './account-role';
 
+export const memberSignInMethodSchema = z.enum(['magic_link', 'password']);
+export type MemberSignInMethod = z.infer<typeof memberSignInMethodSchema>;
+
+export const updateMemberSignInMethodSchema = z.object({
+  method: memberSignInMethodSchema,
+});
+export type UpdateMemberSignInMethodInput = z.infer<typeof updateMemberSignInMethodSchema>;
+
 export const profileSchema = z.object({
   firstName: personNameField,
   lastName: personNameField,
@@ -66,6 +74,8 @@ export const profileSchema = z.object({
   newsletterOptIn: z.boolean().optional(),
   /** Read-only — drives login and security UI. */
   role: accountRoleSchema,
+  /** Members only — default sign-in path; password mode enables 2FA in settings. */
+  memberSignInMethod: memberSignInMethodSchema.optional(),
   /** Read-only — managed through the endpoints in api/two-factor.ts. */
   twoFactorEnabled: z.boolean().optional(),
 });
@@ -128,6 +138,38 @@ export function useUpdateProfile() {
     mutationFn: (input: Profile) =>
       request<Profile>('/account/profile', { method: 'PUT', body: JSON.stringify(input) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.profile }),
+  });
+}
+
+export function useUpdateMemberSignInMethod() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateMemberSignInMethodInput) =>
+      request<Profile>('/account/sign-in-method', {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      }),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: accountKeys.profile });
+      const previous = queryClient.getQueryData<Profile>(accountKeys.profile);
+      if (previous) {
+        queryClient.setQueryData<Profile>(accountKeys.profile, {
+          ...previous,
+          memberSignInMethod: input.method,
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(accountKeys.profile, context.previous);
+      }
+    },
+    onSuccess: (profile) => {
+      queryClient.setQueryData(accountKeys.profile, profile);
+      void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+    },
   });
 }
 

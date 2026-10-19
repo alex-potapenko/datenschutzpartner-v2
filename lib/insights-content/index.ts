@@ -1,7 +1,7 @@
 import type { Locale } from '@/i18n/config';
 import { NEWSLETTER_ARTICLES_DE, NEWSLETTER_ARTICLES_EN } from './newsletter';
 import { PODCAST_ARTICLES_DE, PODCAST_ARTICLES_EN } from './podcasts';
-import { asUpdatesArticles } from './updates';
+import { UPDATES_ARTICLES_DE, UPDATES_ARTICLES_EN } from './updates';
 import {
   INSIGHTS_PAGE_SIZE,
   INSIGHTS_TAB_IDS,
@@ -37,22 +37,25 @@ function normalizeArticle(raw: RawInsightArticle, tab: InsightsTab): InsightArti
 function normalizeContent(content: {
   updates: RawInsightArticle[];
   podcasts: RawInsightArticle[];
+  newsletter: RawInsightArticle[];
 }): Record<InsightsTab, InsightArticle[]> {
   return {
     updates: content.updates.map((article) => normalizeArticle(article, 'updates')),
     podcasts: content.podcasts.map((article) => normalizeArticle(article, 'podcasts')),
-    newsletter: [],
+    newsletter: content.newsletter.map((article) => normalizeArticle(article, 'newsletter')),
   };
 }
 
 const contentByLocale = {
   de: normalizeContent({
-    updates: asUpdatesArticles(NEWSLETTER_ARTICLES_DE, 'Aktuelles'),
+    updates: UPDATES_ARTICLES_DE,
     podcasts: PODCAST_ARTICLES_DE,
+    newsletter: NEWSLETTER_ARTICLES_DE,
   }),
   en: normalizeContent({
-    updates: asUpdatesArticles(NEWSLETTER_ARTICLES_EN, 'Updates'),
+    updates: UPDATES_ARTICLES_EN,
     podcasts: PODCAST_ARTICLES_EN,
+    newsletter: NEWSLETTER_ARTICLES_EN,
   }),
 } as const;
 
@@ -62,7 +65,7 @@ export function getInsightsContent(locale: Locale): Record<InsightsTab, InsightA
 
 export function getAllInsightArticles(locale: Locale): InsightArticle[] {
   const content = getInsightsContent(locale);
-  return [...content.updates, ...content.podcasts];
+  return [...content.updates, ...content.podcasts, ...content.newsletter];
 }
 
 export function getInsightArticleBySlug(

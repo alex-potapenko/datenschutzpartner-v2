@@ -5,7 +5,8 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-geometos-neue), var(--font-sans);
+  --font-display: var(--font-montserrat), var(--font-sans);
+  --font-logo: var(--font-geometos-neue), var(--font-sans);
 
   /* Brand ramp as Tailwind utilities: bg-key-500, text-key-700, … */
   --color-key-50: var(--key-50);
@@ -43,8 +44,11 @@ body {
 
 h1,
 h2,
-h3 {
-  font-family: var(--font-display);
+h3,
+.font-display {
+  font-family: var(--font-montserrat), var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 /* Inline text link — accent color; underline hidden via transparent, revealed on hover.

@@ -2,6 +2,7 @@
 export const MOCK_MEMBER_LOGIN = {
   role: 'member' as const,
   email: 'lucas.baumgartner@gmail.com',
+  password: 'mpdsp',
 };
 
 export const MOCK_ADMIN_LOGIN = {

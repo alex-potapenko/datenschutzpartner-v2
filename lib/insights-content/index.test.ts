@@ -13,10 +13,19 @@ describe('insights content', () => {
     expect(INSIGHTS_TAB_IDS).toEqual(['updates', 'podcasts', 'newsletter']);
     expect(Object.keys(getInsightsContent('en'))).toEqual(['updates', 'podcasts', 'newsletter']);
     expect(new Set(getAllInsightArticles('en').map((article) => article.tab))).toEqual(
-      new Set(['updates', 'podcasts'])
+      new Set(['updates', 'podcasts', 'newsletter'])
     );
-    expect(getInsightsContent('en').newsletter).toEqual([]);
+    expect(getInsightsContent('en').newsletter.length).toBeGreaterThan(0);
     expect(getInsightsContent('en').updates.length).toBeGreaterThan(0);
+  });
+
+  it('keeps updates and newsletter mock corpora distinct', () => {
+    const content = getInsightsContent('en');
+    const updateSlugs = new Set(content.updates.map((article) => article.slug));
+    const newsletterSlugs = new Set(content.newsletter.map((article) => article.slug));
+    for (const slug of newsletterSlugs) {
+      expect(updateSlugs.has(slug)).toBe(false);
+    }
   });
 
   it('links article navigation back to its section', () => {
@@ -36,5 +45,14 @@ describe('insights content', () => {
       return;
     }
     expect(getInsightArticleBySlug('en', article.slug)?.tab).toBe('updates');
+  });
+
+  it('resolves newsletter articles by slug and tab', () => {
+    const article = getInsightsContent('en').newsletter[0];
+    expect(article?.slug).toBeTruthy();
+    if (!article) {
+      return;
+    }
+    expect(getInsightArticleBySlug('en', article.slug, 'newsletter')?.tab).toBe('newsletter');
   });
 });

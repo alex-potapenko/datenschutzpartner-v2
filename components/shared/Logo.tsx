@@ -42,7 +42,7 @@ export function Logo({
       {showText ? (
         <span
           className={cn(
-            'font-display flex items-center truncate text-sm leading-none font-medium tracking-tight lowercase',
+            'font-logo flex items-center truncate text-sm leading-none font-medium tracking-tight lowercase',
             inverse ? 'text-white' : 'text-current',
             textClassName
           )}

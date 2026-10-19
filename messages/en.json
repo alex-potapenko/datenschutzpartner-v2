@@ -141,8 +141,8 @@
     "insights": "Insights",
     "newsletter": "Newsletter",
     "podcasts": "Podcasts",
-    "aboutUs": "About us",
-    "affiliate": "Affiliate program",
+    "aboutUs": "About Us",
+    "affiliate": "Affiliate Program",
     "contact": "Contact",
     "imprint": "Imprint",
     "privacyPolicy": "Privacy Policy",
@@ -221,10 +221,9 @@
     "devShowDebugInfo": "Show Debug Info",
     "devDebugTitle": "Debug info",
     "devDebugDone": "Done",
-    "devAccountMember": "Member (magic link)",
+    "devAccountMember": "Member (magic link or password)",
     "devAccountAdmin": "Admin (password + 2FA)",
     "devPasswordLabel": "Password",
-    "devMagicLinkOnly": "No password — sign in via email link.",
     "devAdminPassword2fa": "Password sign-in; two-factor authentication is optional in the prototype.",
     "devDisableLucas2fa": "Disable 2FA for Lucas",
     "devDisableLucas2faDone": "Two-factor authentication disabled for Lucas.",
@@ -256,6 +255,8 @@
     "success": "Signed in successfully.",
     "identifyNotice": "We sent you a login link by email.",
     "identifyNoticeInbox": "Check your inbox and click the link to sign in.",
+    "usePasswordInstead": "Sign in with password instead",
+    "useMagicLinkInstead": "Use email login link instead",
     "magicLinkVerifying": "Verifying login link…",
     "magicLinkInvalid": "This login link is invalid or has already been used.",
     "magicLinkMissing": "This login link is incomplete.",
@@ -590,20 +591,20 @@
     "stats": {
       "ariaLabel": "Affiliate program at a glance",
       "commission": {
-        "title": "10 percent commission",
+        "title": "10% commission",
         "description": "As an affiliate partner, you receive a commission of 10 percent on paid purchases of Datenschutzpartner offers that you have successfully referred."
       },
-      "voucher": {
-        "title": "Voucher code with a 10 percent discount",
-        "description": "As an affiliate partner, you receive a voucher code that lets you grant a 10 percent discount on all Datenschutzpartner offers."
+      "fullPrice": {
+        "title": "Full price for customers",
+        "description": "Customers who arrive via your link pay the regular price — no discount. Your commission is calculated on the full net amount."
       },
       "attribution": {
-        "title": "Seven-day cookie duration",
-        "description": "Purchases count as referred if they take place within seven days of your individual affiliate link being opened (cookie duration). A purchase is attributed to the last affiliate partner who referred a new customer."
+        "title": "Last-click attribution",
+        "description": "Purchases are credited to the last partner whose link was clicked within the configurable window (typically 10–30 days), including when the customer returns later in the same browser."
       }
     },
     "howItWorks": {
-      "title": "How our affiliate program works",
+      "title": "How Does This Work",
       "example": {
         "title": "Example",
         "steps": {
@@ -613,7 +614,7 @@
           },
           "subscribe": {
             "title": "User subscribes",
-            "description": "A user follows this link and, within seven days, subscribes to EU data protection representation under Art. 27 GDPR in the “Standard” plan for CHF 249.00 net."
+            "description": "A user follows this link and, within the attribution window, subscribes to EU data protection representation under Art. 27 GDPR in the “Standard” plan for CHF 249.00 net (full price)."
           },
           "payout": {
             "title": "Commission paid",
@@ -623,21 +624,23 @@
       }
     },
     "registration": {
-      "cardTitle": "Register for the affiliate program — it's free!",
-      "nameLabel": "Full name",
-      "usernameLabel": "User name",
-      "usernameHint": "Letters, digits, dot, dash and underscore — this handle appears in your affiliate link.",
-      "emailLabel": "Registration email",
-      "paymentEmailLabel": "Payment email",
-      "paymentEmailHint": "We use this address to pay out your commission.",
-      "websiteLabel": "Website URL",
-      "optionalPlaceholder": "Optional",
-      "promotionLabel": "How will you promote us?",
-      "acceptTerms": "I agree to the <terms>terms of participation for the affiliate program</terms>",
-      "submit": "Register",
-      "submitting": "Registering …",
-      "successTitle": "Your promo affiliate account is awaiting approval",
-      "successBody": "We review your application and email you your affiliate link and voucher code."
+      "cardTitle": "Register for free!",
+      "emailLabel": "Email",
+      "websiteLabel": "Website where you will place the link",
+      "descriptionLabel": "Comment",
+      "descriptionPlaceholder": "Optional",
+      "acceptTerms": "I agree to the <terms>terms of participation</terms>",
+      "submit": "Submit application",
+      "submitting": "Sending …",
+      "successTitle": "Thank you!",
+      "successBody": "We will review your application soon. After approval you will receive your personal affiliate link by email."
+    },
+    "accountCta": {
+      "lead": "Already a customer?",
+      "link": "Affiliate in account sidebar"
+    },
+    "redirect": {
+      "loading": "Redirecting …"
     }
   },
   "euRepPage": {
@@ -1122,7 +1125,8 @@
       "optionalBadge": "Optional",
       "officerLocaleLabels": {
         "en": "English",
-        "de": "German"
+        "de": "German",
+        "groupAria": "Language of the officer designation"
       },
       "requiredBadge": "Required",
       "defaults": {
@@ -1550,6 +1554,7 @@
     "serviceTabs": {
       "ariaLabel": "Product sections",
       "details": "Details",
+      "about": "How It Works",
       "instructions": "Instructions",
       "legalEntity": "Legal Entity",
       "preview": "Preview",
@@ -1568,6 +1573,7 @@
       "overview": "Overview",
       "accountDetails": "My profile",
       "allSubscriptions": "All Subscriptions",
+      "affiliate": "Affiliate Program",
       "soon": "Soon",
       "comingSoon": "Coming Soon",
       "trial": "Trial",
@@ -1844,6 +1850,86 @@
       "notifyWhenAvailable": "Notify",
       "comingSoonNotifyNote": "We'll email you as soon as this product is available.",
       "enable": "Enable"
+    },
+    "affiliate": {
+      "title": "Affiliate program",
+      "back": "Back",
+      "intro": "{commissionPct}% commission on referred purchases (full net price). Last-click attribution over {cookieDays} days (configurable).",
+      "adminLink": "Affiliate backoffice",
+      "status": {
+        "pending": "Your application is under review. After approval you will receive an email with your affiliate link.",
+        "rejected": "Your last application was rejected. You may submit a new application."
+      },
+      "pendingCard": {
+        "copyLink": "Copy link",
+        "linkCopied": "Link copied",
+        "copyFailed": "Could not copy the link",
+        "prototypeSimulateEmailLink": "Simulate email link",
+        "quit": "Quit",
+        "quitAffiliate": "Quit Affiliate Program",
+        "quitConfirm": {
+          "title": "Quit affiliate program?",
+          "body": "You will leave the affiliate program in this prototype. Your partner link and demo metrics will be removed.",
+          "confirm": "Quit program",
+          "cancel": "Cancel"
+        }
+      },
+      "application": {
+        "emailLabel": "Email",
+        "websiteLabel": "Website where you will place the link",
+        "descriptionLabel": "Comment",
+        "descriptionPlaceholder": "Optional",
+        "acceptTerms": "I agree to the <terms>terms of participation</terms>",
+        "submit": "Submit application",
+        "submitting": "Sending …",
+        "successTitle": "Thank you!",
+        "successBody": "We will review your application soon. After approval you will receive your personal affiliate link by email."
+      },
+      "dashboard": {
+        "linkTitle": "Your affiliate links",
+        "linkFieldLabel": "Referral link",
+        "linkHint": "Customers pay full price. Commission on all qualifying purchases within the attribution window.",
+        "copyLink": "Copy link",
+        "linkCopied": "Link copied",
+        "copyFailed": "Could not copy the link",
+        "pathSegmentSave": "Save",
+        "pathSegmentInvalid": "Invalid link format.",
+        "pathSegmentTaken": "This path is already taken.",
+        "linkCreated": "Created",
+        "linkDelete": "Remove link",
+        "linkDeleteFailed": "Could not remove this link.",
+        "linksAdd": "Add link",
+        "statsAria": "Metrics",
+        "stats": {
+          "clicks": "Clicks",
+          "conversions": "Conversions",
+          "balance": "Balance",
+          "totalBalance": "Total balance",
+          "total": "Total (CHF)"
+        },
+        "payoutReady": "Your balance is at least CHF {threshold}. You may send an invoice to Datenschutzpartner — we sent you an email (prototype).",
+        "payoutPending": "Payout from CHF {threshold} balance. Send an invoice to Datenschutzpartner once the threshold is reached.",
+        "conversionsTitle": "Recent conversions",
+        "conversionsEmpty": "No conversions recorded yet.",
+        "conversionLine": "CHF {amount} → commission CHF {commission}",
+        "conversionsTable": {
+          "colOrder": "Order",
+          "colDate": "Date",
+          "colAmount": "Amount",
+          "colCommission": "Commission"
+        }
+      }
+    },
+    "affiliateAdmin": {
+      "title": "Affiliate backoffice",
+      "back": "Affiliate program",
+      "applicationsTitle": "Applications",
+      "applicationsEmpty": "No applications.",
+      "conversionsTitle": "Conversions (partner mapping)",
+      "conversionsEmpty": "No conversions recorded yet.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "conversionAmounts": "CHF {amount} · commission CHF {commission}"
     },
     "allSubscriptions": {
       "title": "All subscriptions",
@@ -2371,6 +2457,12 @@
       "displayName": "Display name",
       "email": "Email",
       "authentication": "Authentication",
+      "signInMethodTitle": "Login method",
+      "signInMethodMagicLink": "Email link",
+      "signInMethodMagicLinkDescription": "Sign in with a one-time link sent to your email. No password required.",
+      "signInMethodPassword": "Email and password",
+      "signInMethodSaved": "Sign-in method updated.",
+      "signInMethodError": "Sign-in method could not be updated.",
       "password": "Password",
       "editProfile": "Edit profile",
       "editProfileTitle": "Edit profile",

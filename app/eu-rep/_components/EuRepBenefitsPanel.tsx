@@ -4,6 +4,13 @@ import { useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSession } from '@/api/auth';
+import {
+  EU_REP_ACCOUNT_HREF,
+  EU_REP_LANDING_HREF,
+  safeAccountReturnTo,
+  safeEuRepCheckoutReturnTo,
+} from '@/lib/account-routes';
 import { calculateEuRepQuote, EU_REP_PLANS, type EuRepPlanId } from '@/api/checkout';
 import { Crosshair, EnvelopeSimple } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from './EuRepPlanCard';
@@ -84,6 +91,8 @@ export function EuRepBenefitsPanel({
   const tb = useTranslations('euRepPage.benefitsSection');
   const tp = useTranslations('euRepPage.pricingSection');
   const router = useRouter();
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
   const quote = useMemo(() => calculateEuRepQuote('basis'), []);
 
   const plans: EuRepPlan[] = wizardMode
@@ -155,8 +164,11 @@ export function EuRepBenefitsPanel({
             if (planId && planId !== 'basis') {
               params.set('plan', planId);
             }
-            if (checkoutReturnTo) {
-              params.set('returnTo', checkoutReturnTo);
+            const returnTo = isAuthenticated
+              ? (safeAccountReturnTo(checkoutReturnTo) ?? EU_REP_ACCOUNT_HREF)
+              : (safeEuRepCheckoutReturnTo(checkoutReturnTo) ?? EU_REP_LANDING_HREF);
+            if (returnTo) {
+              params.set('returnTo', returnTo);
             }
             const query = params.toString();
             router.push(`/account/eu-rep/checkout${query ? `?${query}` : ''}`);

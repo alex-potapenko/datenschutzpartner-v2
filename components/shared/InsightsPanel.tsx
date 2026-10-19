@@ -74,10 +74,6 @@ function InsightsPanelContent({
   ].join(' ');
 
   function renderTabContent(tab: InsightsTab) {
-    if (tab === 'newsletter') {
-      return <NewsletterSubscribePanel showBottomBorder={false} />;
-    }
-
     const tabArticles = content[tab];
     const { articles, page, totalPages } = isPaginated
       ? getInsightsPageArticles(tabArticles, activeTab === tab ? activePage : 1)
@@ -87,7 +83,7 @@ function InsightsPanelContent({
           totalPages: 1,
         };
 
-    return (
+    const articlesSection = (
       <>
         <ArticlesGrid
           articles={articles}
@@ -99,6 +95,17 @@ function InsightsPanelContent({
         ) : null}
       </>
     );
+
+    if (tab === 'newsletter') {
+      return (
+        <>
+          {articlesSection}
+          <NewsletterSubscribePanel showTopBorder showBottomBorder={false} />
+        </>
+      );
+    }
+
+    return articlesSection;
   }
 
   return (

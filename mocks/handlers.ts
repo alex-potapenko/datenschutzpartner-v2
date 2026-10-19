@@ -1,7 +1,23 @@
 import { http, HttpResponse } from 'msw';
 import type { Contact, ContactCreate } from '@/api/contacts';
 import type { ContactMessage, ContactMessageCreate } from '@/api/contact-messages';
-import type { AffiliateRegistration, AffiliateRegistrationCreate } from '@/api/affiliate';
+import type { AffiliateApplication, AffiliateApplicationCreate } from '@/api/affiliate';
+import {
+  AFFILIATE_PROGRAM_SETTINGS,
+  createAffiliateSeedApplications,
+  createAffiliateSeedConversions,
+  createAffiliateSeedPartners,
+  createAffiliateSeedPayouts,
+  createAffiliateSeedReferralLinks,
+  referralUrl,
+  slugFromEmail,
+  toAdminConversion,
+  type AffiliateConversionRecord,
+  type AffiliatePartnerRecord,
+  type AffiliatePayoutRecord,
+  type AffiliateReferralLinkRecord,
+} from '@/mocks/affiliate-data';
+import { AFFILIATE_SLUG_PATTERN } from '@/api/affiliate';
 import type {
   AccountRole,
   ForgotPasswordInput,
@@ -101,7 +117,7 @@ function addDays(isoDate: string, days: number): string {
 }
 
 const MOCK_MEMBER_EMAIL = 'lucas.baumgartner@gmail.com';
-const MOCK_MEMBER_PASSWORD = 'dspmp';
+const MOCK_MEMBER_PASSWORD = 'mpdsp';
 const MOCK_ADMIN_EMAIL = 'admin@datenschutzpartner.ch';
 const MOCK_ADMIN_PASSWORD = 'dspmp';
 const TWO_FACTOR_ISSUER = 'Datenschutzpartner';
@@ -128,6 +144,8 @@ type AuthAccountRecord = {
   twoFactorRequired: boolean;
   /** Optional nudge to configure 2FA after sign-in (member accounts). */
   twoFactorSetupSuggested: boolean;
+  /** Member sign-in preference — password mode enables 2FA in account settings. */
+  memberSignInMethod: 'magic_link' | 'password';
 };
 
 function createAuthAccountsSeed(): AuthAccountRecord[] {
@@ -143,6 +161,7 @@ function createAuthAccountsSeed(): AuthAccountRecord[] {
       recoveryCodes: [],
       twoFactorRequired: false,
       twoFactorSetupSuggested: true,
+      memberSignInMethod: 'magic_link',
     },
     {
       id: '2',
@@ -155,19 +174,26 @@ function createAuthAccountsSeed(): AuthAccountRecord[] {
       recoveryCodes: [],
       twoFactorRequired: false,
       twoFactorSetupSuggested: false,
+      memberSignInMethod: 'password',
     },
   ];
+}
+
+function resolveMemberSignInMethod(account: AuthAccountRecord | undefined) {
+  if (!account || account.role !== 'member') return undefined;
+  return account.memberSignInMethod;
 }
 
 const authAccounts = createCollection<AuthAccountRecord>(
   'auth-accounts',
   createAuthAccountsSeed(),
-  6
+  8
 );
 
 function shouldSuggestTwoFactorSetup(account: AuthAccountRecord | undefined): boolean {
   if (!account || account.role !== 'member') return false;
   if (isTwoFactorEnabled(account)) return false;
+  if (resolveMemberSignInMethod(account) === 'magic_link') return false;
   return account.twoFactorSetupSuggested;
 }
 
@@ -310,6 +336,7 @@ function ensureAuthAccount(
     recoveryCodes: [],
     twoFactorRequired: role === 'admin',
     twoFactorSetupSuggested: false,
+    memberSignInMethod: role === 'member' ? 'magic_link' : 'password',
   });
 }
 
@@ -351,10 +378,246 @@ const contacts = createCollection<Contact>('contacts', [
 
 const contactMessages = createCollection<ContactMessage>('contact-messages', []);
 
-const affiliateRegistrations = createCollection<AffiliateRegistration>(
-  'affiliate-registrations',
-  []
+const affiliateApplications = createCollection<AffiliateApplication>(
+  'affiliate-applications',
+  createAffiliateSeedApplications(),
+  2
 );
+const affiliatePartners = createCollection<AffiliatePartnerRecord>(
+  'affiliate-partners',
+  createAffiliateSeedPartners(),
+  2
+);
+const affiliateConversions = createCollection<AffiliateConversionRecord>(
+  'affiliate-conversions',
+  createAffiliateSeedConversions(),
+  2
+);
+const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
+  'affiliate-payouts',
+  createAffiliateSeedPayouts(),
+  2
+);
+const affiliateReferralLinks = createCollection<AffiliateReferralLinkRecord>(
+  'affiliate-referral-links',
+  createAffiliateSeedReferralLinks(),
+  2
+);
+
+function sessionEmail(request: Request): string | null {
+  return emailFromLoginToken(tokenFromRequest(request));
+}
+
+function sessionRole(request: Request): AccountRole {
+  const email = sessionEmail(request);
+  if (!email) return 'member';
+  return accountRole(email) ?? 'member';
+}
+
+function requireSessionEmail(request: Request): string | null {
+  return sessionEmail(request);
+}
+
+function requireAdmin(request: Request): boolean {
+  return sessionRole(request) === 'admin';
+}
+
+function findPartnerByEmail(email: string) {
+  return affiliatePartners.all().find((row) => row.email.toLowerCase() === email.toLowerCase());
+}
+
+function referralLinksForPartner(partnerId: string) {
+  return affiliateReferralLinks
+    .all()
+    .filter((row) => row.partnerId === partnerId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+function ensurePartnerReferralLinks(partner: AffiliatePartnerRecord) {
+  const existing = referralLinksForPartner(partner.id);
+  if (existing.length > 0) return existing;
+  const link = affiliateReferralLinks.create({
+    id: `link-${partner.id}`,
+    partnerId: partner.id,
+    pathSegment: partner.slug,
+    createdAt: partner.approvedAt,
+    clickCount: partner.clickCount,
+  });
+  return [link];
+}
+
+function findReferralLinkByPathSegment(pathSegment: string) {
+  const normalized = pathSegment.trim().toLowerCase();
+  return affiliateReferralLinks.all().find((row) => row.pathSegment.toLowerCase() === normalized);
+}
+
+function isReferralPathSegmentTaken(pathSegment: string, exceptLinkId?: string) {
+  const normalized = pathSegment.trim().toLowerCase();
+  return affiliateReferralLinks
+    .all()
+    .some((row) => row.id !== exceptLinkId && row.pathSegment.toLowerCase() === normalized);
+}
+
+function conversionsForPartner(partnerId: string) {
+  return affiliateConversions
+    .all()
+    .filter((row) => row.partnerId === partnerId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function conversionsForLink(linkId: string, partnerId: string, primaryLinkId: string) {
+  return affiliateConversions.all().filter((row) => {
+    if (row.partnerId !== partnerId) return false;
+    if (row.referralLinkId === linkId) return true;
+    if (!row.referralLinkId && linkId === primaryLinkId) return true;
+    return false;
+  });
+}
+
+function conversionCountForLink(linkId: string, partnerId: string, primaryLinkId: string) {
+  return conversionsForLink(linkId, partnerId, primaryLinkId).length;
+}
+
+function commissionBalanceChfForLink(linkId: string, partnerId: string, primaryLinkId: string) {
+  return conversionsForLink(linkId, partnerId, primaryLinkId).reduce(
+    (sum, row) => sum + row.commissionChf,
+    0
+  );
+}
+
+function syncPartnerSlugFromPrimaryLink(partnerId: string) {
+  const partner = affiliatePartners.all().find((row) => row.id === partnerId);
+  if (!partner) return;
+  const links = ensurePartnerReferralLinks(partner);
+  const primary = links[0];
+  if (!primary) return;
+  if (partner.slug !== primary.pathSegment) {
+    affiliatePartners.update(partner.id, { slug: primary.pathSegment });
+  }
+}
+
+function mapReferralLinkDto(link: AffiliateReferralLinkRecord, partnerId: string, origin: string) {
+  const links = referralLinksForPartner(partnerId);
+  const primaryLinkId = links[0]?.id ?? link.id;
+  return {
+    id: link.id,
+    pathSegment: link.pathSegment,
+    referralUrl: referralUrl(origin, link.pathSegment),
+    createdAt: link.createdAt,
+    clicks: link.clickCount,
+    conversions: conversionCountForLink(link.id, partnerId, primaryLinkId),
+    balanceChf: commissionBalanceChfForLink(link.id, partnerId, primaryLinkId),
+  };
+}
+
+function approveAffiliateApplication(application: AffiliateApplication, origin: string) {
+  if (application.status === 'approved') {
+    const partner = findPartnerByEmail(application.email);
+    if (!partner) return null;
+    return {
+      id: partner.id,
+      applicationId: partner.applicationId,
+      email: partner.email,
+      slug: partner.slug,
+      referralUrl: referralUrl(origin, partner.slug),
+      approvedAt: partner.approvedAt,
+    };
+  }
+  affiliateApplications.update(application.id, {
+    status: 'approved',
+    reviewedAt: new Date().toISOString(),
+  });
+  let slug = slugFromEmail(application.email);
+  if (affiliatePartners.all().some((row) => row.slug === slug)) {
+    slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+  }
+  const partner = affiliatePartners.create({
+    id: `partner-${application.id}`,
+    applicationId: application.id,
+    email: application.email,
+    slug,
+    approvedAt: new Date().toISOString(),
+    clickCount: 0,
+  });
+  const referralLink = affiliateReferralLinks.create({
+    id: `link-${partner.id}`,
+    partnerId: partner.id,
+    pathSegment: slug,
+    createdAt: partner.approvedAt,
+    clickCount: 0,
+  });
+  affiliateConversions.create({
+    id: `conv-${partner.id}`,
+    partnerId: partner.id,
+    referralLinkId: referralLink.id,
+    orderNumber: 'DSP-PROTOTYPE-001',
+    amountChf: 500,
+    commissionChf: 50,
+    createdAt: new Date().toISOString(),
+  });
+  return {
+    id: partner.id,
+    applicationId: partner.applicationId,
+    email: partner.email,
+    slug: partner.slug,
+    referralUrl: referralUrl(origin, partner.slug),
+    approvedAt: partner.approvedAt,
+  };
+}
+
+function partnerDashboard(email: string, origin: string) {
+  const partner = findPartnerByEmail(email);
+  if (!partner) return null;
+
+  const links = referralLinksForPartner(partner.id);
+  if (links.length > 0) {
+    syncPartnerSlugFromPrimaryLink(partner.id);
+  }
+  const conversions = conversionsForPartner(partner.id);
+  const payouts = affiliatePayouts
+    .all()
+    .filter((row) => row.partnerId === partner.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  const committedCommissionChf = conversions.reduce((sum, row) => sum + row.commissionChf, 0);
+  const paidChf = payouts
+    .filter((row) => row.status === 'paid')
+    .reduce((sum, row) => sum + row.amountChf, 0);
+  const commissionBalanceChf = Math.max(0, committedCommissionChf - paidChf);
+  const threshold = AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf;
+  const totalClicks = links.reduce((sum, row) => sum + row.clickCount, 0);
+
+  return {
+    partner: {
+      id: partner.id,
+      applicationId: partner.applicationId,
+      email: partner.email,
+      slug: partner.slug,
+      referralUrl: referralUrl(origin, partner.slug),
+      approvedAt: partner.approvedAt,
+    },
+    referralLinks: links.map((link) => mapReferralLinkDto(link, partner.id, origin)),
+    clicks: totalClicks,
+    conversions: conversions.length,
+    commissionBalanceChf,
+    committedCommissionChf,
+    payoutThresholdChf: threshold,
+    canRequestPayout: commissionBalanceChf >= threshold,
+    payouts: payouts.map((row) => ({
+      id: row.id,
+      amountChf: row.amountChf,
+      status: row.status,
+      createdAt: row.createdAt,
+    })),
+    recentConversions: conversions.slice(0, 5).map((row) => ({
+      id: row.id,
+      orderNumber: row.orderNumber,
+      amountChf: row.amountChf,
+      commissionChf: row.commissionChf,
+      createdAt: row.createdAt,
+    })),
+  };
+}
 
 const billingAddress = createCollection<BillingAddress & { id: string }>(
   'account-billing-address',
@@ -1989,16 +2252,253 @@ export const handlers = [
     );
   }),
 
-  http.post('/api/affiliate-registrations', async ({ request }) => {
-    const input = (await request.json()) as AffiliateRegistrationCreate;
+  http.get('/api/affiliate/settings', () => {
+    return HttpResponse.json(AFFILIATE_PROGRAM_SETTINGS);
+  }),
+
+  http.get('/api/affiliate/applications/me', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return HttpResponse.json(null);
+    const row = affiliateApplications
+      .all()
+      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    return HttpResponse.json(row ?? null);
+  }),
+
+  http.post('/api/affiliate/applications', async ({ request }) => {
+    const input = (await request.json()) as AffiliateApplicationCreate;
+    const session = requireSessionEmail(request);
+    if (session && session.toLowerCase() !== input.email.toLowerCase()) {
+      return HttpResponse.json({ message: 'email_mismatch' }, { status: 400 });
+    }
+    const existing = affiliateApplications
+      .all()
+      .find((entry) => entry.email.toLowerCase() === input.email.toLowerCase());
+    if (existing && existing.status === 'pending') {
+      return HttpResponse.json(existing);
+    }
+    if (existing?.status === 'approved') {
+      return HttpResponse.json({ message: 'already_partner' }, { status: 409 });
+    }
+    if (existing?.status === 'rejected') {
+      return HttpResponse.json(
+        affiliateApplications.update(existing.id, {
+          ...input,
+          status: 'pending',
+          reviewedAt: null,
+        })
+      );
+    }
     return HttpResponse.json(
-      affiliateRegistrations.create({
+      affiliateApplications.create({
         ...input,
         status: 'pending',
         createdAt: new Date().toISOString(),
+        reviewedAt: null,
       }),
       { status: 201 }
     );
+  }),
+
+  http.get('/api/affiliate/dashboard/me', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return HttpResponse.json(null);
+    const origin = new URL(request.url).origin;
+    return HttpResponse.json(partnerDashboard(email, origin));
+  }),
+
+  http.patch('/api/affiliate/partner/me/slug', async ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const body = (await request.json()) as { slug?: string };
+    const slug = body.slug?.trim() ?? '';
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    if (!AFFILIATE_SLUG_PATTERN.test(slug)) {
+      return HttpResponse.json({ message: 'path_segment_invalid' }, { status: 400 });
+    }
+    if (isReferralPathSegmentTaken(slug)) {
+      return HttpResponse.json({ message: 'path_segment_taken' }, { status: 409 });
+    }
+    const links = ensurePartnerReferralLinks(partner);
+    const primary = links[0];
+    if (!primary) return new HttpResponse(null, { status: 404 });
+    affiliateReferralLinks.update(primary.id, { pathSegment: slug });
+    const updated = affiliatePartners.update(partner.id, { slug });
+    if (!updated) return new HttpResponse(null, { status: 404 });
+    const origin = new URL(request.url).origin;
+    return HttpResponse.json({
+      id: updated.id,
+      applicationId: updated.applicationId,
+      email: updated.email,
+      slug: updated.slug,
+      referralUrl: referralUrl(origin, updated.slug),
+      approvedAt: updated.approvedAt,
+    });
+  }),
+
+  http.post('/api/affiliate/partner/me/referral-links', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const origin = new URL(request.url).origin;
+    let pathSegment = `link-${Date.now().toString(36).slice(-6)}`;
+    while (isReferralPathSegmentTaken(pathSegment)) {
+      pathSegment = `link-${Date.now().toString(36).slice(-6)}-${Math.random().toString(36).slice(2, 4)}`;
+    }
+    const link = affiliateReferralLinks.create({
+      id: `link-${partner.id}-${Date.now().toString(36)}`,
+      partnerId: partner.id,
+      pathSegment,
+      createdAt: new Date().toISOString(),
+      clickCount: 0,
+    });
+    return HttpResponse.json(mapReferralLinkDto(link, partner.id, origin), { status: 201 });
+  }),
+
+  http.patch('/api/affiliate/partner/me/referral-links/:id', async ({ request, params }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const body = (await request.json()) as { pathSegment?: string };
+    const pathSegment = body.pathSegment?.trim() ?? '';
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const link = affiliateReferralLinks.all().find((row) => row.id === params.id);
+    if (!link || link.partnerId !== partner.id) return new HttpResponse(null, { status: 404 });
+    if (!AFFILIATE_SLUG_PATTERN.test(pathSegment)) {
+      return HttpResponse.json({ message: 'path_segment_invalid' }, { status: 400 });
+    }
+    if (isReferralPathSegmentTaken(pathSegment, link.id)) {
+      return HttpResponse.json({ message: 'path_segment_taken' }, { status: 409 });
+    }
+    const updatedLink = affiliateReferralLinks.update(link.id, { pathSegment });
+    if (!updatedLink) return new HttpResponse(null, { status: 404 });
+    const links = referralLinksForPartner(partner.id);
+    if (links[0]?.id === link.id) {
+      affiliatePartners.update(partner.id, { slug: pathSegment });
+    }
+    const origin = new URL(request.url).origin;
+    return HttpResponse.json(mapReferralLinkDto(updatedLink, partner.id, origin));
+  }),
+
+  http.delete('/api/affiliate/partner/me/referral-links/:id', ({ request, params }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const links = referralLinksForPartner(partner.id);
+    const link = links.find((row) => row.id === params.id);
+    if (!link) return new HttpResponse(null, { status: 404 });
+    affiliateReferralLinks.remove(link.id);
+    syncPartnerSlugFromPrimaryLink(partner.id);
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.post('/api/affiliate/clicks', async ({ request }) => {
+    const body = (await request.json()) as { slug?: string; pathSegment?: string };
+    const pathSegment = (body.pathSegment ?? body.slug)?.trim();
+    if (!pathSegment) return new HttpResponse(null, { status: 400 });
+    const link = findReferralLinkByPathSegment(pathSegment);
+    if (link) {
+      affiliateReferralLinks.update(link.id, { clickCount: link.clickCount + 1 });
+      const partner = affiliatePartners.all().find((row) => row.id === link.partnerId);
+      if (partner) {
+        affiliatePartners.update(partner.id, { clickCount: partner.clickCount + 1 });
+      }
+    }
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.get('/api/affiliate/admin/applications', ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const rows = affiliateApplications.all().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return HttpResponse.json(rows);
+  }),
+
+  http.post('/api/affiliate/admin/applications/:id/approve', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const id = params.id;
+    const application = affiliateApplications.all().find((row) => row.id === id);
+    if (!application) return new HttpResponse(null, { status: 404 });
+    const origin = new URL(request.url).origin;
+    const partner = approveAffiliateApplication(application, origin);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ ...partner, prototypeApprovalEmailSent: true });
+  }),
+
+  http.post('/api/affiliate/prototype/simulate-approval-email', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const application = affiliateApplications
+      .all()
+      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    if (!application) return new HttpResponse(null, { status: 404 });
+    if (application.status === 'rejected') {
+      return HttpResponse.json({ message: 'application_rejected' }, { status: 409 });
+    }
+    const origin = new URL(request.url).origin;
+    const partner = approveAffiliateApplication(application, origin);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ referralUrl: partner.referralUrl });
+  }),
+
+  http.post('/api/affiliate/prototype/quit', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (partner) {
+      for (const row of affiliateConversions.all()) {
+        if (row.partnerId === partner.id) affiliateConversions.remove(row.id);
+      }
+      for (const row of affiliatePayouts.all()) {
+        if (row.partnerId === partner.id) affiliatePayouts.remove(row.id);
+      }
+      for (const row of affiliateReferralLinks.all()) {
+        if (row.partnerId === partner.id) affiliateReferralLinks.remove(row.id);
+      }
+      affiliatePartners.remove(partner.id);
+    }
+    const application = affiliateApplications
+      .all()
+      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    if (application) {
+      affiliateApplications.update(application.id, {
+        status: 'rejected',
+        reviewedAt: new Date().toISOString(),
+      });
+    }
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.post('/api/affiliate/admin/applications/:id/reject', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const application = affiliateApplications.all().find((row) => row.id === params.id);
+    if (!application) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(
+      affiliateApplications.update(application.id, {
+        status: 'rejected',
+        reviewedAt: new Date().toISOString(),
+      })
+    );
+  }),
+
+  http.get('/api/affiliate/admin/conversions', ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const rows = affiliateConversions
+      .all()
+      .map((row) => {
+        const partner = affiliatePartners.all().find((entry) => entry.id === row.partnerId);
+        if (!partner) return null;
+        const links = ensurePartnerReferralLinks(partner);
+        const linked = row.referralLinkId
+          ? links.find((entry) => entry.id === row.referralLinkId)
+          : links[0];
+        const pathSegment = linked?.pathSegment ?? partner.slug;
+        return toAdminConversion(row, partner, pathSegment);
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+    return HttpResponse.json(rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   }),
 
   http.post('/api/dev/reseed-auth-mock', () => {
@@ -2007,6 +2507,45 @@ export const handlers = [
     setupTokens.reseed([]);
     magicLoginTokens.reseed([]);
     return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.get('/api/dev/member-sign-in-method', () => {
+    const account = findAuthAccountByEmail(MOCK_MEMBER_EMAIL);
+    return HttpResponse.json({
+      method: account ? resolveMemberSignInMethod(account) : ('magic_link' as const),
+    });
+  }),
+
+  http.post('/api/dev/set-member-sign-in-method', async ({ request }) => {
+    const body = (await request.json()) as { method?: 'magic_link' | 'password' };
+    const account = findAuthAccountByEmail(MOCK_MEMBER_EMAIL);
+
+    if (!account) {
+      return HttpResponse.json({ message: 'not_found' }, { status: 404 });
+    }
+
+    if (body.method !== 'magic_link' && body.method !== 'password') {
+      return HttpResponse.json({ message: 'invalid_method' }, { status: 400 });
+    }
+
+    if (body.method === 'magic_link') {
+      authAccounts.update(account.id, {
+        memberSignInMethod: 'magic_link',
+        totpSecret: null,
+        pendingTotpSecret: null,
+        twoFactorActivatedAt: null,
+        recoveryCodes: [],
+        twoFactorSetupSuggested: true,
+      });
+    } else {
+      authAccounts.update(account.id, { memberSignInMethod: 'password' });
+    }
+
+    const updated = findAuthAccountByEmail(MOCK_MEMBER_EMAIL);
+    return HttpResponse.json({
+      ok: true as const,
+      method: updated ? resolveMemberSignInMethod(updated) : body.method,
+    });
   }),
 
   http.post('/api/dev/disable-lucas-two-factor', () => {
@@ -2070,11 +2609,21 @@ export const handlers = [
     }
 
     if (account.role === 'member') {
+      const preferred = resolveMemberSignInMethod(account);
+      if (preferred === 'password') {
+        return HttpResponse.json({
+          loginMethod: 'password',
+          role: account.role,
+          ...twoFactorFlags(account),
+        });
+      }
+
       const magic = issueMagicLoginToken(email);
       return HttpResponse.json({
         loginMethod: 'magic_link',
         role: account.role,
         prototypeMagicLinkUrl: `/login/verify?token=${encodeURIComponent(magic.token)}`,
+        ...twoFactorFlags(account),
       });
     }
 
@@ -2110,7 +2659,7 @@ export const handlers = [
     const email = input.email.trim().toLowerCase();
     const account = findAuthAccountByEmail(email);
 
-    if (!account || account.role === 'member' || input.password !== account.password) {
+    if (!account || input.password !== account.password) {
       return HttpResponse.json({ message: 'invalid_credentials' }, { status: 401 });
     }
 
@@ -2339,7 +2888,48 @@ export const handlers = [
       displayName: stored.displayName,
       email: stored.email,
       role,
+      memberSignInMethod: resolveMemberSignInMethod(account),
       twoFactorEnabled: account ? isTwoFactorEnabled(account) : false,
+    } satisfies Profile);
+  }),
+
+  http.patch('/api/account/sign-in-method', async ({ request }) => {
+    const body = (await request.json()) as { method?: 'magic_link' | 'password' };
+    const token = tokenFromRequest(request);
+    const email = emailFromLoginToken(token);
+    const account = email ? findAuthAccountByEmail(email) : undefined;
+
+    if (!account || account.role !== 'member') {
+      return HttpResponse.json({ message: 'forbidden' }, { status: 403 });
+    }
+
+    if (body.method !== 'magic_link' && body.method !== 'password') {
+      return HttpResponse.json({ message: 'invalid_method' }, { status: 400 });
+    }
+
+    if (body.method === 'magic_link') {
+      authAccounts.update(account.id, {
+        memberSignInMethod: 'magic_link',
+        totpSecret: null,
+        pendingTotpSecret: null,
+        twoFactorActivatedAt: null,
+        recoveryCodes: [],
+        twoFactorSetupSuggested: true,
+      });
+    } else {
+      authAccounts.update(account.id, { memberSignInMethod: 'password' });
+    }
+
+    const stored = resolveProfileForEmail(account.email);
+    const updated = findAuthAccountByEmail(account.email);
+    return HttpResponse.json({
+      firstName: stored.firstName,
+      lastName: stored.lastName,
+      displayName: stored.displayName,
+      email: stored.email,
+      role: 'member' as const,
+      memberSignInMethod: resolveMemberSignInMethod(updated),
+      twoFactorEnabled: updated ? isTwoFactorEnabled(updated) : false,
     } satisfies Profile);
   }),
 
@@ -2358,6 +2948,7 @@ export const handlers = [
       email,
       newsletterOptIn: input.newsletterOptIn,
       role,
+      memberSignInMethod: resolveMemberSignInMethod(account),
       twoFactorEnabled: account ? isTwoFactorEnabled(account) : false,
     };
     const profileId = existing?.id ?? profileIdForEmail(email);

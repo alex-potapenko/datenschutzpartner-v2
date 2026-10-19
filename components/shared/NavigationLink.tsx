@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { MouseEventHandler, PointerEventHandler, ReactNode } from 'react';
 import { CaretLeft, CaretRight, ArrowSquareOut, cn } from '@/components/ui';
 
-export type NavigationLinkSize = 'default' | 'sm';
+export type NavigationLinkSize = 'default' | 'sm' | 'xs';
 
 const NAVIGATION_LINK_SIZES: Record<
   NavigationLinkSize,
@@ -12,6 +12,7 @@ const NAVIGATION_LINK_SIZES: Record<
 > = {
   default: { textClassName: 'text-base', gapClassName: 'gap-1', iconSize: 16 },
   sm: { textClassName: 'text-sm', gapClassName: 'gap-0.5', iconSize: 14 },
+  xs: { textClassName: 'text-xs', gapClassName: 'gap-0.5', iconSize: 12 },
 };
 
 export function navigationLinkClassName(
@@ -52,6 +53,7 @@ type NavigationLinkAsButton = NavigationLinkBaseProps & {
   onPress: () => void;
   as?: never;
   type?: 'button' | 'submit';
+  'aria-pressed'?: boolean;
 };
 
 type NavigationLinkAsSpan = NavigationLinkBaseProps & {
@@ -129,6 +131,7 @@ export function NavigationLink({
       <button
         type={props.type ?? 'button'}
         onClick={props.onPress}
+        aria-pressed={'aria-pressed' in props ? props['aria-pressed'] : undefined}
         className={cn(classes, 'cursor-pointer border-0 bg-transparent p-0 text-left')}
       >
         <NavigationLinkContent size={size} chevron={chevron} chevronWeight={chevronWeight}>

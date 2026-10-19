@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useCallback,
   useMemo,
   useState,
   startTransition,
@@ -59,6 +60,37 @@ const PROTOTYPE_EMAIL_DEFAULT =
 const revealTransition = { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const };
 const stepSlideOffset = 20;
 
+type PostEmailSlide = { axis: 'x' | 'y'; direction: 'forward' | 'back' };
+
+function postEmailSlideOffset(slide: PostEmailSlide, role: 'enter' | 'exit') {
+  if (slide.axis === 'x') {
+    return role === 'enter' ? { x: stepSlideOffset } : { x: -stepSlideOffset };
+  }
+
+  if (slide.direction === 'forward') {
+    return role === 'enter' ? { y: stepSlideOffset } : { y: -stepSlideOffset };
+  }
+
+  return role === 'enter' ? { y: -stepSlideOffset } : { y: stepSlideOffset };
+}
+
+/** `custom` is read at exit time, so the leaving panel uses the current direction. */
+const postEmailPanelVariants = {
+  enter: (slide: PostEmailSlide) => ({ opacity: 0, ...postEmailSlideOffset(slide, 'enter') }),
+  center: { opacity: 1, x: 0, y: 0 },
+  exit: (slide: PostEmailSlide) => ({ opacity: 0, ...postEmailSlideOffset(slide, 'exit') }),
+};
+
+const submitBlockVariants = {
+  hidden: { opacity: 0, height: 0, marginTop: -20, overflow: 'hidden' },
+  visible: {
+    opacity: 1,
+    height: 'auto',
+    marginTop: 0,
+    transitionEnd: { overflow: 'visible' },
+  },
+} as const;
+
 function firstValidationMessage(errors: FieldErrors<EmailStepValues | PasswordStepValues>) {
   const first = Object.values(errors)[0];
   return typeof first?.message === 'string' ? first.message : undefined;
@@ -83,6 +115,23 @@ export function LoginForm() {
   const [authFailed, setAuthFailed] = useState(false);
   const [isCollapsingPostEmailBlock, setIsCollapsingPostEmailBlock] = useState(false);
   const [twoFactorProactiveOpen, setTwoFactorProactiveOpen] = useState(false);
+  const [twoFactorProactiveNonce, setTwoFactorProactiveNonce] = useState(0);
+  const [postEmailSlide, setPostEmailSlide] = useState<PostEmailSlide>({
+    axis: 'y',
+    direction: 'forward',
+  });
+  const [postEmailPanelHeight, setPostEmailPanelHeight] = useState<number | 'auto'>('auto');
+
+  const postEmailPanelMeasureRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return undefined;
+    const observer = new ResizeObserver(() => {
+      setPostEmailPanelHeight(node.offsetHeight);
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const identify = useIdentifyLogin();
   const login = useLogin();
@@ -166,6 +215,11 @@ export function LoginForm() {
   async function completeLogin(credential: { twoFactorCode?: string; recoveryCode?: string }) {
     setAuthFailed(false);
 
+    if (twoFactorProactiveOpen) {
+      setTwoFactorProactiveNonce((nonce) => nonce + 1);
+      return;
+    }
+
     try {
       const result = await login.mutateAsync({
         email,
@@ -187,6 +241,7 @@ export function LoginForm() {
       toast.success(t('success'));
       if (result.suggestTwoFactorSetup) {
         setTwoFactorProactiveOpen(true);
+        setTwoFactorProactiveNonce((nonce) => nonce + 1);
         return;
       }
       startTransition(() => {
@@ -220,9 +275,12 @@ export function LoginForm() {
         setPrototypeMagicLinkReady(Boolean(magicUrl));
         setPrototypeMagicLinkUrl(magicUrl);
         setAdminLoginBypass(null);
+        setRequiresTwoFactor(result.requiresTwoFactor ?? false);
+        setTwoFactorSetupRequired(result.twoFactorSetupRequired ?? false);
         if (magicUrl) {
           storePrototypeMagicLoginUrl(magicUrl);
         }
+        setPostEmailSlide({ axis: 'y', direction: 'forward' });
         setStep('magic_link_sent');
         return;
       }
@@ -230,11 +288,11 @@ export function LoginForm() {
       setPrototypeMagicLinkReady(false);
       setPrototypeMagicLinkUrl(null);
       setAdminLoginBypass(null);
-
       setRequiresTwoFactor(result.requiresTwoFactor ?? false);
       setTwoFactorSetupRequired(result.twoFactorSetupRequired ?? false);
       passwordForm.reset({ password: '' });
       setTotpCode('');
+      setPostEmailSlide({ axis: 'y', direction: 'forward' });
       setStep('password');
     } catch {
       showDangerToast(t('errors.generic'));
@@ -248,6 +306,7 @@ export function LoginForm() {
     if (requiresTwoFactor) {
       setAdminLoginBypass({ email, password: values.password });
       setTotpCode('');
+      setPostEmailSlide({ axis: 'x', direction: 'forward' });
       setStep('totp');
       return;
     }
@@ -444,19 +503,26 @@ export function LoginForm() {
                 <div className="flex flex-col gap-5 overflow-visible py-1.5">
                   <div role="separator" aria-hidden className="border-border border-t" />
                   <motion.div
-                    layout
+                    initial={false}
+                    animate={{ height: postEmailPanelHeight }}
                     transition={motionTransition}
+                    onAnimationComplete={() => {
+                      setPostEmailPanelHeight('auto');
+                    }}
                     className="relative w-full overflow-visible"
                   >
-                    <AnimatePresence mode="wait" initial={false}>
+                    <AnimatePresence mode="popLayout" initial={false} custom={postEmailSlide}>
                       {step === 'magic_link_sent' ? (
                         <motion.div
                           key="magic-link-sent"
-                          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+                          ref={postEmailPanelMeasureRef}
+                          custom={postEmailSlide}
+                          variants={postEmailPanelVariants}
+                          initial="enter"
+                          animate="center"
+                          exit="exit"
                           transition={motionTransition}
-                          className="flex flex-col items-center gap-3 text-center"
+                          className="flex w-full flex-col items-center gap-3 text-center"
                         >
                           <span
                             className="bg-key-50 flex size-11 shrink-0 items-center justify-center rounded-xl"
@@ -475,9 +541,12 @@ export function LoginForm() {
                       {step === 'password' ? (
                         <motion.div
                           key="password-fields"
-                          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={reduceMotion ? undefined : { opacity: 0, x: -stepSlideOffset }}
+                          ref={postEmailPanelMeasureRef}
+                          custom={postEmailSlide}
+                          variants={postEmailPanelVariants}
+                          initial="enter"
+                          animate="center"
+                          exit="exit"
                           transition={motionTransition}
                           className="flex w-full flex-col gap-5 overflow-visible"
                         >
@@ -522,7 +591,7 @@ export function LoginForm() {
                           </div>
 
                           <div className="flex justify-end">
-                            <NavigationLink href="/login/forgot-password">
+                            <NavigationLink href="/login/forgot-password" size="sm">
                               {t('forgotPassword')}
                             </NavigationLink>
                           </div>
@@ -532,10 +601,12 @@ export function LoginForm() {
                       {step === 'totp' ? (
                         <motion.div
                           key="totp-fields"
-                          layout
-                          initial={reduceMotion ? false : { opacity: 0, x: stepSlideOffset }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={reduceMotion ? undefined : { opacity: 0, x: -stepSlideOffset }}
+                          ref={postEmailPanelMeasureRef}
+                          custom={postEmailSlide}
+                          variants={postEmailPanelVariants}
+                          initial="enter"
+                          animate="center"
+                          exit="exit"
                           transition={motionTransition}
                           className="flex w-full flex-col gap-1.5 overflow-visible"
                         >
@@ -612,48 +683,59 @@ export function LoginForm() {
           </div>
         </div>
 
-        {step === 'magic_link_sent' ? null : (
-          <motion.div layout transition={motionTransition} className="w-full">
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              isPending={
-                step === 'email'
-                  ? identify.isPending
-                  : step === 'password'
-                    ? false
-                    : login.isPending
-              }
-              isDisabled={
-                step === 'email'
-                  ? identify.isPending
-                  : step === 'password'
-                    ? passwordForm.formState.isSubmitting
-                    : login.isPending ||
-                      (useRecoveryCode ? recoveryCode.trim().length === 0 : totpCode.length !== 6)
-              }
+        <AnimatePresence initial={false}>
+          {step === 'magic_link_sent' ? null : (
+            <motion.div
+              key="submit-block"
+              variants={submitBlockVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={motionTransition}
+              className="flex w-full flex-col items-center gap-3"
             >
-              {step === 'email' ? (
-                t('continue')
-              ) : step === 'password' ? (
-                requiresTwoFactor || twoFactorSetupRequired ? (
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                isPending={
+                  step === 'email'
+                    ? identify.isPending
+                    : step === 'password'
+                      ? false
+                      : login.isPending
+                }
+                isDisabled={
+                  step === 'email'
+                    ? identify.isPending
+                    : step === 'password'
+                      ? passwordForm.formState.isSubmitting
+                      : login.isPending ||
+                        (useRecoveryCode ? recoveryCode.trim().length === 0 : totpCode.length !== 6)
+                }
+              >
+                {step === 'email' ? (
                   t('continue')
+                ) : step === 'password' ? (
+                  requiresTwoFactor || twoFactorSetupRequired ? (
+                    t('continue')
+                  ) : (
+                    t('submit')
+                  )
+                ) : login.isPending ? (
+                  <Spinner size="sm" aria-hidden />
                 ) : (
                   t('submit')
-                )
-              ) : login.isPending ? (
-                <Spinner size="sm" aria-hidden />
-              ) : (
-                t('submit')
-              )}
-            </Button>
-          </motion.div>
-        )}
+                )}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </form>
       <TwoFactorProactiveOffer
         open={twoFactorProactiveOpen}
+        reopenNonce={twoFactorProactiveNonce}
         accountEmail={email}
         onFinished={() => {
           setTwoFactorProactiveOpen(false);

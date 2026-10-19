@@ -29,6 +29,7 @@ export function EnableTwoFactorDialog({
   onClosed,
   onEnabled,
   onLater,
+  isLaterPending = false,
 }: {
   state: OverlayState;
   accountName: string;
@@ -37,6 +38,7 @@ export function EnableTwoFactorDialog({
   onEnabled?: () => void;
   /** Skips setup (e.g. login flow — still signed in, redirect to the app). */
   onLater?: () => void;
+  isLaterPending?: boolean;
 }) {
   const t = useTranslations('twoFactor');
   const activate = useActivateTwoFactor();
@@ -126,6 +128,8 @@ export function EnableTwoFactorDialog({
                 <Button
                   variant="outline"
                   fullWidth
+                  isDisabled={isLaterPending}
+                  isPending={isLaterPending}
                   onPress={() => {
                     if (onLater) {
                       onLater();

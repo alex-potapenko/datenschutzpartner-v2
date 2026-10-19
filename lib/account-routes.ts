@@ -38,6 +38,12 @@ export const ALL_SUBSCRIPTIONS_ACCOUNT_HREF = '/account/subscriptions';
 /** Profile, security and billing details — a nested screen outside the sidebar shell. */
 export const ACCOUNT_DETAILS_HREF = '/account/details';
 
+/** Affiliate partner application and dashboard (account sidebar). */
+export const AFFILIATE_ACCOUNT_HREF = '/account?section=affiliate';
+
+/** Backoffice review of affiliate applications (admin). */
+export const AFFILIATE_ADMIN_HREF = '/account/affiliate/admin';
+
 /** Account details, opened on the billing tab. */
 export const ACCOUNT_BILLING_DETAILS_HREF = '/account/details?tab=paymentDetails';
 
@@ -59,6 +65,9 @@ export function subscriptionRenewalHref(subscriptionId: string, returnTo?: strin
 
 /** Standalone New EU Representation checkout. */
 export const ADD_EU_REP_CHECKOUT_HREF = '/account/eu-rep/checkout';
+
+/** Buy additional policy capacity (prepaid sites). */
+export const ADD_GENERATOR_CHECKOUT_HREF = '/account/generator/checkout';
 
 /** Full-screen questionnaire for a hosted policy's basic information. */
 export const POLICY_BASIC_INFORMATION_HREF = '/account/policy/basic-information';
@@ -126,6 +135,10 @@ export function addWebsiteWizardHref(returnTo?: string | null) {
 
 export function addEuRepCheckoutHref(returnTo?: string | null) {
   return withReturnTo(ADD_EU_REP_CHECKOUT_HREF, returnTo);
+}
+
+export function addGeneratorCheckoutHref(returnTo?: string | null) {
+  return withReturnTo(ADD_GENERATOR_CHECKOUT_HREF, returnTo);
 }
 
 export function buildCurrentPathReturnTo(pathname: string, search: string): string {

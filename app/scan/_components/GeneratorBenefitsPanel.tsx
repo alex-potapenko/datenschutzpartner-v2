@@ -2,7 +2,15 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSession } from '@/api/auth';
+import {
+  accountLocationHref,
+  addGeneratorCheckoutHref,
+  addWebsiteWizardHref,
+  PRIVACY_POLICY_ACCOUNT_HREF,
+} from '@/lib/account-routes';
 import { ArrowsClockwise, Clock, Crosshair, Gavel } from '@/components/ui';
 import { EuRepPlanCard, type EuRepPlan } from '@/app/eu-rep/_components/EuRepPlanCard';
 import { calculateGeneratorPolicyQuote } from '@/api/checkout';
@@ -67,6 +75,11 @@ function BenefitIcon({ benefitKey }: { benefitKey: BenefitKey }) {
 }
 
 export function GeneratorBenefitsPanel() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
   const t = useTranslations('generatorPage');
   const tb = useTranslations('generatorPage.benefitsSection');
   const tp = useTranslations('generatorPage.pricingSection');
@@ -128,7 +141,17 @@ export function GeneratorBenefitsPanel() {
           defaultPlanId="policy"
           value="policy"
           pricePeriod={tp('pricePeriod')}
-          showOrderCta={false}
+          orderCta={t('orderCta')}
+          onChoose={() => {
+            if (isAuthenticated) {
+              const accountReturn =
+                accountLocationHref(pathname, searchParams) ?? PRIVACY_POLICY_ACCOUNT_HREF;
+              router.push(addGeneratorCheckoutHref(accountReturn));
+              return;
+            }
+            router.push(addWebsiteWizardHref(null));
+          }}
+          showOrderCta
           tabsAriaLabel={tp('siteCountLabel')}
           selectPlanTitle={tp('selectPlan')}
           includedTitle={tp('includedTitle')}

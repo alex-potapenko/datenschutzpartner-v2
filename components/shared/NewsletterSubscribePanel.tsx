@@ -52,10 +52,12 @@ function BenefitIcon({ benefitKey }: { benefitKey: BenefitKey }) {
 }
 
 type NewsletterSubscribePanelProps = {
+  showTopBorder?: boolean;
   showBottomBorder?: boolean;
 };
 
 export function NewsletterSubscribePanel({
+  showTopBorder = false,
   showBottomBorder = true,
 }: NewsletterSubscribePanelProps) {
   const t = useTranslations('newsletter');
@@ -63,6 +65,7 @@ export function NewsletterSubscribePanel({
 
   return (
     <section className="bg-background">
+      {showTopBorder ? <FullBleedDivider /> : null}
       <div className="grid grid-cols-1 items-stretch lg:grid-cols-2">
         <div className="flex h-full flex-col">
           <div className="flex flex-col gap-3 p-4 sm:p-8">

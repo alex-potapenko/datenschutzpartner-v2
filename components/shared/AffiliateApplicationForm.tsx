@@ -1,19 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
+import { useSession } from '@/api/auth';
 import {
-  createAffiliateRegistrationFormSchema,
-  useCreateAffiliateRegistration,
-  type AffiliateRegistrationForm as AffiliateFormValues,
+  createAffiliateApplicationFormSchema,
+  useCreateAffiliateApplication,
+  type AffiliateApplicationForm as FormValues,
 } from '@/api/affiliate';
 import { Field } from '@/app/result/ui/FormSection';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { newsletterMembershipInputClassName } from '@/components/shared/newsletter-membership-input';
 import { AFFILIATE_TERMS_HREF } from '@/lib/affiliate-links';
 import {
+  ArrowSquareOut,
   Button,
   Checkbox,
   CheckboxContent,
@@ -27,45 +29,62 @@ import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 const SUCCESS_ICON_SURFACE = 'color-mix(in srgb, var(--accent) 8%, transparent)';
 
-/** Keeps the terms link clickable without toggling the checkbox around it. */
 function stopCheckboxActivation(event: { stopPropagation: () => void }) {
   event.stopPropagation();
 }
 
-export function AffiliateRegistrationForm() {
-  const t = useTranslations('affiliatePage.registration');
-  const tv = useTranslations('validation');
-  const [submitted, setSubmitted] = useState(false);
-  const createRegistration = useCreateAffiliateRegistration();
+type AffiliateApplicationFormProps = {
+  /** Shorter copy for the public landing card. */
+  variant?: 'landing' | 'account';
+  onSubmittedChange?: (submitted: boolean) => void;
+};
 
-  const schema = useMemo(() => createAffiliateRegistrationFormSchema(tv), [tv]);
+export function AffiliateApplicationForm({
+  variant = 'landing',
+  onSubmittedChange,
+}: AffiliateApplicationFormProps) {
+  const t = useTranslations(
+    variant === 'account' ? 'account.affiliate.application' : 'affiliatePage.registration'
+  );
+  const tv = useTranslations('validation');
+  const session = useSession();
+  const [submitted, setSubmitted] = useState(false);
+  const createApplication = useCreateAffiliateApplication();
+
+  const schema = useMemo(() => createAffiliateApplicationFormSchema(tv), [tv]);
 
   const {
     register,
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
-  } = useForm<AffiliateFormValues>({
+  } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: '',
-      username: '',
       email: '',
-      paymentEmail: '',
       websiteUrl: '',
-      promotion: '',
+      description: '',
       acceptTerms: false,
     },
   });
 
-  async function onSubmit(values: AffiliateFormValues) {
-    await createRegistration.mutateAsync({
-      name: values.name,
-      username: values.username,
+  useEffect(() => {
+    const email = session.data?.email;
+    if (email) {
+      reset((current) => ({ ...current, email }));
+    }
+  }, [session.data?.email, reset]);
+
+  useEffect(() => {
+    onSubmittedChange?.(submitted);
+  }, [onSubmittedChange, submitted]);
+
+  async function onSubmit(values: FormValues) {
+    await createApplication.mutateAsync({
       email: values.email,
-      paymentEmail: values.paymentEmail,
       websiteUrl: values.websiteUrl,
-      promotion: values.promotion,
+      description: values.description,
     });
     setSubmitted(true);
   }
@@ -83,14 +102,17 @@ export function AffiliateRegistrationForm() {
           <CheckCircle size={24} weight="fill" style={{ color: 'var(--accent)' }} aria-hidden />
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-foreground text-base font-semibold">{t('successTitle')}</p>
-          <p className="text-muted text-sm leading-relaxed">{t('successBody')}</p>
+          {onSubmittedChange ? null : (
+            <p className="text-foreground text-base font-semibold">{t('successTitle')}</p>
+          )}
+          <p className="text-foreground text-sm leading-relaxed">{t('successBody')}</p>
         </div>
       </div>
     );
   }
 
-  const isBusy = isSubmitting || createRegistration.isPending;
+  const isBusy = isSubmitting || createApplication.isPending;
+  const emailLocked = Boolean(session.data?.email);
 
   return (
     <form
@@ -99,43 +121,14 @@ export function AffiliateRegistrationForm() {
       onSubmit={handleSubmit(onSubmit)}
     >
       <div className="flex flex-col gap-5">
-        <Field label={t('nameLabel')} htmlFor="affiliate-name">
-          <Input
-            id="affiliate-name"
-            variant="secondary"
-            fullWidth
-            className={newsletterMembershipInputClassName}
-            autoComplete="name"
-            aria-invalid={Boolean(errors.name)}
-            {...register('name')}
-          />
-          <FieldErrorText message={errors.name?.message} />
-        </Field>
-
-        <Field
-          label={t('usernameLabel')}
-          htmlFor="affiliate-username"
-          hint={t('usernameHint')}
-          hintClassName="text-muted"
-        >
-          <Input
-            id="affiliate-username"
-            variant="secondary"
-            fullWidth
-            className={newsletterMembershipInputClassName}
-            autoComplete="username"
-            aria-invalid={Boolean(errors.username)}
-            {...register('username')}
-          />
-          <FieldErrorText message={errors.username?.message} />
-        </Field>
-
         <Field label={t('emailLabel')} htmlFor="affiliate-email">
           <Input
             id="affiliate-email"
             variant="secondary"
             type="email"
             fullWidth
+            readOnly={emailLocked}
+            aria-required
             className={newsletterMembershipInputClassName}
             autoComplete="email"
             aria-invalid={Boolean(errors.email)}
@@ -144,50 +137,35 @@ export function AffiliateRegistrationForm() {
           <FieldErrorText message={errors.email?.message} />
         </Field>
 
-        <Field
-          label={t('paymentEmailLabel')}
-          htmlFor="affiliate-payment-email"
-          hint={t('paymentEmailHint')}
-          hintClassName="text-muted"
-        >
-          <Input
-            id="affiliate-payment-email"
-            variant="secondary"
-            type="email"
-            fullWidth
-            className={newsletterMembershipInputClassName}
-            aria-invalid={Boolean(errors.paymentEmail)}
-            {...register('paymentEmail')}
-          />
-          <FieldErrorText message={errors.paymentEmail?.message} />
-        </Field>
-
         <Field label={t('websiteLabel')} htmlFor="affiliate-website">
           <Input
             id="affiliate-website"
             variant="secondary"
             type="url"
+            inputMode="url"
             fullWidth
+            aria-required
             className={newsletterMembershipInputClassName}
             autoComplete="url"
-            placeholder={t('optionalPlaceholder')}
+            spellCheck={false}
             aria-invalid={Boolean(errors.websiteUrl)}
             {...register('websiteUrl')}
           />
           <FieldErrorText message={errors.websiteUrl?.message} />
         </Field>
 
-        <Field label={t('promotionLabel')} htmlFor="affiliate-promotion">
+        <Field label={t('descriptionLabel')} htmlFor="affiliate-description">
           <TextArea
-            id="affiliate-promotion"
+            id="affiliate-description"
             variant="secondary"
             rows={4}
             fullWidth
+            placeholder={t('descriptionPlaceholder')}
             className={newsletterMembershipInputClassName}
-            aria-invalid={Boolean(errors.promotion)}
-            {...register('promotion')}
+            aria-invalid={Boolean(errors.description)}
+            {...register('description')}
           />
-          <FieldErrorText message={errors.promotion?.message} />
+          <FieldErrorText message={errors.description?.message} />
         </Field>
       </div>
 
@@ -198,7 +176,7 @@ export function AffiliateRegistrationForm() {
           render={({ field }) => (
             <Checkbox
               variant="secondary"
-              className="items-start"
+              className="items-center gap-2"
               isSelected={field.value}
               onChange={field.onChange}
               aria-invalid={Boolean(errors.acceptTerms)}
@@ -207,7 +185,7 @@ export function AffiliateRegistrationForm() {
                 <CheckboxIndicator />
               </CheckboxControl>
               <CheckboxContent>
-                <span className="text-sm leading-snug">
+                <span className="text-foreground text-sm leading-snug">
                   {t.rich('acceptTerms', {
                     terms: (chunks) => (
                       <NavigationLink
@@ -215,11 +193,17 @@ export function AffiliateRegistrationForm() {
                         target="_blank"
                         chevron="none"
                         size="sm"
-                        className="inline align-baseline"
+                        className="inline-flex items-baseline gap-0.5 align-baseline"
                         onClick={stopCheckboxActivation}
                         onPointerDown={stopCheckboxActivation}
                       >
                         {chunks}
+                        <ArrowSquareOut
+                          size={14}
+                          weight="bold"
+                          aria-hidden
+                          className="relative top-px shrink-0"
+                        />
                       </NavigationLink>
                     ),
                   })}

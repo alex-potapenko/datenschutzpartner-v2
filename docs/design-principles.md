@@ -12,7 +12,7 @@
 - **Accessibility is required** — labelled fields, real button/link semantics, keyboard
   reachable. CI runs an axe scan that fails on serious/critical issues.
 - **Responsive**, mobile-first; verify narrow and wide.
-- **Navigation links** — accent inline links with optional chevron (`left` | `right` | `none`), underline on hover, and size (`default` | `sm`) use `NavigationLink` in `components/shared/NavigationLink.tsx` (`href`, `onPress`, or `as="span"` inside a larger clickable card).
+- **Navigation links** — accent inline links with optional chevron (`left` | `right` | `none`), underline on hover, and size (`default` | `sm` | `xs`) use `NavigationLink` in `components/shared/NavigationLink.tsx` (`href`, `onPress`, or `as="span"` inside a larger clickable card).
 - **Page shells stretch vertically** — `body` is a `min-h-dvh` flex column; `RegularPage` and bespoke route layouts use `flex-1` on `main` so short pages fill the viewport between TopBar and Footer.
 - **Body text is dark by default** — use `text-foreground` for all body copy. `text-muted` is reserved for explicitly secondary content (captions, helper text, timestamps, metadata). Never use `text-muted` as the default for regular paragraphs or list items.
 - **Outline buttons use accent (blue) content** — label, icon, and caret inside `variant="outline"` buttons must render in `--accent`, not `--foreground` or HeroUI's default gray. This is enforced globally in `app/globals.css` (`.button--outline { --button-fg: var(--accent) }`). Custom outline links that are not `<Button>` must reuse the same HeroUI classes (`button button--outline`) or set `color: var(--accent)` explicitly. **Exception:** outline buttons on the accent TopBar bar opt out with `text-white` because they sit on a blue background.
@@ -23,7 +23,8 @@
 ## Typography
 
 - **Body / UI default:** Geist (`--font-geist-sans` via `next/font/google`) — paragraphs, forms, most interface copy.
-- **Display / accent:** Geometos Neue (`next/font/local` → `--font-geometos-neue`, utility `font-display`, global `h1`–`h3`) — headlines, nav labels, buttons, and selected emphasis lines. Font file: `public/fonts/GeometosNeueBold.ttf` (bold only, mapped across the full weight range) (must be present in the repo).
+- **Display / accent:** Montserrat (`next/font/google` → `--font-montserrat`, utility `font-display`, global `h1`–`h3`) — headlines, nav labels, buttons, and selected emphasis lines. Rendered in **uppercase** at **weight 600 (semibold)** globally (`text-transform: uppercase`, `font-weight: 600` on `.font-display` and `h1`–`h3` in `app/globals.css`). Avoid `font-bold` / `font-medium` on display text — the global rule wins over utilities, but redundant weight classes confuse readers.
+- **Logo wordmark:** Geometos Neue (`next/font/local` from `public/fonts/GeometosNeueBold.ttf` → `--font-geometos-neue`, utility `font-logo`) — reserved for `components/shared/Logo.tsx`; don't use it elsewhere.
 - **English button labels (`messages/en.json`):** use title case (e.g. `Continue with Payment`, `Cancel and Return`). Short conjunctions and prepositions stay lowercase unless they open the label (`and`, `to`, `with`, `for`, `in`, …). German copy is unchanged.
 
 ## Animation

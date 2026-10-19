@@ -67,7 +67,6 @@ export function LoginDebugDialog({ state }: { state: OverlayState }) {
                   <p className="text-muted font-mono text-sm break-all">
                     {MOCK_MEMBER_LOGIN.email}
                   </p>
-                  <p className="text-muted text-sm">{t('devMagicLinkOnly')}</p>
                   <button
                     type="button"
                     disabled={disableLucas2fa.isPending}

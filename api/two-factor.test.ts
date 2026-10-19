@@ -6,7 +6,7 @@ import { setAuthToken } from '@/lib/auth-session';
 import { generateTotpCode } from '@/lib/totp';
 
 const MEMBER_EMAIL = 'lucas.baumgartner@gmail.com';
-const MEMBER_PASSWORD = 'dspmp';
+const MEMBER_PASSWORD = 'mpdsp';
 const ADMIN_EMAIL = 'admin@datenschutzpartner.ch';
 const ADMIN_PASSWORD = 'dspmp';
 
@@ -132,8 +132,8 @@ describe('two-factor contract', () => {
   });
 });
 
-describe('member magic-link login', () => {
-  it('identifies with magic_link, rejects password login, and accepts the token', async () => {
+describe('member login', () => {
+  it('defaults to magic link on identify, accepts password login, and exchanges the token', async () => {
     const identified = await request<LoginIdentifyResponse>('/auth/login/identify', {
       method: 'POST',
       body: JSON.stringify({ email: MEMBER_EMAIL }),
@@ -141,9 +141,9 @@ describe('member magic-link login', () => {
     expect(identified.loginMethod).toBe('magic_link');
     expect(identified.prototypeMagicLinkUrl).toContain('token=');
 
-    await expect(login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD })).rejects.toMatchObject({
-      status: 401,
-    });
+    const passwordSession = await login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD });
+    expect(passwordSession.token).toBeTruthy();
+    expect(passwordSession.email).toBe(MEMBER_EMAIL);
 
     expect(identified.prototypeMagicLinkUrl).toBeTruthy();
     const url = new URL(identified.prototypeMagicLinkUrl ?? '', 'http://localhost');

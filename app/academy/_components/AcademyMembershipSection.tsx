@@ -38,7 +38,7 @@ export async function AcademyMembershipCard() {
               href={ACADEMY_MEMBERSHIP_EXTERNAL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-display bg-key-500 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full px-8 text-base font-medium text-white transition-opacity hover:opacity-90"
+              className="font-display bg-key-500 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full px-8 text-base font-bold text-white transition-opacity hover:opacity-90"
             >
               {t('joinCta')}
               <ArrowSquareOut size={16} weight="bold" aria-hidden />

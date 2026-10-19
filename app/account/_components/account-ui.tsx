@@ -65,6 +65,7 @@ export function AccountSectionFrame({
   title,
   hideTitle = false,
   flush = false,
+  contentOverflowVisible = false,
   action,
   description,
   tabsAriaLabel,
@@ -79,6 +80,8 @@ export function AccountSectionFrame({
   hideTitle?: boolean;
   /** Full-bleed body — no bottom padding (e.g. coming-soon hero). */
   flush?: boolean;
+  /** Allow decorative overflow (e.g. HeroGlowOrbs) past the content column. */
+  contentOverflowVisible?: boolean;
   action?: ReactNode;
   /** Optional lead line under the page title — e.g. a personalised dashboard greeting. */
   description?: ReactNode;
@@ -97,6 +100,7 @@ export function AccountSectionFrame({
 
   const layout = useAccountLayout();
   const bodyPadding = flush ? 'px-4 sm:px-8' : ACCOUNT_SECTION_BODY_PADDING;
+  const bodyOverflowClass = contentOverflowVisible ? 'overflow-visible' : 'overflow-x-clip';
 
   function renderTabList(className?: string) {
     if (!hasTabs) return null;
@@ -163,7 +167,7 @@ export function AccountSectionFrame({
             {titleRow}
             {tabList}
           </div>
-          <div className={cn('w-full min-w-0 overflow-x-clip', ACCOUNT_SECTION_BODY_PADDING)}>
+          <div className={cn('w-full min-w-0', bodyOverflowClass, ACCOUNT_SECTION_BODY_PADDING)}>
             {children}
           </div>
         </div>
@@ -178,7 +182,7 @@ export function AccountSectionFrame({
           {titleRow}
           {tabList}
         </div>
-        <div className={cn('min-w-0 overflow-x-clip', ACCOUNT_SECTION_BODY_PADDING)}>
+        <div className={cn('min-w-0', bodyOverflowClass, ACCOUNT_SECTION_BODY_PADDING)}>
           {children}
         </div>
       </div>
@@ -188,16 +192,22 @@ export function AccountSectionFrame({
   if (layout === 'split') {
     if (hideTitle) {
       return (
-        <div className={cn('w-full min-w-0 overflow-visible', bodyPadding)}>
+        <div
+          className={cn(
+            'w-full min-w-0',
+            contentOverflowVisible ? 'overflow-visible' : 'overflow-x-clip',
+            bodyPadding
+          )}
+        >
           {content ?? children}
         </div>
       );
     }
 
     return (
-      <div className="flex w-full flex-col">
+      <div className="flex w-full flex-col overflow-visible">
         {titleBlock}
-        <div className={cn('w-full min-w-0 overflow-x-clip', ACCOUNT_SECTION_BODY_PADDING)}>
+        <div className={cn('w-full min-w-0', bodyOverflowClass, ACCOUNT_SECTION_BODY_PADDING)}>
           {content ?? children}
         </div>
       </div>
@@ -206,7 +216,14 @@ export function AccountSectionFrame({
 
   if (hideTitle) {
     return (
-      <div className={flush ? 'px-4 sm:px-8' : 'px-4 pb-8 sm:px-8'}>{content ?? children}</div>
+      <div
+        className={cn(
+          flush ? 'px-4 sm:px-8' : 'px-4 pb-8 sm:px-8',
+          contentOverflowVisible && 'overflow-visible'
+        )}
+      >
+        {content ?? children}
+      </div>
     );
   }
 

@@ -20,19 +20,21 @@ Contact form submissions use `api/contact-messages.ts` (`POST /api/contact-messa
 `subject` enum that routes inquiries to the right admin queue.
 
 Auth uses `api/auth.ts`: `POST /auth/login/identify` returns `loginMethod`
-`password` or `magic_link`. **Members** (including the Lucas seed account) sign in
-via magic link — identify issues a one-time link (`POST /auth/login/magic-link`
-with the token; prototype exposes `prototypeMagicLinkUrl` and
-`/login/verify?token=…`). **Admins and other defined accounts** continue with
-email + password (`POST /auth/login`); accounts with two-factor authentication
-also pass `twoFactorCode` or a `recoveryCode`. Unknown e-mails still get
-`magic_link` on identify (no account enumeration).
+`password` or `magic_link` from the account record (`memberSignInMethod` on members —
+set in **external admin**, not in member account UI or on `/login`). **Members** on
+magic link: identify issues a one-time link (`POST /auth/login/magic-link` with the
+token; prototype exposes `prototypeMagicLinkUrl` and `/login/verify?token=…`) plus
+optional 2FA flags. **Members** on password: identify goes straight to the password
+step (`POST /auth/login`; optional `twoFactorCode` / `recoveryCode` when 2FA is
+enabled). **Admins** identify as `password` and sign in with password + 2FA
+(mandatory setup when `twoFactorRequired`). Unknown e-mails still get `magic_link` on
+identify (no account enumeration).
 `GET /auth/session` returns `{ email, emailVerified, role? }`
 where `role` is `member` or `admin`. Registration:
 `POST /auth/register` then `POST /auth/verify-email` (double opt-in;
 prototype also returns `verificationUrl`). Verified sign-ups are added to the
 mock auth store with password `welcome`. Mock seed accounts:
-`lucas.baumgartner@gmail.com` (member, **magic link**) and
+`lucas.baumgartner@gmail.com` (member, **magic link default**, password `mpdsp`) and
 `admin@datenschutzpartner.ch` (admin, Martin Steiger, password `dspmp`; 2FA optional in the mock).
 In the prototype, `/login` exposes **Show Debug Info** when MSW is on (before the
 e-mail step): seed credentials and **Disable 2FA for Lucas**
@@ -51,15 +53,18 @@ with HMAC-SHA1 over Web Crypto, so any authenticator app (Google Authenticator,
 30 seconds because authenticator apps ignore deviating values in the otpauth URI.
 Verification accepts ±1 period of clock drift.
 
-| Endpoint                                  | Purpose                                                                          |
-| ----------------------------------------- | -------------------------------------------------------------------------------- |
-| `GET /account/two-factor`                 | `{ enabled, required, activatedAt, recoveryCodesRemaining, recoveryCodesTotal }` |
-| `POST /account/two-factor/setup`          | Issues a pending secret + `otpauthUri` for the QR code                           |
-| `POST /account/two-factor/activate`       | Verifies the first code, enables 2FA, returns 10 recovery codes                  |
-| `POST /account/two-factor/disable`        | Password-confirmed; clears the secret and all recovery codes                     |
-| `POST /account/two-factor/recovery-codes` | Code-confirmed regeneration; invalidates the previous set                        |
-| `POST /auth/invite/validate`              | Setup link → `{ email, needsPassword, twoFactorRequired, twoFactorEnabled }`     |
-| `POST /auth/invite/complete`              | Stores the password and exchanges the link for a session                         |
+| Endpoint                                  | Purpose                                                                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PATCH /account/sign-in-method`           | Members only (admin/back-office contract; not in member UI): `{ method: magic_link \| password }` — drives identify + settings panels |
+| `GET /dev/member-sign-in-method`          | Prototype MSW: read Lucas seed login mode (e.g. for scripts simulating admin)                                                         |
+| `POST /dev/set-member-sign-in-method`     | Prototype MSW: set Lucas seed login mode (same side effects as PATCH above)                                                           |
+| `GET /account/two-factor`                 | `{ enabled, required, activatedAt, recoveryCodesRemaining, recoveryCodesTotal }`                                                      |
+| `POST /account/two-factor/setup`          | Issues a pending secret + `otpauthUri` for the QR code                                                                                |
+| `POST /account/two-factor/activate`       | Verifies the first code, enables 2FA, returns 10 recovery codes                                                                       |
+| `POST /account/two-factor/disable`        | Password-confirmed; clears the secret and all recovery codes                                                                          |
+| `POST /account/two-factor/recovery-codes` | Code-confirmed regeneration; invalidates the previous set                                                                             |
+| `POST /auth/invite/validate`              | Setup link → `{ email, needsPassword, twoFactorRequired, twoFactorEnabled }`                                                          |
+| `POST /auth/invite/complete`              | Stores the password and exchanges the link for a session                                                                              |
 
 The setup endpoints accept **either** a Bearer session (account settings) **or** a
 `setupToken` in the body (e-mail link), so `/set-password` and the account dialog
@@ -300,6 +305,34 @@ change-password endpoint for the admin seed account is `dspmp`.
 **Datenschutz Academy** is a public marketing landing only (`/academy`). Membership,
 sessions, and articles live on the external Academy platform; they are not part of the
 member-area navigation or billing APIs.
+
+## Affiliate program (`api/affiliate.ts`)
+
+Prototype contract aligned with manual approval, last-click attribution (configurable
+`cookieDays` via `GET /affiliate/settings`), full-price referrals (no customer discount),
+10 % default commission on net purchases, and CHF 50 payout threshold.
+
+| Endpoint                                            | Purpose                                                                                                                |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `GET /affiliate/settings`                           | Public program config (cookie window, commission rate, payout threshold)                                               |
+| `POST /affiliate/applications`                      | Apply (website, description, email); from `/affiliate` or account sidebar **Affiliate** (`/account?section=affiliate`) |
+| `GET /affiliate/applications/me`                    | Current user's application (session)                                                                                   |
+| `GET /affiliate/dashboard/me`                       | Partner dashboard after approval (referral links, aggregate clicks/conversions/balance, total commission)              |
+| `POST /affiliate/partner/me/referral-links`         | Create another referral link (unique path after `/ref/`)                                                               |
+| `PATCH /affiliate/partner/me/referral-links/:id`    | Update editable path segment for one link                                                                              |
+| `DELETE /affiliate/partner/me/referral-links/:id`   | Remove a referral link                                                                                                 |
+| `PATCH /affiliate/partner/me/slug`                  | Legacy: updates the primary link path (same validation as link PATCH)                                                  |
+| `POST /affiliate/clicks`                            | Increment click count for a path segment (`/ref/:segment` or legacy `/affiliate/go/:slug` sets cookie + calls this)    |
+| `GET /affiliate/admin/applications`                 | Admin: review queue                                                                                                    |
+| `POST /affiliate/admin/applications/:id/approve`    | Admin: approve → partner + prototype conversion seed                                                                   |
+| `POST /affiliate/admin/applications/:id/reject`     | Admin: reject                                                                                                          |
+| `GET /affiliate/admin/conversions`                  | Admin: purchase ↔ partner mapping                                                                                      |
+| `POST /affiliate/prototype/simulate-approval-email` | Prototype only: approve pending application and return `referralUrl` (simulates approval email)                        |
+| `POST /affiliate/prototype/quit`                    | Prototype only: remove partner data and mark application rejected                                                      |
+
+Attribution cookie: `dsp_affiliate_ref` (see `lib/affiliate-attribution.ts`). Checkout
+attribution to real orders is not wired in the prototype — conversions are seeded on
+approval for demo dashboards.
 
 ## Future API replacement
 

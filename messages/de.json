@@ -221,10 +221,9 @@
     "devShowDebugInfo": "Debug-Info Anzeigen",
     "devDebugTitle": "Debug-Info",
     "devDebugDone": "Fertig",
-    "devAccountMember": "Member (Magic-Link)",
+    "devAccountMember": "Member (Magic-Link oder Passwort)",
     "devAccountAdmin": "Admin (Passwort + 2FA)",
     "devPasswordLabel": "Passwort",
-    "devMagicLinkOnly": "Kein Passwort — Anmelde-Link per E-Mail.",
     "devAdminPassword2fa": "Anmeldung mit Passwort; 2FA ist im Prototyp optional.",
     "devDisableLucas2fa": "2FA für Lucas deaktivieren",
     "devDisableLucas2faDone": "2FA für Lucas wurde deaktiviert.",
@@ -256,6 +255,8 @@
     "success": "Erfolgreich angemeldet.",
     "identifyNotice": "Wir haben Dir einen Anmelde-Link per E-Mail geschickt.",
     "identifyNoticeInbox": "Bitte prüfe Dein Postfach und klicke auf den Link, um Dich anzumelden.",
+    "usePasswordInstead": "Stattdessen mit Passwort anmelden",
+    "useMagicLinkInstead": "Stattdessen Anmelde-Link per E-Mail",
     "magicLinkVerifying": "Anmelde-Link wird geprüft …",
     "magicLinkInvalid": "Dieser Anmelde-Link ist ungültig oder wurde bereits verwendet.",
     "magicLinkMissing": "Dieser Anmelde-Link ist unvollständig.",
@@ -590,20 +591,20 @@
     "stats": {
       "ariaLabel": "Affiliate-Programm auf einen Blick",
       "commission": {
-        "title": "Provision von 10 Prozent",
+        "title": "10 % Provision",
         "description": "Sie erhalten als Affiliate-Partner eine Provision von 10 Prozent auf bezahlten Käufen von Datenschutzpartner-Angeboten, die Sie erfolgreich vermittelt haben."
       },
-      "voucher": {
-        "title": "Gutschein-Code mit 10 Prozent Rabatt",
-        "description": "Sie erhalten als Affiliate-Partner einen Gutschein-Code, mit dem Sie einen Rabatt von 10 Prozent auf allen Datenschutzpartner-Angeboten einräumen können."
+      "fullPrice": {
+        "title": "Voller Preis für Kunden",
+        "description": "Kunden, die über Ihren Link kommen, zahlen den regulären Preis — ohne Rabatt. Ihre Provision wird auf den vollen Nettobetrag berechnet."
       },
       "attribution": {
-        "title": "Sieben Tage Cookie-Laufzeit",
-        "description": "Als vermittelt gelten Käufe, die innerhalb von sieben Tagen erfolgen, nachdem Ihr individueller Affiliate-Link aufgerufen wurde (Cookie-Laufzeit). Ein Kauf wird dem letzten Affiliate-Partner zugeordnet, der einen neuen Kunden empfohlen hat."
+        "title": "Last-Click-Attribution",
+        "description": "Käufe werden dem letzten Partner zugeordnet, dessen Link innerhalb des konfigurierbaren Zeitraums (typisch 10–30 Tage) geklickt wurde — auch bei späterem Rückkehrbesuch im selben Browser."
       }
     },
     "howItWorks": {
-      "title": "So funktioniert unser Affiliate-Programm",
+      "title": "Wie funktioniert das?",
       "example": {
         "title": "Beispiel",
         "steps": {
@@ -613,7 +614,7 @@
           },
           "subscribe": {
             "title": "Abonnement durch Nutzer",
-            "description": "Ein Nutzer folgt diesem Link und abonniert innerhalb von sieben Tagen die EU-Datenschutz-Vertretung gemäss Art. 27 DSGVO in der «Standard»-Variante für CHF 249.00 netto."
+            "description": "Ein Nutzer folgt diesem Link und abonniert innerhalb des Attribution-Zeitraums die EU-Datenschutz-Vertretung gemäss Art. 27 DSGVO in der «Standard»-Variante für CHF 249.00 netto (voller Preis)."
           },
           "payout": {
             "title": "Provision erhalten",
@@ -623,21 +624,23 @@
       }
     },
     "registration": {
-      "cardTitle": "Für das Affiliate-Programm registrieren – kostenlos!",
-      "nameLabel": "Vollständiger Name",
-      "usernameLabel": "Benutzername",
-      "usernameHint": "Buchstaben, Zahlen, Punkt, Bindestrich und Unterstrich — dieser Name erscheint in Ihrem Affiliate-Link.",
-      "emailLabel": "E-Mail-Adresse für die Registrierung",
-      "paymentEmailLabel": "Zahlungs-E-Mail",
-      "paymentEmailHint": "An diese Adresse zahlen wir Ihre Provision aus.",
-      "websiteLabel": "Website-URL",
-      "optionalPlaceholder": "Optional",
-      "promotionLabel": "Wie werben Sie für uns?",
-      "acceptTerms": "Ich stimme den <terms>Teilnahmebedingungen für das Affiliate-Programm</terms> zu",
-      "submit": "Registrieren",
-      "submitting": "Registrierung läuft …",
-      "successTitle": "Dein Promo-Affiliate-Konto wartet auf Genehmigung",
-      "successBody": "Wir prüfen Deine Anmeldung und senden Dir Affiliate-Link und Gutschein-Code per E-Mail."
+      "cardTitle": "Kostenlos registrieren!",
+      "emailLabel": "E-Mail",
+      "websiteLabel": "Website, auf der der Link platziert wird",
+      "descriptionLabel": "Kommentar",
+      "descriptionPlaceholder": "Optional",
+      "acceptTerms": "Ich stimme den <terms>Teilnahmebedingungen</terms> zu",
+      "submit": "Bewerbung senden",
+      "submitting": "Wird gesendet …",
+      "successTitle": "Danke!",
+      "successBody": "Wir prüfen Deine Anmeldung in Kürze. Nach Freigabe erhältst Du per E-Mail Deinen persönlichen Affiliate-Link."
+    },
+    "accountCta": {
+      "lead": "Bereits Kunde?",
+      "link": "Affiliate im Konto-Sidebar"
+    },
+    "redirect": {
+      "loading": "Weiterleitung …"
     }
   },
   "euRepPage": {
@@ -1122,8 +1125,9 @@
       "validationError": "Bitte fülle alle Pflichtfelder aus.",
       "optionalBadge": "Optional",
       "officerLocaleLabels": {
-        "en": "English",
-        "de": "German"
+        "en": "Englisch",
+        "de": "Deutsch",
+        "groupAria": "Sprache der Bezeichnung des Datenschutzbeauftragten"
       },
       "requiredBadge": "Pflichtfeld",
       "defaults": {
@@ -1551,6 +1555,7 @@
     "serviceTabs": {
       "ariaLabel": "Produktbereiche",
       "details": "Details",
+      "about": "So funktioniert's",
       "instructions": "Anleitung",
       "legalEntity": "Juristische Person",
       "preview": "Vorschau",
@@ -1569,6 +1574,7 @@
       "overview": "Übersicht",
       "accountDetails": "Mein Profil",
       "allSubscriptions": "Alle Abonnements",
+      "affiliate": "Affiliate-Programm",
       "soon": "Bald",
       "comingSoon": "Demnächst",
       "trial": "Test",
@@ -1845,6 +1851,86 @@
       "notifyWhenAvailable": "Benachrichtigen",
       "comingSoonNotifyNote": "Wir benachrichtigen Dich per E-Mail, sobald dieses Produkt verfügbar ist.",
       "enable": "Aktivieren"
+    },
+    "affiliate": {
+      "title": "Affiliate-Programm",
+      "back": "Zurück",
+      "intro": "Provision {commissionPct} % auf vermittelte Käufe (voller Nettopreis). Attribution über {cookieDays} Tage (Last-Click, konfigurierbar).",
+      "adminLink": "Affiliate-Backoffice",
+      "status": {
+        "pending": "Deine Bewerbung wird geprüft. Nach Freigabe erhältst Du eine E-Mail mit Deinem Affiliate-Link.",
+        "rejected": "Deine letzte Bewerbung wurde abgelehnt. Du kannst eine neue Bewerbung einreichen."
+      },
+      "pendingCard": {
+        "copyLink": "Link kopieren",
+        "linkCopied": "Link kopiert",
+        "copyFailed": "Link konnte nicht kopiert werden",
+        "prototypeSimulateEmailLink": "E-Mail-Link simulieren",
+        "quit": "Beenden",
+        "quitAffiliate": "Affiliate-Programm verlassen",
+        "quitConfirm": {
+          "title": "Affiliate-Programm verlassen?",
+          "body": "Du verlässt das Affiliate-Programm in diesem Prototyp. Dein Partner-Link und Demo-Kennzahlen werden entfernt.",
+          "confirm": "Programm verlassen",
+          "cancel": "Abbrechen"
+        }
+      },
+      "application": {
+        "emailLabel": "E-Mail",
+        "websiteLabel": "Website, auf der der Link platziert wird",
+        "descriptionLabel": "Kommentar",
+        "descriptionPlaceholder": "Optional",
+        "acceptTerms": "Ich stimme den <terms>Teilnahmebedingungen</terms> zu",
+        "submit": "Bewerbung senden",
+        "submitting": "Wird gesendet …",
+        "successTitle": "Danke!",
+        "successBody": "Wir prüfen Deine Anmeldung in Kürze. Nach Freigabe erhältst Du per E-Mail Deinen persönlichen Affiliate-Link."
+      },
+      "dashboard": {
+        "linkTitle": "Deine Affiliate-Links",
+        "linkFieldLabel": "Referral-Link",
+        "linkHint": "Kunden zahlen den vollen Preis. Provision auf alle qualifizierten Käufe im Attribution-Zeitraum.",
+        "copyLink": "Link kopieren",
+        "linkCopied": "Link kopiert",
+        "copyFailed": "Link konnte nicht kopiert werden",
+        "pathSegmentSave": "Speichern",
+        "pathSegmentInvalid": "Ungültiges Format für den Link.",
+        "pathSegmentTaken": "Dieser Pfad ist bereits vergeben.",
+        "linkCreated": "Erstellt",
+        "linkDelete": "Link entfernen",
+        "linkDeleteFailed": "Link konnte nicht entfernt werden.",
+        "linksAdd": "Link hinzufügen",
+        "statsAria": "Kennzahlen",
+        "stats": {
+          "clicks": "Klicks",
+          "conversions": "Conversions",
+          "balance": "Guthaben",
+          "totalBalance": "Gesamtguthaben",
+          "total": "Total (CHF)"
+        },
+        "payoutReady": "Dein Guthaben erreicht mindestens CHF {threshold}. Du kannst Datenschutzpartner eine Rechnung senden — wir haben Dir eine E-Mail geschickt (Prototyp).",
+        "payoutPending": "Auszahlung ab CHF {threshold} Guthaben. Rechnung an Datenschutzpartner senden, sobald der Schwellenwert erreicht ist.",
+        "conversionsTitle": "Letzte Conversions",
+        "conversionsEmpty": "Noch keine Conversions erfasst.",
+        "conversionLine": "CHF {amount} → Provision CHF {commission}",
+        "conversionsTable": {
+          "colOrder": "Bestellung",
+          "colDate": "Datum",
+          "colAmount": "Betrag",
+          "colCommission": "Provision"
+        }
+      }
+    },
+    "affiliateAdmin": {
+      "title": "Affiliate-Backoffice",
+      "back": "Affiliate-Programm",
+      "applicationsTitle": "Bewerbungen",
+      "applicationsEmpty": "Keine offenen Bewerbungen.",
+      "conversionsTitle": "Conversions (Partner-Zuordnung)",
+      "conversionsEmpty": "Noch keine Conversions erfasst.",
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "conversionAmounts": "CHF {amount} · Provision CHF {commission}"
     },
     "allSubscriptions": {
       "title": "Alle Abonnements",
@@ -2372,6 +2458,12 @@
       "displayName": "Anzeigename",
       "email": "E-Mail",
       "authentication": "Authentifizierung",
+      "signInMethodTitle": "Anmeldemethode",
+      "signInMethodMagicLink": "E-Mail-Link",
+      "signInMethodMagicLinkDescription": "Melde Dich mit einem einmaligen Link per E-Mail an. Kein Passwort nötig.",
+      "signInMethodPassword": "E-Mail und Passwort",
+      "signInMethodSaved": "Anmeldemethode aktualisiert.",
+      "signInMethodError": "Anmeldemethode konnte nicht aktualisiert werden.",
       "password": "Passwort",
       "editProfile": "Profil bearbeiten",
       "editProfileTitle": "Profil bearbeiten",

@@ -164,7 +164,7 @@ export function PolicyImplementationGuide({ document, className }: PolicyImpleme
                   href={hostedPath}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-display border-border text-accent hover:border-accent/50 hover:bg-accent/5 inline-flex h-8 items-center justify-center gap-2 rounded-full border px-3 text-sm font-medium no-underline transition-colors"
+                  className="font-display border-border text-accent hover:border-accent/50 hover:bg-accent/5 inline-flex h-8 items-center justify-center gap-2 rounded-full border px-3 text-sm font-bold no-underline transition-colors"
                 >
                   {t('open')}
                   <ArrowSquareOut size={14} weight="bold" aria-hidden />

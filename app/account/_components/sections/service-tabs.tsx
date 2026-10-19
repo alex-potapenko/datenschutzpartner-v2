@@ -12,6 +12,7 @@ import { AnimatedDirectionalPanel } from '../AnimatedDirectionalPanel';
  */
 export const SERVICE_TAB_IDS = [
   'details',
+  'about',
   'subscription',
   'instructions',
   'legalEntity',
@@ -38,6 +39,21 @@ export const EU_REP_TAB_IDS = [
 export function parseEuRepTab(value: string | null | undefined): ServiceTabId | undefined {
   if (!value) return undefined;
   return EU_REP_TAB_IDS.find((id) => id === value);
+}
+
+/** Tabs for an active affiliate partner in the account area. */
+export const AFFILIATE_PARTNER_TAB_IDS = [
+  'details',
+  'about',
+] as const satisfies readonly ServiceTabId[];
+
+const AFFILIATE_PARTNER_TAB_SET = new Set<string>(AFFILIATE_PARTNER_TAB_IDS);
+
+export function parseAffiliatePartnerTab(
+  value: string | null | undefined
+): ServiceTabId | undefined {
+  if (!value || !AFFILIATE_PARTNER_TAB_SET.has(value)) return undefined;
+  return value as ServiceTabId;
 }
 
 export function useServiceTabs(

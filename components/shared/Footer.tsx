@@ -4,6 +4,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSession } from '@/api/auth';
+import { AFFILIATE_ACCOUNT_HREF } from '@/lib/account-routes';
 import {
   Buildings,
   Button,
@@ -93,8 +95,17 @@ function isFooterLinkActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function footerLinkHref(key: string, href: string, isAuthenticated: boolean): string {
+  if (key === 'affiliate' && isAuthenticated) {
+    return AFFILIATE_ACCOUNT_HREF;
+  }
+  return href;
+}
+
 export function Footer() {
   const pathname = usePathname();
+  const session = useSession();
+  const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
   const t = useTranslations('footer');
   const tc = useTranslations('common');
   const tNav = useTranslations('nav');
@@ -145,7 +156,8 @@ export function Footer() {
                 <div key={headingKey} className="flex flex-col gap-4 pt-1">
                   <h3 className="text-muted text-sm font-medium">{t(headingKey)}</h3>
                   <ul className="flex flex-col gap-2.5">
-                    {links.map(({ key, href }) => {
+                    {links.map(({ key, href: defaultHref }) => {
+                      const href = footerLinkHref(key, defaultHref, isAuthenticated);
                       const active = isFooterLinkActive(pathname, href);
                       const label = t(key);
                       const icon = headingKey === 'products' ? PRODUCT_ICONS[key] : null;

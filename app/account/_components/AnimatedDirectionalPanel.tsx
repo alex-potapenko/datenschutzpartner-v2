@@ -60,7 +60,6 @@ export function AnimatedDirectionalPanel({
   const direction = useSlideDirection(activeKey, order);
   const offset = shouldReduceMotion ? 0 : SLIDE_OFFSET_PX;
   const [height, setHeight] = useState<number | 'auto'>('auto');
-  const [isSettled, setIsSettled] = useState(true);
 
   const measureRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) {
@@ -83,32 +82,37 @@ export function AnimatedDirectionalPanel({
 
   return (
     <motion.div
-      className="w-full min-w-0"
+      className="w-full min-w-0 overflow-visible"
       initial={false}
       animate={{ height }}
       transition={HEIGHT_TRANSITION}
-      onAnimationStart={() => {
-        setIsSettled(false);
-      }}
       onAnimationComplete={() => {
-        setIsSettled(true);
         setHeight('auto');
       }}
       style={{
         position: 'relative',
-        overflow: isSettled ? 'visible' : 'hidden',
+        // Keep visible during height tween so HeroGlow / BrandGlow are not clipped at the column edge.
+        overflow: 'visible',
       }}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence mode="popLayout" initial={false} custom={direction}>
         <motion.div
           key={activeKey}
-          initial={{ opacity: 0, ...slideOffset(axis, offset * direction) }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
-          exit={{ opacity: 0, ...slideOffset(axis, -offset * direction) }}
+          custom={direction}
+          variants={{
+            enter: (dir: number) => ({ opacity: 0, ...slideOffset(axis, offset * dir) }),
+            center: { opacity: 1, x: 0, y: 0 },
+            // `custom` is read at exit time, so the leaving panel uses the new direction.
+            exit: (dir: number) => ({ opacity: 0, ...slideOffset(axis, -offset * dir) }),
+          }}
+          initial="enter"
+          animate="center"
+          exit="exit"
           transition={SLIDE_TRANSITION}
-          className="w-full min-w-0"
+          className="w-full min-w-0 overflow-visible"
+          style={{ overflow: 'visible' }}
         >
-          <div ref={measureRef} className={cn('w-full min-w-0', className)}>
+          <div ref={measureRef} className={cn('w-full min-w-0 overflow-visible', className)}>
             {children}
           </div>
         </motion.div>

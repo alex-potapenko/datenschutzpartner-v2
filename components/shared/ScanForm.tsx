@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, type Transition } from 'motion/react';
@@ -10,6 +10,12 @@ import { Button } from '@/components/ui';
 import { useSession } from '@/api/auth';
 import { checkExistingSitePolicy } from '@/api/existing-purchase';
 import { ExistingPurchaseLoginDialog } from '@/components/shared/ExistingPurchaseLoginDialog';
+import {
+  accountLocationHref,
+  addWebsiteWizardHref,
+  fillPolicySlotWizardHref,
+  PRIVACY_POLICY_ACCOUNT_HREF,
+} from '@/lib/account-routes';
 import { writePendingScanUrl } from '@/lib/pending-scan-url';
 import { normalizeAndValidateWebsiteUrl } from '@/lib/validation/url';
 
@@ -236,6 +242,8 @@ export function ScanForm({
   onUrlChange,
 }: ScanFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const session = useSession();
   const isAuthenticated = Boolean(session.data?.email && session.data.emailVerified);
   const duplicateDialog = useOverlayState();
@@ -305,6 +313,16 @@ export function ScanForm({
       }
     }
     writePendingScanUrl(normalized);
+    if (isAuthenticated) {
+      const accountReturn =
+        accountLocationHref(pathname, searchParams) ?? PRIVACY_POLICY_ACCOUNT_HREF;
+      if (fillSubscriptionId) {
+        router.push(fillPolicySlotWizardHref(fillSubscriptionId, accountReturn));
+      } else {
+        router.push(addWebsiteWizardHref(accountReturn));
+      }
+      return;
+    }
     const params = new URLSearchParams({ step: 'website' });
     if (fillSubscriptionId) {
       params.set('fillSubscription', fillSubscriptionId);
@@ -330,7 +348,7 @@ export function ScanForm({
       <span
         ref={textMeasureRef}
         aria-hidden
-        className="pointer-events-none invisible absolute text-base font-semibold whitespace-nowrap sm:text-lg"
+        className="pointer-events-none invisible absolute text-base font-bold whitespace-nowrap sm:text-lg"
       >
         {visibleLabel}
       </span>
@@ -432,7 +450,7 @@ export function ScanForm({
                     animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                     exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
                     transition={SCAN_PHASE_TRANSITION}
-                    className="block shrink-0 text-base font-semibold whitespace-nowrap sm:text-lg"
+                    className="block shrink-0 text-base font-bold whitespace-nowrap sm:text-lg"
                     style={{ color: 'var(--accent)' }}
                   >
                     {visibleLabel}
@@ -440,7 +458,7 @@ export function ScanForm({
                 </AnimatePresence>
               ) : (
                 <span
-                  className="block shrink-0 text-base font-semibold whitespace-nowrap sm:text-lg"
+                  className="block shrink-0 text-base font-bold whitespace-nowrap sm:text-lg"
                   style={{ color: 'var(--accent)' }}
                 >
                   {visibleLabel}

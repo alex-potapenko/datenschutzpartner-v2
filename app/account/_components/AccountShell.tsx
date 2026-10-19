@@ -22,6 +22,7 @@ import {
 import { PrivacyPolicySection } from './sections/PrivacyPolicySection';
 import { EuRepSection } from './sections/EuRepSection';
 import { ComingSoonSection } from './sections/ComingSoonSection';
+import { AffiliateSection } from './sections/AffiliateSection';
 import { SubscriptionsSection } from './sections/SubscriptionsSection';
 
 function useIsLargeScreen() {
@@ -44,6 +45,8 @@ function AccountSectionContent({ section }: { section: AccountShellSectionId }) 
       return <SubscriptionsSection />;
     case 'privacyPolicy':
       return <PrivacyPolicySection />;
+    case 'affiliate':
+      return <AffiliateSection />;
     case 'euRep':
       return <EuRepSection />;
     case 'cookieBanner':
@@ -88,7 +91,9 @@ export function AccountShell() {
 
   const mobileNavTitle = inEuRepScope
     ? (activeEuRepContract?.legalEntity ?? t('nav.euRep'))
-    : t(`nav.${websiteSection}`);
+    : section === 'affiliate'
+      ? t('nav.affiliate')
+      : t(`nav.${websiteSection}`);
 
   const navigate = useCallback(
     (next: WebsiteSectionId) => {

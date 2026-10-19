@@ -29,9 +29,10 @@ export function ComingSoonSection({ product }: { product: ComingSoonSectionId })
     <AccountSectionFrame
       hideTitle
       flush
+      contentOverflowVisible
       content={
-        <div className="-mx-4 flex h-[calc(100dvh-var(--topbar-height,6rem))] min-w-0 flex-col overflow-hidden sm:-mx-8">
-          <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="-mx-4 flex h-[calc(100dvh-var(--topbar-height,6rem))] min-w-0 flex-col overflow-visible sm:-mx-8">
+          <section className="relative flex min-h-0 flex-1 flex-col overflow-visible">
             <BrandGlowBackdrop
               placement="right"
               centerIcon={

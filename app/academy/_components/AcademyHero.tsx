@@ -33,7 +33,7 @@ export async function AcademyHero() {
               href={ACADEMY_MEMBERSHIP_EXTERNAL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-display inline-flex h-14 w-fit items-center justify-center gap-2 rounded-full px-8 text-base font-medium text-white transition-opacity hover:opacity-90"
+              className="font-display inline-flex h-14 w-fit items-center justify-center gap-2 rounded-full px-8 text-base font-bold text-white transition-opacity hover:opacity-90"
               style={{ background: 'var(--accent)' }}
             >
               {t('joinCta')}

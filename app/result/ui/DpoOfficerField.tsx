@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { translateDpoDesignation, type DpoDesignationLocale } from '@/lib/dpo-designation';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui';
+import { NavigationLink } from '@/components/shared/NavigationLink';
 import { Field, TextInput } from './FormSection';
 
 type DpoOfficerFieldProps = {
@@ -72,29 +71,39 @@ export function DpoOfficerField({
             }
           }}
         />
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div
+          className="flex flex-wrap items-center gap-2 pl-3"
+          role="group"
+          aria-label={t('groupAria')}
+        >
           {(['de', 'en'] as const).map((locale) => {
             const isActive = activeLocale === locale;
+            const localeLabel = t(locale);
+
+            if (isActive) {
+              return (
+                <span
+                  key={locale}
+                  aria-current="true"
+                  className="bg-key-100 text-foreground -mx-1 inline-flex items-center rounded-full px-1 text-xs font-medium"
+                >
+                  {localeLabel}
+                </span>
+              );
+            }
 
             return (
-              <Button
+              <NavigationLink
                 key={locale}
-                type="button"
-                size="md"
-                variant="outline"
-                aria-pressed={isActive}
-                className={cn(
-                  'h-auto min-h-0 rounded-full border-0 px-2 py-0.5 font-sans text-sm font-medium',
-                  isActive
-                    ? 'bg-key-100 text-foreground [box-shadow:inset_0_0_0_1.5px_var(--key-500)]'
-                    : '[box-shadow:inset_0_0_0_1.5px_var(--border)]'
-                )}
+                chevron="none"
+                size="xs"
                 onPress={() => {
                   handleLocaleChange(locale);
                 }}
+                className="text-muted hover:text-foreground font-medium underline decoration-[var(--muted)] decoration-dotted underline-offset-[3px] hover:decoration-[var(--foreground)]"
               >
-                {t(locale)}
-              </Button>
+                {localeLabel}
+              </NavigationLink>
             );
           })}
         </div>

@@ -16,6 +16,7 @@ import {
   useChangePassword,
   useProfile,
   useUpdateProfile,
+  type MemberSignInMethod,
   type PasswordChange,
   type Profile,
 } from '@/api/account';
@@ -29,6 +30,7 @@ import {
   Button,
   Chip,
   Input,
+  Label,
   ModalRoot,
   ModalBackdrop,
   ModalContainer,
@@ -42,10 +44,15 @@ import {
 } from '@/components/ui';
 import { TotpInput } from '@/components/shared/TotpInput';
 import { EnableTwoFactorDialog, RecoveryCodesPanel } from '@/components/shared/two-factor';
+import { AnimatedDirectionalPanel } from '../AnimatedDirectionalPanel';
 import { DataState, AccountSection } from '../account-ui';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
-const profileFormSchema = profileSchema.omit({ role: true, twoFactorEnabled: true });
+const profileFormSchema = profileSchema.omit({
+  role: true,
+  memberSignInMethod: true,
+  twoFactorEnabled: true,
+});
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 type OverlayState = ReturnType<typeof useOverlayState>;
@@ -312,7 +319,7 @@ function LanguagePreference() {
               selectLocale(code);
             }}
             className={cn(
-              'font-display cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+              'font-display cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors',
               isActive ? 'bg-accent text-white' : 'text-muted hover:text-foreground hover:bg-key-50'
             )}
           >
@@ -594,6 +601,38 @@ function TwoFactorSectionActions({ profile }: { profile: Profile }) {
   );
 }
 
+function PasswordSignInSecurityOptions({
+  profile,
+  twoFactorEnabled,
+}: {
+  profile: Profile;
+  twoFactorEnabled: boolean | undefined;
+}) {
+  const t = useTranslations('account.accountDetails');
+
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Label elementType="p">{t('twoFactorTitle')}</Label>
+          {twoFactorEnabled ? (
+            <Chip variant="secondary" size="sm" color="success" className="w-fit">
+              {t('twoFactorEnabled')}
+            </Chip>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-4">
+          <TwoFactorSectionActions profile={profile} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label elementType="p">{t('password')}</Label>
+        <SecuritySection />
+      </div>
+    </>
+  );
+}
+
 function SecuritySection() {
   const t = useTranslations('account.accountDetails');
   const passwordDialog = useOverlayState();
@@ -639,8 +678,9 @@ export function ProfileSection() {
 export function SettingsSection() {
   const t = useTranslations('account.accountDetails');
   const profile = useProfile();
-  // Single source of truth for the badge, the copy and the actions below.
   const twoFactor = useTwoFactorStatus();
+
+  const activeSignInMethod: MemberSignInMethod = profile.data?.memberSignInMethod ?? 'magic_link';
 
   return (
     <div className="divide-border flex min-h-0 flex-1 flex-col divide-y">
@@ -652,27 +692,32 @@ export function SettingsSection() {
         {profile.data ? (
           <>
             <AccountSection title={t('authentication')} contentClassName="gap-6">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-display text-muted text-xs font-semibold tracking-wide uppercase">
-                    {t('twoFactorTitle')}
-                  </h3>
-                  {twoFactor.data?.enabled ? (
-                    <Chip variant="secondary" size="sm" color="success" className="w-fit">
-                      {t('twoFactorEnabled')}
-                    </Chip>
-                  ) : null}
-                </div>
+              {profile.data.role === 'member' ? (
                 <div className="flex flex-col gap-4">
-                  <TwoFactorSectionActions profile={profile.data} />
+                  <AnimatedDirectionalPanel
+                    activeKey={activeSignInMethod}
+                    order={['magic_link', 'password']}
+                    axis="y"
+                    className="flex flex-col gap-6"
+                  >
+                    {activeSignInMethod === 'magic_link' ? (
+                      <p className="text-foreground text-sm leading-relaxed font-normal">
+                        {t('signInMethodMagicLinkDescription')}
+                      </p>
+                    ) : (
+                      <PasswordSignInSecurityOptions
+                        profile={profile.data}
+                        twoFactorEnabled={twoFactor.data?.enabled}
+                      />
+                    )}
+                  </AnimatedDirectionalPanel>
                 </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <h3 className="font-display text-muted text-xs font-semibold tracking-wide uppercase">
-                  {t('password')}
-                </h3>
-                <SecuritySection />
-              </div>
+              ) : (
+                <PasswordSignInSecurityOptions
+                  profile={profile.data}
+                  twoFactorEnabled={twoFactor.data?.enabled}
+                />
+              )}
             </AccountSection>
             <AccountSection title={t('languageTitle')} contentClassName="gap-0">
               <LanguagePreference />

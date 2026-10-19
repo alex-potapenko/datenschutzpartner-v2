@@ -12,7 +12,7 @@ _Beispiel 1:_ Ein vermittelter Kunde folgt dem Affiliate-Link und abonniert den 
 
 _Beispiel 2:_ Ein vermittelter Kunde folgt dem Affiliate-Link und abonniert die EU-Datenschutz-Vertretung in der «Standard»-Variante für CHF 249.00 netto. Die Provision für den Teilnehmer beträgt CHF 24.90 netto.
 
-1.2 Teilnehmer erhalten einen individuellen Gutschein-Code, um potenziellen beziehungsweise vermittelten Kunden einen einmaligen und nicht kumulierbaren Rabatt für alle Datenschutzpartner-Angebote einräumen zu können. Datenschutzpartner informiert Teilnehmer in geeigneter Form über die Höhe des Rabattes.
+1.2 Vermittelte Kunden zahlen den regulären Preis der Datenschutzpartner-Angebote ohne Affiliate-Rabatt. Die Provision der Teilnehmer wird auf den vollen Nettobetrag berechnet, der beim jeweiligen Kauf tatsächlich bezahlt wurde.
 
 1.3 Datenschutzpartner ist berechtigt, das Affiliate-Programm ganz oder teilweise durch Dritte oder gemeinsam mit Dritten sowie durch verbundene Gesellschaften oder gemeinsam mit verbundenen Gesellschaften betreiben zu lassen oder zu betreiben. Datenschutzpartner ist berechtigt, Rechte und Pflichten im Zusammenhang mit dem Affiliate-Programm an solche Dritte und Gesellschaften zu übertragen. Solche Dritte und Gesellschaften können sich auch ausserhalb der Schweiz befinden.
 
@@ -30,11 +30,11 @@ _Beispiel 2:_ Ein vermittelter Kunde folgt dem Affiliate-Link und abonniert die 
 
 2.6 Die Teilnahme am Affiliate-Programm kann von Datenschutzpartner und einzelnen Teilnehmern jederzeit fristlos gekündigt werden.
 
-## 3. Affiliate-Link und Gutschein-Code
+## 3. Affiliate-Link
 
-3.1 Teilnehmer erhalten einen individuellen Affiliate-Link. Teilnehmer dürfen diesen Affiliate-Link veröffentlichen oder versenden, um Kunden an Datenschutzpartner zu vermitteln. Veröffentlichung und Versand müssen rechtskonform sowie unter Einhaltung der Bedingungen der allenfalls verwendeten Plattformen wie beispielsweise E-Mail-Dienstleister und Social Media-Plattformen erfolgen. Dazu zählen _insbesondere_ das Datenschutzrecht und das Recht gegen den unlauteren Wettbewerb. Teilnehmer müssen ausserdem die Grundsätze «Lauterkeit in der kommerziellen Kommunikation» der Schweizerischen Lauterkeitskommission einhalten.
+3.1 Nach Freigabe der Registrierung erhalten Teilnehmer einen individuellen Affiliate-Link. Teilnehmer dürfen diesen Affiliate-Link veröffentlichen oder versenden, um Kunden an Datenschutzpartner zu vermitteln. Veröffentlichung und Versand müssen rechtskonform sowie unter Einhaltung der Bedingungen der allenfalls verwendeten Plattformen wie beispielsweise E-Mail-Dienstleister und Social Media-Plattformen erfolgen. Dazu zählen _insbesondere_ das Datenschutzrecht und das Recht gegen den unlauteren Wettbewerb. Teilnehmer müssen ausserdem die Grundsätze «Lauterkeit in der kommerziellen Kommunikation» der Schweizerischen Lauterkeitskommission einhalten.
 
-3.2 Teilnehmer erhalten einen individuellen Gutschein-Code. Teilnehmer dürfen diesen Gutschein-Code veröffentlichen und versenden, um potenziellen beziehungsweise vermittelten Kunden einen einmaligen Rabatt einräumen zu können. Auf begründete Anfrage können Teilnehmer weitere Gutschein-Codes von Datenschutzpartner erhalten.
+3.2 Die Zuordnung von Käufen erfolgt nach dem Last-Click-Prinzip innerhalb eines von Datenschutzpartner konfigurierbaren Zeitraums (Cookie-Laufzeit). Ein Wechsel des Endgeräts oder Browsers kann die Zuordnung verhindern.
 
 3.3 Datenschutzpartner kann Teilnehmern eigene Werbemittel zur Verfügung stellen oder ergänzende Richtlinien für Werbemittel der Teilnehmer erlassen.
 
