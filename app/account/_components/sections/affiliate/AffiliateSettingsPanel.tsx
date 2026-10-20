@@ -80,7 +80,7 @@ export function AffiliateSettingsPanel({ partner }: { partner: AffiliatePartner 
               fullWidth
               autoComplete="email"
               aria-invalid={Boolean(emailError)}
-              isReadOnly={!canEdit}
+              readOnly={!canEdit}
               {...register('notificationEmail')}
             />
             <FieldErrorText message={emailError ? tRoot(emailError) : undefined} />
