@@ -79,19 +79,3 @@ export function selectPayoutReferrals<T extends LedgerReferral>(
     (row) => row.status === 'unpaid' && isWithinPayoutPeriod(row.createdAt, period)
   );
 }
-
-function isoDay(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-/** Default payout window: the calendar quarter before `now` (payouts run quarterly). */
-/** Previous full calendar period of `cadenceMonths` (1, 3, 6 or 12), aligned to January. */
-export function previousPayoutPeriod(
-  now: Date,
-  cadenceMonths: number
-): { periodStart: string; periodEnd: string } {
-  const currentStartMonth = Math.floor(now.getUTCMonth() / cadenceMonths) * cadenceMonths;
-  const start = new Date(Date.UTC(now.getUTCFullYear(), currentStartMonth - cadenceMonths, 1));
-  const end = new Date(Date.UTC(now.getUTCFullYear(), currentStartMonth, 0));
-  return { periodStart: isoDay(start), periodEnd: isoDay(end) };
-}

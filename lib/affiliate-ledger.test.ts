@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   affiliateConversionRate,
-  previousPayoutPeriod,
   selectPayoutReferrals,
   summarizeAffiliateReferrals,
   type AffiliateReferralStatus,
@@ -53,32 +52,5 @@ describe('selectPayoutReferrals', () => {
     expect(selectPayoutReferrals(referrals, { periodStart: null, periodEnd: null })).toHaveLength(
       2
     );
-  });
-});
-
-describe('previousPayoutPeriod', () => {
-  it('returns the full previous calendar quarter', () => {
-    expect(previousPayoutPeriod(new Date('2026-10-20T10:00:00Z'), 3)).toEqual({
-      periodStart: '2026-07-01',
-      periodEnd: '2026-09-30',
-    });
-  });
-
-  it('wraps into the previous year in January', () => {
-    expect(previousPayoutPeriod(new Date('2026-01-15T10:00:00Z'), 3)).toEqual({
-      periodStart: '2025-10-01',
-      periodEnd: '2025-12-31',
-    });
-  });
-
-  it('follows the configured cadence', () => {
-    expect(previousPayoutPeriod(new Date('2026-10-20T10:00:00Z'), 1)).toEqual({
-      periodStart: '2026-09-01',
-      periodEnd: '2026-09-30',
-    });
-    expect(previousPayoutPeriod(new Date('2026-10-20T10:00:00Z'), 6)).toEqual({
-      periodStart: '2026-01-01',
-      periodEnd: '2026-06-30',
-    });
   });
 });

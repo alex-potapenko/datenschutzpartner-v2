@@ -42,7 +42,6 @@ export const ACCOUNT_DETAILS_HREF = '/account/details';
 export const AFFILIATE_ACCOUNT_HREF = '/account?section=affiliate';
 
 /** Backoffice review of affiliate applications (admin). */
-export const AFFILIATE_ADMIN_HREF = '/account/affiliate/admin';
 
 /** Account details, opened on the billing tab. */
 export const ACCOUNT_BILLING_DETAILS_HREF = '/account/details?tab=paymentDetails';

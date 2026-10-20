@@ -312,53 +312,46 @@ Product requirements and phasing: [affiliate-program.md](affiliate-program.md).
 
 Prototype contract: manual approval, last-click attribution (configurable `cookieDays`),
 10 % default commission, quarterly payouts with a soft CHF 50 threshold. Pure rules live in
-`lib/affiliate-ledger.ts` (lifecycle sums, payout selection, previous payout period for the configured cadence) and
+`lib/affiliate-ledger.ts` (lifecycle sums, payout selection) and
 `lib/affiliate-attribution.ts` (referral URLs, safe landing paths); the contract walk-through
 is `api/affiliate.test.ts`.
 
 **Commission lifecycle:** `pending` (order not paid) → `unpaid` (order paid, payable) →
-`paid` (settled by an admin payout) or `rejected`. Creating a payout does **not** move money:
+`paid` (settled by a payout in the external admin tool) or `rejected`. Creating a payout does **not** move money:
 it marks the referrals paid and emails the partner to send an invoice; the transfer happens
 outside the product.
 
 **Links:** one partner slug (`/ref/:slug`) plus marketing links that add a same-site landing
 page and optional campaign: `/ref/:slug?to=/scan&campaign=newsletter`.
 
-| Endpoint                                              | Purpose                                                                                                    |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `GET /affiliate/settings`                             | Program config (cookie window, commission rate, payout threshold, payout cadence)                          |
-| `PATCH /affiliate/admin/settings`                     | Admin: update program config (rate ≤ 0.5, cookie 1–90 days, cadence 1/3/6/12 months); applies from now on  |
-| `POST /affiliate/applications`                        | Apply (website, description, email)                                                                        |
-| `GET /affiliate/applications/me`                      | Current user's application                                                                                 |
-| `GET /affiliate/dashboard/me`                         | Partner, marketing links with per-link stats, earnings by status, referrals (no customer data), payouts    |
-| `GET /affiliate/partner/me/visits`                    | Visit log (landing page, referrer, campaign, converted)                                                    |
-| `GET /affiliate/partner/me/campaigns`                 | Per-campaign visits, referrals, conversion, earnings (campaign of the converting visit; rejected excluded) |
-| `PATCH /affiliate/partner/me/slug`                    | Change the partner slug (unique)                                                                           |
-| `PATCH /affiliate/partner/me/settings`                | Notification email + notify-on-referral flag                                                               |
-| `POST /affiliate/partner/me/referral-links`           | Create a marketing link (`targetPath`, optional `campaign`); same-site pages only                          |
-| `DELETE /affiliate/partner/me/referral-links/:id`     | Remove a marketing link                                                                                    |
-| `POST /affiliate/clicks`                              | Record a visit for `slug` + `targetPath` + `campaign`; returns the safe landing path                       |
-| `GET /affiliate/admin/applications`                   | Admin: review queue                                                                                        |
-| `POST /affiliate/admin/applications/:id/approve`      | Admin: approve → partner (prototype seeds demo history)                                                    |
-| `POST /affiliate/admin/applications/:id/reject`       | Admin: reject                                                                                              |
-| `GET /affiliate/admin/partners`                       | Admin: all partners with visits, referral counts, unpaid/paid earnings                                     |
-| `GET /affiliate/admin/partners/:id`                   | Admin: partner detail (same shape as the partner dashboard)                                                |
-| `PATCH /affiliate/admin/partners/:id`                 | Admin: per-affiliate `commissionRate` (0–0.5); applies to new referrals only                               |
-| `POST /affiliate/admin/partners/:id/deactivate`       | Admin: `status: inactive` — clicks stop attributing, data kept                                             |
-| `POST /affiliate/admin/partners/:id/reactivate`       | Admin: back to `active`                                                                                    |
-| `GET /affiliate/admin/referrals?status=`              | Admin: referrals across partners, optional status filter                                                   |
-| `POST /affiliate/admin/referrals/:id/mark-order-paid` | Prototype stand-in for the order-paid webhook: `pending` → `unpaid`                                        |
-| `POST /affiliate/admin/referrals/:id/reject`          | Admin: reject a non-paid referral                                                                          |
-| `GET /affiliate/admin/payouts`                        | Admin: payout history                                                                                      |
-| `POST /affiliate/admin/payouts/preview`               | Admin: unpaid referrals in a period + total, threshold hint                                                |
-| `POST /affiliate/admin/payouts`                       | Admin: settle those referrals as `paid` and send the invoice-request email                                 |
-| `POST /affiliate/admin/payouts/:id/mark-transferred`  | Admin: payout `invoice_requested` → `transferred` after the manual bank transfer (409 if already)          |
-| `POST /affiliate/prototype/simulate-approval-email`   | Prototype only: approve own pending application                                                            |
-| `POST /affiliate/prototype/quit`                      | Prototype only: remove partner data and mark application rejected                                          |
+| Endpoint                                            | Purpose                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `GET /affiliate/settings`                           | Program config (cookie window, commission rate, payout threshold, payout cadence)                             |
+| `POST /affiliate/applications`                      | Apply (website, description, email)                                                                           |
+| `GET /affiliate/applications/me`                    | Current user's application                                                                                    |
+| `GET /affiliate/dashboard/me`                       | Partner, marketing links with per-link stats, earnings by status, referrals (no customer data), payouts       |
+| `GET /affiliate/partner/me/visits`                  | Visit log (landing page, referrer, campaign, converted)                                                       |
+| `GET /affiliate/partner/me/campaigns`               | Per-campaign visits, referrals, conversion, earnings (campaign of the converting visit; rejected excluded)    |
+| `PATCH /affiliate/partner/me/slug`                  | Change the partner slug (unique)                                                                              |
+| `PATCH /affiliate/partner/me/settings`              | Notification email + notify-on-referral flag                                                                  |
+| `POST /affiliate/partner/me/referral-links`         | Create a marketing link (`targetPath`, optional `campaign`); same-site pages only                             |
+| `DELETE /affiliate/partner/me/referral-links/:id`   | Remove a marketing link                                                                                       |
+| `POST /affiliate/clicks`                            | Record a visit for `slug` + `targetPath` + `campaign`; returns the safe landing path                          |
+| `POST /affiliate/prototype/simulate-approval-email` | Prototype only: approve own pending application                                                               |
+| `POST /affiliate/prototype/quit`                    | Prototype only: remove partner data and mark application rejected                                             |
+| `POST /affiliate/prototype/mark-order-paid`         | Prototype only: oldest pending referral of the signed-in partner → `unpaid` (stands in for the order webhook) |
+| `POST /affiliate/prototype/create-payout`           | Prototype only: settle all unpaid referrals as `paid`, payout `invoice_requested`                             |
+| `POST /affiliate/prototype/mark-transferred`        | Prototype only: oldest `invoice_requested` payout → `transferred`                                             |
+| `POST /affiliate/prototype/toggle-active`           | Prototype only: deactivate / reactivate the signed-in partner (inactive = clicks stop attributing)            |
+
+**Admin side lives in the external admin tool** (applications, partner management, referral
+corrections, payouts, program settings) and is not part of this frontend or its API contract. The
+`/affiliate/prototype/*` endpoints and the "Prototype controls" on the partner Overview stand in
+for it so the partner flow can be demoed; they are dropped at handover.
 
 Attribution cookie: `dsp_affiliate_ref` (see `lib/affiliate-attribution.ts`). Checkout
 attribution to real orders is not wired in the prototype. The program starts empty because Lucas
-is the only regular user: he applies, the admin approves him in `/account/affiliate/admin`, and
+is the only regular user: he applies and approves himself via the prototype link on the pending card, and
 approval seeds deterministic demo history (`mocks/affiliate-data.ts`) — referrals in every status,
 visits, two marketing links and one past payout.
 

@@ -98,7 +98,7 @@ Order attributed to partner
 | A-03 | After approval, access partner dashboard                   | Transactional email with base referral URL (production) |
 | A-04 | Leave program (if offered)                                 | Partner deactivated; links stop attributing             |
 
-**Prototype:** application, admin approve/reject and leaving the program (A-04) — implemented; emails are not simulated (see §6.3).
+**Prototype:** application, approval (simulated from the pending card; review happens in the external admin tool) and leaving the program (A-04) — implemented; emails are not simulated (see §6.3).
 
 ### 4.2 Affiliate ID and base link
 
@@ -139,7 +139,7 @@ Order attributed to partner
 | A-41 | Statuses: Pending, Unpaid, Paid, Rejected                                   | Match admin/system                |
 | A-42 | No customer PII                                                             | QA checklist                      |
 
-**Prototype:** Referrals tab and the latest five on Overview show reference, product, status, date and commission. Pagination and status filter are not implemented on the partner side yet.
+**Prototype:** Referrals tab and the latest five on Overview show reference, product, status, date and commission. The Referrals tab has a status filter and 20 per page.
 
 ### 4.6 Visits log — should-have
 
@@ -183,6 +183,8 @@ Order attributed to partner
 
 ## 5. Admin requirements
 
+> **Scope:** the admin side runs in the **external admin tool**, not in this frontend. The requirements below describe what that tool and the backend must support; the v2 prototype only simulates the steps that affect the partner view (see _Prototype controls_ in §11).
+
 ### 5.1 Affiliate management
 
 | ID   | Requirement                                            | Acceptance criteria                         |
@@ -192,7 +194,7 @@ Order attributed to partner
 | M-03 | Deactivate affiliate                                   | Attribution stops; data retained            |
 | M-04 | Partner detail view                                    | Links, stats, referrals, payouts            |
 
-**Prototype:** applications (M-02); the affiliates list (M-01) shows status (active / deactivated), rate, visits, referral counts and balances — rejected applicants stay in the Applications tab. The Details drawer (M-04) shows stats, the per-affiliate rate (M-31), marketing links, referrals and payouts, and deactivates / reactivates the affiliate (M-03): attribution stops (`/affiliate/clicks` returns `attributed: false`), all data stays, and the partner sees a notice on Overview.
+**Prototype:** not in this frontend. Partner-visible effects are simulated: approval (pending card link) and deactivate / reactivate (Prototype controls); a deactivated partner sees a notice on Overview and clicks stop attributing.
 
 ### 5.2 Referrals (deal tracking)
 
@@ -203,7 +205,7 @@ Order attributed to partner
 | M-12 | Per-referral “mark paid” — optional if batch-only                                       | Align with legacy if required |
 | M-13 | Referral linked to order; order payment drives Pending→Unpaid                           |                               |
 
-**Prototype:** status filter, mark order paid (stands in for the payment event, M-13) and reject with confirmation. Edit amount, delete and audit log (M-11) are not implemented.
+**Prototype:** not in this frontend. "Customer pays an order" in Prototype controls stands in for the payment event (M-13).
 
 ### 5.3 Payout processing (critical)
 
@@ -215,7 +217,7 @@ Order attributed to partner
 | M-23 | CSV export (optional)                                                                           | Accounting export on commit                                           |
 | M-24 | No in-ui bank transfer                                                                          | Copy states external payment                                          |
 
-**Prototype:** history (date, affiliate, period, referrals, amount, createdBy, invoice recipient) and a create dialog: affiliate, period (default = previous payout period from the cadence setting), preview with the CHF 50 hint, commit. Each payout shows its ID, referral references and status; the admin marks it transferred after the bank transfer. No CSV export yet (M-23).
+**Prototype:** not in this frontend. Prototype controls create a payout of all unpaid referrals (status _Invoice requested_) and mark it transferred; the partner sees both in the Payouts tab.
 
 ### 5.4 Program settings (admin)
 
@@ -224,7 +226,7 @@ Order attributed to partner
 | M-30 | Global: commission rate, cookie days, payout threshold, quarter schedule | API + admin or config service |
 | M-31 | Per-affiliate commission override                                        | Phase 2                       |
 
-**Prototype:** Settings tab in the admin (M-30): default commission rate (new partners only), attribution window in days, minimum payout and payout cadence (monthly / quarterly / 6 months / yearly). Changes apply from now on — existing commissions and partner rates stay. Marketing copy on the public affiliate page (10 %, example amount) is static content and must be updated separately. The per-affiliate rate (M-31) is edited in the affiliate's Details drawer (0–50 %, applies to new referrals only).
+**Prototype:** read-only `GET /affiliate/settings` (cookie window, payout threshold and cadence used in partner copy). Changing settings and per-affiliate rates belongs to the external admin tool.
 
 ---
 
@@ -252,7 +254,7 @@ Order attributed to partner
 | Application rejected       | Applicant                  | Optional reason                      |
 
 **Prototype:** emails are backend-only and not simulated. The mock API returns the recipient
-(`commissionEmailSentTo`, `invoiceEmailSentTo`) and the admin UI confirms it in a toast.
+(`commissionEmailSentTo`, `invoiceEmailSentTo`) and the Prototype controls confirm it in a toast.
 
 ### 6.4 API contract (conceptual domains)
 
@@ -293,20 +295,14 @@ See also [data-layer.md — Affiliate program](data-layer.md#affiliate-program-a
 
 _(Visits under Referrals or separate tab.)_
 
-**Admin:**
+**Admin:** external admin tool (applications, affiliates, referrals, payouts, settings) — out of scope for this frontend.
 
-- Applications
-- Affiliates
-- Referrals
-- Payouts (including create flow)
-
-**Prototype today:** partner tabs Overview, Links, Referrals, Visits, Payouts, Settings and How it works (`?section=affiliate&tab=…`); admin `/account/affiliate/admin` has tabs Applications, Affiliates, Referrals (status filter, mark order paid, reject) and Payouts (history + create dialog with period preview and threshold hint).
+**Prototype today:** partner tabs Overview, Links, Referrals, Visits, Payouts, Settings and How it works (`?section=affiliate&tab=…`). Overview ends with _Prototype controls_ (mock mode only) that simulate admin and webhook steps.
 
 **Code entry points:**
 
 - Public: `app/affiliate/`, `app/ref/[slug]/`
 - Account: `app/account/` section `affiliate` (`AffiliateSection`, one panel per tab in `app/account/_components/sections/affiliate/`)
-- Admin: `app/account/affiliate/admin/` (`AffiliateAdminApp`)
 
 ---
 
@@ -346,7 +342,7 @@ _(Visits under Referrals or separate tab.)_
 
 **Still open:**
 
-1. Fixed **quarterly payout calendar** vs admin-triggered only (prototype: admin-triggered, default period = previous period of the configured cadence).
+1. Fixed **quarterly payout calendar** vs admin-triggered only (decided in the external admin tool).
 2. **Slug change:** redirect old `/ref/` URLs (301) vs invalidate (prototype: invalidate).
 3. Show numeric **Affiliate ID** in UI or slug only (prototype: slug only).
 4. **Vouchers:** expiry, usage limits, stacking with other discounts (e.g. volume discount).
@@ -361,7 +357,7 @@ _(Visits under Referrals or separate tab.)_
 
 | PRD area                            | Prototype today                                                         |
 | ----------------------------------- | ----------------------------------------------------------------------- |
-| Application + admin approve         | Yes                                                                     |
+| Application + approval              | Yes (approval simulated from the pending card)                          |
 | `/ref/` + cookie + visits           | Yes (`?to=` target page and `campaign`, visit recorded)                 |
 | Editable affiliate ID (slug)        | Yes (Links tab)                                                         |
 | Marketing URL generator + link list | Yes (Links tab)                                                         |
@@ -369,9 +365,7 @@ _(Visits under Referrals or separate tab.)_
 | Referrals with status               | Yes (Overview latest 5, Referrals tab)                                  |
 | Payout history (partner)            | Yes (Payouts tab)                                                       |
 | Partner settings                    | Yes (notification email, referral notifications)                        |
-| Admin affiliates + payout flow      | Yes (Affiliates, Referrals, Payouts tabs; create dialog)                |
-| Partner detail, deactivate, rate    | Yes (Affiliates → Details drawer)                                       |
-| Program settings                    | Yes (Settings tab, `PATCH /affiliate/admin/settings`)                   |
+| Admin side                          | External admin tool; simulated via Prototype controls on Overview       |
 | Visits log                          | Yes (Visits tab, paginated client-side)                                 |
 | Campaign stats                      | Yes (Links tab, `GET /affiliate/partner/me/campaigns`)                  |
 | Vouchers                            | Phase 2 — partner-created, admin max %, commission on discounted amount |

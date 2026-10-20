@@ -1,14 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ApiError, request } from './client';
 import type {
-  AffiliateAdminPartner,
-  AffiliateAdminPayout,
-  AffiliateAdminReferral,
   AffiliateApplication,
   AffiliateCampaignStats,
   AffiliateDashboard,
-  AffiliatePayoutPreview,
-  AffiliateProgramSettings,
   AffiliateReferralLink,
 } from './affiliate';
 import { setAuthToken } from '@/lib/auth-session';
@@ -16,14 +11,9 @@ import { setAuthToken } from '@/lib/auth-session';
 const PARTNER_EMAIL = 'lucas.baumgartner@gmail.com';
 const PARTNER_SLUG = 'lucas.baumgartner';
 const PARTNER_TOKEN = `mock-email-${encodeURIComponent(PARTNER_EMAIL)}`;
-const ADMIN_TOKEN = 'mock-token';
 
 function asPartner() {
   setAuthToken(PARTNER_TOKEN);
-}
-
-function asAdmin() {
-  setAuthToken(ADMIN_TOKEN);
 }
 
 function post<T>(path: string, body: unknown = {}) {
@@ -47,8 +37,9 @@ async function statusOf(promise: Promise<unknown>) {
 }
 
 /**
- * Walks the commission lifecycle the backend has to implement: visit → pending referral →
- * order paid (unpaid, payable) → admin payout (paid + invoice-request email).
+ * Walks the partner-facing commission lifecycle: visit → pending referral → order paid (unpaid,
+ * payable) → payout (paid + invoice request) → transferred. Admin steps happen in the external
+ * admin tool; the prototype endpoints stand in for them.
  */
 describe('affiliate contract', () => {
   beforeAll(async () => {
@@ -58,8 +49,8 @@ describe('affiliate contract', () => {
       websiteUrl: 'https://baumgartner.ch',
       description: 'Ich empfehle Datenschutzpartner meinen Kunden.',
     });
-    asAdmin();
-    await post(`/affiliate/admin/applications/${application.id}/approve`);
+    expect(application.status).toBe('pending');
+    await post('/affiliate/prototype/simulate-approval-email');
   });
 
   it('serves a partner dashboard without customer identity', async () => {
@@ -137,129 +128,60 @@ describe('affiliate contract', () => {
 
   it('makes a commission payable only once the order is paid', async () => {
     const before = await dashboard();
-    asAdmin();
-    const pending = await request<AffiliateAdminReferral[]>(
-      '/affiliate/admin/referrals?status=pending'
+    const result = await post<{ commissionChf: number; commissionEmailSentTo: string | null }>(
+      '/affiliate/prototype/mark-order-paid'
     );
-    const target = pending.find((row) => row.partnerSlug === PARTNER_SLUG);
-    if (!target) throw new Error('seeded pending referral missing');
-
-    const updated = await post<AffiliateAdminReferral>(
-      `/affiliate/admin/referrals/${target.id}/mark-order-paid`
-    );
-    expect(updated.status).toBe('unpaid');
-    expect(await statusOf(post(`/affiliate/admin/referrals/${target.id}/mark-order-paid`))).toBe(
-      409
-    );
+    expect(result.commissionEmailSentTo).toBe(PARTNER_EMAIL);
 
     const after = await dashboard();
     expect(after.stats.unpaidEarningsChf).toBeCloseTo(
-      before.stats.unpaidEarningsChf + target.commissionChf
+      before.stats.unpaidEarningsChf + result.commissionChf
     );
     expect(after.stats.pendingEarningsChf).toBeCloseTo(
-      before.stats.pendingEarningsChf - target.commissionChf
+      before.stats.pendingEarningsChf - result.commissionChf
     );
+    expect(await statusOf(post('/affiliate/prototype/mark-order-paid'))).toBe(409);
   });
 
-  it('settles unpaid referrals in a payout and emails an invoice request', async () => {
+  it('settles unpaid referrals in a payout that is later marked transferred', async () => {
     const before = await dashboard();
-    asAdmin();
-    const request_ = { partnerId: before.partner.id, periodStart: null, periodEnd: null };
-
-    const preview = await post<AffiliatePayoutPreview>(
-      '/affiliate/admin/payouts/preview',
-      request_
+    const payout = await post<{ amountChf: number; invoiceEmailSentTo: string }>(
+      '/affiliate/prototype/create-payout'
     );
-    expect(preview.amountChf).toBeCloseTo(before.stats.unpaidEarningsChf);
-    expect(preview.referrals.every((row) => row.status === 'unpaid')).toBe(true);
-    expect(preview.belowThreshold).toBe(preview.amountChf < preview.payoutThresholdChf);
-
-    const payout = await post<AffiliateAdminPayout>('/affiliate/admin/payouts', request_);
-    expect(payout.amountChf).toBeCloseTo(preview.amountChf);
+    expect(payout.amountChf).toBeCloseTo(before.stats.unpaidEarningsChf);
     expect(payout.invoiceEmailSentTo).toBe(PARTNER_EMAIL);
-    expect(payout.createdBy).toBe('admin@datenschutzpartner.ch');
-    expect(payout.status).toBe('invoice_requested');
-    expect(payout.referralReferences).toHaveLength(payout.referralIds.length);
-    expect(await statusOf(post('/affiliate/admin/payouts', request_))).toBe(409);
+    expect(await statusOf(post('/affiliate/prototype/create-payout'))).toBe(409);
 
     const after = await dashboard();
     expect(after.stats.unpaidEarningsChf).toBe(0);
     expect(after.stats.paidEarningsChf).toBeCloseTo(
-      before.stats.paidEarningsChf + preview.amountChf
+      before.stats.paidEarningsChf + payout.amountChf
     );
-    expect(after.payouts[0]?.id).toBe(payout.id);
+    expect(after.payouts[0]?.status).toBe('invoice_requested');
 
-    asAdmin();
-    const transferred = await post<AffiliateAdminPayout>(
-      `/affiliate/admin/payouts/${payout.id}/mark-transferred`
-    );
-    expect(transferred.status).toBe('transferred');
-    expect(transferred.transferredBy).toBe('admin@datenschutzpartner.ch');
-    expect(await statusOf(post(`/affiliate/admin/payouts/${payout.id}/mark-transferred`))).toBe(
-      409
-    );
+    await post('/affiliate/prototype/mark-transferred');
+    const transferred = await dashboard();
+    expect(transferred.payouts[0]?.status).toBe('transferred');
+    expect(transferred.payouts[0]?.transferredAt).not.toBeNull();
+    expect(await statusOf(post('/affiliate/prototype/mark-transferred'))).toBe(409);
   });
 
-  it('lets the admin override the rate and deactivate a partner without losing data', async () => {
+  it('stops attribution while the partner is deactivated and keeps the data', async () => {
     const before = await dashboard();
-    const partnerId = before.partner.id;
-    asAdmin();
-    const detail = await request<AffiliateDashboard>(`/affiliate/admin/partners/${partnerId}`);
-    expect(detail.referrals).toHaveLength(before.referrals.length);
-
-    const patch = (commissionRate: number) =>
-      request<AffiliateAdminPartner>(`/affiliate/admin/partners/${partnerId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ commissionRate }),
-      });
-    expect((await patch(0.15)).commissionRate).toBe(0.15);
-    expect(await statusOf(patch(0.9))).toBe(400);
-
-    const inactive = await post<AffiliateAdminPartner>(
-      `/affiliate/admin/partners/${partnerId}/deactivate`
+    expect((await post<{ status: string }>('/affiliate/prototype/toggle-active')).status).toBe(
+      'inactive'
     );
-    expect(inactive.status).toBe('inactive');
     const click = await post<{ attributed: boolean }>('/affiliate/clicks', {
       slug: PARTNER_SLUG,
       targetPath: '/',
     });
     expect(click.attributed).toBe(false);
-    const whileInactive = await dashboard();
-    expect(whileInactive.partner.status).toBe('inactive');
-    expect(whileInactive.stats.visits).toBe(before.stats.visits);
+    const inactive = await dashboard();
+    expect(inactive.partner.status).toBe('inactive');
+    expect(inactive.stats.visits).toBe(before.stats.visits);
+    expect(inactive.referrals).toHaveLength(before.referrals.length);
 
-    asAdmin();
-    const active = await post<AffiliateAdminPartner>(
-      `/affiliate/admin/partners/${partnerId}/reactivate`
-    );
-    expect(active).toMatchObject({ status: 'active', deactivatedAt: null });
-  });
-
-  it('lets the admin change program settings', async () => {
-    const original = await request<AffiliateProgramSettings>('/affiliate/settings');
-    const patch = (settings: unknown) =>
-      request<AffiliateProgramSettings>('/affiliate/admin/settings', {
-        method: 'PATCH',
-        body: JSON.stringify(settings),
-      });
-
-    asPartner();
-    expect(await statusOf(patch(original))).toBe(403);
-
-    asAdmin();
-    const saved = await patch({ ...original, payoutThresholdChf: 80, payoutCadenceMonths: 6 });
-    expect(saved).toMatchObject({ payoutThresholdChf: 80, payoutCadenceMonths: 6 });
-    expect((await dashboard()).payoutThresholdChf).toBe(80);
-
-    asAdmin();
-    expect(await statusOf(patch({ ...original, payoutCadenceMonths: 5 }))).toBe(400);
-    expect(await statusOf(patch({ ...original, cookieDays: 0 }))).toBe(400);
-    await patch(original);
-  });
-
-  it('keeps admin endpoints admin-only', async () => {
-    asPartner();
-    expect(await statusOf(request('/affiliate/admin/partners'))).toBe(403);
-    expect(await statusOf(request('/affiliate/admin/payouts'))).toBe(403);
+    await post('/affiliate/prototype/toggle-active');
+    expect((await dashboard()).partner).toMatchObject({ status: 'active', deactivatedAt: null });
   });
 });

@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useSession } from '@/api/auth';
 import type { AffiliateDashboard } from '@/api/affiliate';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import {
@@ -13,18 +12,18 @@ import {
   CurrencyDollar,
   CursorClick,
 } from '@/components/ui';
-import { AFFILIATE_ACCOUNT_HREF, AFFILIATE_ADMIN_HREF } from '@/lib/account-routes';
+import { AFFILIATE_ACCOUNT_HREF } from '@/lib/account-routes';
 import { AffiliatePartnerStatsRow } from '../../AffiliatePartnerStatsRow';
 import { AffiliateReferralsTable } from '../../AffiliateReferralsTable';
 import { AccountSection } from '../../account-ui';
 import { AffiliatePayoutInfo } from './AffiliatePayoutInfo';
+import { AffiliatePrototypeControls } from './AffiliatePrototypeControls';
 
 const LATEST_REFERRALS = 5;
 
 export function AffiliateOverviewPanel({ dashboard }: { dashboard: AffiliateDashboard }) {
   const t = useTranslations('account.affiliate.overview');
   const tAffiliate = useTranslations('account.affiliate');
-  const session = useSession();
   const { stats, referrals, partner } = dashboard;
   const converted =
     stats.referralCounts.pending + stats.referralCounts.unpaid + stats.referralCounts.paid;
@@ -128,12 +127,9 @@ export function AffiliateOverviewPanel({ dashboard }: { dashboard: AffiliateDash
             {tAffiliate('dashboard.referralsEmpty')}
           </p>
         )}
-        {session.data?.role === 'admin' ? (
-          <NavigationLink href={AFFILIATE_ADMIN_HREF} chevron="right" size="sm">
-            {tAffiliate('adminLink')}
-          </NavigationLink>
-        ) : null}
       </AccountSection>
+
+      <AffiliatePrototypeControls dashboard={dashboard} />
     </div>
   );
 }
