@@ -177,7 +177,7 @@ Order attributed to partner
 | A-81 | Instructions to send invoice to Datenschutzpartner | Static + dynamic amount from payout |
 | A-82 | No “instant withdraw” or implied auto-transfer     | UX matches manual process           |
 
-**Prototype:** Payouts tab with date, period, referral count and amount, plus the invoice instructions. Payouts have no status field yet (A-80).
+**Prototype:** Payouts tab with date, period, referral count, amount and status (Invoice requested → Transferred), plus the invoice instructions.
 
 ---
 
@@ -215,7 +215,7 @@ Order attributed to partner
 | M-23 | CSV export (optional)                                                                           | Accounting export on commit                                           |
 | M-24 | No in-ui bank transfer                                                                          | Copy states external payment                                          |
 
-**Prototype:** history (date, affiliate, period, referrals, amount, createdBy, invoice recipient) and a create dialog: affiliate, period (default previous quarter), preview with the CHF 50 hint, commit. No payout status or CSV export yet (M-20, M-23).
+**Prototype:** history (date, affiliate, period, referrals, amount, createdBy, invoice recipient) and a create dialog: affiliate, period (default previous quarter), preview with the CHF 50 hint, commit. Each payout shows its ID, referral references and status; the admin marks it transferred after the bank transfer. No CSV export yet (M-23).
 
 ### 5.4 Program settings (admin)
 
@@ -342,6 +342,7 @@ _(Visits under Referrals or separate tab.)_
 - **Link format:** one slug per partner, marketing links as `/ref/{slug}?to=/path&campaign=…`.
 - **Vouchers (Q5, partly):** partners create codes themselves up to an admin-set maximum discount %; commission is 10% of the amount after the discount.
 - **Emails:** sent by the backend only; the prototype does not simulate them.
+- **Payout status:** Invoice requested (on creation) → Transferred (admin marks it after the manual transfer).
 
 **Still open:**
 
@@ -353,7 +354,6 @@ _(Visits under Referrals or separate tab.)_
 6. Production domain (`.ch` vs `.com`).
 7. Re-application after reject.
 8. Refund/chargeback commission policy.
-9. **Payout status** after the invoice request (e.g. invoice received / transferred) — needed for A-80 / M-20?
 
 ---
 

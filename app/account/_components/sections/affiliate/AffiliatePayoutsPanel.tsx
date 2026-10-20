@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import type { AffiliateDashboard, AffiliatePayout } from '@/api/affiliate';
 import { Table } from '@/components/ui';
+import { AffiliatePayoutStatusPill } from '../../AffiliatePayoutStatusPill';
 import { AccountSection, AccountTable, useDateFormatter } from '../../account-ui';
 import { AffiliatePayoutInfo } from './AffiliatePayoutInfo';
 
@@ -41,6 +42,7 @@ export function AffiliatePayoutsPanel({ dashboard }: { dashboard: AffiliateDashb
             <Table.Column className="w-28 text-right whitespace-nowrap">
               {t('colReferrals')}
             </Table.Column>
+            <Table.Column className="whitespace-nowrap">{t('colStatus')}</Table.Column>
             <Table.Column className="w-36 text-right whitespace-nowrap">
               {t('colAmount')}
             </Table.Column>
@@ -53,6 +55,9 @@ export function AffiliatePayoutsPanel({ dashboard }: { dashboard: AffiliateDashb
                 </Table.Cell>
                 <Table.Cell className="text-sm">{periodLabel(row)}</Table.Cell>
                 <Table.Cell className="text-right tabular-nums">{row.referralCount}</Table.Cell>
+                <Table.Cell>
+                  <AffiliatePayoutStatusPill status={row.status} />
+                </Table.Cell>
                 <Table.Cell className="text-right whitespace-nowrap tabular-nums">
                   CHF {row.amountChf.toFixed(2)}
                 </Table.Cell>

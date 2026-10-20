@@ -347,6 +347,7 @@ page and optional campaign: `/ref/:slug?to=/scan&campaign=newsletter`.
 | `GET /affiliate/admin/payouts`                        | Admin: payout history                                                                                      |
 | `POST /affiliate/admin/payouts/preview`               | Admin: unpaid referrals in a period + total, threshold hint                                                |
 | `POST /affiliate/admin/payouts`                       | Admin: settle those referrals as `paid` and send the invoice-request email                                 |
+| `POST /affiliate/admin/payouts/:id/mark-transferred`  | Admin: payout `invoice_requested` → `transferred` after the manual bank transfer (409 if already)          |
 | `POST /affiliate/prototype/simulate-approval-email`   | Prototype only: approve own pending application                                                            |
 | `POST /affiliate/prototype/quit`                      | Prototype only: remove partner data and mark application rejected                                          |
 

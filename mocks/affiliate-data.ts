@@ -1,6 +1,10 @@
 import { affiliateReferralUrl } from '@/lib/affiliate-attribution';
 import { roundChf, type AffiliateReferralStatus } from '@/lib/affiliate-ledger';
-import type { AffiliateApplication, AffiliateProgramSettings } from '@/api/affiliate';
+import type {
+  AffiliateApplication,
+  AffiliatePayoutStatus,
+  AffiliateProgramSettings,
+} from '@/api/affiliate';
 
 export const AFFILIATE_PROGRAM_SETTINGS: AffiliateProgramSettings = {
   cookieDays: 30,
@@ -62,8 +66,11 @@ export type AffiliatePayoutRecord = {
   periodStart: string | null;
   periodEnd: string | null;
   referralIds: string[];
+  status: AffiliatePayoutStatus;
   createdBy: string;
   createdAt: string;
+  transferredBy: string | null;
+  transferredAt: string | null;
   invoiceEmailSentTo: string;
 };
 
@@ -212,8 +219,11 @@ export function createAffiliateDemoHistory(
       periodStart: null,
       periodEnd: daysAgo(now, 101).slice(0, 10),
       referralIds: paid.map((row) => row.id),
+      status: 'transferred',
       createdBy: AFFILIATE_PAYOUT_CREATED_BY_SEED,
       createdAt: daysAgo(now, 100),
+      transferredBy: AFFILIATE_PAYOUT_CREATED_BY_SEED,
+      transferredAt: daysAgo(now, 86),
       invoiceEmailSentTo: partner.notificationEmail,
     };
     payouts.push(payout);

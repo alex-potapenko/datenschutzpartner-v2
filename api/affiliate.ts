@@ -110,14 +110,19 @@ export const affiliateReferralSchema = z.object({
   createdAt: z.string(),
 });
 
+/** `invoice_requested` on creation; the admin marks `transferred` after the manual bank transfer. */
+export const AFFILIATE_PAYOUT_STATUSES = ['invoice_requested', 'transferred'] as const;
+export const affiliatePayoutStatusSchema = z.enum(AFFILIATE_PAYOUT_STATUSES);
+
 export const affiliatePayoutSchema = z.object({
   id: z.string(),
   amountChf: z.number(),
   periodStart: z.string().nullable(),
   periodEnd: z.string().nullable(),
   referralCount: z.number().int(),
-  /** Invoice-request email went out; the bank transfer itself happens outside the product. */
+  status: affiliatePayoutStatusSchema,
   createdAt: z.string(),
+  transferredAt: z.string().nullable(),
 });
 
 export const affiliateDashboardStatsSchema = z.object({
@@ -198,7 +203,9 @@ export const affiliateAdminPayoutSchema = affiliatePayoutSchema.extend({
   partnerEmail: z.string(),
   partnerSlug: z.string(),
   referralIds: z.array(z.string()),
+  referralReferences: z.array(z.string()),
   createdBy: z.string(),
+  transferredBy: z.string().nullable(),
   method: z.literal('manual'),
   invoiceEmailSentTo: z.string(),
 });
@@ -233,6 +240,7 @@ export type AffiliateReferralLink = z.infer<typeof affiliateReferralLinkSchema>;
 export type AffiliateReferralLinkCreate = z.infer<typeof affiliateReferralLinkCreateSchema>;
 export type AffiliateReferral = z.infer<typeof affiliateReferralSchema>;
 export type AffiliatePayout = z.infer<typeof affiliatePayoutSchema>;
+export type AffiliatePayoutStatus = z.infer<typeof affiliatePayoutStatusSchema>;
 export type AffiliateDashboard = z.infer<typeof affiliateDashboardSchema>;
 export type AffiliateVisit = z.infer<typeof affiliateVisitSchema>;
 export type AffiliateCampaignStats = z.infer<typeof affiliateCampaignStatsSchema>;
@@ -493,6 +501,20 @@ export function useCreateAffiliatePayout() {
       request<AffiliateAdminPayout>('/affiliate/admin/payouts', {
         method: 'POST',
         body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
+  });
+}
+
+/** Records that the invoice was received and the money transferred outside the product. */
+export function useMarkAffiliatePayoutTransferred() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<AffiliateAdminPayout>(`/affiliate/admin/payouts/${id}/mark-transferred`, {
+        method: 'POST',
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });

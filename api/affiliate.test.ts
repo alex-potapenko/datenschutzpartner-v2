@@ -176,6 +176,8 @@ describe('affiliate contract', () => {
     expect(payout.amountChf).toBeCloseTo(preview.amountChf);
     expect(payout.invoiceEmailSentTo).toBe(PARTNER_EMAIL);
     expect(payout.createdBy).toBe('admin@datenschutzpartner.ch');
+    expect(payout.status).toBe('invoice_requested');
+    expect(payout.referralReferences).toHaveLength(payout.referralIds.length);
     expect(await statusOf(post('/affiliate/admin/payouts', request_))).toBe(409);
 
     const after = await dashboard();
@@ -184,6 +186,16 @@ describe('affiliate contract', () => {
       before.stats.paidEarningsChf + preview.amountChf
     );
     expect(after.payouts[0]?.id).toBe(payout.id);
+
+    asAdmin();
+    const transferred = await post<AffiliateAdminPayout>(
+      `/affiliate/admin/payouts/${payout.id}/mark-transferred`
+    );
+    expect(transferred.status).toBe('transferred');
+    expect(transferred.transferredBy).toBe('admin@datenschutzpartner.ch');
+    expect(await statusOf(post(`/affiliate/admin/payouts/${payout.id}/mark-transferred`))).toBe(
+      409
+    );
   });
 
   it('keeps admin endpoints admin-only', async () => {

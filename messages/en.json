@@ -1987,7 +1987,12 @@
         "periodAll": "All earlier referrals",
         "periodUntil": "Until {end}",
         "periodFrom": "From {start}",
-        "periodRange": "{start} – {end}"
+        "periodRange": "{start} – {end}",
+        "colStatus": "Status",
+        "status": {
+          "invoice_requested": "Invoice requested",
+          "transferred": "Transferred"
+        }
       },
       "settings": {
         "title": "Notifications",
@@ -2090,16 +2095,20 @@
       },
       "payouts": {
         "title": "Payouts",
-        "body": "Creating a payout marks the referrals as paid and emails the affiliate to send an invoice. The money is transferred separately.",
+        "body": "Creating a payout marks the referrals as paid and emails the affiliate to send an invoice. Once you have transferred the money, mark the payout as transferred.",
         "create": "Create payout",
         "empty": "No payouts yet.",
         "colDate": "Created",
         "colPartner": "Affiliate",
-        "colPeriod": "Period",
         "colReferrals": "Referrals",
         "colAmount": "Amount",
-        "colInvoiceEmail": "Invoice request sent to",
-        "createdBy": "by {email}"
+        "createdBy": "by {email}",
+        "colStatus": "Status",
+        "colActions": "Actions",
+        "invoiceTo": "Invoice request to {email}",
+        "referralCount": "{count, plural, one {# referral} other {# referrals}}",
+        "markTransferred": "Mark transferred",
+        "transferred": "Payout marked as transferred."
       },
       "createPayout": {
         "title": "Create payout",

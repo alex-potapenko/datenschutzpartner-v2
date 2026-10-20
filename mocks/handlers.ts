@@ -432,7 +432,7 @@ const affiliateReferrals = createCollection<AffiliateReferralRecord>(
 const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
   'affiliate-payouts',
   affiliateSeed.payouts,
-  4
+  5
 );
 
 function sessionEmail(request: Request): string | null {
@@ -542,7 +542,9 @@ function payoutDto(row: AffiliatePayoutRecord): AffiliatePayout {
     periodStart: row.periodStart,
     periodEnd: row.periodEnd,
     referralCount: row.referralIds.length,
+    status: row.status,
     createdAt: row.createdAt,
+    transferredAt: row.transferredAt,
   };
 }
 
@@ -555,7 +557,11 @@ function adminPayoutDto(row: AffiliatePayoutRecord): AffiliateAdminPayout | null
     partnerEmail: partner.email,
     partnerSlug: partner.slug,
     referralIds: row.referralIds,
+    referralReferences: row.referralIds.map(
+      (id) => affiliateReferrals.all().find((referral) => referral.id === id)?.reference ?? id
+    ),
     createdBy: row.createdBy,
+    transferredBy: row.transferredBy,
     method: 'manual',
     invoiceEmailSentTo: row.invoiceEmailSentTo,
   };
@@ -2706,14 +2712,32 @@ export const handlers = [
       amountChf: roundChf(referrals.reduce((sum, row) => sum + row.commissionChf, 0)),
       ...period,
       referralIds: referrals.map((row) => row.id),
+      status: 'invoice_requested',
       createdBy: sessionEmail(request) ?? 'admin',
       createdAt: new Date().toISOString(),
+      transferredBy: null,
+      transferredAt: null,
       invoiceEmailSentTo: partner.notificationEmail,
     });
     for (const row of referrals) {
       affiliateReferrals.update(row.id, { status: 'paid', payoutId: payout.id });
     }
     return HttpResponse.json(adminPayoutDto(payout), { status: 201 });
+  }),
+
+  http.post('/api/affiliate/admin/payouts/:id/mark-transferred', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const payout = affiliatePayouts.all().find((row) => row.id === params.id);
+    if (!payout) return new HttpResponse(null, { status: 404 });
+    if (payout.status === 'transferred') {
+      return HttpResponse.json({ message: 'already_transferred' }, { status: 409 });
+    }
+    const updated = affiliatePayouts.update(payout.id, {
+      status: 'transferred',
+      transferredBy: sessionEmail(request) ?? 'admin',
+      transferredAt: new Date().toISOString(),
+    });
+    return HttpResponse.json(adminPayoutDto(updated ?? payout));
   }),
 
   http.post('/api/dev/reseed-auth-mock', () => {

@@ -1987,7 +1987,12 @@
         "periodAll": "Alle früheren Empfehlungen",
         "periodUntil": "Bis {end}",
         "periodFrom": "Ab {start}",
-        "periodRange": "{start} – {end}"
+        "periodRange": "{start} – {end}",
+        "colStatus": "Status",
+        "status": {
+          "invoice_requested": "Rechnung angefordert",
+          "transferred": "Überwiesen"
+        }
       },
       "settings": {
         "title": "Benachrichtigungen",
@@ -2090,16 +2095,20 @@
       },
       "payouts": {
         "title": "Auszahlungen",
-        "body": "Beim Erstellen einer Auszahlung werden die Empfehlungen als ausgezahlt markiert und der Affiliate per E-Mail um eine Rechnung gebeten. Die Überweisung erfolgt separat.",
+        "body": "Beim Erstellen einer Auszahlung werden die Empfehlungen als ausgezahlt markiert und der Affiliate per E-Mail um eine Rechnung gebeten. Nach der Überweisung markierst du die Auszahlung als überwiesen.",
         "create": "Auszahlung erstellen",
         "empty": "Noch keine Auszahlungen.",
         "colDate": "Erstellt",
         "colPartner": "Affiliate",
-        "colPeriod": "Zeitraum",
         "colReferrals": "Empfehlungen",
         "colAmount": "Betrag",
-        "colInvoiceEmail": "Rechnungsanfrage an",
-        "createdBy": "von {email}"
+        "createdBy": "von {email}",
+        "colStatus": "Status",
+        "colActions": "Aktionen",
+        "invoiceTo": "Rechnungsanfrage an {email}",
+        "referralCount": "{count, plural, one {# Empfehlung} other {# Empfehlungen}}",
+        "markTransferred": "Als überwiesen markieren",
+        "transferred": "Auszahlung als überwiesen markiert."
       },
       "createPayout": {
         "title": "Auszahlung erstellen",
