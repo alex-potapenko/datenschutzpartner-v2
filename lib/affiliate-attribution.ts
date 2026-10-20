@@ -35,7 +35,7 @@ export function affiliateReferralUrl(
   if (options.campaign) {
     params.set(AFFILIATE_CAMPAIGN_PARAM, options.campaign);
   }
-  const query = params.toString();
+  const query = params.toString().replaceAll('%2F', '/');
   return `https://${AFFILIATE_REF_PUBLIC_HOST}${affiliateReferralPath(pathSegment)}${query ? `?${query}` : ''}`;
 }
 

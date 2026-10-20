@@ -1559,7 +1559,12 @@
       "preview": "Vorschau",
       "subscription": "Abonnement",
       "requests": "Anfragen",
-      "faq": "FAQ"
+      "faq": "FAQ",
+      "overview": "Übersicht",
+      "links": "Links",
+      "referrals": "Empfehlungen",
+      "payouts": "Auszahlungen",
+      "settings": "Einstellungen"
     },
     "areaNavAriaLabel": "Kontobereiche",
     "nav": {
@@ -1885,7 +1890,6 @@
         "successBody": "Wir prüfen Deine Anmeldung in Kürze. Nach Freigabe erhältst Du per E-Mail Deinen persönlichen Affiliate-Link."
       },
       "dashboard": {
-        "linkTitle": "Deine Affiliate-Links",
         "linkFieldLabel": "Referral-Link",
         "copyLink": "Link kopieren",
         "linkCopied": "Link kopiert",
@@ -1894,7 +1898,6 @@
         "linkCreated": "Erstellt",
         "linkDelete": "Link entfernen",
         "linkDeleteFailed": "Link konnte nicht entfernt werden.",
-        "linksAdd": "Link hinzufügen",
         "statsAria": "Kennzahlen",
         "stats": {
           "clicks": "Besuche",
@@ -1920,6 +1923,69 @@
           "paid": "Bezahlt",
           "rejected": "Abgelehnt"
         }
+      },
+      "overview": {
+        "earningsTitle": "Einnahmen",
+        "activityTitle": "Aktivität",
+        "unpaid": "Nicht ausgezahlt",
+        "unpaidNote": "Wird mit der nächsten Auszahlung abgerechnet",
+        "pending": "Ausstehend",
+        "pendingNote": "Wartet auf die Zahlung des Kunden",
+        "paid": "Ausgezahlt",
+        "paidNote": "Bisher insgesamt",
+        "visits": "Besuche",
+        "referrals": "Empfehlungen",
+        "conversionRate": "Conversion-Rate",
+        "commissionNote": "{rate} % Provision auf bezahlte Käufe",
+        "latestTitle": "Neueste Empfehlungen",
+        "allReferrals": "Alle Empfehlungen"
+      },
+      "payoutInfo": {
+        "title": "So funktioniert die Auszahlung",
+        "body": "Nicht ausgezahlte Einnahmen rechnen wir alle {months} Monate ab. Du erhältst dann eine E-Mail mit dem Betrag – schick uns eine Rechnung, danach überweisen wir das Geld.",
+        "threshold": "Mindestbetrag für eine Auszahlung: CHF {threshold}.",
+        "email": "E-Mails gehen an {email}."
+      },
+      "links": {
+        "partnerTitle": "Partner-Link",
+        "partnerBody": "Teile diesen Link überall oder erstelle unten Marketing-Links zu bestimmten Seiten.",
+        "slugLabel": "Affiliate-ID",
+        "slugHint": "Wenn du deine ID änderst, funktionieren bereits geteilte Links nicht mehr.",
+        "slugSaved": "Affiliate-ID gespeichert",
+        "slugTaken": "Diese ID ist bereits vergeben.",
+        "generatorTitle": "Marketing-Link-Generator",
+        "generatorBody": "Gib eine beliebige Seite auf datenschutzpartner.com ein und erhalte einen Tracking-Link, der direkt dorthin führt.",
+        "targetLabel": "Seiten-URL",
+        "targetPlaceholder": "datenschutzpartner.com/scan",
+        "campaignLabel": "Kampagne (optional)",
+        "campaignPlaceholder": "newsletter",
+        "create": "Link erstellen",
+        "created": "Link erstellt",
+        "linkExists": "Für diese Seite und Kampagne gibt es bereits einen Link.",
+        "createFailed": "Link konnte nicht erstellt werden.",
+        "listTitle": "Deine Marketing-Links",
+        "listEmpty": "Noch keine Marketing-Links."
+      },
+      "payouts": {
+        "historyTitle": "Auszahlungen",
+        "empty": "Noch keine Auszahlungen.",
+        "colDate": "Datum",
+        "colPeriod": "Zeitraum",
+        "colReferrals": "Empfehlungen",
+        "colAmount": "Betrag",
+        "periodAll": "Alle früheren Empfehlungen",
+        "periodUntil": "Bis {end}",
+        "periodFrom": "Ab {start}",
+        "periodRange": "{start} – {end}"
+      },
+      "settings": {
+        "title": "Benachrichtigungen",
+        "emailLabel": "E-Mail-Adresse für Zahlungsinformationen",
+        "emailHint": "An diese Adresse senden wir Provisionsmeldungen und Rechnungsanfragen.",
+        "notifyLabel": "Benachrichtigungen für erfolgreiche Empfehlungen aktivieren",
+        "save": "Speichern",
+        "saved": "Einstellungen gespeichert",
+        "saveFailed": "Einstellungen konnten nicht gespeichert werden."
       }
     },
     "affiliateAdmin": {

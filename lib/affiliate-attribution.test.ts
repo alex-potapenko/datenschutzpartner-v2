@@ -12,7 +12,7 @@ describe('affiliateReferralUrl', () => {
 
   it('appends target page and campaign', () => {
     expect(affiliateReferralUrl('karin', { targetPath: '/scan', campaign: 'newsletter' })).toBe(
-      'https://datenschutzpartner.com/ref/karin?to=%2Fscan&campaign=newsletter'
+      'https://datenschutzpartner.com/ref/karin?to=/scan&campaign=newsletter'
     );
   });
 });

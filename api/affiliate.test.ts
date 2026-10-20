@@ -63,7 +63,7 @@ describe('affiliate contract', () => {
     });
     expect(link.targetPath).toBe('/eu-rep/questionnaire');
     expect(link.referralUrl).toBe(
-      'https://datenschutzpartner.com/ref/lichtweb?to=%2Feu-rep%2Fquestionnaire&campaign=linkedin'
+      'https://datenschutzpartner.com/ref/lichtweb?to=/eu-rep/questionnaire&campaign=linkedin'
     );
 
     expect(

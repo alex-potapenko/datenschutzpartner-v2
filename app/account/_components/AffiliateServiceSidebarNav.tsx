@@ -2,21 +2,23 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useAffiliateDashboard } from '@/api/affiliate';
 import { cn } from '@/components/ui';
 import {
-  AFFILIATE_PARTNER_TAB_IDS,
-  parseAffiliatePartnerTab,
+  AFFILIATE_PARTNER_DEFAULT_TAB as DEFAULT_TAB,
+  affiliateTabIds,
+  parseAffiliateTab,
   type ServiceTabId,
 } from './sections/service-tabs';
-
-const DEFAULT_TAB: ServiceTabId = 'details';
 
 export function AffiliateServiceSidebarNav() {
   const t = useTranslations('account.serviceTabs');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const tab = parseAffiliatePartnerTab(searchParams.get('tab')) ?? DEFAULT_TAB;
+  const dashboard = useAffiliateDashboard();
+  const isPartner = Boolean(dashboard.data);
+  const tab = parseAffiliateTab(searchParams.get('tab'), isPartner);
   const accent = 'var(--accent)';
 
   function selectTab(next: ServiceTabId) {
@@ -33,7 +35,7 @@ export function AffiliateServiceSidebarNav() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-6">
       <div className="flex flex-col">
-        {AFFILIATE_PARTNER_TAB_IDS.map((id) => {
+        {affiliateTabIds(isPartner).map((id) => {
           const isActive = tab === id;
 
           return (

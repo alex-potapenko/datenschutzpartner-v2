@@ -1559,7 +1559,12 @@
       "preview": "Preview",
       "subscription": "Subscription",
       "requests": "Requests",
-      "faq": "FAQ"
+      "faq": "FAQ",
+      "overview": "Overview",
+      "links": "Links",
+      "referrals": "Referrals",
+      "payouts": "Payouts",
+      "settings": "Settings"
     },
     "areaNavAriaLabel": "Account areas",
     "nav": {
@@ -1885,7 +1890,6 @@
         "successBody": "We will review your application soon. After approval you will receive your personal affiliate link by email."
       },
       "dashboard": {
-        "linkTitle": "Your affiliate links",
         "linkFieldLabel": "Referral link",
         "copyLink": "Copy link",
         "linkCopied": "Link copied",
@@ -1894,7 +1898,6 @@
         "linkCreated": "Created",
         "linkDelete": "Remove link",
         "linkDeleteFailed": "Could not remove this link.",
-        "linksAdd": "Add link",
         "statsAria": "Metrics",
         "stats": {
           "clicks": "Visits",
@@ -1920,6 +1923,69 @@
           "paid": "Paid",
           "rejected": "Rejected"
         }
+      },
+      "overview": {
+        "earningsTitle": "Earnings",
+        "activityTitle": "Activity",
+        "unpaid": "Unpaid earnings",
+        "unpaidNote": "Settled in the next payout",
+        "pending": "Pending",
+        "pendingNote": "Waiting for the customer's payment",
+        "paid": "Paid out",
+        "paidNote": "Total to date",
+        "visits": "Visits",
+        "referrals": "Referrals",
+        "conversionRate": "Conversion rate",
+        "commissionNote": "{rate}% commission on paid purchases",
+        "latestTitle": "Latest referrals",
+        "allReferrals": "All referrals"
+      },
+      "payoutInfo": {
+        "title": "How payouts work",
+        "body": "We settle unpaid earnings every {months} months. You then receive an email with the amount — reply with an invoice and we transfer the money.",
+        "threshold": "Minimum payout: CHF {threshold}.",
+        "email": "Emails go to {email}."
+      },
+      "links": {
+        "partnerTitle": "Partner link",
+        "partnerBody": "Share this link anywhere, or create marketing links to specific pages below.",
+        "slugLabel": "Affiliate ID",
+        "slugHint": "Changing your ID breaks links you've already shared.",
+        "slugSaved": "Affiliate ID saved",
+        "slugTaken": "This ID is already taken.",
+        "generatorTitle": "Marketing link generator",
+        "generatorBody": "Enter any page on datenschutzpartner.com to get a tracking link that lands there.",
+        "targetLabel": "Page URL",
+        "targetPlaceholder": "datenschutzpartner.com/scan",
+        "campaignLabel": "Campaign (optional)",
+        "campaignPlaceholder": "newsletter",
+        "create": "Create link",
+        "created": "Link created",
+        "linkExists": "You already have a link for this page and campaign.",
+        "createFailed": "Could not create the link.",
+        "listTitle": "Your marketing links",
+        "listEmpty": "No marketing links yet."
+      },
+      "payouts": {
+        "historyTitle": "Payout history",
+        "empty": "No payouts yet.",
+        "colDate": "Date",
+        "colPeriod": "Period",
+        "colReferrals": "Referrals",
+        "colAmount": "Amount",
+        "periodAll": "All earlier referrals",
+        "periodUntil": "Until {end}",
+        "periodFrom": "From {start}",
+        "periodRange": "{start} – {end}"
+      },
+      "settings": {
+        "title": "Notifications",
+        "emailLabel": "Email for payout information",
+        "emailHint": "We send commission notices and invoice requests to this address.",
+        "notifyLabel": "Email me when a referral is recorded",
+        "save": "Save",
+        "saved": "Settings saved",
+        "saveFailed": "Could not save settings."
       }
     },
     "affiliateAdmin": {

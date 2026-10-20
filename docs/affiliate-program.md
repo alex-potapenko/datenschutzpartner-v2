@@ -297,12 +297,12 @@ _(Visits under Referrals or separate tab.)_
 - Referrals
 - Payouts (including create flow)
 
-**Prototype today:** partner Details + About; admin Applications + Conversions — migrate toward the IA above without changing the design system.
+**Prototype today:** partner tabs Overview, Links, Referrals, Payouts, Settings and How it works (`?section=affiliate&tab=…`); admin still shows Applications + Referrals and moves to the IA above in the admin step.
 
 **Code entry points:**
 
 - Public: `app/affiliate/`, `app/ref/[slug]/`
-- Account: `app/account/` section `affiliate` (`AffiliateSection`, `AffiliatePartnerDetailsPanel`)
+- Account: `app/account/` section `affiliate` (`AffiliateSection`, one panel per tab in `app/account/_components/sections/affiliate/`)
 - Admin: `app/account/affiliate/admin/` (`AffiliateAdminApp`)
 
 ---
@@ -347,17 +347,18 @@ _(Visits under Referrals or separate tab.)_
 
 ## 11. Prototype traceability
 
-| PRD area                            | Prototype today                 |
-| ----------------------------------- | ------------------------------- |
-| Application + admin approve         | Yes                             |
-| `/ref/` + cookie + clicks           | Yes (redirect to home only)     |
-| Multi referral links + edit segment | Partial                         |
-| Dashboard stats                     | Partial                         |
-| Conversions table                   | No status / product description |
-| Payouts in API                      | No UI / no admin flow           |
-| Marketing URL generator             | No                              |
-| Vouchers, visits, settings          | No                              |
-| Admin affiliates + payout           | No                              |
+| PRD area                            | Prototype today                                         |
+| ----------------------------------- | ------------------------------------------------------- |
+| Application + admin approve         | Yes                                                     |
+| `/ref/` + cookie + visits           | Yes (`?to=` target page and `campaign`, visit recorded) |
+| Editable affiliate ID (slug)        | Yes (Links tab)                                         |
+| Marketing URL generator + link list | Yes (Links tab)                                         |
+| Dashboard stats                     | Yes (Overview: earnings by status, visits, conversion)  |
+| Referrals with status               | Yes (Overview latest 5, Referrals tab)                  |
+| Payout history (partner)            | Yes (Payouts tab)                                       |
+| Partner settings                    | Yes (notification email, referral notifications)        |
+| Admin affiliates + payout flow      | API + MSW only; UI pending                              |
+| Vouchers, visits log                | No (Phase 2)                                            |
 
 ---
 

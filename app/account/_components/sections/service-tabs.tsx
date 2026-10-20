@@ -18,6 +18,11 @@ export const SERVICE_TAB_IDS = [
   'legalEntity',
   'preview',
   'faq',
+  'overview',
+  'links',
+  'referrals',
+  'payouts',
+  'settings',
 ] as const;
 
 export type ServiceTabId = (typeof SERVICE_TAB_IDS)[number];
@@ -43,17 +48,31 @@ export function parseEuRepTab(value: string | null | undefined): ServiceTabId | 
 
 /** Tabs for an active affiliate partner in the account area. */
 export const AFFILIATE_PARTNER_TAB_IDS = [
-  'details',
+  'overview',
+  'links',
+  'referrals',
+  'payouts',
+  'settings',
   'about',
 ] as const satisfies readonly ServiceTabId[];
 
-const AFFILIATE_PARTNER_TAB_SET = new Set<string>(AFFILIATE_PARTNER_TAB_IDS);
+/** Before approval the section only shows the program landing and how it works. */
+export const AFFILIATE_APPLICANT_TAB_IDS = [
+  'overview',
+  'about',
+] as const satisfies readonly ServiceTabId[];
 
-export function parseAffiliatePartnerTab(
-  value: string | null | undefined
-): ServiceTabId | undefined {
-  if (!value || !AFFILIATE_PARTNER_TAB_SET.has(value)) return undefined;
-  return value as ServiceTabId;
+export const AFFILIATE_PARTNER_DEFAULT_TAB: ServiceTabId = 'overview';
+
+export function affiliateTabIds(isPartner: boolean): readonly ServiceTabId[] {
+  return isPartner ? AFFILIATE_PARTNER_TAB_IDS : AFFILIATE_APPLICANT_TAB_IDS;
+}
+
+export function parseAffiliateTab(
+  value: string | null | undefined,
+  isPartner: boolean
+): ServiceTabId {
+  return affiliateTabIds(isPartner).find((id) => id === value) ?? AFFILIATE_PARTNER_DEFAULT_TAB;
 }
 
 export function useServiceTabs(
