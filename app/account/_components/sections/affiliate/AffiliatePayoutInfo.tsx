@@ -2,25 +2,79 @@
 
 import { useTranslations } from 'next-intl';
 import { useAffiliateProgramSettings, type AffiliateDashboard } from '@/api/affiliate';
-import { Alert } from '@/components/ui';
+import { NavigationLink } from '@/components/shared/NavigationLink';
+import {
+  Button,
+  ModalBackdrop,
+  ModalBody,
+  ModalContainer,
+  ModalDialog,
+  ModalFooter,
+  ModalHeader,
+  ModalHeading,
+  ModalRoot,
+  useOverlayState,
+} from '@/components/ui';
 
-/** Payouts are an invoice request, not a transfer — partners must know to reply with an invoice. */
-export function AffiliatePayoutInfo({ dashboard }: { dashboard: AffiliateDashboard }) {
+export function AffiliatePayoutInfoBody({ dashboard }: { dashboard: AffiliateDashboard }) {
   const t = useTranslations('account.affiliate.payoutInfo');
   const settings = useAffiliateProgramSettings();
   const months = settings.data?.payoutCadenceMonths ?? 3;
 
+  const threshold = dashboard.payoutThresholdChf.toFixed(0);
+  const email = dashboard.partner.notificationEmail;
+
   return (
-    <Alert status="accent">
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>{t('title')}</Alert.Title>
-        <Alert.Description className="text-foreground text-sm leading-relaxed">
-          {t('body', { months })}{' '}
-          {t('threshold', { threshold: dashboard.payoutThresholdChf.toFixed(0) })}{' '}
-          {t('email', { email: dashboard.partner.notificationEmail })}
-        </Alert.Description>
-      </Alert.Content>
-    </Alert>
+    <ol className="text-foreground list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+      <li>{t('steps.settlement', { months })}</li>
+      <li>{t('steps.invoice')}</li>
+      <li>{t('steps.threshold', { threshold })}</li>
+      <li>{t('steps.email', { email })}</li>
+    </ol>
+  );
+}
+
+/** Header action — opens payout process details (replaces inline alert). */
+export function AffiliatePayoutHowItWorksAction({ dashboard }: { dashboard: AffiliateDashboard }) {
+  const t = useTranslations('account.affiliate.payoutInfo');
+  const tCommon = useTranslations('common');
+  const state = useOverlayState();
+
+  return (
+    <>
+      <NavigationLink
+        size="sm"
+        chevron="none"
+        onPress={() => {
+          state.open();
+        }}
+      >
+        {t('actionLabel')}
+      </NavigationLink>
+      <ModalRoot state={state}>
+        <ModalBackdrop isDismissable>
+          <ModalContainer size="sm">
+            <ModalDialog>
+              <ModalHeader>
+                <ModalHeading>{t('title')}</ModalHeading>
+              </ModalHeader>
+              <ModalBody>
+                <AffiliatePayoutInfoBody dashboard={dashboard} />
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  variant="outline"
+                  onPress={() => {
+                    state.close();
+                  }}
+                >
+                  {tCommon('close')}
+                </Button>
+              </ModalFooter>
+            </ModalDialog>
+          </ModalContainer>
+        </ModalBackdrop>
+      </ModalRoot>
+    </>
   );
 }

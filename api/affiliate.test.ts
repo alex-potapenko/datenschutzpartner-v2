@@ -1,15 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
+import { calculateEuRepQuote } from './checkout';
 import { ApiError, request } from './client';
-import type {
-  AffiliateApplication,
-  AffiliateCampaignStats,
-  AffiliateDashboard,
-  AffiliateReferralLink,
-} from './affiliate';
+import type { AffiliateApplication, AffiliateDashboard, AffiliateReferralLink } from './affiliate';
 import { setAuthToken } from '@/lib/auth-session';
 
 const PARTNER_EMAIL = 'lucas.baumgartner@gmail.com';
-const PARTNER_SLUG = 'lucas.baumgartner';
+const PARTNER_SLUG = '356';
 const PARTNER_TOKEN = `mock-email-${encodeURIComponent(PARTNER_EMAIL)}`;
 
 function asPartner() {
@@ -56,29 +52,29 @@ describe('affiliate contract', () => {
   it('serves a partner dashboard without customer identity', async () => {
     const data = await dashboard();
     expect(data.partner.slug).toBe(PARTNER_SLUG);
-    expect(data.partner.referralUrl).toBe(`https://datenschutzpartner.com/ref/${PARTNER_SLUG}`);
+    expect(data.partner.referralUrl).toBe(`https://www.datenschutzpartner.ch/ref/${PARTNER_SLUG}/`);
     expect(data.referrals.length).toBeGreaterThan(0);
     expect(Object.keys(data.referrals[0] ?? {})).not.toContain('customerEmail');
-    expect(data.stats.paidEarningsChf).toBeGreaterThan(0);
+    expect(data.stats.paidOutToDateChf).toBeGreaterThan(0);
     expect(data.payouts).toHaveLength(1);
+    expect(data.vouchers).toHaveLength(2);
+    expect(data.vouchers.map((row) => row.discountPercent).sort()).toEqual([10, 20]);
   });
 
   it('creates marketing links for same-site pages only', async () => {
     asPartner();
     const link = await post<AffiliateReferralLink>('/affiliate/partner/me/referral-links', {
       targetPath: 'datenschutzpartner.ch/eu-rep/questionnaire',
-      campaign: 'linkedin',
     });
     expect(link.targetPath).toBe('/eu-rep/questionnaire');
     expect(link.referralUrl).toBe(
-      `https://datenschutzpartner.com/ref/${PARTNER_SLUG}?to=/eu-rep/questionnaire&campaign=linkedin`
+      `https://www.datenschutzpartner.ch/fragebogen-eu-datenschutz-vertretung/ref/${PARTNER_SLUG}/`
     );
 
     expect(
       await statusOf(
         post('/affiliate/partner/me/referral-links', {
           targetPath: 'https://example.com/',
-          campaign: '',
         })
       )
     ).toBe(400);
@@ -86,7 +82,6 @@ describe('affiliate contract', () => {
       await statusOf(
         post('/affiliate/partner/me/referral-links', {
           targetPath: '/eu-rep/questionnaire',
-          campaign: 'linkedin',
         })
       )
     ).toBe(409);
@@ -96,7 +91,6 @@ describe('affiliate contract', () => {
     const result = await post<{ targetPath: string; attributed: boolean }>('/affiliate/clicks', {
       slug: PARTNER_SLUG,
       targetPath: '/eu-rep/questionnaire',
-      campaign: 'linkedin',
     });
     expect(result).toMatchObject({ targetPath: '/eu-rep/questionnaire', attributed: true });
 
@@ -110,20 +104,6 @@ describe('affiliate contract', () => {
       (row) => row.targetPath === '/eu-rep/questionnaire'
     );
     expect(link?.clicks).toBe(1);
-  });
-
-  it('aggregates visits and referrals per campaign', async () => {
-    asPartner();
-    const stats = await request<AffiliateCampaignStats[]>('/affiliate/partner/me/campaigns');
-    const newsletter = stats.find((row) => row.campaign === 'newsletter');
-    expect(newsletter?.visits).toBeGreaterThan(0);
-    expect(newsletter?.referrals).toBeGreaterThan(0);
-    expect(newsletter?.conversionRate).toBeCloseTo(
-      (newsletter?.referrals ?? 0) / (newsletter?.visits ?? 1)
-    );
-    const totalVisits = stats.reduce((sum, row) => sum + row.visits, 0);
-    const visits = await request<unknown[]>('/affiliate/partner/me/visits');
-    expect(totalVisits).toBe(visits.length);
   });
 
   it('makes a commission payable only once the order is paid', async () => {
@@ -154,13 +134,14 @@ describe('affiliate contract', () => {
 
     const after = await dashboard();
     expect(after.stats.unpaidEarningsChf).toBe(0);
-    expect(after.stats.paidEarningsChf).toBeCloseTo(
-      before.stats.paidEarningsChf + payout.amountChf
-    );
+    expect(after.stats.paidOutToDateChf).toBeCloseTo(before.stats.paidOutToDateChf);
     expect(after.payouts[0]?.status).toBe('invoice_requested');
 
     await post('/affiliate/prototype/mark-transferred');
     const transferred = await dashboard();
+    expect(transferred.stats.paidOutToDateChf).toBeCloseTo(
+      before.stats.paidOutToDateChf + payout.amountChf
+    );
     expect(transferred.payouts[0]?.status).toBe('transferred');
     expect(transferred.payouts[0]?.transferredAt).not.toBeNull();
     expect(await statusOf(post('/affiliate/prototype/mark-transferred'))).toBe(409);
@@ -183,5 +164,59 @@ describe('affiliate contract', () => {
 
     await post('/affiliate/prototype/toggle-active');
     expect((await dashboard()).partner).toMatchObject({ status: 'active', deactivatedAt: null });
+  });
+
+  it('creates vouchers within the program maximum and applies them at checkout', async () => {
+    asPartner();
+    const voucher = await post<{ code: string; discountPercent: number }>(
+      '/affiliate/partner/me/vouchers',
+      { code: 'PARTNER10', discountPercent: 10 }
+    );
+    expect(voucher.code).toBe('PARTNER10');
+    expect((await dashboard()).vouchers).toHaveLength(3);
+
+    const validation = await post<{
+      valid: boolean;
+      normalizedCode?: string;
+      discount?: { kind: string; rate: number };
+    }>('/checkout/promo/validate', { code: 'partner10' });
+    expect(validation.valid).toBe(true);
+    expect(validation.normalizedCode).toBe('PARTNER10');
+    expect(validation.discount).toEqual({ kind: 'percent', rate: 0.1 });
+
+    const listPrice = calculateEuRepQuote('basis').amountDue;
+    const session = await post<{ listPrice?: number; discountAmount?: number; amount: number }>(
+      '/checkout/sessions',
+      { kind: 'euRep', euRepPlanId: 'basis', euRepEntityCount: 1, promoCode: 'PARTNER10' }
+    );
+    expect(session.listPrice).toBeCloseTo(listPrice);
+    expect(session.discountAmount).toBeCloseTo(listPrice * 0.1);
+    expect(session.amount).toBeCloseTo(listPrice * 0.9);
+  });
+
+  it('returns 403 for partner mutations while deactivated', async () => {
+    asPartner();
+    await post('/affiliate/prototype/toggle-active');
+    expect(
+      await statusOf(post('/affiliate/partner/me/referral-links', { targetPath: '/test-inactive' }))
+    ).toBe(403);
+    expect(
+      await statusOf(
+        request('/affiliate/partner/me/slug', {
+          method: 'PATCH',
+          body: JSON.stringify({ slug: '999' }),
+        })
+      )
+    ).toBe(403);
+    await post('/affiliate/prototype/toggle-active');
+  });
+
+  it('deactivates on leave without deleting partner data', async () => {
+    const before = await dashboard();
+    await post('/affiliate/partner/me/leave');
+    const after = await request<AffiliateDashboard | null>('/affiliate/dashboard/me');
+    expect(after?.partner.status).toBe('inactive');
+    expect(after?.referrals).toHaveLength(before.referrals.length);
+    await post('/affiliate/prototype/toggle-active');
   });
 });

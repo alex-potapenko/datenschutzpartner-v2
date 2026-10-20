@@ -26,6 +26,9 @@ import {
   cn,
 } from '@/components/ui';
 
+/** 2px key-500 ring on affiliate link/voucher draft rows inside the list card. */
+export const AFFILIATE_DRAFT_ROW_INSET_CLASS = '[box-shadow:0_0_0_2px_var(--key-500)]';
+
 type AccountLayoutMode = 'split' | 'stack';
 
 const AccountLayoutContext = createContext<AccountLayoutMode>('stack');

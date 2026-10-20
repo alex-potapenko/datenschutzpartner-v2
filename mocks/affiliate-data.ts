@@ -12,6 +12,15 @@ export const AFFILIATE_PROGRAM_SETTINGS: AffiliateProgramSettings = {
   defaultCommissionRate: 0.1,
   payoutThresholdChf: 50,
   payoutCadenceMonths: 3,
+  maxVoucherDiscountPercent: 20,
+};
+
+export type AffiliateVoucherRecord = {
+  id: string;
+  partnerId: string;
+  code: string;
+  discountPercent: number;
+  createdAt: string;
 };
 
 export const AFFILIATE_PAYOUT_CREATED_BY_SEED = 'admin@datenschutzpartner.ch';
@@ -82,17 +91,26 @@ export function partnerReferralUrl(slug: string) {
 }
 
 export function referralLinkUrl(slug: string, link: AffiliateReferralLinkRecord) {
-  return affiliateReferralUrl(slug, { targetPath: link.targetPath, campaign: link.campaign });
+  return affiliateReferralUrl(slug, {
+    targetPath: link.targetPath,
+    campaign: link.campaign,
+  });
 }
 
-export function slugFromEmail(email: string) {
-  const local = email.split('@')[0] ?? 'partner';
-  const normalized = local
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
-  return normalized.length >= 3 ? normalized : `partner-${normalized || '1'}`;
+const AFFILIATE_ID_START = 356;
+
+/** Next unused three-digit affiliate ID for `/ref/{id}`. */
+export function allocateAffiliatePartnerId(existing: readonly { slug: string }[]): string {
+  const used = new Set(existing.map((row) => row.slug));
+  for (let candidate = AFFILIATE_ID_START; candidate <= 999; candidate += 1) {
+    const id = String(candidate);
+    if (!used.has(id)) return id;
+  }
+  for (let candidate = 100; candidate < AFFILIATE_ID_START; candidate += 1) {
+    const id = String(candidate);
+    if (!used.has(id)) return id;
+  }
+  throw new Error('affiliate_id_exhausted');
 }
 
 export function createAffiliatePartnerRecord(input: {
@@ -167,6 +185,7 @@ export type AffiliateDemoHistory = {
   visits: AffiliateVisitRecord[];
   referrals: AffiliateReferralRecord[];
   payouts: AffiliatePayoutRecord[];
+  vouchers: AffiliateVoucherRecord[];
 };
 
 /**
@@ -192,7 +211,7 @@ export function createAffiliateDemoHistory(
       id: id('link-eu-rep'),
       partnerId: partner.id,
       targetPath: '/eu-rep',
-      campaign: 'newsletter',
+      campaign: null,
       createdAt: daysAgo(now, 200),
     },
   ];
@@ -263,7 +282,24 @@ export function createAffiliateDemoHistory(
     });
   }
 
-  return { partner: backdatedPartner, links, visits, referrals, payouts };
+  const vouchers: AffiliateVoucherRecord[] = [
+    {
+      id: id('voucher-10'),
+      partnerId: partner.id,
+      code: 'LUCAS10',
+      discountPercent: 10,
+      createdAt: daysAgo(now, 250),
+    },
+    {
+      id: id('voucher-20'),
+      partnerId: partner.id,
+      code: 'LUCAS20',
+      discountPercent: 20,
+      createdAt: daysAgo(now, 240),
+    },
+  ];
+
+  return { partner: backdatedPartner, links, visits, referrals, payouts, vouchers };
 }
 
 export type AffiliateSeed = {

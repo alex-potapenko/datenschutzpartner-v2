@@ -2,29 +2,79 @@
 
 import { Fragment, type ReactNode } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
+import {
+  PriceBlock,
+  priceBlockAmountClassName,
+  priceBlockNoteClassName,
+} from '@/components/shared/PriceBlock';
 
 const STATUS_BLOCK_ICON_STYLE = {
   color: 'var(--accent)',
   background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
 } as const;
 
-export type AffiliateStatItem = {
+type AffiliateStatItemBase = {
   key: string;
   icon: ReactNode;
   label: string;
-  value: number;
-  format: 'count' | 'chf' | 'percent';
-  /** Short line under the value, e.g. what the number means for the next payout. */
-  note?: string;
+  /** e.g. InfoTooltip next to the label */
+  labelAside?: ReactNode;
 };
+
+export type AffiliateStatItem =
+  | (AffiliateStatItemBase & {
+      format: 'count' | 'chf' | 'percent';
+      value: number;
+      note?: string;
+      subtitle?: string;
+    })
+  | (AffiliateStatItemBase & {
+      format: 'referralStatusCounts';
+      statusCounts: { pending: number; unpaid: number; paid: number };
+      statusLabels: { pending: string; unpaid: string; paid: string };
+    });
+
+const REFERRAL_STATUS_COUNT_ORDER = ['pending', 'unpaid', 'paid'] as const;
+
+function ReferralStatusCountsValue({
+  counts,
+  labels,
+  groupLabel,
+}: {
+  counts: { pending: number; unpaid: number; paid: number };
+  labels: { pending: string; unpaid: string; paid: string };
+  groupLabel: string;
+}) {
+  const format = useFormatter();
+  const parts = REFERRAL_STATUS_COUNT_ORDER.map((key) => {
+    const value = counts[key];
+    const formatted = format.number(value);
+    return `${labels[key]} ${formatted}`;
+  });
+
+  return (
+    <div
+      className="flex flex-wrap items-end gap-x-6 gap-y-2"
+      aria-label={`${groupLabel}: ${parts.join(', ')}`}
+    >
+      {REFERRAL_STATUS_COUNT_ORDER.map((key) => (
+        <div key={key} className="flex items-end gap-2">
+          <p className={priceBlockAmountClassName('sm')}>{format.number(counts[key])}</p>
+          <span className={priceBlockNoteClassName('sm')}>{labels[key]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function StatColumn({ item }: { item: AffiliateStatItem }) {
   const format = useFormatter();
   const formatted =
-    item.format === 'percent'
-      ? format.number(item.value, { style: 'percent', maximumFractionDigits: 1 })
-      : format.number(item.value);
+    item.format === 'referralStatusCounts'
+      ? ''
+      : item.format === 'percent'
+        ? format.number(item.value, { style: 'percent', maximumFractionDigits: 1 })
+        : format.number(item.value);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -36,7 +86,10 @@ function StatColumn({ item }: { item: AffiliateStatItem }) {
         >
           {item.icon}
         </span>
-        <h3 className="text-foreground text-sm font-semibold">{item.label}</h3>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h3 className="text-foreground text-sm font-semibold">{item.label}</h3>
+          {item.labelAside}
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         {item.format === 'chf' ? (
@@ -45,7 +98,13 @@ function StatColumn({ item }: { item: AffiliateStatItem }) {
             amount={item.value.toFixed(2)}
             animatedAmount={item.value}
             size="sm"
-            notes={item.note ? [item.note] : undefined}
+            notes={item.subtitle ? [item.subtitle] : item.note ? [item.note] : undefined}
+          />
+        ) : item.format === 'referralStatusCounts' ? (
+          <ReferralStatusCountsValue
+            counts={item.statusCounts}
+            labels={item.statusLabels}
+            groupLabel={item.label}
           />
         ) : (
           <>

@@ -3,12 +3,16 @@ export const AFFILIATE_REF_COOKIE = 'dsp_affiliate_ref';
 
 export const AFFILIATE_REF_COOKIE_MAX_AGE_FALLBACK_DAYS = 30;
 
-/** Public hostname shown in partner dashboards (editable path follows `/ref/`). */
-export const AFFILIATE_REF_PUBLIC_HOST = 'datenschutzpartner.com';
+/** Canonical origin for partner-facing referral URLs (legacy .ch marketing paths). */
+export const AFFILIATE_REF_PUBLIC_ORIGIN = 'https://www.datenschutzpartner.ch';
 
+/** Public hostname shown in partner dashboards (path continues after origin). */
+export const AFFILIATE_REF_PUBLIC_HOST = 'www.datenschutzpartner.ch';
+
+/** @deprecated Prefer full URLs from {@link affiliateReferralUrl}. */
 export const AFFILIATE_REF_URL_PREFIX = `${AFFILIATE_REF_PUBLIC_HOST}/ref/`;
 
-/** Query parameter on `/ref/:slug` naming the landing page after attribution. */
+/** Query parameter when campaign is not encoded in the path (optional). */
 export const AFFILIATE_TARGET_PARAM = 'to';
 
 export const AFFILIATE_CAMPAIGN_PARAM = 'campaign';
@@ -20,23 +24,77 @@ const SITE_HOSTS = new Set([
   'www.datenschutzpartner.ch',
 ]);
 
+/** App routes → public marketing path segments (no leading slash). */
+export const AFFILIATE_TARGET_TO_MARKETING_PATH: Record<string, string> = {
+  '/scan': 'angebot-datenschutz-generator',
+  '/eu-rep': 'angebot-eu-datenschutz-vertretung',
+  '/eu-rep/questionnaire': 'fragebogen-eu-datenschutz-vertretung',
+};
+
+export function affiliateMarketingSegmentForTarget(targetPath: string): string {
+  if (targetPath === '/') return '';
+  return (
+    AFFILIATE_TARGET_TO_MARKETING_PATH[targetPath] ??
+    targetPath.replace(/^\//, '').replace(/\/$/, '')
+  );
+}
+
+export function affiliateTargetPathFromMarketingSegment(segment: string): string {
+  const normalized = segment.replace(/^\/+|\/+$/g, '');
+  if (!normalized) return '/';
+  for (const [target, marketing] of Object.entries(AFFILIATE_TARGET_TO_MARKETING_PATH)) {
+    if (marketing === normalized) return target;
+  }
+  return `/${normalized}`;
+}
+
+/** Strips `/ref/{id}` from a pathname so pasted partner URLs normalize to the app target. */
+export function stripEmbeddedAffiliateRefFromPath(pathname: string): string {
+  const match = pathname.match(/^(\/.+?)\/ref\/[^/]+\/?$/);
+  return match?.[1] ?? pathname;
+}
+
 export function affiliateReferralPath(pathSegment: string) {
   return `/ref/${encodeURIComponent(pathSegment)}`;
 }
 
+/** Splits a partner-facing referral URL for display (host / marketing page / ref tail). */
+export function splitPartnerReferralLinkDisplay(url: string) {
+  const path = url.replace(/^https?:\/\//i, '');
+  const hostPrefix = `${AFFILIATE_REF_PUBLIC_HOST}/`;
+  if (!path.toLowerCase().startsWith(hostPrefix.toLowerCase())) {
+    return { hostPrefix: '', marketingPage: null as string | null, refSuffix: path };
+  }
+  const afterHost = path.slice(hostPrefix.length);
+  const refIndex = afterHost.indexOf('ref/');
+  if (refIndex === -1) {
+    return { hostPrefix, marketingPage: afterHost.replace(/\/$/, '') || null, refSuffix: '' };
+  }
+  const marketingRaw = afterHost.slice(0, refIndex).replace(/\/$/, '');
+  const refTail = afterHost.slice(refIndex);
+  const refSuffix = refTail.startsWith('/') ? refTail : `/${refTail}`;
+  return {
+    hostPrefix,
+    marketingPage: marketingRaw || null,
+    refSuffix: marketingRaw ? refSuffix : refTail,
+  };
+}
+
+/** `https://www.datenschutzpartner.ch/{page}/ref/{id}/` or base `/ref/{id}/`. */
 export function affiliateReferralUrl(
   pathSegment: string,
   options: { targetPath?: string | null; campaign?: string | null } = {}
 ) {
+  const marketing = affiliateMarketingSegmentForTarget(options.targetPath ?? '/');
+  const path = marketing
+    ? `/${marketing}/ref/${encodeURIComponent(pathSegment)}/`
+    : `${affiliateReferralPath(pathSegment)}/`;
   const params = new URLSearchParams();
-  if (options.targetPath && options.targetPath !== '/') {
-    params.set(AFFILIATE_TARGET_PARAM, options.targetPath);
-  }
   if (options.campaign) {
     params.set(AFFILIATE_CAMPAIGN_PARAM, options.campaign);
   }
-  const query = params.toString().replaceAll('%2F', '/');
-  return `https://${AFFILIATE_REF_PUBLIC_HOST}${affiliateReferralPath(pathSegment)}${query ? `?${query}` : ''}`;
+  const query = params.toString();
+  return `${AFFILIATE_REF_PUBLIC_ORIGIN}${path}${query ? `?${query}` : ''}`;
 }
 
 /**
@@ -59,13 +117,17 @@ export function normalizeAffiliateTargetPath(input: string): string | null {
     return null;
   }
   if (!SITE_HOSTS.has(url.hostname.toLowerCase())) return null;
-  return safeTargetPath(`${url.pathname}${url.search}`);
+  const stripped = stripEmbeddedAffiliateRefFromPath(`${url.pathname}${url.search}`);
+  const path = safeTargetPath(stripped);
+  if (!path) return null;
+  return affiliateTargetPathFromMarketingSegment(path.replace(/^\//, ''));
 }
 
-/** Only same-origin paths may be used as redirect targets after `/ref/:slug`. */
+/** Only same-origin paths may be used as redirect targets after attribution. */
 export function safeTargetPath(value: string | null | undefined): string | null {
   if (!value) return null;
   if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return null;
-  if (value.startsWith('/ref/') || value === '/ref') return null;
+  if (value.includes('/ref/')) return null;
+  if (value.startsWith('/ref') && value !== '/ref') return null;
   return value;
 }

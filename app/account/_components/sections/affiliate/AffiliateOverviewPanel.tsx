@@ -2,9 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import type { AffiliateDashboard } from '@/api/affiliate';
-import { NavigationLink } from '@/components/shared/NavigationLink';
 import {
-  Alert,
   ArrowsLeftRight,
   ChartBar,
   CheckCircle,
@@ -12,87 +10,94 @@ import {
   CurrencyDollar,
   CursorClick,
 } from '@/components/ui';
-import { AFFILIATE_ACCOUNT_HREF } from '@/lib/account-routes';
+import { InfoTooltip } from '@/components/shared/InfoTooltip';
 import { AffiliatePartnerStatsRow } from '../../AffiliatePartnerStatsRow';
-import { AffiliateReferralsTable } from '../../AffiliateReferralsTable';
-import { AccountSection } from '../../account-ui';
-import { AffiliatePayoutInfo } from './AffiliatePayoutInfo';
+import { AffiliatePartnerInactiveBanner } from './AffiliatePartnerInactiveBanner';
+import { AccountSection, useDateFormatter } from '../../account-ui';
+import { AffiliatePayoutHowItWorksAction } from './AffiliatePayoutInfo';
 import { AffiliatePrototypeControls } from './AffiliatePrototypeControls';
-
-const LATEST_REFERRALS = 5;
 
 export function AffiliateOverviewPanel({ dashboard }: { dashboard: AffiliateDashboard }) {
   const t = useTranslations('account.affiliate.overview');
-  const tAffiliate = useTranslations('account.affiliate');
-  const { stats, referrals, partner } = dashboard;
-  const converted =
-    stats.referralCounts.pending + stats.referralCounts.unpaid + stats.referralCounts.paid;
-  const latest = referrals.slice(0, LATEST_REFERRALS);
+  const formatDate = useDateFormatter();
+  const { stats, partner } = dashboard;
 
   return (
     <div className="divide-border flex min-w-0 flex-1 flex-col divide-y">
-      {partner.status === 'inactive' ? (
-        <div className="px-4 pt-6 sm:px-8">
-          <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{t('inactiveTitle')}</Alert.Title>
-              <Alert.Description className="text-foreground text-sm">
-                {t('inactiveBody')}
-              </Alert.Description>
-            </Alert.Content>
-          </Alert>
-        </div>
-      ) : null}
-      <AccountSection title={t('earningsTitle')} contentClassName="gap-6">
+      {partner.status === 'inactive' ? <AffiliatePartnerInactiveBanner /> : null}
+      <AccountSection
+        title={t('earningsTitle')}
+        contentClassName="gap-6"
+        action={<AffiliatePayoutHowItWorksAction dashboard={dashboard} />}
+      >
         <AffiliatePartnerStatsRow
           items={[
             {
-              key: 'unpaid',
-              icon: <CurrencyDollar size={18} weight="fill" />,
-              label: t('unpaid'),
-              value: stats.unpaidEarningsChf,
-              format: 'chf',
-              note: t('unpaidNote'),
-            },
-            {
               key: 'pending',
               icon: <Clock size={18} weight="fill" />,
-              label: t('pending'),
+              label: t('pendingEarnings'),
               value: stats.pendingEarningsChf,
               format: 'chf',
-              note: t('pendingNote'),
+              labelAside: (
+                <InfoTooltip label={t('pendingEarningsHelpLabel')}>
+                  {t('pendingEarningsNote')}
+                </InfoTooltip>
+              ),
+            },
+            {
+              key: 'unpaid',
+              icon: <CurrencyDollar size={18} weight="fill" />,
+              label: t('unpaidEarnings'),
+              value: stats.unpaidEarningsChf,
+              format: 'chf',
+              labelAside: (
+                <InfoTooltip label={t('unpaidEarningsHelpLabel')}>
+                  {t('unpaidEarningsNote')}
+                </InfoTooltip>
+              ),
+              subtitle: t('nextPayoutDate', { date: formatDate(dashboard.nextPayoutDate) }),
             },
             {
               key: 'paid',
               icon: <CheckCircle size={18} weight="fill" />,
-              label: t('paid'),
-              value: stats.paidEarningsChf,
+              label: t('paidOutToDate'),
+              value: stats.paidOutToDateChf,
               format: 'chf',
-              note: t('paidNote'),
             },
           ]}
         />
-        <AffiliatePayoutInfo dashboard={dashboard} />
       </AccountSection>
 
       <AccountSection title={t('activityTitle')} contentClassName="gap-6">
         <AffiliatePartnerStatsRow
           items={[
             {
+              key: 'referral-status-counts',
+              icon: <ArrowsLeftRight size={18} weight="bold" />,
+              label: t('settlementTitle'),
+              format: 'referralStatusCounts',
+              labelAside: (
+                <InfoTooltip label={t('settlementCountsHelpLabel')}>
+                  {t('settlementCountsNote')}
+                </InfoTooltip>
+              ),
+              statusCounts: {
+                pending: stats.referralCounts.pending,
+                unpaid: stats.referralCounts.unpaid,
+                paid: stats.referralCounts.paid,
+              },
+              statusLabels: {
+                pending: t('pendingEarnings'),
+                unpaid: t('unpaidReferrals'),
+                paid: t('paidReferrals'),
+              },
+            },
+            {
               key: 'visits',
               icon: <CursorClick size={18} weight="fill" />,
               label: t('visits'),
               value: stats.visits,
               format: 'count',
-            },
-            {
-              key: 'referrals',
-              icon: <ArrowsLeftRight size={18} weight="bold" />,
-              label: t('referrals'),
-              value: converted,
-              format: 'count',
-              note: t('commissionNote', { rate: Math.round(partner.commissionRate * 1000) / 10 }),
             },
             {
               key: 'rate',
@@ -103,30 +108,6 @@ export function AffiliateOverviewPanel({ dashboard }: { dashboard: AffiliateDash
             },
           ]}
         />
-      </AccountSection>
-
-      <AccountSection
-        title={t('latestTitle')}
-        contentClassName="gap-4"
-        action={
-          referrals.length > LATEST_REFERRALS ? (
-            <NavigationLink
-              href={`${AFFILIATE_ACCOUNT_HREF}&tab=referrals`}
-              chevron="right"
-              size="sm"
-            >
-              {t('allReferrals')}
-            </NavigationLink>
-          ) : undefined
-        }
-      >
-        {latest.length > 0 ? (
-          <AffiliateReferralsTable referrals={latest} ariaLabel={t('latestTitle')} />
-        ) : (
-          <p className="text-muted text-sm leading-relaxed">
-            {tAffiliate('dashboard.referralsEmpty')}
-          </p>
-        )}
       </AccountSection>
 
       <AffiliatePrototypeControls dashboard={dashboard} />

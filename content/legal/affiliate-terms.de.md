@@ -12,7 +12,7 @@ _Beispiel 1:_ Ein vermittelter Kunde folgt dem Affiliate-Link und abonniert den 
 
 _Beispiel 2:_ Ein vermittelter Kunde folgt dem Affiliate-Link und abonniert die EU-Datenschutz-Vertretung in der «Standard»-Variante für CHF 249.00 netto. Die Provision für den Teilnehmer beträgt CHF 24.90 netto.
 
-1.2 Vermittelte Kunden zahlen den regulären Preis der Datenschutzpartner-Angebote ohne Affiliate-Rabatt. Die Provision der Teilnehmer wird auf den vollen Nettobetrag berechnet, der beim jeweiligen Kauf tatsächlich bezahlt wurde.
+1.2 Vermittelte Kunden zahlen grundsätzlich den regulären Preis der Datenschutzpartner-Angebote. Teilnehmer können optional eigene Gutscheincodes mit einem Rabatt bis zur vom Programm festgelegten Höchstgrenze anbieten. Die Provision der Teilnehmer wird auf den Nettobetrag berechnet, der beim jeweiligen Kauf tatsächlich bezahlt wurde (nach Abzug eines etwaigen Gutscheinrabatts).
 
 1.3 Datenschutzpartner ist berechtigt, das Affiliate-Programm ganz oder teilweise durch Dritte oder gemeinsam mit Dritten sowie durch verbundene Gesellschaften oder gemeinsam mit verbundenen Gesellschaften betreiben zu lassen oder zu betreiben. Datenschutzpartner ist berechtigt, Rechte und Pflichten im Zusammenhang mit dem Affiliate-Programm an solche Dritte und Gesellschaften zu übertragen. Solche Dritte und Gesellschaften können sich auch ausserhalb der Schweiz befinden.
 

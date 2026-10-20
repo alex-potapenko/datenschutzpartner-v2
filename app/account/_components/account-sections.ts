@@ -1,4 +1,4 @@
-import { Buildings, Cookie, FileText, House, ShareNetwork } from '@/components/ui';
+import { Buildings, Cookie, FileText, GridFour, ShareNetwork } from '@/components/ui';
 import { fillPolicySlotWizardHref } from '@/lib/account-routes';
 
 /** Per-website product sections in the sidebar (before EU Rep and Affiliate). */
@@ -68,7 +68,7 @@ export function isComingSoonSection(value: WebsiteSectionId): value is ComingSoo
 type IconComponent = typeof FileText;
 
 export const SECTION_ICON: Record<WebsiteSectionId, IconComponent> = {
-  overview: House,
+  overview: GridFour,
   privacyPolicy: FileText,
   affiliate: ShareNetwork,
   cookieBanner: Cookie,

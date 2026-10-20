@@ -9,12 +9,13 @@ import type {
   AffiliatePayout,
   AffiliateReferralLink,
   AffiliateVisit,
-  AffiliateCampaignStats,
 } from '@/api/affiliate';
-import { AFFILIATE_CAMPAIGN_PATTERN, AFFILIATE_SLUG_PATTERN } from '@/api/affiliate';
+import { AFFILIATE_PARTNER_ID_PATTERN } from '@/api/affiliate';
 import { normalizeAffiliateTargetPath, safeTargetPath } from '@/lib/affiliate-attribution';
+import { nextAffiliatePayoutDateIso } from '@/lib/affiliate-payout-schedule';
 import {
   affiliateConversionRate,
+  sumCompletedPayoutsChf,
   roundChf,
   selectPayoutReferrals,
   summarizeAffiliateReferrals,
@@ -27,8 +28,9 @@ import {
   createAffiliateSeed,
   partnerReferralUrl,
   referralLinkUrl,
-  slugFromEmail,
+  allocateAffiliatePartnerId,
   type AffiliatePartnerRecord,
+  type AffiliateVoucherRecord,
   type AffiliatePayoutRecord,
   type AffiliateReferralLinkRecord,
   type AffiliateReferralRecord,
@@ -77,8 +79,8 @@ import {
   applyPromoDiscount,
   calculatePromoDiscountAmount,
   normalizePromoCode,
-  resolvePromoCode,
 } from '@/lib/promo-codes';
+import { resolveCheckoutPromoCode } from '@/lib/checkout-promo';
 import type { GeneratedDocument, PolicyVersion } from '@/api/documents';
 import {
   buildHostedPolicyPath,
@@ -404,7 +406,7 @@ const affiliateApplications = createCollection<AffiliateApplication>(
 const affiliatePartners = createCollection<AffiliatePartnerRecord>(
   'affiliate-partners',
   affiliateSeed.partners,
-  6
+  7
 );
 const affiliateReferralLinks = createCollection<AffiliateReferralLinkRecord>(
   'affiliate-referral-links',
@@ -426,6 +428,7 @@ const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
   affiliateSeed.payouts,
   7
 );
+const affiliateVouchers = createCollection<AffiliateVoucherRecord>('affiliate-vouchers', [], 1);
 
 function sessionEmail(request: Request): string | null {
   return emailFromLoginToken(tokenFromRequest(request));
@@ -438,8 +441,17 @@ function requireSessionEmail(request: Request): string | null {
 const byNewest = (a: { createdAt: string }, b: { createdAt: string }) =>
   b.createdAt.localeCompare(a.createdAt);
 
+function normalizePartnerSlug(partner: AffiliatePartnerRecord): AffiliatePartnerRecord {
+  if (AFFILIATE_PARTNER_ID_PATTERN.test(partner.slug)) return partner;
+  const slug = allocateAffiliatePartnerId(affiliatePartners.all());
+  return affiliatePartners.update(partner.id, { slug }) ?? { ...partner, slug };
+}
+
 function findPartnerByEmail(email: string) {
-  return affiliatePartners.all().find((row) => row.email.toLowerCase() === email.toLowerCase());
+  const partner = affiliatePartners
+    .all()
+    .find((row) => row.email.toLowerCase() === email.toLowerCase());
+  return partner ? normalizePartnerSlug(partner) : undefined;
 }
 
 function findPartnerBySlug(slug: string) {
@@ -503,6 +515,11 @@ function referralLinkDto(
   const referrals = affiliateReferrals
     .all()
     .filter((row) => row.linkId === link.id && row.status !== 'rejected');
+  const balanceChf = roundChf(
+    referrals
+      .filter((row) => row.status === 'unpaid')
+      .reduce((sum, row) => sum + row.commissionChf, 0)
+  );
   return {
     id: link.id,
     targetPath: link.targetPath,
@@ -511,7 +528,7 @@ function referralLinkDto(
     createdAt: link.createdAt,
     clicks: affiliateVisits.all().filter((row) => row.linkId === link.id).length,
     conversions: referrals.length,
-    earningsChf: roundChf(referrals.reduce((sum, row) => sum + row.commissionChf, 0)),
+    balanceChf,
   };
 }
 
@@ -539,13 +556,97 @@ function sessionPartner(request: Request) {
   return email ? findPartnerByEmail(email) : undefined;
 }
 
+function partnerIdForApplication(applicationId: string) {
+  return `partner-${applicationId}`;
+}
+
+function partnerHasStoredHistory(partnerId: string) {
+  return (
+    affiliateReferralLinks.all().some((row) => row.partnerId === partnerId) ||
+    affiliateVisits.all().some((row) => row.partnerId === partnerId) ||
+    affiliateReferrals.all().some((row) => row.partnerId === partnerId) ||
+    affiliatePayouts.all().some((row) => row.partnerId === partnerId)
+  );
+}
+
+/** Creates partner row + demo history, or re-attaches partner row when history survived a collection reseed. */
+function ensurePartnerForApplication(application: AffiliateApplication): AffiliatePartnerRecord {
+  const existing = findPartnerByEmail(application.email);
+  if (existing) return existing;
+
+  const partnerId = partnerIdForApplication(application.id);
+  const approvedAt = application.reviewedAt ?? new Date().toISOString();
+  const slug = allocateAffiliatePartnerId(affiliatePartners.all());
+
+  if (partnerHasStoredHistory(partnerId)) {
+    return affiliatePartners.create(
+      createAffiliatePartnerRecord({
+        id: partnerId,
+        applicationId: application.id,
+        email: application.email,
+        slug,
+        approvedAt,
+      })
+    );
+  }
+
+  const history = createAffiliateDemoHistory(
+    createAffiliatePartnerRecord({
+      id: partnerId,
+      applicationId: application.id,
+      email: application.email,
+      slug,
+      approvedAt,
+    }),
+    new Date()
+  );
+  const partner = affiliatePartners.create(history.partner);
+  for (const row of history.links) affiliateReferralLinks.create(row);
+  for (const row of history.visits) affiliateVisits.create(row);
+  for (const row of history.referrals) affiliateReferrals.create(row);
+  for (const row of history.payouts) affiliatePayouts.create(row);
+  for (const row of history.vouchers) affiliateVouchers.create(row);
+  return partner;
+}
+
+function findApplicationByEmail(email: string) {
+  return affiliateApplications
+    .all()
+    .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+}
+
 function partnerDashboard(email: string): AffiliateDashboard | null {
-  const partner = findPartnerByEmail(email);
+  let partner = findPartnerByEmail(email);
+  if (!partner) {
+    const application = findApplicationByEmail(email);
+    if (application?.status === 'approved') {
+      partner = ensurePartnerForApplication(application);
+    }
+  }
   return partner ? partnerDashboardFor(partner) : null;
 }
 
+function ensureLucasDemoVouchers(partner: AffiliatePartnerRecord) {
+  if (partnerVouchers(partner.id).length > 0) return;
+  if (partner.email.toLowerCase() !== MOCK_MEMBER_EMAIL.toLowerCase()) return;
+  for (const row of [
+    { suffix: 'voucher-10', code: 'LUCAS10', discountPercent: 10 },
+    { suffix: 'voucher-20', code: 'LUCAS20', discountPercent: 20 },
+  ] as const) {
+    affiliateVouchers.create({
+      id: `${partner.id}-${row.suffix}`,
+      partnerId: partner.id,
+      code: row.code,
+      discountPercent: row.discountPercent,
+      createdAt: new Date().toISOString(),
+    });
+  }
+}
+
 function partnerDashboardFor(partner: AffiliatePartnerRecord): AffiliateDashboard {
+  ensureLucasDemoVouchers(partner);
   const { visits, summary } = partnerActivity(partner);
+  const payouts = partnerPayouts(partner.id);
   return {
     partner: partnerDto(partner),
     referralLinks: partnerLinks(partner.id).map((link) => referralLinkDto(link, partner)),
@@ -555,10 +656,14 @@ function partnerDashboardFor(partner: AffiliatePartnerRecord): AffiliateDashboar
       referralCounts: summary.counts,
       pendingEarningsChf: summary.pendingChf,
       unpaidEarningsChf: summary.unpaidChf,
-      paidEarningsChf: summary.paidChf,
+      paidOutToDateChf: sumCompletedPayoutsChf(payouts),
     },
     payoutThresholdChf: AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf,
-    payouts: partnerPayouts(partner.id).map(payoutDto),
+    nextPayoutDate: nextAffiliatePayoutDateIso(
+      new Date(),
+      AFFILIATE_PROGRAM_SETTINGS.payoutCadenceMonths
+    ),
+    payouts: payouts.map(payoutDto),
     referrals: partnerReferrals(partner.id).map((row) => ({
       id: row.id,
       reference: row.reference,
@@ -567,52 +672,64 @@ function partnerDashboardFor(partner: AffiliatePartnerRecord): AffiliateDashboar
       status: row.status,
       createdAt: row.createdAt,
     })),
+    vouchers: partnerVouchers(partner.id).map((row) => ({
+      id: row.id,
+      code: row.code,
+      discountPercent: row.discountPercent,
+      createdAt: row.createdAt,
+    })),
   };
 }
 
 function approveAffiliateApplication(application: AffiliateApplication): AffiliatePartner | null {
   if (application.status === 'approved') {
-    const existing = findPartnerByEmail(application.email);
-    return existing ? partnerDto(existing) : null;
+    return partnerDto(ensurePartnerForApplication(application));
   }
   affiliateApplications.update(application.id, {
     status: 'approved',
     reviewedAt: new Date().toISOString(),
   });
-  let slug = slugFromEmail(application.email);
-  if (isPartnerSlugTaken(slug)) {
-    slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
-  }
-  const history = createAffiliateDemoHistory(
-    createAffiliatePartnerRecord({
-      id: `partner-${application.id}`,
-      applicationId: application.id,
-      email: application.email,
-      slug,
-      approvedAt: new Date().toISOString(),
-    }),
-    new Date()
-  );
-  const partner = affiliatePartners.create(history.partner);
-  for (const row of history.links) affiliateReferralLinks.create(row);
-  for (const row of history.visits) affiliateVisits.create(row);
-  for (const row of history.referrals) affiliateReferrals.create(row);
-  for (const row of history.payouts) affiliatePayouts.create(row);
-  return partnerDto(partner);
+  const approved = affiliateApplications.all().find((row) => row.id === application.id);
+  if (!approved) return null;
+  return partnerDto(ensurePartnerForApplication(approved));
 }
 
-function removeAffiliatePartner(partnerId: string) {
-  for (const collection of [
-    affiliateReferralLinks,
-    affiliateVisits,
-    affiliateReferrals,
-    affiliatePayouts,
-  ] as const) {
-    for (const row of collection.all()) {
-      if (row.partnerId === partnerId) collection.remove(row.id);
-    }
-  }
-  affiliatePartners.remove(partnerId);
+function deactivateAffiliatePartner(partner: AffiliatePartnerRecord): AffiliatePartnerRecord {
+  if (partner.status === 'inactive') return partner;
+  return (
+    affiliatePartners.update(partner.id, {
+      status: 'inactive',
+      deactivatedAt: new Date().toISOString(),
+    }) ?? partner
+  );
+}
+
+function partnerVouchers(partnerId: string) {
+  return affiliateVouchers
+    .all()
+    .filter((row) => row.partnerId === partnerId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+function findAffiliateVoucherByCode(code: string): AffiliateVoucherRecord | undefined {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return undefined;
+  return affiliateVouchers.all().find((row) => row.code.toUpperCase() === normalized);
+}
+
+function affiliateVouchersForCheckoutPromo() {
+  return affiliateVouchers.all().map((row) => {
+    const partner = affiliatePartners.all().find((entry) => entry.id === row.partnerId);
+    return {
+      code: row.code,
+      discountPercent: row.discountPercent,
+      partnerActive: Boolean(partner && partner.status === 'active'),
+    };
+  });
+}
+
+function resolveCheckoutPromoCodeForStore(code: string) {
+  return resolveCheckoutPromoCode(code, affiliateVouchersForCheckoutPromo());
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -2320,45 +2437,6 @@ export const handlers = [
     return HttpResponse.json(visits);
   }),
 
-  http.get('/api/affiliate/partner/me/campaigns', ({ request }) => {
-    const email = requireSessionEmail(request);
-    if (!email) return new HttpResponse(null, { status: 401 });
-    const partner = findPartnerByEmail(email);
-    if (!partner) return new HttpResponse(null, { status: 404 });
-    const visits = partnerVisits(partner.id);
-    const referralCampaign = new Map(
-      visits.filter((row) => row.referralId).map((row) => [row.referralId, row.campaign])
-    );
-    const stats = new Map<string | null, AffiliateCampaignStats>();
-    const entry = (campaign: string | null) => {
-      const existing = stats.get(campaign);
-      if (existing) return existing;
-      const created: AffiliateCampaignStats = {
-        campaign,
-        visits: 0,
-        referrals: 0,
-        conversionRate: 0,
-        earningsChf: 0,
-      };
-      stats.set(campaign, created);
-      return created;
-    };
-    for (const visit of visits) entry(visit.campaign).visits += 1;
-    for (const referral of affiliateReferrals.all()) {
-      if (referral.partnerId !== partner.id || referral.status === 'rejected') continue;
-      const row = entry(referralCampaign.get(referral.id) ?? null);
-      row.referrals += 1;
-      row.earningsChf = roundChf(row.earningsChf + referral.commissionChf);
-    }
-    const rows = [...stats.values()]
-      .map((row) => ({
-        ...row,
-        conversionRate: row.visits > 0 ? row.referrals / row.visits : 0,
-      }))
-      .sort((a, b) => b.visits - a.visits);
-    return HttpResponse.json(rows);
-  }),
-
   http.patch('/api/affiliate/partner/me/slug', async ({ request }) => {
     const email = requireSessionEmail(request);
     if (!email) return new HttpResponse(null, { status: 401 });
@@ -2366,7 +2444,10 @@ export const handlers = [
     const slug = body.slug?.trim() ?? '';
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
-    if (!AFFILIATE_SLUG_PATTERN.test(slug)) {
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
+    if (!AFFILIATE_PARTNER_ID_PATTERN.test(slug)) {
       return HttpResponse.json({ message: 'slug_invalid' }, { status: 400 });
     }
     if (isPartnerSlugTaken(slug, partner.id)) {
@@ -2382,6 +2463,9 @@ export const handlers = [
     if (!email) return new HttpResponse(null, { status: 401 });
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
     const body = (await request.json()) as {
       notificationEmail?: string;
       notifyOnReferral?: boolean;
@@ -2403,18 +2487,20 @@ export const handlers = [
     if (!email) return new HttpResponse(null, { status: 401 });
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
     const body = (await request.json()) as { targetPath?: string; campaign?: string };
     const targetPath = normalizeAffiliateTargetPath(body.targetPath ?? '');
     if (!targetPath) {
       return HttpResponse.json({ message: 'target_path_invalid' }, { status: 400 });
     }
-    const campaign = body.campaign?.trim() || null;
-    if (campaign && !AFFILIATE_CAMPAIGN_PATTERN.test(campaign)) {
+    const campaignRaw = body.campaign?.trim() ?? '';
+    const campaign = campaignRaw.length > 0 ? campaignRaw : null;
+    if (campaign && !/^[a-z0-9][a-z0-9-_]{0,38}[a-z0-9]$/i.test(campaign)) {
       return HttpResponse.json({ message: 'campaign_invalid' }, { status: 400 });
     }
-    const duplicate = partnerLinks(partner.id).find(
-      (row) => row.targetPath === targetPath && row.campaign === campaign
-    );
+    const duplicate = partnerLinks(partner.id).find((row) => row.targetPath === targetPath);
     if (duplicate) {
       return HttpResponse.json({ message: 'link_exists' }, { status: 409 });
     }
@@ -2428,11 +2514,81 @@ export const handlers = [
     return HttpResponse.json(referralLinkDto(link, partner), { status: 201 });
   }),
 
+  http.delete('/api/affiliate/partner/me/vouchers/:id', ({ request, params }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
+    const voucher = partnerVouchers(partner.id).find((row) => row.id === params.id);
+    if (!voucher) return new HttpResponse(null, { status: 404 });
+    affiliateVouchers.remove(voucher.id);
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.post('/api/affiliate/partner/me/vouchers', async ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
+    const body = (await request.json()) as { code?: string; discountPercent?: number };
+    const code = body.code?.trim() ?? '';
+    const discountPercent = body.discountPercent ?? 0;
+    if (!/^[a-z0-9-_]{3,20}$/i.test(code)) {
+      return HttpResponse.json({ message: 'code_invalid' }, { status: 400 });
+    }
+    if (
+      discountPercent < 1 ||
+      discountPercent > AFFILIATE_PROGRAM_SETTINGS.maxVoucherDiscountPercent
+    ) {
+      return HttpResponse.json({ message: 'discount_invalid' }, { status: 400 });
+    }
+    if (findAffiliateVoucherByCode(code)) {
+      return HttpResponse.json({ message: 'code_taken' }, { status: 409 });
+    }
+    const voucher = affiliateVouchers.create({
+      id: `voucher-${partner.id}-${Date.now().toString(36)}`,
+      partnerId: partner.id,
+      code: code.toUpperCase(),
+      discountPercent,
+      createdAt: new Date().toISOString(),
+    });
+    return HttpResponse.json(
+      {
+        id: voucher.id,
+        code: voucher.code,
+        discountPercent: voucher.discountPercent,
+        createdAt: voucher.createdAt,
+      },
+      { status: 201 }
+    );
+  }),
+
+  http.post('/api/affiliate/partner/me/leave', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
+    deactivateAffiliatePartner(partner);
+    return HttpResponse.json({ ok: true as const });
+  }),
+
   http.delete('/api/affiliate/partner/me/referral-links/:id', ({ request, params }) => {
     const email = requireSessionEmail(request);
     if (!email) return new HttpResponse(null, { status: 401 });
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
+    if (partner.status !== 'active') {
+      return HttpResponse.json({ message: 'partner_inactive' }, { status: 403 });
+    }
     const link = partnerLinks(partner.id).find((row) => row.id === params.id);
     if (!link) return new HttpResponse(null, { status: 404 });
     affiliateReferralLinks.remove(link.id);
@@ -2455,9 +2611,7 @@ export const handlers = [
     const found = findPartnerBySlug(slug);
     const partner = found?.status === 'active' ? found : undefined;
     if (partner) {
-      const link = partnerLinks(partner.id).find(
-        (row) => row.targetPath === targetPath && row.campaign === campaign
-      );
+      const link = partnerLinks(partner.id).find((row) => row.targetPath === targetPath);
       affiliateVisits.create({
         id: `visit-${partner.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
         partnerId: partner.id,
@@ -2491,16 +2645,7 @@ export const handlers = [
     const email = requireSessionEmail(request);
     if (!email) return new HttpResponse(null, { status: 401 });
     const partner = findPartnerByEmail(email);
-    if (partner) removeAffiliatePartner(partner.id);
-    const application = affiliateApplications
-      .all()
-      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
-    if (application) {
-      affiliateApplications.update(application.id, {
-        status: 'rejected',
-        reviewedAt: new Date().toISOString(),
-      });
-    }
+    if (partner) deactivateAffiliatePartner(partner);
     return HttpResponse.json({ ok: true as const });
   }),
 
@@ -3914,6 +4059,23 @@ export const handlers = [
     });
   }),
 
+  http.post('/api/checkout/promo/validate', async ({ request }) => {
+    const body = (await request.json()) as { code?: string };
+    const code = body.code?.trim() ?? '';
+    if (!code) {
+      return HttpResponse.json({ valid: false as const });
+    }
+    const discount = resolveCheckoutPromoCodeForStore(code);
+    if (!discount) {
+      return HttpResponse.json({ valid: false as const });
+    }
+    return HttpResponse.json({
+      valid: true as const,
+      normalizedCode: normalizePromoCode(code),
+      discount,
+    });
+  }),
+
   http.post('/api/checkout/sessions', async ({ request }) => {
     const input = (await request.json()) as CheckoutSessionCreate;
 
@@ -3960,7 +4122,9 @@ export const handlers = [
       const entityCount = Math.max(1, input.euRepEntityCount ?? input.euRepEntities?.length ?? 1);
       const planId = input.euRepPlanId ?? 'basis';
       const quote = calculateEuRepQuote(planId, entityCount);
-      const promoDiscount = input.promoCode ? resolvePromoCode(input.promoCode) : null;
+      const promoDiscount = input.promoCode
+        ? resolveCheckoutPromoCodeForStore(input.promoCode)
+        : null;
       const listPrice = quote.amountDue;
       const discountAmount = promoDiscount
         ? calculatePromoDiscountAmount(listPrice, promoDiscount)

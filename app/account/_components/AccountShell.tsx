@@ -7,7 +7,7 @@ import { useEuRepContracts } from '@/api/eu-rep';
 import { RegularPage } from '@/components/shared/RegularPage';
 import { EuRepScopeProvider } from '@/components/shared/eu-rep-scope';
 import { SiteScopeProvider } from '@/components/shared/site-scope';
-import { List, X } from '@/components/ui';
+import { cn, List, X } from '@/components/ui';
 import { AccountLayoutProvider } from './account-ui';
 import { AccountSidebar } from './AccountSidebar';
 import { AnimatedDirectionalPanel } from './AnimatedDirectionalPanel';
@@ -19,10 +19,12 @@ import {
   type AccountShellSectionId,
   type WebsiteSectionId,
 } from './account-sections';
+import { parseAffiliateTab } from './sections/service-tabs';
 import { PrivacyPolicySection } from './sections/PrivacyPolicySection';
 import { EuRepSection } from './sections/EuRepSection';
 import { ComingSoonSection } from './sections/ComingSoonSection';
 import { AffiliateSection } from './sections/AffiliateSection';
+import { useAffiliateSidebarNav } from './useAffiliateSidebarNav';
 import { SubscriptionsSection } from './sections/SubscriptionsSection';
 
 function useIsLargeScreen() {
@@ -58,6 +60,7 @@ function AccountSectionContent({ section }: { section: AccountShellSectionId }) 
 
 export function AccountShell() {
   const t = useTranslations('account');
+  const tServiceTabs = useTranslations('account.serviceTabs');
   const router = useRouter();
   const searchParams = useSearchParams();
   const isLargeScreen = useIsLargeScreen();
@@ -70,6 +73,11 @@ export function AccountShell() {
   const contractParam = searchParams.get('contract');
   const contracts = useEuRepContracts();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const affiliateSidebar = useAffiliateSidebarNav();
+  const hideAffiliateSidebar =
+    section === 'affiliate' && (affiliateSidebar.isLoading || !affiliateSidebar.visible);
+  const showAffiliateMobileMenu =
+    section !== 'affiliate' || (!affiliateSidebar.isLoading && affiliateSidebar.visible);
 
   const listedEuRepContracts = useMemo(() => contracts.data ?? [], [contracts.data]);
 
@@ -89,11 +97,17 @@ export function AccountShell() {
   const contentActiveKey = inEuRepScope ? (activeEuRepContract?.id ?? 'euRep-empty') : section;
   const contentOrder = inEuRepScope ? euRepContractOrder : WEBSITE_SECTION_IDS;
 
+  const affiliateTab =
+    section === 'affiliate' && affiliateSidebar.isPartner
+      ? parseAffiliateTab(searchParams.get('tab'), true)
+      : null;
   const mobileNavTitle = inEuRepScope
     ? (activeEuRepContract?.legalEntity ?? t('nav.euRep'))
-    : section === 'affiliate'
-      ? t('nav.affiliate')
-      : t(`nav.${websiteSection}`);
+    : section === 'affiliate' && affiliateSidebar.visible && affiliateTab
+      ? tServiceTabs(affiliateTab)
+      : section === 'affiliate'
+        ? t('nav.affiliate')
+        : t(`nav.${websiteSection}`);
 
   const navigate = useCallback(
     (next: WebsiteSectionId) => {
@@ -137,36 +151,52 @@ export function AccountShell() {
     <SiteScopeProvider siteParam={siteParam} onSelectSite={selectSite}>
       <EuRepScopeProvider contractParam={contractParam} onSelectContract={selectContract}>
         <RegularPage topBarVariant="account" showFooter={false} noPadding>
-          <div className="border-border flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-8 lg:hidden">
-            <span className="font-display text-foreground min-w-0 truncate text-base font-semibold">
-              {mobileNavTitle}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileNavOpen((open) => !open);
-              }}
-              aria-expanded={mobileNavOpen}
-              aria-label={t('nav.openMenu')}
-              className="border-border text-foreground flex size-11 shrink-0 items-center justify-center rounded-xl border"
-            >
-              {mobileNavOpen ? <X size={20} /> : <List size={20} />}
-            </button>
-          </div>
+          {hideAffiliateSidebar ? null : (
+            <div className="border-border flex items-center justify-between gap-2 border-b px-4 py-3 sm:px-8 lg:hidden">
+              <span className="font-display text-foreground min-w-0 truncate text-base font-semibold">
+                {mobileNavTitle}
+              </span>
+              {showAffiliateMobileMenu ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNavOpen((open) => !open);
+                  }}
+                  aria-expanded={mobileNavOpen}
+                  aria-label={t('nav.openMenu')}
+                  className="border-border text-foreground flex size-11 shrink-0 items-center justify-center rounded-xl border"
+                >
+                  {mobileNavOpen ? <X size={20} /> : <List size={20} />}
+                </button>
+              ) : null}
+            </div>
+          )}
 
-          {mobileNavOpen ? (
+          {mobileNavOpen && showAffiliateMobileMenu ? (
             <div className="border-border border-b lg:hidden">
               <AccountSidebar active={websiteSection} onNavigate={navigate} />
             </div>
           ) : null}
 
           <AccountLayoutProvider mode={isLargeScreen ? 'split' : 'stack'}>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-visible lg:grid lg:grid-cols-[280px_1fr]">
-              <aside className="border-border sticky top-[var(--topbar-height,6rem)] hidden h-[calc(100dvh-var(--topbar-height,6rem))] min-h-0 w-[280px] shrink-0 flex-col self-stretch border-r lg:col-start-1 lg:row-start-1 lg:flex">
-                <AccountSidebar active={websiteSection} onNavigate={navigate} />
-              </aside>
+            <div
+              className={cn(
+                'flex min-h-0 min-w-0 flex-1 flex-col overflow-visible lg:grid',
+                hideAffiliateSidebar ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_1fr]'
+              )}
+            >
+              {hideAffiliateSidebar ? null : (
+                <aside className="border-border sticky top-[var(--topbar-height,6rem)] hidden h-[calc(100dvh-var(--topbar-height,6rem))] min-h-0 w-[280px] shrink-0 flex-col self-stretch border-r lg:col-start-1 lg:row-start-1 lg:flex">
+                  <AccountSidebar active={websiteSection} onNavigate={navigate} />
+                </aside>
+              )}
 
-              <div className="min-w-0 overflow-visible lg:col-start-2 lg:row-start-1 lg:min-h-0">
+              <div
+                className={cn(
+                  'min-w-0 overflow-visible lg:row-start-1 lg:min-h-0',
+                  hideAffiliateSidebar ? 'lg:col-start-1' : 'lg:col-start-2'
+                )}
+              >
                 <AnimatedDirectionalPanel
                   activeKey={contentActiveKey}
                   order={contentOrder}

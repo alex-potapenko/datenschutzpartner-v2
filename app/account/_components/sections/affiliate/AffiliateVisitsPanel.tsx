@@ -30,8 +30,7 @@ export function AffiliateVisitsPanel() {
   const title = t('title');
 
   return (
-    <AccountSection title={title} contentClassName="gap-4">
-      <p className="text-muted text-sm leading-relaxed">{t('body')}</p>
+    <AccountSection contentClassName="gap-4">
       <DataState
         isLoading={visits.isLoading}
         isError={visits.isError}
@@ -48,7 +47,6 @@ export function AffiliateVisitsPanel() {
                 </Table.Column>
                 <Table.Column>{t('colTarget')}</Table.Column>
                 <Table.Column>{t('colReferrer')}</Table.Column>
-                <Table.Column>{t('colCampaign')}</Table.Column>
                 <Table.Column className="whitespace-nowrap">{t('colConverted')}</Table.Column>
               </Table.Header>
               <Table.Body>
@@ -64,9 +62,6 @@ export function AffiliateVisitsPanel() {
                       ) : (
                         <span className="text-muted">{t('direct')}</span>
                       )}
-                    </Table.Cell>
-                    <Table.Cell className="text-sm">
-                      {row.campaign ?? <span className="text-muted">—</span>}
                     </Table.Cell>
                     <Table.Cell>
                       {row.converted ? (

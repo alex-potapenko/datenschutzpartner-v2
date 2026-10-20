@@ -321,32 +321,35 @@ is `api/affiliate.test.ts`.
 it marks the referrals paid and emails the partner to send an invoice; the transfer happens
 outside the product.
 
-**Links:** one partner slug (`/ref/:slug`) plus marketing links that add a same-site landing
-page and optional campaign: `/ref/:slug?to=/scan&campaign=newsletter`.
+**Links:** one partner ID (`/ref/:id`) plus marketing links that land on a same-site page
+(`/{marketing-page}/ref/{id}/` in production URLs; in-app rewrite via `?to=`).
 
-| Endpoint                                            | Purpose                                                                                                       |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `GET /affiliate/settings`                           | Program config (cookie window, commission rate, payout threshold, payout cadence)                             |
-| `POST /affiliate/applications`                      | Apply (website, description, email)                                                                           |
-| `GET /affiliate/applications/me`                    | Current user's application                                                                                    |
-| `GET /affiliate/dashboard/me`                       | Partner, marketing links with per-link stats, earnings by status, referrals (no customer data), payouts       |
-| `GET /affiliate/partner/me/visits`                  | Visit log (landing page, referrer, campaign, converted)                                                       |
-| `GET /affiliate/partner/me/campaigns`               | Per-campaign visits, referrals, conversion, earnings (campaign of the converting visit; rejected excluded)    |
-| `PATCH /affiliate/partner/me/slug`                  | Change the partner slug (unique)                                                                              |
-| `PATCH /affiliate/partner/me/settings`              | Notification email + notify-on-referral flag                                                                  |
-| `POST /affiliate/partner/me/referral-links`         | Create a marketing link (`targetPath`, optional `campaign`); same-site pages only                             |
-| `DELETE /affiliate/partner/me/referral-links/:id`   | Remove a marketing link                                                                                       |
-| `POST /affiliate/clicks`                            | Record a visit for `slug` + `targetPath` + `campaign`; returns the safe landing path                          |
-| `POST /affiliate/prototype/simulate-approval-email` | Prototype only: approve own pending application                                                               |
-| `POST /affiliate/prototype/quit`                    | Prototype only: remove partner data and mark application rejected                                             |
-| `POST /affiliate/prototype/mark-order-paid`         | Prototype only: oldest pending referral of the signed-in partner → `unpaid` (stands in for the order webhook) |
-| `POST /affiliate/prototype/create-payout`           | Prototype only: settle all unpaid referrals as `paid`, payout `invoice_requested`                             |
-| `POST /affiliate/prototype/mark-transferred`        | Prototype only: oldest `invoice_requested` payout → `transferred`                                             |
-| `POST /affiliate/prototype/toggle-active`           | Prototype only: deactivate / reactivate the signed-in partner (inactive = clicks stop attributing)            |
+| Endpoint                                            | Purpose                                                                                                                                      |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /affiliate/settings`                           | Program config (cookie window, commission rate, payout threshold, payout cadence, `maxVoucherDiscountPercent`)                               |
+| `POST /affiliate/applications`                      | Apply (website, description, email)                                                                                                          |
+| `GET /affiliate/applications/me`                    | Current user's application                                                                                                                   |
+| `GET /affiliate/dashboard/me`                       | Partner, marketing links with per-link stats, dashboard stats (A-30–A-32), `nextPayoutDate`, referrals (no customer data), payouts, vouchers |
+| `GET /affiliate/partner/me/visits`                  | Visit log (landing page, referrer, converted)                                                                                                |
+| `PATCH /affiliate/partner/me/slug`                  | Change the partner slug (unique); **403** `partner_inactive` when deactivated                                                                |
+| `PATCH /affiliate/partner/me/settings`              | Notification email + notify-on-referral flag; **403** when inactive                                                                          |
+| `POST /affiliate/partner/me/referral-links`         | Create a marketing link (`targetPath`, optional `campaign`); same-site pages only; **403** when inactive                                     |
+| `POST /affiliate/partner/me/vouchers`               | Create a partner voucher (`code`, `discountPercent` ≤ program max); **403** when inactive                                                    |
+| `DELETE /affiliate/partner/me/vouchers/:id`         | Remove a partner voucher; **403** when inactive                                                                                              |
+| `POST /affiliate/partner/me/leave`                  | Deactivate partner (A-04); links stop attributing; data retained                                                                             |
+| `DELETE /affiliate/partner/me/referral-links/:id`   | Remove a marketing link; **403** when inactive                                                                                               |
+| `POST /affiliate/clicks`                            | Record a visit for `slug` + `targetPath`; returns the safe landing path                                                                      |
+| `POST /checkout/promo/validate`                     | Validate static promo or active partner voucher (`lib/checkout-promo.ts`); used by EU Rep checkout UI                                        |
+| `POST /affiliate/prototype/simulate-approval-email` | Prototype only: approve own pending application                                                                                              |
+| `POST /affiliate/prototype/quit`                    | Prototype only: alias for leave (deactivate partner; deprecated)                                                                             |
+| `POST /affiliate/prototype/mark-order-paid`         | Prototype only: oldest pending referral of the signed-in partner → `unpaid` (stands in for the order webhook)                                |
+| `POST /affiliate/prototype/create-payout`           | Prototype only: settle all unpaid referrals as `paid`, payout `invoice_requested`                                                            |
+| `POST /affiliate/prototype/mark-transferred`        | Prototype only: oldest `invoice_requested` payout → `transferred`                                                                            |
+| `POST /affiliate/prototype/toggle-active`           | Prototype only: deactivate / reactivate the signed-in partner (inactive = clicks stop attributing)                                           |
 
 **Admin side lives in the external admin tool** (applications, partner management, referral
 corrections, payouts, program settings) and is not part of this frontend or its API contract. The
-`/affiliate/prototype/*` endpoints and the "Prototype controls" on the partner Overview stand in
+`/affiliate/prototype/*` endpoints and the **Dev controls** modal (link on partner Overview, MSW only) stand in
 for it so the partner flow can be demoed; they are dropped at handover.
 
 Attribution cookie: `dsp_affiliate_ref` (see `lib/affiliate-attribution.ts`). Checkout

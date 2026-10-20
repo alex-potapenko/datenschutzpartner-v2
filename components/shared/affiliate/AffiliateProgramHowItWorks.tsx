@@ -16,8 +16,8 @@ const CARD_STYLE = {
 
 type AffiliateProgramHowItWorksProps = {
   showForm?: boolean;
-  /** Pending / prototype link card — same column as the registration form. */
-  showApplicationStatus?: boolean;
+  /** Pending application — same aside shell as the form (no layout swap). */
+  applicationPending?: boolean;
   /** When set, form uses account field layout (e.g. embedded in Mein Konto). */
   formVariant?: 'landing' | 'account';
   registerSectionId?: boolean;
@@ -40,10 +40,11 @@ function AffiliateRegistrationAside({ children }: { children: ReactNode }) {
 
 export function AffiliateProgramHowItWorks({
   showForm = true,
-  showApplicationStatus = false,
+  applicationPending = false,
   formVariant = 'landing',
   registerSectionId = true,
 }: AffiliateProgramHowItWorksProps) {
+  const pendingInFormColumn = applicationPending;
   const t = useTranslations('affiliatePage.howItWorks');
   const tr = useTranslations('affiliatePage.registration');
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
@@ -54,7 +55,7 @@ export function AffiliateProgramHowItWorks({
       className="scroll-mt-24 overflow-visible"
     >
       <div className="grid grid-cols-1 items-stretch overflow-visible lg:grid-cols-2">
-        <div className="flex h-full flex-col">
+        <div className="flex h-full min-w-0 flex-col overflow-visible">
           <div className="flex flex-col gap-3 p-4 sm:p-8">
             <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
               {t('title')}
@@ -68,17 +69,19 @@ export function AffiliateProgramHowItWorks({
 
         {showForm ? (
           <AffiliateRegistrationAside>
-            <h3 className="text-foreground text-center text-xl font-semibold">
-              {applicationSubmitted ? tr('successTitle') : tr('cardTitle')}
-            </h3>
-            <AffiliateApplicationForm
-              variant={formVariant}
-              onSubmittedChange={setApplicationSubmitted}
-            />
-          </AffiliateRegistrationAside>
-        ) : showApplicationStatus ? (
-          <AffiliateRegistrationAside>
-            <AffiliateApplicationStatusCard />
+            {pendingInFormColumn ? (
+              <AffiliateApplicationStatusCard />
+            ) : (
+              <>
+                <h3 className="text-foreground text-center text-xl font-semibold">
+                  {applicationSubmitted ? tr('successTitle') : tr('cardTitle')}
+                </h3>
+                <AffiliateApplicationForm
+                  variant={formVariant}
+                  onSubmittedChange={setApplicationSubmitted}
+                />
+              </>
+            )}
           </AffiliateRegistrationAside>
         ) : null}
       </div>

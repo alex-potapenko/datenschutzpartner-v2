@@ -6,7 +6,7 @@ import { ArrowRight, Clock, CurrencyDollar, User, UsersThree } from '@/component
 import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 import { cn } from '@/lib/utils';
 
-const STAT_KEYS = ['commission', 'fullPrice', 'attribution'] as const;
+const STAT_KEYS = ['commission', 'partnerVouchers', 'attribution'] as const;
 
 type StatKey = (typeof STAT_KEYS)[number];
 
@@ -63,7 +63,7 @@ const STAT_ICONS: Record<StatKey, ReactNode> = {
       trailTile={{ color: 'var(--accent)', background: paleTileBackground('var(--accent)') }}
     />
   ),
-  fullPrice: (
+  partnerVouchers: (
     <StatIconFlow
       lead={<CurrencyDollar weight="fill" className={STAT_INNER_ICON} />}
       trail={<UsersThree weight="fill" className={STAT_INNER_ICON} />}

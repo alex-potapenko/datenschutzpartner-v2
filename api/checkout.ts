@@ -313,6 +313,30 @@ export const checkoutSessionSchema = z.object({
 });
 export type CheckoutSession = z.infer<typeof checkoutSessionSchema>;
 
+export const promoCodeDiscountSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('percent'), rate: z.number() }),
+  z.object({ kind: z.literal('fixed'), amount: z.number() }),
+]);
+export type PromoCodeDiscountDto = z.infer<typeof promoCodeDiscountSchema>;
+
+export const checkoutPromoValidateInputSchema = z.object({
+  code: z.string().trim().min(1),
+});
+
+export const checkoutPromoValidateResultSchema = z.object({
+  valid: z.boolean(),
+  normalizedCode: z.string().optional(),
+  discount: promoCodeDiscountSchema.optional(),
+});
+export type CheckoutPromoValidateResult = z.infer<typeof checkoutPromoValidateResultSchema>;
+
+export function validateCheckoutPromo(code: string) {
+  return request<CheckoutPromoValidateResult>('/checkout/promo/validate', {
+    method: 'POST',
+    body: JSON.stringify(checkoutPromoValidateInputSchema.parse({ code })),
+  });
+}
+
 /** Context for rendering the Payrexx order summary (POC). */
 export const checkoutSessionOrderContextSchema = z.object({
   domain: z.string().optional(),
@@ -442,6 +466,12 @@ export const checkoutKeys = {
 
 /** Query param the subscription tab reads to show the renewal confirmation. */
 export const SUBSCRIPTION_RENEWED_PARAM = 'renewed';
+
+export function useValidateCheckoutPromo() {
+  return useMutation({
+    mutationFn: (code: string) => validateCheckoutPromo(code),
+  });
+}
 
 export function useCheckoutSession(id: string | null) {
   return useQuery({

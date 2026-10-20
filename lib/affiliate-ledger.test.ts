@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   affiliateConversionRate,
   selectPayoutReferrals,
+  sumCompletedPayoutsChf,
   summarizeAffiliateReferrals,
   type AffiliateReferralStatus,
 } from './affiliate-ledger';
@@ -35,6 +36,18 @@ describe('affiliateConversionRate', () => {
 
   it('is zero without visits', () => {
     expect(affiliateConversionRate(0, summarizeAffiliateReferrals(referrals))).toBe(0);
+  });
+});
+
+describe('sumCompletedPayoutsChf', () => {
+  it('sums only transferred payouts (PRD A-31)', () => {
+    expect(
+      sumCompletedPayoutsChf([
+        { amountChf: 40, status: 'transferred' },
+        { amountChf: 16.91, status: 'invoice_requested' },
+        { amountChf: 8.01, status: 'transferred' },
+      ])
+    ).toBe(48.01);
   });
 });
 

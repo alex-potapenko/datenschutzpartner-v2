@@ -11,12 +11,16 @@ export function AffiliateReferralCopyButton({
   copiedLabel,
   copiedTooltip,
   onCopy,
+  buttonClassName,
+  iconSize = 16,
 }: {
   copied: boolean;
   copyLabel: string;
   copiedLabel: string;
   copiedTooltip: string;
   onCopy: () => void;
+  buttonClassName?: string;
+  iconSize?: number;
 }) {
   const reduceMotion = useReducedMotion();
   const motionDuration = reduceMotion ? 0 : 0.22;
@@ -32,7 +36,7 @@ export function AffiliateReferralCopyButton({
         variant="outline"
         size="sm"
         isIconOnly
-        className="size-8 shrink-0 rounded-full"
+        className={buttonClassName ?? 'size-8 shrink-0 rounded-full'}
         aria-label={copied ? copiedLabel : copyLabel}
         aria-live="polite"
         onPress={onCopy}
@@ -47,9 +51,9 @@ export function AffiliateReferralCopyButton({
             transition={transition}
           >
             {copied ? (
-              <Check size={16} weight="bold" aria-hidden />
+              <Check size={iconSize} weight="bold" aria-hidden />
             ) : (
-              <Copy size={16} weight="bold" aria-hidden />
+              <Copy size={iconSize} weight="bold" aria-hidden />
             )}
           </motion.span>
         </AnimatePresence>

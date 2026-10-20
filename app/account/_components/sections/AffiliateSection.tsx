@@ -8,17 +8,19 @@ import {
   useMyAffiliateApplication,
   type AffiliateDashboard,
 } from '@/api/affiliate';
-import { AffiliateQuitProgramLink } from '@/components/shared/affiliate/AffiliateQuitProgramLink';
 import { AffiliateProgramHero } from '@/components/shared/affiliate/AffiliateProgramHero';
 import { AffiliateServiceLanding } from '@/components/shared/AffiliateServiceLanding';
+import { cn } from '@/components/ui';
 import { AccountSectionFrame, DataState } from '../account-ui';
-import { AffiliateProgramAboutPanel } from './AffiliateProgramAboutPanel';
 import { AffiliateLinksPanel } from './affiliate/AffiliateLinksPanel';
 import { AffiliateOverviewPanel } from './affiliate/AffiliateOverviewPanel';
+import { AffiliatePayoutHowItWorksAction } from './affiliate/AffiliatePayoutInfo';
 import { AffiliatePayoutsPanel } from './affiliate/AffiliatePayoutsPanel';
 import { AffiliateReferralsPanel } from './affiliate/AffiliateReferralsPanel';
 import { AffiliateSettingsPanel } from './affiliate/AffiliateSettingsPanel';
 import { AffiliateVisitsPanel } from './affiliate/AffiliateVisitsPanel';
+import { AffiliateVouchersPanel } from './affiliate/AffiliateVouchersPanel';
+import { useAffiliateSidebarNav } from '../useAffiliateSidebarNav';
 import {
   AnimatedServiceTabContent,
   affiliateTabIds,
@@ -36,10 +38,10 @@ function partnerPanel(tab: ServiceTabId, dashboard: AffiliateDashboard): ReactNo
       return <AffiliateVisitsPanel />;
     case 'payouts':
       return <AffiliatePayoutsPanel dashboard={dashboard} />;
+    case 'vouchers':
+      return <AffiliateVouchersPanel dashboard={dashboard} />;
     case 'settings':
       return <AffiliateSettingsPanel partner={dashboard.partner} />;
-    case 'about':
-      return <AffiliateProgramAboutPanel />;
     default:
       return <AffiliateOverviewPanel dashboard={dashboard} />;
   }
@@ -47,22 +49,20 @@ function partnerPanel(tab: ServiceTabId, dashboard: AffiliateDashboard): ReactNo
 
 export function AffiliateSection() {
   const t = useTranslations('account.affiliate');
+  const tTabs = useTranslations('account.serviceTabs');
   const searchParams = useSearchParams();
   const application = useMyAffiliateApplication();
   const dashboard = useAffiliateDashboard();
+  const sidebarNav = useAffiliateSidebarNav();
 
   const isLoading = application.isLoading || dashboard.isLoading;
+  const hideSectionChrome = sidebarNav.isLoading || !sidebarNav.visible;
   const isPartner = Boolean(dashboard.data);
   const tab = parseAffiliateTab(searchParams.get('tab'), isPartner);
-  const showRegistrationForm =
-    !isPartner && application.data?.status !== 'pending' && application.data?.status !== 'approved';
-  const showApplicationStatus = !isPartner && application.data?.status === 'pending';
+  const applicationPending = !isPartner && application.data?.status === 'pending';
+  const showRegistrationForm = !isPartner && application.data?.status !== 'approved';
 
-  const showHero =
-    !isPartner &&
-    tab === 'overview' &&
-    (!application.data || application.data.status === 'rejected');
-
+  const showHero = !isPartner && tab === 'overview' && application.data?.status !== 'approved';
   return (
     <DataState
       isLoading={isLoading}
@@ -73,27 +73,34 @@ export function AffiliateSection() {
       }}
     >
       <AccountSectionFrame
-        title={t('title')}
-        action={isPartner ? <AffiliateQuitProgramLink className="inline-flex" /> : undefined}
+        title={sidebarNav.visible ? tTabs(tab) : t('title')}
+        hideTitle={hideSectionChrome}
         contentOverflowVisible={!isPartner}
+        action={
+          tab === 'payouts' && dashboard.data ? (
+            <AffiliatePayoutHowItWorksAction dashboard={dashboard.data} />
+          ) : undefined
+        }
       >
-        <AnimatedServiceTabContent tabKey={tab} tabOrder={affiliateTabIds(isPartner)}>
-          <div className="-mx-4 min-w-0 overflow-x-clip sm:-mx-8">
+        <AnimatedServiceTabContent
+          tabKey={tab}
+          tabOrder={affiliateTabIds(isPartner)}
+          className={isPartner ? undefined : 'overflow-visible'}
+        >
+          <div
+            className={cn(
+              '-mx-4 min-w-0 sm:-mx-8',
+              isPartner ? 'overflow-x-clip' : 'overflow-visible'
+            )}
+          >
             {dashboard.data ? (
               partnerPanel(tab, dashboard.data)
-            ) : tab === 'about' ? (
-              <AffiliateServiceLanding
-                showRegistrationForm={false}
-                showApplicationStatus={false}
-                formVariant="account"
-                embeddedInAccount
-              />
             ) : (
               <div className="bg-background min-w-0 overflow-visible">
                 {showHero ? <AffiliateProgramHero /> : null}
                 <AffiliateServiceLanding
                   showRegistrationForm={showRegistrationForm}
-                  showApplicationStatus={showApplicationStatus}
+                  applicationPending={applicationPending}
                   formVariant="account"
                   embeddedInAccount
                 />

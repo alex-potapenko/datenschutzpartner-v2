@@ -2,8 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useAffiliateDashboard } from '@/api/affiliate';
 import { cn } from '@/components/ui';
+import { AFFILIATE_TAB_ACCENT, AFFILIATE_TAB_ICON } from './affiliate-tab-icons';
+import { useAffiliateSidebarNav } from './useAffiliateSidebarNav';
 import {
   AFFILIATE_PARTNER_DEFAULT_TAB as DEFAULT_TAB,
   affiliateTabIds,
@@ -16,10 +17,11 @@ export function AffiliateServiceSidebarNav() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const dashboard = useAffiliateDashboard();
-  const isPartner = Boolean(dashboard.data);
+  const { visible, isPartner } = useAffiliateSidebarNav();
   const tab = parseAffiliateTab(searchParams.get('tab'), isPartner);
-  const accent = 'var(--accent)';
+
+  if (!visible) return null;
+  const accent = AFFILIATE_TAB_ACCENT;
 
   function selectTab(next: ServiceTabId) {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -33,10 +35,11 @@ export function AffiliateServiceSidebarNav() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-16">
       <div className="flex flex-col">
         {affiliateTabIds(isPartner).map((id) => {
           const isActive = tab === id;
+          const Icon = AFFILIATE_TAB_ICON[id];
 
           return (
             <button
@@ -61,6 +64,15 @@ export function AffiliateServiceSidebarNav() {
                   : undefined
               }
             >
+              {Icon ? (
+                <Icon
+                  size={20}
+                  weight={isActive ? 'fill' : 'regular'}
+                  className="shrink-0"
+                  style={isActive ? { color: accent } : undefined}
+                  aria-hidden
+                />
+              ) : null}
               <span className="min-w-0 flex-1 truncate">{t(id)}</span>
             </button>
           );

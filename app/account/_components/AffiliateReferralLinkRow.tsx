@@ -4,19 +4,41 @@ import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button, InputGroup, Trash } from '@/components/ui';
+import { splitPartnerReferralLinkDisplay } from '@/lib/affiliate-attribution';
 import { AffiliateReferralCopyButton } from './AffiliateReferralCopyButton';
+
+export type AffiliateReferralLinkMetaItem = {
+  key: string;
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+};
 
 type AffiliateReferralLinkRowProps = {
   id: string;
   label: string;
   url: string;
-  meta: { label: string; value: ReactNode }[];
+  meta: readonly AffiliateReferralLinkMetaItem[];
   onDelete?: () => void;
   isDeleting?: boolean;
 };
 
-function displayUrl(url: string) {
-  return url.replace(/^https?:\/\//, '');
+function MetaCell({
+  item,
+  className,
+}: {
+  item: AffiliateReferralLinkMetaItem;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <span className="text-muted shrink-0 [&_svg]:size-4" aria-hidden>
+        {item.icon}
+      </span>
+      <dt className="text-muted shrink-0 font-normal">{item.label}</dt>
+      <dd className="text-foreground min-w-0 truncate tabular-nums">{item.value}</dd>
+    </div>
+  );
 }
 
 export function AffiliateReferralLinkRow({
@@ -30,6 +52,14 @@ export function AffiliateReferralLinkRow({
   const t = useTranslations('account.affiliate.dashboard');
   const [linkCopied, setLinkCopied] = useState(false);
   const inputId = `affiliate-link-${id}`;
+  const linkParts = splitPartnerReferralLinkDisplay(url);
+  const displayUrl = url.replace(/^https?:\/\//, '');
+  const showStructuredTail = Boolean(
+    linkParts.hostPrefix && (linkParts.marketingPage || linkParts.refSuffix)
+  );
+  const pathAfterHost = linkParts.hostPrefix
+    ? displayUrl.slice(linkParts.hostPrefix.length)
+    : displayUrl;
 
   async function copyReferralLink() {
     try {
@@ -50,9 +80,41 @@ export function AffiliateReferralLinkRow({
           {label}
         </label>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-          <InputGroup variant="secondary" fullWidth className="min-w-0 flex-1">
-            <InputGroup.Input id={inputId} value={displayUrl(url)} readOnly />
-          </InputGroup>
+          <div className="min-w-0 flex-1 cursor-not-allowed">
+            <InputGroup
+              variant="secondary"
+              fullWidth
+              className="pointer-events-none select-none"
+              aria-label={displayUrl}
+            >
+              {linkParts.hostPrefix ? (
+                <InputGroup.Prefix className="text-muted shrink-0 pr-0 text-sm whitespace-nowrap select-none">
+                  {linkParts.hostPrefix}
+                </InputGroup.Prefix>
+              ) : null}
+              {showStructuredTail ? (
+                <div
+                  id={inputId}
+                  className="text-foreground flex min-w-0 flex-1 items-center overflow-x-auto text-sm whitespace-nowrap select-none"
+                >
+                  {linkParts.marketingPage ? (
+                    <span className="font-medium">{linkParts.marketingPage}</span>
+                  ) : null}
+                  {linkParts.refSuffix ? (
+                    <span className="text-muted shrink-0">{linkParts.refSuffix}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <InputGroup.Input
+                  id={inputId}
+                  value={pathAfterHost || displayUrl}
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly
+                />
+              )}
+            </InputGroup>
+          </div>
           <div className="flex shrink-0 flex-nowrap items-center gap-2">
             <AffiliateReferralCopyButton
               copied={linkCopied}
@@ -80,12 +142,13 @@ export function AffiliateReferralLinkRow({
         </div>
       </div>
 
-      <dl className="text-muted flex min-w-0 flex-wrap gap-x-6 gap-y-1 text-sm">
+      <dl className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm leading-snug">
         {meta.map((item) => (
-          <div key={item.label} className="flex gap-1.5">
-            <dt className="font-medium">{item.label}</dt>
-            <dd className="text-foreground tabular-nums">{item.value}</dd>
-          </div>
+          <MetaCell
+            key={item.key}
+            item={item}
+            className="flex w-max max-w-full shrink-0 items-center gap-1.5"
+          />
         ))}
       </dl>
     </article>

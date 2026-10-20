@@ -19,6 +19,22 @@ export type AffiliateReferralSummary = {
   paidChf: number;
 };
 
+export const AFFILIATE_PAYOUT_COMPLETED_STATUS = 'transferred' as const;
+
+type CompletedPayoutRow = {
+  amountChf: number;
+  status: typeof AFFILIATE_PAYOUT_COMPLETED_STATUS | 'invoice_requested';
+};
+
+/** PRD A-31: sum of completed (transferred) payouts — not referral `paid` commission totals. */
+export function sumCompletedPayoutsChf(payouts: readonly CompletedPayoutRow[]) {
+  return roundChf(
+    payouts
+      .filter((row) => row.status === AFFILIATE_PAYOUT_COMPLETED_STATUS)
+      .reduce((sum, row) => sum + row.amountChf, 0)
+  );
+}
+
 export function roundChf(amount: number) {
   return Math.round(amount * 100) / 100;
 }

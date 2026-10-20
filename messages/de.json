@@ -584,7 +584,8 @@
   "affiliatePage": {
     "metaTitle": "Affiliate-Programm — Datenschutzpartner",
     "metaDescription": "Provision von 10 Prozent auf vermittelte Käufe von Datenschutzpartner-Angeboten. Die Teilnahme am Affiliate-Programm ist kostenlos.",
-    "title": "Jetzt Geld verdienen mit dem Affiliate-Programm von Datenschutzpartner!",
+    "title": "Bewerben Sie sich kostenlos für unser Affiliate-Programm und verdienen Sie Geld!",
+    "heroLead": "Teilen Sie Ihre persönlichen Affiliate-Links auf Ihrer Website, in Newslettern oder in sozialen Medien. Wenn ein vermittelter Kunde bezahlt, erhalten Sie eine Provision — die Teilnahme ist kostenlos.",
     "registerCta": "Kostenlos registrieren",
     "heroImageAlt": "Zwei Personen geben sich nach einem Abschluss die Hand",
     "stats": {
@@ -593,9 +594,9 @@
         "title": "10 % Provision",
         "description": "Sie erhalten als Affiliate-Partner eine Provision von 10 Prozent auf bezahlten Käufen von Datenschutzpartner-Angeboten, die Sie erfolgreich vermittelt haben."
       },
-      "fullPrice": {
-        "title": "Voller Preis für Kunden",
-        "description": "Kunden, die über Ihren Link kommen, zahlen den regulären Preis — ohne Rabatt. Ihre Provision wird auf den vollen Nettobetrag berechnet."
+      "partnerVouchers": {
+        "title": "Optionale Rabattcodes",
+        "description": "Sie können Gutscheincodes für vermittelte Kunden erstellen (bis zur Programm-Obergrenze). Ihre Provision beträgt 10 % des Nettobetrags, den der Kunde nach etwaigem Rabatt tatsächlich bezahlt."
       },
       "attribution": {
         "title": "Last-Click-Attribution",
@@ -1564,6 +1565,7 @@
       "links": "Links",
       "referrals": "Empfehlungen",
       "payouts": "Auszahlungen",
+      "vouchers": "Gutscheine",
       "settings": "Einstellungen",
       "visits": "Besuche"
     },
@@ -1873,7 +1875,7 @@
         "quitAffiliate": "Affiliate-Programm verlassen",
         "quitConfirm": {
           "title": "Affiliate-Programm verlassen?",
-          "body": "Du verlässt das Affiliate-Programm in diesem Prototyp. Dein Partner-Link und Demo-Kennzahlen werden entfernt.",
+          "body": "Dein Affiliate-Konto wird deaktiviert. Deine Links erfassen keine neuen Besuche mehr; bestehende Provisionen und Auszahlungen bleiben sichtbar.",
           "confirm": "Programm verlassen",
           "cancel": "Abbrechen"
         }
@@ -1902,7 +1904,7 @@
         "stats": {
           "clicks": "Besuche",
           "conversions": "Empfehlungen",
-          "unpaidEarnings": "Nicht ausgezahlt"
+          "balance": "Saldo"
         },
         "baseLinkLabel": "Dein Partner-Link",
         "linkTarget": "Seite",
@@ -1936,49 +1938,94 @@
       },
       "overview": {
         "earningsTitle": "Einnahmen",
-        "activityTitle": "Aktivität",
-        "unpaid": "Nicht ausgezahlt",
-        "unpaidNote": "Wird mit der nächsten Auszahlung abgerechnet",
-        "pending": "Ausstehend",
-        "pendingNote": "Wartet auf die Zahlung des Kunden",
-        "paid": "Ausgezahlt",
-        "paidNote": "Bisher insgesamt",
+        "pendingEarnings": "Ausstehend",
+        "pendingEarningsHelpLabel": "Zu ausstehenden Einnahmen",
+        "pendingEarningsNote": "Provision wartet auf die Bezahlung der Kundenbestellung",
+        "unpaidEarnings": "Unpaid",
+        "unpaidEarningsHelpLabel": "Zu nicht ausgezahlten Einnahmen",
+        "unpaidEarningsNote": "Für die nächste Auszahlung — Summe der Unpaid-Empfehlungen",
+        "nextPayoutDate": "Nächste Auszahlung: {date}",
+        "paidOutToDate": "Bisher ausgezahlt",
         "visits": "Besuche",
-        "referrals": "Empfehlungen",
-        "conversionRate": "Conversion-Rate",
-        "commissionNote": "{rate} % Provision auf bezahlte Käufe",
-        "latestTitle": "Neueste Empfehlungen",
-        "allReferrals": "Alle Empfehlungen",
+        "settlementTitle": "Abrechnung",
+        "settlementCountsHelpLabel": "Zu den Abrechnungszähler",
+        "settlementCountsNote": "Anzahl Empfehlungen nach Provisionsstatus: Pending (Bestellung noch nicht bezahlt), Unpaid (auszahlbar, wartet auf den nächsten Auszahlungslauf), Paid (in einer Auszahlung erfasst). Rejected-Empfehlungen erscheinen hier nicht — siehe Tab Empfehlungen.",
+        "unpaidReferrals": "Unpaid",
+        "paidReferrals": "Paid",
+        "conversionRate": "Conversion",
+        "activityTitle": "Empfehlungsaktivität",
         "inactiveTitle": "Ihr Affiliate-Konto ist deaktiviert",
-        "inactiveBody": "Ihre Links erfassen keine Besuche und keine neuen Empfehlungen mehr. Bestehende Provisionen und Auszahlungen bleiben sichtbar. Melden Sie sich bei uns, falls es sich um einen Irrtum handelt."
+        "inactiveBody": "Ihre Links erfassen keine Besuche und keine neuen Empfehlungen mehr. Bestehende Provisionen und Auszahlungen bleiben sichtbar. <contact>Kontaktieren Sie uns</contact>, falls es sich um einen Irrtum handelt."
       },
       "payoutInfo": {
         "title": "So funktioniert die Auszahlung",
-        "body": "Nicht ausgezahlte Einnahmen rechnen wir alle {months} Monate ab. Du erhältst dann eine E-Mail mit dem Betrag – schick uns eine Rechnung, danach überweisen wir das Geld.",
-        "threshold": "Mindestbetrag für eine Auszahlung: CHF {threshold}.",
-        "email": "E-Mails gehen an {email}."
+        "actionLabel": "So funktioniert's",
+        "steps": {
+          "settlement": "Nicht ausgezahlte Einnahmen rechnen wir alle {months} Monate ab.",
+          "invoice": "Du erhältst eine E-Mail mit dem Betrag – schick uns eine Rechnung, danach überweisen wir das Geld.",
+          "threshold": "Mindestbetrag für eine Auszahlung: CHF {threshold}.",
+          "email": "E-Mails gehen an {email}."
+        }
       },
       "links": {
         "partnerTitle": "Partner-Link",
         "partnerBody": "Teile diesen Link überall oder erstelle unten Marketing-Links zu bestimmten Seiten.",
-        "slugLabel": "Affiliate-ID",
-        "slugHint": "Wenn Sie Ihre ID ändern, funktionieren bereits geteilte Links nicht mehr.",
-        "slugSaved": "Affiliate-ID gespeichert",
-        "slugTaken": "Diese ID ist bereits vergeben.",
+        "idLine": "Affiliate ID:",
+        "referralUrlLine": "Basis-Vermittler-URL:",
+        "idTitle": "Affiliate ID",
+        "referralUrlTitle": "Basis-Vermittler-URL",
+        "referralUrlHelpLabel": "Zur Basis-Vermittler-URL",
+        "referralUrlDescription": "Führt zur Startseite. Für andere Zielseiten unten einen Marketing-Link anlegen — deine ID steht dann als /ref/{id}/ nach dem Seitenpfad.",
+        "identityAriaLabel": "Partner-Link",
         "generatorTitle": "Marketing-Link-Generator",
         "generatorBody": "Gib eine beliebige Seite auf datenschutzpartner.com ein und erhalte einen Tracking-Link, der direkt dorthin führt.",
         "targetLabel": "Seiten-URL",
         "targetPlaceholder": "datenschutzpartner.com/scan",
-        "campaignLabel": "Kampagne (optional)",
-        "campaignPlaceholder": "newsletter",
-        "create": "Link erstellen",
+        "addLink": "Link hinzufügen",
+        "createHint": "Der Tracking-Link muss auf eine konkrete Seite auf www.datenschutzpartner.ch führen (z. B. datenschutzpartner.ch/scan).",
+        "saveLink": "Link speichern",
+        "cancelCreate": "Abbrechen",
         "created": "Link erstellt",
-        "linkExists": "Für diese Seite und Kampagne gibt es bereits einen Link.",
+        "linkExists": "Für diese Seite gibt es bereits einen Link.",
         "createFailed": "Link konnte nicht erstellt werden.",
         "listTitle": "Deine Marketing-Links",
-        "listEmpty": "Noch keine Marketing-Links."
+        "listEmpty": "Noch keine Marketing-Links.",
+        "colMarketingLink": "Marketing-Link",
+        "colCreated": "Erstellungsdatum",
+        "slugEdit": "Bearbeiten",
+        "slugEditModalTitle": "Affiliate-ID bearbeiten",
+        "slugSave": "Speichern",
+        "slugCancel": "Abbrechen",
+        "slugSaved": "Affiliate-ID aktualisiert",
+        "slugTaken": "Diese ID ist bereits vergeben",
+        "copyBaseUrl": "Basis-URL kopieren",
+        "campaignLabel": "Kampagne (optional)",
+        "campaignPlaceholder": "z. B. newsletter-fruehjahr"
+      },
+      "vouchers": {
+        "createBody": "Kunden können Ihren Code beim Checkout eingeben. Die Provision berechnet sich aus dem Nettobetrag nach Rabatt.",
+        "draftHint": "Gutscheincode und Rabatt eingeben. Maximaler Rabatt: {maxPercent} %. Beispiel:",
+        "codeLabel": "Gutscheincode",
+        "discountLabel": "Rabatt",
+        "addVoucher": "Gutschein hinzufügen",
+        "saveVoucher": "Gutschein speichern",
+        "cancelCreate": "Abbrechen",
+        "created": "Gutschein erstellt",
+        "createFailed": "Gutschein konnte nicht erstellt werden.",
+        "codeTaken": "Dieser Code ist bereits vergeben.",
+        "discountTooHigh": "Rabatt übersteigt die Programm-Obergrenze.",
+        "voucherDelete": "Gutschein entfernen",
+        "voucherDeleteFailed": "Gutschein konnte nicht entfernt werden.",
+        "listTitle": "Ihre Gutscheine",
+        "empty": "Noch keine Gutscheine.",
+        "colCode": "Code",
+        "colDiscount": "Rabatt",
+        "colCreated": "Erstellt"
       },
       "payouts": {
+        "instructionsTitle": "Rechnung senden",
+        "instructionsIntro": "Wenn wir eine Auszahlung anstossen, erhalten Sie den Betrag per E-Mail. Antworten Sie mit einer Rechnung über diesen Betrag — die Überweisung erfolgt manuell (kein Sofort-Auszahl in der App).",
+        "instructionsAmount": "Rechnung angefordert am {date}: Bitte senden Sie eine Rechnung über CHF {amount} (netto) an Datenschutzpartner.",
         "historyTitle": "Auszahlungen",
         "empty": "Noch keine Auszahlungen.",
         "colDate": "Datum",
@@ -1998,20 +2045,20 @@
       "settings": {
         "title": "Benachrichtigungen",
         "emailLabel": "E-Mail-Adresse für Zahlungsinformationen",
-        "emailHint": "An diese Adresse senden wir Provisionsmeldungen und Rechnungsanfragen.",
         "notifyLabel": "Benachrichtigungen für erfolgreiche Empfehlungen aktivieren",
         "save": "Speichern",
         "saved": "Einstellungen gespeichert",
-        "saveFailed": "Einstellungen konnten nicht gespeichert werden."
+        "saveFailed": "Einstellungen konnten nicht gespeichert werden.",
+        "leaveTitle": "Programm verlassen",
+        "leaveBody": "Deaktivieren Sie Ihr Affiliate-Konto. Links attributieren nicht mehr; Empfehlungen und Auszahlungen bleiben sichtbar.",
+        "leave": "Verlassen"
       },
       "visits": {
         "title": "Besuche",
-        "body": "Jeder Klick auf einen Ihrer Links. Kundendaten werden nie angezeigt.",
         "empty": "Noch keine Besuche.",
         "colDate": "Datum",
         "colTarget": "Zielseite",
         "colReferrer": "Herkunft",
-        "colCampaign": "Kampagne",
         "colConverted": "Kauf",
         "direct": "Direkt",
         "converted": "Konvertiert",
@@ -2020,19 +2067,9 @@
         "previous": "Zurück",
         "next": "Weiter"
       },
-      "campaigns": {
-        "title": "Kampagnen-Performance",
-        "body": "Besuche, Empfehlungen und Einnahmen pro Kampagne über alle Ihre Links. Abgelehnte Empfehlungen werden nicht gezählt.",
-        "empty": "Noch keine Kampagnendaten.",
-        "colCampaign": "Kampagne",
-        "colVisits": "Besuche",
-        "colReferrals": "Empfehlungen",
-        "colConversion": "Conversion",
-        "colEarnings": "Einnahmen",
-        "noCampaign": "Ohne Kampagne"
-      },
       "prototypeControls": {
-        "title": "Prototyp-Steuerung",
+        "title": "Dev-Controls",
+        "showDevControls": "Dev-Controls anzeigen",
         "body": "Im Betrieb passieren diese Schritte im externen Admin-Tool und über den Bestell-Webhook. Hier werden sie für Ihr eigenes Konto simuliert.",
         "orderPaid": "Kunde bezahlt eine Bestellung",
         "orderPaidDone": "Bestellung {reference} bezahlt — Provision ist jetzt offen. Benachrichtigung an {email}.",
@@ -2682,8 +2719,10 @@
     "domain": "Bitte gib eine gültige Website-Domain ein",
     "website": "Bitte gib eine gültige Website-URL ein",
     "affiliateUsername": "Verwende 3–40 Buchstaben, Zahlen, Punkte, Bindestriche oder Unterstriche",
+    "affiliatePartnerId": "Verwende genau 3 Ziffern",
     "affiliateTargetPath": "Gib eine Seite auf datenschutzpartner.com ein",
     "affiliateCampaign": "Verwende bis zu 40 Buchstaben, Zahlen, Bindestriche oder Unterstriche",
+    "affiliateVoucherCode": "Verwende 3–20 Buchstaben, Zahlen, Bindestriche oder Unterstriche",
     "messageMin": "Bitte gib mindestens 10 Zeichen ein",
     "messageMax": "Die Nachricht ist zu lang",
     "message": "Bitte gib eine aussagekräftige Nachricht ein",

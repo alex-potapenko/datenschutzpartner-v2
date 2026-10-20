@@ -6,8 +6,11 @@ import { countLetters } from '@/lib/validation/patterns';
 import { normalizeAndValidateWebsiteUrl } from '@/lib/validation/url';
 import { request } from './client';
 
-/** Handle in referral URLs — letters, digits, dot, dash, underscore. */
-export const AFFILIATE_SLUG_PATTERN = /^[a-z0-9][a-z0-9._-]{1,38}[a-z0-9]$/i;
+/** Public partner number in `/ref/{id}` — exactly three digits (stored in `slug`). */
+export const AFFILIATE_PARTNER_ID_PATTERN = /^\d{3}$/;
+
+/** @deprecated Use {@link AFFILIATE_PARTNER_ID_PATTERN}. */
+export const AFFILIATE_SLUG_PATTERN = AFFILIATE_PARTNER_ID_PATTERN;
 
 export function createAffiliateApplicationFormSchema(tv: (key: string) => string) {
   return z.object({
@@ -53,6 +56,27 @@ export const affiliateProgramSettingsSchema = z.object({
   defaultCommissionRate: z.number().min(0).max(1),
   payoutThresholdChf: z.number().min(0),
   payoutCadenceMonths: z.number().int().min(1),
+  /** Admin cap for partner-created voucher discount (A-62). */
+  maxVoucherDiscountPercent: z.number().min(1).max(100),
+});
+
+export const AFFILIATE_CAMPAIGN_PATTERN = /^[a-z0-9][a-z0-9-_]{0,38}[a-z0-9]$/i;
+
+export const affiliateVoucherSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  discountPercent: z.number(),
+  createdAt: z.string(),
+});
+
+export const affiliateVoucherCreateSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(3, 'validation.required')
+    .max(20, 'validation.required')
+    .regex(/^[a-z0-9-_]+$/i, 'validation.affiliateVoucherCode'),
+  discountPercent: z.number().min(1).max(100),
 });
 
 export const affiliateReferralStatusSchema = z.enum(AFFILIATE_REFERRAL_STATUSES);
@@ -83,10 +107,9 @@ export const affiliateReferralLinkSchema = z.object({
   createdAt: z.string(),
   clicks: z.number().int(),
   conversions: z.number().int(),
-  earningsChf: z.number(),
+  /** Sum of Unpaid referral commissions on this link (A-33 balance). */
+  balanceChf: z.number(),
 });
-
-export const AFFILIATE_CAMPAIGN_PATTERN = /^[a-z0-9_-]{1,40}$/i;
 
 export const affiliateReferralLinkCreateSchema = z.object({
   targetPath: z
@@ -96,13 +119,14 @@ export const affiliateReferralLinkCreateSchema = z.object({
       (value) => normalizeAffiliateTargetPath(value) !== null,
       'validation.affiliateTargetPath'
     ),
+  /** Optional campaign tag (A-21); appended as `?campaign=` on the referral URL. */
   campaign: z
     .string()
     .trim()
-    .refine(
-      (value) => value === '' || AFFILIATE_CAMPAIGN_PATTERN.test(value),
-      'validation.affiliateCampaign'
-    ),
+    .max(40)
+    .regex(AFFILIATE_CAMPAIGN_PATTERN, 'validation.affiliateCampaign')
+    .optional()
+    .or(z.literal('')),
 });
 
 /** Partner-facing commission row — never carries customer identity. */
@@ -136,9 +160,10 @@ export const affiliateDashboardStatsSchema = z.object({
   referralCounts: z.record(affiliateReferralStatusSchema, z.number().int()),
   /** Waiting for the customer order to be paid. */
   pendingEarningsChf: z.number(),
-  /** Payable in the next payout run. */
+  /** Payable in the next payout run (PRD A-30: Unpaid referrals not yet in a payout). */
   unpaidEarningsChf: z.number(),
-  paidEarningsChf: z.number(),
+  /** PRD A-31: sum of completed (`transferred`) payouts. */
+  paidOutToDateChf: z.number(),
 });
 
 export const affiliateDashboardSchema = z.object({
@@ -146,8 +171,11 @@ export const affiliateDashboardSchema = z.object({
   referralLinks: z.array(affiliateReferralLinkSchema),
   stats: affiliateDashboardStatsSchema,
   payoutThresholdChf: z.number(),
+  /** Next scheduled payout run (YYYY-MM-DD), from program cadence. */
+  nextPayoutDate: z.string(),
   payouts: z.array(affiliatePayoutSchema),
   referrals: z.array(affiliateReferralSchema),
+  vouchers: z.array(affiliateVoucherSchema),
 });
 
 export const affiliateVisitSchema = z.object({
@@ -159,17 +187,8 @@ export const affiliateVisitSchema = z.object({
   createdAt: z.string(),
 });
 
-export const affiliateCampaignStatsSchema = z.object({
-  /** `null` = visits and referrals without a campaign. */
-  campaign: z.string().nullable(),
-  visits: z.number().int(),
-  referrals: z.number().int(),
-  conversionRate: z.number(),
-  earningsChf: z.number(),
-});
-
 export const affiliateSlugUpdateSchema = z.object({
-  slug: z.string().trim().regex(AFFILIATE_SLUG_PATTERN, 'validation.affiliateUsername'),
+  slug: z.string().trim().regex(AFFILIATE_PARTNER_ID_PATTERN, 'validation.affiliatePartnerId'),
 });
 
 export const affiliatePartnerSettingsUpdateSchema = z.object({
@@ -185,6 +204,11 @@ export type AffiliateApplication = z.infer<typeof affiliateApplicationSchema>;
 export type AffiliateProgramSettings = z.infer<typeof affiliateProgramSettingsSchema>;
 export type AffiliateReferralStatus = z.infer<typeof affiliateReferralStatusSchema>;
 export type AffiliatePartner = z.infer<typeof affiliatePartnerSchema>;
+
+/** Active partners may create, edit, or delete links, vouchers, slug, and settings. */
+export function isAffiliatePartnerEditable(partner: Pick<AffiliatePartner, 'status'>): boolean {
+  return partner.status === 'active';
+}
 export type AffiliateReferralLink = z.infer<typeof affiliateReferralLinkSchema>;
 export type AffiliateReferralLinkCreate = z.infer<typeof affiliateReferralLinkCreateSchema>;
 export type AffiliateReferral = z.infer<typeof affiliateReferralSchema>;
@@ -192,9 +216,10 @@ export type AffiliatePayout = z.infer<typeof affiliatePayoutSchema>;
 export type AffiliatePayoutStatus = z.infer<typeof affiliatePayoutStatusSchema>;
 export type AffiliateDashboard = z.infer<typeof affiliateDashboardSchema>;
 export type AffiliateVisit = z.infer<typeof affiliateVisitSchema>;
-export type AffiliateCampaignStats = z.infer<typeof affiliateCampaignStatsSchema>;
 export type AffiliatePartnerSettingsUpdate = z.infer<typeof affiliatePartnerSettingsUpdateSchema>;
 export type AffiliatePartnerStatus = z.infer<typeof affiliatePartnerStatusSchema>;
+export type AffiliateVoucher = z.infer<typeof affiliateVoucherSchema>;
+export type AffiliateVoucherCreate = z.infer<typeof affiliateVoucherCreateSchema>;
 
 export const affiliateKeys = {
   all: ['affiliate'] as const,
@@ -202,7 +227,6 @@ export const affiliateKeys = {
   myApplication: () => [...affiliateKeys.all, 'application', 'me'] as const,
   dashboard: () => [...affiliateKeys.all, 'dashboard', 'me'] as const,
   visits: () => [...affiliateKeys.all, 'visits', 'me'] as const,
-  campaigns: () => [...affiliateKeys.all, 'campaigns', 'me'] as const,
 };
 
 export function useAffiliateProgramSettings() {
@@ -233,10 +257,11 @@ export function useCreateAffiliateApplication() {
   });
 }
 
-export function useAffiliateDashboard() {
+export function useAffiliateDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: affiliateKeys.dashboard(),
     queryFn: () => request<AffiliateDashboard | null>('/affiliate/dashboard/me'),
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -244,13 +269,6 @@ export function useAffiliateVisits() {
   return useQuery({
     queryKey: affiliateKeys.visits(),
     queryFn: () => request<AffiliateVisit[]>('/affiliate/partner/me/visits'),
-  });
-}
-
-export function useAffiliateCampaignStats() {
-  return useQuery({
-    queryKey: affiliateKeys.campaigns(),
-    queryFn: () => request<AffiliateCampaignStats[]>('/affiliate/partner/me/campaigns'),
   });
 }
 
@@ -377,16 +395,45 @@ export function useSimulateAffiliateApprovalEmail() {
   });
 }
 
-/** Prototype (MSW): leave the affiliate program and reset partner data. */
-export function useQuitAffiliateProgram() {
+/** A-04: deactivate the partner account; links stop attributing, data is retained. */
+export function useLeaveAffiliateProgram() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      request<{ ok: true }>('/affiliate/prototype/quit', {
+      request<{ ok: true }>('/affiliate/partner/me/leave', {
         method: 'POST',
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: affiliateKeys.myApplication() });
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
+  });
+}
+
+/** @deprecated Use {@link useLeaveAffiliateProgram}. */
+export const useQuitAffiliateProgram = useLeaveAffiliateProgram;
+
+export function useCreateAffiliateVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AffiliateVoucherCreate) =>
+      request<AffiliateVoucher>('/affiliate/partner/me/vouchers', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.dashboard() });
+    },
+  });
+}
+
+export function useDeleteAffiliateVoucher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<{ ok: true }>(`/affiliate/partner/me/vouchers/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: affiliateKeys.dashboard() });
     },
   });

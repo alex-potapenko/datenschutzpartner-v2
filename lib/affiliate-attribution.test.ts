@@ -1,18 +1,58 @@
 import { describe, expect, it } from 'vitest';
 import {
   affiliateReferralUrl,
+  affiliateTargetPathFromMarketingSegment,
   normalizeAffiliateTargetPath,
   safeTargetPath,
+  splitPartnerReferralLinkDisplay,
 } from './affiliate-attribution';
 
 describe('affiliateReferralUrl', () => {
   it('builds the base partner link without a target', () => {
-    expect(affiliateReferralUrl('lucas')).toBe('https://datenschutzpartner.com/ref/lucas');
+    expect(affiliateReferralUrl('356')).toBe('https://www.datenschutzpartner.ch/ref/356/');
   });
 
-  it('appends target page and campaign', () => {
-    expect(affiliateReferralUrl('lucas', { targetPath: '/scan', campaign: 'newsletter' })).toBe(
-      'https://datenschutzpartner.com/ref/lucas?to=/scan&campaign=newsletter'
+  it('embeds ref in the marketing page path without query params (Phase 1)', () => {
+    expect(affiliateReferralUrl('356', { targetPath: '/scan' })).toBe(
+      'https://www.datenschutzpartner.ch/angebot-datenschutz-generator/ref/356/'
+    );
+  });
+
+  it('appends optional campaign as a query param (A-21)', () => {
+    expect(
+      affiliateReferralUrl('356', { targetPath: '/scan', campaign: 'newsletter-spring' })
+    ).toBe(
+      'https://www.datenschutzpartner.ch/angebot-datenschutz-generator/ref/356/?campaign=newsletter-spring'
+    );
+  });
+});
+
+describe('splitPartnerReferralLinkDisplay', () => {
+  it('splits marketing page and ref tail', () => {
+    expect(
+      splitPartnerReferralLinkDisplay(
+        'https://www.datenschutzpartner.ch/angebot-datenschutz-generator/ref/356/'
+      )
+    ).toEqual({
+      hostPrefix: 'www.datenschutzpartner.ch/',
+      marketingPage: 'angebot-datenschutz-generator',
+      refSuffix: '/ref/356/',
+    });
+  });
+
+  it('handles the base partner link without a marketing page', () => {
+    expect(splitPartnerReferralLinkDisplay('https://www.datenschutzpartner.ch/ref/356/')).toEqual({
+      hostPrefix: 'www.datenschutzpartner.ch/',
+      marketingPage: null,
+      refSuffix: 'ref/356/',
+    });
+  });
+});
+
+describe('affiliateTargetPathFromMarketingSegment', () => {
+  it('maps known marketing paths back to app routes', () => {
+    expect(affiliateTargetPathFromMarketingSegment('angebot-eu-datenschutz-vertretung')).toBe(
+      '/eu-rep'
     );
   });
 });
@@ -24,6 +64,7 @@ describe('normalizeAffiliateTargetPath', () => {
     ['scan', '/scan'],
     ['eu-rep/questionnaire', '/eu-rep/questionnaire'],
     ['datenschutzpartner.ch/eu-rep', '/eu-rep'],
+    ['https://www.datenschutzpartner.ch/angebot-datenschutz-generator/ref/356/', '/scan'],
     ['https://www.datenschutzpartner.com/scan?plan=pro', '/scan?plan=pro'],
   ])('maps %s to %s', (input, expected) => {
     expect(normalizeAffiliateTargetPath(input)).toBe(expected);
@@ -42,5 +83,6 @@ describe('safeTargetPath', () => {
     expect(safeTargetPath('//evil.test')).toBeNull();
     expect(safeTargetPath('/\\evil.test')).toBeNull();
     expect(safeTargetPath('/scan')).toBe('/scan');
+    expect(safeTargetPath('/angebot/ref/356')).toBeNull();
   });
 });

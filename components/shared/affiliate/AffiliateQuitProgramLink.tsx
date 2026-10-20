@@ -2,22 +2,24 @@
 
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { useQuitAffiliateProgram } from '@/api/affiliate';
+import { useLeaveAffiliateProgram } from '@/api/affiliate';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Button, useOverlayState } from '@/components/ui';
 
 type AffiliateQuitProgramLinkProps = {
   onQuitSuccess?: () => void;
   className?: string;
+  label?: string;
 };
 
 export function AffiliateQuitProgramLink({
   onQuitSuccess,
   className,
+  label,
 }: AffiliateQuitProgramLinkProps) {
   const t = useTranslations('account.affiliate');
   const tc = useTranslations('common');
-  const quitAffiliate = useQuitAffiliateProgram();
+  const quitAffiliate = useLeaveAffiliateProgram();
   const quitDialog = useOverlayState();
 
   function handleQuitAffiliate() {
@@ -42,7 +44,7 @@ export function AffiliateQuitProgramLink({
           quitDialog.open();
         }}
       >
-        {t('pendingCard.quit')}
+        {label ?? t('pendingCard.quit')}
       </Button>
 
       <ConfirmDialog

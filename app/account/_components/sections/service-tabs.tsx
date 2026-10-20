@@ -20,8 +20,9 @@ export const SERVICE_TAB_IDS = [
   'faq',
   'overview',
   'links',
-  'referrals',
+  'vouchers',
   'visits',
+  'referrals',
   'payouts',
   'settings',
 ] as const;
@@ -51,18 +52,15 @@ export function parseEuRepTab(value: string | null | undefined): ServiceTabId | 
 export const AFFILIATE_PARTNER_TAB_IDS = [
   'overview',
   'links',
-  'referrals',
+  'vouchers',
   'visits',
+  'referrals',
   'payouts',
   'settings',
-  'about',
 ] as const satisfies readonly ServiceTabId[];
 
-/** Before approval the section only shows the program landing and how it works. */
-export const AFFILIATE_APPLICANT_TAB_IDS = [
-  'overview',
-  'about',
-] as const satisfies readonly ServiceTabId[];
+/** Before approval the section only shows the program landing (no sub-nav). */
+export const AFFILIATE_APPLICANT_TAB_IDS = ['overview'] as const satisfies readonly ServiceTabId[];
 
 export const AFFILIATE_PARTNER_DEFAULT_TAB: ServiceTabId = 'overview';
 
@@ -86,25 +84,30 @@ export function useServiceTabs(
 }
 
 /**
- * Framer Motion panel swap for service tabs — horizontal slide by switch direction.
- * Safe with HeroUI because the Tabs list lives outside this tree in AccountSectionFrame.
+ * Framer Motion panel swap for service tabs — vertical slide by switch direction (same as
+ * main account section navigation). Safe with HeroUI because the Tabs list lives outside
+ * this tree in AccountSectionFrame.
  */
 export function AnimatedServiceTabContent({
   tabKey,
   tabOrder,
   children,
   className,
+  axis = 'y',
 }: {
   tabKey: string;
   /** Display order of tabs — used to resolve forward vs back. */
   tabOrder: readonly string[];
   children: ReactNode;
   className?: string;
+  /** `y` for product sub-tabs (default); pass `x` if a screen needs horizontal motion. */
+  axis?: 'x' | 'y';
 }) {
   return (
     <AnimatedDirectionalPanel
       activeKey={tabKey}
       order={tabOrder}
+      axis={axis}
       className={cn('flex min-h-0 flex-1 flex-col', className)}
     >
       {children}

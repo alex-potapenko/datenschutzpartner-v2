@@ -44,6 +44,7 @@ import {
   ClockIcon as Clock,
   TimerIcon as Timer,
   DownloadSimpleIcon as DownloadSimple,
+  GearIcon as Gear,
 
   // Data / Business
   BuildingsIcon as Buildings,
@@ -155,6 +156,7 @@ export {
   Clock,
   Timer,
   DownloadSimple,
+  Gear,
 
   // Data / Business
   Buildings,

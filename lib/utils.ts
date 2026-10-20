@@ -50,12 +50,20 @@ export function smoothScrollElementToViewportBottom(
   const offset = options?.offset ?? 0;
   const scrollParent = getScrollParent(element);
 
+  const elementRect = element.getBoundingClientRect();
+
   if (!scrollParent) {
-    element.scrollIntoView({ behavior, block: 'end' });
+    let top = window.scrollY + (elementRect.bottom - window.innerHeight) + offset;
+
+    if (options?.onlyScrollDown) {
+      top = Math.max(window.scrollY, top);
+    }
+
+    const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+    window.scrollTo({ top: Math.min(Math.max(0, top), maxScroll), behavior });
     return;
   }
 
-  const elementRect = element.getBoundingClientRect();
   const scrollRect = scrollParent.getBoundingClientRect();
   let top = scrollParent.scrollTop + (elementRect.bottom - scrollRect.bottom) + offset;
 

@@ -14,10 +14,17 @@ import {
 import { Spinner } from '@/components/ui';
 
 /**
- * Entry for partner links (`/ref/:slug?to=/scan&campaign=…`): records the visit, sets the
- * last-click cookie for known partners, then lands on the requested same-site page.
+ * Entry for partner links (`/{page}/ref/:slug/` or legacy `/ref/:slug?to=…`): records the
+ * visit, sets the last-click cookie for known partners, then lands on the target page.
  */
-export function AffiliateRefRedirect({ slug }: { slug: string }) {
+export function AffiliateRefRedirect({
+  slug,
+  targetPath: targetFromRoute,
+}: {
+  slug: string;
+  /** Resolved app path when ref is embedded in a marketing URL. */
+  targetPath?: string | null;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('affiliatePage.redirect');
@@ -26,7 +33,7 @@ export function AffiliateRefRedirect({ slug }: { slug: string }) {
   const startedRef = useRef(false);
 
   const pathSegment = slug.trim();
-  const targetPath = safeTargetPath(searchParams.get(AFFILIATE_TARGET_PARAM));
+  const targetPath = safeTargetPath(targetFromRoute ?? searchParams.get(AFFILIATE_TARGET_PARAM));
   const campaign = searchParams.get(AFFILIATE_CAMPAIGN_PARAM)?.trim() || null;
   const cookieDays = settings.data?.cookieDays;
   const settingsReady = !settings.isLoading;

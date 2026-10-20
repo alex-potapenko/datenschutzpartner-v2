@@ -14,6 +14,7 @@ import {
   formatDiscountPercent,
   useCompleteCheckoutSession,
   useCreateCheckoutSession,
+  useValidateCheckoutPromo,
   type EuRepPlanId,
 } from '@/api/checkout';
 import { EU_REP_ACCOUNT_HREF } from '@/app/account/_components/account-sections';
@@ -77,8 +78,6 @@ import { EuRepCheckoutActivation } from './EuRepCheckoutActivation';
 import {
   applyPromoDiscount,
   calculatePromoDiscountAmount,
-  normalizePromoCode,
-  resolvePromoCode,
   type PromoCodeDiscount,
 } from '@/lib/promo-codes';
 
@@ -324,15 +323,15 @@ export function EuRepCheckoutApp() {
   const pendingCheckoutActionRef = useRef<(() => Promise<void>) | null>(null);
   const [promoDraft, setPromoDraft] = useState('');
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [appliedPromoDiscount, setAppliedPromoDiscount] = useState<PromoCodeDiscount | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const validateCheckoutPromo = useValidateCheckoutPromo();
   const [guestCheckoutStep, setGuestCheckoutStep] = useState<EuRepCheckoutStepId>('entity');
   const quote = useMemo(() => calculateEuRepQuote(selectedPlanId), [selectedPlanId]);
   const appliedPromo = useMemo((): { code: string; discount: PromoCodeDiscount } | null => {
-    if (!appliedPromoCode) return null;
-    const discount = resolvePromoCode(appliedPromoCode);
-    if (!discount) return null;
-    return { code: appliedPromoCode, discount };
-  }, [appliedPromoCode]);
+    if (!appliedPromoCode || !appliedPromoDiscount) return null;
+    return { code: appliedPromoCode, discount: appliedPromoDiscount };
+  }, [appliedPromoCode, appliedPromoDiscount]);
   const promoDiscountAmount = useMemo(() => {
     if (!appliedPromo) return 0;
     return calculatePromoDiscountAmount(quote.amountDue, appliedPromo.discount);
@@ -437,20 +436,32 @@ export function EuRepCheckoutApp() {
     });
   }
 
-  function handleApplyPromo() {
-    const discount = resolvePromoCode(promoDraft);
-    if (!discount) {
-      setAppliedPromoCode(null);
-      setPromoError(t('promoCode.invalid'));
-      return;
-    }
+  async function handleApplyPromo() {
+    const code = promoDraft.trim();
+    if (!code) return;
 
-    setAppliedPromoCode(normalizePromoCode(promoDraft));
-    setPromoError(null);
+    try {
+      const result = await validateCheckoutPromo.mutateAsync(code);
+      if (!result.valid || !result.discount) {
+        setAppliedPromoCode(null);
+        setAppliedPromoDiscount(null);
+        setPromoError(t('promoCode.invalid'));
+        return;
+      }
+
+      setAppliedPromoCode(result.normalizedCode ?? code.toUpperCase());
+      setAppliedPromoDiscount(result.discount);
+      setPromoError(null);
+    } catch {
+      setAppliedPromoCode(null);
+      setAppliedPromoDiscount(null);
+      setPromoError(t('promoCode.invalid'));
+    }
   }
 
   function handleRemovePromo() {
     setAppliedPromoCode(null);
+    setAppliedPromoDiscount(null);
     setPromoDraft('');
     setPromoError(null);
   }
@@ -781,9 +792,11 @@ export function EuRepCheckoutApp() {
               setPromoDraft(value);
               if (promoError) setPromoError(null);
             }}
-            onApply={handleApplyPromo}
+            onApply={() => {
+              void handleApplyPromo();
+            }}
             onRemove={handleRemovePromo}
-            disabled={isProcessing}
+            disabled={isProcessing || validateCheckoutPromo.isPending}
           />
         ) : null
       }
