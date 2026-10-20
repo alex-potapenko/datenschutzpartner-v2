@@ -98,7 +98,7 @@ Order attributed to partner
 | A-03 | After approval, access partner dashboard                   | Transactional email with base referral URL (production) |
 | A-04 | Leave program (if offered)                                 | Partner deactivated; links stop attributing             |
 
-**Prototype:** application + admin approve/reject — implemented; approval email — prototype/simulated.
+**Prototype:** application + admin approve/reject — implemented; emails are not simulated (see §6.3).
 
 ### 4.2 Affiliate ID and base link
 
@@ -251,6 +251,9 @@ Order attributed to partner
 | Payout initiated           | Partner notification email | Amount, period, invoice instructions |
 | Application rejected       | Applicant                  | Optional reason                      |
 
+**Prototype:** emails are backend-only and not simulated. The mock API returns the recipient
+(`commissionEmailSentTo`, `invoiceEmailSentTo`) and the admin UI confirms it in a toast.
+
 ### 6.4 API contract (conceptual domains)
 
 Extend [`api/affiliate.ts`](../api/affiliate.ts) and MSW as the draft backend contract:
@@ -314,7 +317,7 @@ _(Visits under Referrals or separate tab.)_
 - Deep link generator + link list
 - Referral statuses + order-paid gating
 - Partner: pending vs paid earnings, referrals table, payout history
-- Partner settings + core emails (commission + payout invoice)
+- Partner settings + core emails (commission + payout invoice; backend only, not in the prototype)
 - Admin: affiliate list, referral workflow, create/commit payout
 
 ### Phase 2
