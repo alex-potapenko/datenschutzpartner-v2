@@ -7,12 +7,12 @@ import {
 
 describe('affiliateReferralUrl', () => {
   it('builds the base partner link without a target', () => {
-    expect(affiliateReferralUrl('karin')).toBe('https://datenschutzpartner.com/ref/karin');
+    expect(affiliateReferralUrl('lucas')).toBe('https://datenschutzpartner.com/ref/lucas');
   });
 
   it('appends target page and campaign', () => {
-    expect(affiliateReferralUrl('karin', { targetPath: '/scan', campaign: 'newsletter' })).toBe(
-      'https://datenschutzpartner.com/ref/karin?to=/scan&campaign=newsletter'
+    expect(affiliateReferralUrl('lucas', { targetPath: '/scan', campaign: 'newsletter' })).toBe(
+      'https://datenschutzpartner.com/ref/lucas?to=/scan&campaign=newsletter'
     );
   });
 });

@@ -427,9 +427,10 @@ export function useMarkAffiliateOrderPaid() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      request<AffiliateAdminReferral>(`/affiliate/admin/referrals/${id}/mark-order-paid`, {
-        method: 'POST',
-      }),
+      request<AffiliateAdminReferral & { commissionEmailSentTo: string | null }>(
+        `/affiliate/admin/referrals/${id}/mark-order-paid`,
+        { method: 'POST' }
+      ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
     },

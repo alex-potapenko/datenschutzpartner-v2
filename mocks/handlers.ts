@@ -401,35 +401,37 @@ const contacts = createCollection<Contact>('contacts', [
 
 const contactMessages = createCollection<ContactMessage>('contact-messages', []);
 
-const affiliateSeed = createAffiliateSeed(new Date());
+const affiliateSeed = createAffiliateSeed();
 
 const affiliateApplications = createCollection<AffiliateApplication>(
   'affiliate-applications',
   affiliateSeed.applications,
-  3
+  4
 );
 const affiliatePartners = createCollection<AffiliatePartnerRecord>(
   'affiliate-partners',
   affiliateSeed.partners,
-  3
+  4
 );
 const affiliateReferralLinks = createCollection<AffiliateReferralLinkRecord>(
   'affiliate-referral-links',
   affiliateSeed.links,
-  3
+  4
 );
 const affiliateVisits = createCollection<AffiliateVisitRecord>(
   'affiliate-visits',
-  affiliateSeed.visits
+  affiliateSeed.visits,
+  2
 );
 const affiliateReferrals = createCollection<AffiliateReferralRecord>(
   'affiliate-referrals',
-  affiliateSeed.referrals
+  affiliateSeed.referrals,
+  2
 );
 const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
   'affiliate-payouts',
   affiliateSeed.payouts,
-  3
+  4
 );
 
 function sessionEmail(request: Request): string | null {

@@ -350,8 +350,10 @@ page and optional campaign: `/ref/:slug?to=/scan&campaign=newsletter`.
 | `POST /affiliate/prototype/quit`                      | Prototype only: remove partner data and mark application rejected                                       |
 
 Attribution cookie: `dsp_affiliate_ref` (see `lib/affiliate-attribution.ts`). Checkout
-attribution to real orders is not wired in the prototype — seeded partners and newly approved
-partners get deterministic demo history (`mocks/affiliate-data.ts`).
+attribution to real orders is not wired in the prototype. The program starts empty because Lucas
+is the only regular user: he applies, the admin approves him in `/account/affiliate/admin`, and
+approval seeds deterministic demo history (`mocks/affiliate-data.ts`) — referrals in every status,
+visits, two marketing links and one past payout.
 
 ## Future API replacement
 

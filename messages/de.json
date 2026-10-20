@@ -1990,14 +1990,99 @@
     },
     "affiliateAdmin": {
       "title": "Affiliate-Backoffice",
-      "back": "Affiliate-Programm",
-      "applicationsTitle": "Bewerbungen",
-      "applicationsEmpty": "Keine offenen Bewerbungen.",
-      "approve": "Freigeben",
-      "reject": "Ablehnen",
-      "conversionAmounts": "CHF {amount} · Provision CHF {commission}",
-      "referralsTitle": "Empfehlungen",
-      "referralsEmpty": "Noch keine Empfehlungen erfasst."
+      "back": "Mein Konto",
+      "tabsAriaLabel": "Bereiche des Affiliate-Backoffice",
+      "tabs": {
+        "applications": "Bewerbungen",
+        "affiliates": "Affiliates",
+        "referrals": "Empfehlungen",
+        "payouts": "Auszahlungen"
+      },
+      "applications": {
+        "title": "Bewerbungen",
+        "empty": "Noch keine Bewerbungen.",
+        "colApplicant": "Bewerber:in",
+        "colMessage": "Nachricht",
+        "colDate": "Eingegangen",
+        "colStatus": "Status",
+        "colActions": "Aktionen",
+        "approve": "Annehmen",
+        "reject": "Ablehnen",
+        "approved": "{email} ist jetzt Affiliate.",
+        "status": {
+          "pending": "Offen",
+          "approved": "Angenommen",
+          "rejected": "Abgelehnt"
+        }
+      },
+      "affiliates": {
+        "title": "Affiliates",
+        "empty": "Noch keine Affiliates. Nimm zuerst eine Bewerbung an.",
+        "colPartner": "Affiliate",
+        "colSince": "Seit",
+        "colVisits": "Besuche",
+        "colReferrals": "Empfehlungen",
+        "colUnpaid": "Nicht ausgezahlt",
+        "colPaid": "Ausgezahlt",
+        "colActions": "Aktionen",
+        "createPayout": "Auszahlung erstellen"
+      },
+      "referrals": {
+        "title": "Empfehlungen",
+        "body": "Eine Empfehlung wird auszahlbar (Nicht ausgezahlt), sobald der Kunde die Bestellung bezahlt hat. Lehne Empfehlungen bei Rückerstattung oder Missbrauch ab.",
+        "filterLabel": "Nach Status filtern",
+        "filterAll": "Alle",
+        "empty": "Keine Empfehlungen mit diesem Status.",
+        "colReference": "Referenz",
+        "colPartner": "Affiliate",
+        "colDate": "Datum",
+        "colOrder": "Bestellung",
+        "colCommission": "Provision",
+        "colStatus": "Status",
+        "colActions": "Aktionen",
+        "markPaid": "Bestellung bezahlt",
+        "markedPaid": "Bestellung als bezahlt markiert.",
+        "markedPaidEmail": "Bestellung als bezahlt markiert. Provisions-E-Mail an {email} gesendet.",
+        "reject": "Ablehnen",
+        "rejected": "Empfehlung abgelehnt.",
+        "rejectConfirm": {
+          "title": "Empfehlung ablehnen?",
+          "body": "Empfehlung {reference} ({commission}) wird nicht ausgezahlt. Der Affiliate sieht sie als abgelehnt.",
+          "confirm": "Empfehlung ablehnen",
+          "cancel": "Abbrechen"
+        }
+      },
+      "payouts": {
+        "title": "Auszahlungen",
+        "body": "Beim Erstellen einer Auszahlung werden die Empfehlungen als ausgezahlt markiert und der Affiliate per E-Mail um eine Rechnung gebeten. Die Überweisung erfolgt separat.",
+        "create": "Auszahlung erstellen",
+        "empty": "Noch keine Auszahlungen.",
+        "colDate": "Erstellt",
+        "colPartner": "Affiliate",
+        "colPeriod": "Zeitraum",
+        "colReferrals": "Empfehlungen",
+        "colAmount": "Betrag",
+        "colInvoiceEmail": "Rechnungsanfrage an",
+        "createdBy": "von {email}"
+      },
+      "createPayout": {
+        "title": "Auszahlung erstellen",
+        "body": "Rechnet alle nicht ausgezahlten Empfehlungen des Affiliates im Zeitraum ab.",
+        "partnerLabel": "Affiliate",
+        "partnerPlaceholder": "Affiliate auswählen",
+        "fromLabel": "Von",
+        "toLabel": "Bis",
+        "periodHint": "Standard ist das vorherige Quartal. Lass ein Datum leer für einen offenen Zeitraum.",
+        "previewLoading": "Auszahlung wird berechnet …",
+        "nothingToPay": "Keine nicht ausgezahlten Empfehlungen in diesem Zeitraum.",
+        "total": "{count, plural, one {# Empfehlung} other {# Empfehlungen}}",
+        "belowThresholdTitle": "Unter dem Mindestbetrag von CHF {threshold}",
+        "belowThresholdBody": "Du kannst die Auszahlung trotzdem erstellen, z. B. wenn der Affiliate das Programm verlässt.",
+        "emailNote": "Der Affiliate erhält eine E-Mail an {email} mit der Bitte um eine Rechnung über diesen Betrag.",
+        "cancel": "Abbrechen",
+        "submit": "Auszahlung erstellen & Rechnung anfordern",
+        "created": "Auszahlung über {amount} erstellt. Rechnungsanfrage an {email} gesendet."
+      }
     },
     "allSubscriptions": {
       "title": "Alle Abonnements",

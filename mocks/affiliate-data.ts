@@ -159,13 +159,11 @@ export type AffiliateDemoHistory = {
 
 /**
  * Deterministic partner history for dashboards: two marketing links, ~60 visits, referrals
- * in every lifecycle state, and one completed payout. `variant` thins out the history so
- * seeded partners do not look identical in the admin lists.
+ * in every lifecycle state, and one completed payout.
  */
 export function createAffiliateDemoHistory(
   partner: AffiliatePartnerRecord,
-  now: Date,
-  variant = 0
+  now: Date
 ): AffiliateDemoHistory {
   const id = (suffix: string) => `${partner.id}-${suffix}`;
   const backdatedPartner: AffiliatePartnerRecord = { ...partner, approvedAt: daysAgo(now, 300) };
@@ -188,20 +186,18 @@ export function createAffiliateDemoHistory(
   ];
   const linkByKey = { base: null, scan: links[0], euRep: links[1] } as const;
 
-  const referrals: AffiliateReferralRecord[] = HISTORY_REFERRALS.filter(
-    (_, index) => variant === 0 || index % (variant + 1) !== 0
-  ).map((row, index) => {
+  const referrals: AffiliateReferralRecord[] = HISTORY_REFERRALS.map((row, index) => {
     const product = PRODUCTS[row.product];
     return {
       id: id(row.key),
       partnerId: partner.id,
       linkId: linkByKey[row.link]?.id ?? null,
-      reference: String(2_317_877_199 - index * 104_729 - variant * 7_919),
+      reference: String(2_317_877_199 - index * 104_729),
       description: product.description,
       orderAmountChf: product.amountChf,
       commissionChf: roundChf(product.amountChf * partner.commissionRate),
       status: row.status,
-      createdAt: daysAgo(now, row.daysAgo + variant * 3, 15),
+      createdAt: daysAgo(now, row.daysAgo, 15),
       payoutId: null,
     };
   });
@@ -225,8 +221,7 @@ export function createAffiliateDemoHistory(
   }
 
   const visits: AffiliateVisitRecord[] = [];
-  const visitCount = 60 - variant * 15;
-  for (let index = 0; index < visitCount; index += 1) {
+  for (let index = 0; index < 60; index += 1) {
     const link = [null, links[0], links[1]][index % 3] ?? null;
     visits.push({
       id: id(`visit-${String(index)}`),
@@ -256,12 +251,6 @@ export function createAffiliateDemoHistory(
   return { partner: backdatedPartner, links, visits, referrals, payouts };
 }
 
-const SEED_PARTNERS = [
-  { key: 'karin', email: 'karin@lichtweb.ch', slug: 'lichtweb' },
-  { key: 'urban', email: 'urban@urban-media.ch', slug: 'urban-media' },
-  { key: 'tanja', email: 'tanja@kmu-digital.ch', slug: 'kmu-digital' },
-] as const;
-
 export type AffiliateSeed = {
   applications: AffiliateApplication[];
   partners: AffiliatePartnerRecord[];
@@ -271,55 +260,10 @@ export type AffiliateSeed = {
   payouts: AffiliatePayoutRecord[];
 };
 
-/** Other partners so the admin lists and payout flow are populated before anyone applies. */
-export function createAffiliateSeed(now: Date): AffiliateSeed {
-  const seed: AffiliateSeed = {
-    applications: [
-      {
-        id: 'seed-application-pending',
-        email: 'anna.keller@kanzlei-keller.ch',
-        websiteUrl: 'https://kanzlei-keller.ch',
-        description: 'Wir beraten KMU zu Datenschutz und empfehlen passende Tools.',
-        status: 'pending',
-        createdAt: daysAgo(now, 1),
-        reviewedAt: null,
-      },
-    ],
-    partners: [],
-    links: [],
-    visits: [],
-    referrals: [],
-    payouts: [],
-  };
-
-  SEED_PARTNERS.forEach((row, index) => {
-    const applicationId = `seed-application-${row.key}`;
-    const history = createAffiliateDemoHistory(
-      createAffiliatePartnerRecord({
-        id: `seed-partner-${row.key}`,
-        applicationId,
-        email: row.email,
-        slug: row.slug,
-        approvedAt: now.toISOString(),
-      }),
-      now,
-      index
-    );
-    seed.applications.push({
-      id: applicationId,
-      email: row.email,
-      websiteUrl: `https://${row.email.split('@')[1] ?? 'example.ch'}`,
-      description: 'Webagentur mit Fokus auf KMU-Websites in der Schweiz.',
-      status: 'approved',
-      createdAt: history.partner.approvedAt,
-      reviewedAt: history.partner.approvedAt,
-    });
-    seed.partners.push(history.partner);
-    seed.links.push(...history.links);
-    seed.visits.push(...history.visits);
-    seed.referrals.push(...history.referrals);
-    seed.payouts.push(...history.payouts);
-  });
-
-  return seed;
+/**
+ * Lucas is the prototype's only regular user, so the program starts empty: his application
+ * appears in the admin once he applies, and approval seeds his demo history.
+ */
+export function createAffiliateSeed(): AffiliateSeed {
+  return { applications: [], partners: [], links: [], visits: [], referrals: [], payouts: [] };
 }

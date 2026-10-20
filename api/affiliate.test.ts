@@ -1,15 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { ApiError, request } from './client';
 import type {
   AffiliateAdminPayout,
   AffiliateAdminReferral,
+  AffiliateApplication,
   AffiliateDashboard,
   AffiliatePayoutPreview,
   AffiliateReferralLink,
 } from './affiliate';
 import { setAuthToken } from '@/lib/auth-session';
 
-const PARTNER_TOKEN = `mock-email-${encodeURIComponent('karin@lichtweb.ch')}`;
+const PARTNER_EMAIL = 'lucas.baumgartner@gmail.com';
+const PARTNER_SLUG = 'lucas.baumgartner';
+const PARTNER_TOKEN = `mock-email-${encodeURIComponent(PARTNER_EMAIL)}`;
 const ADMIN_TOKEN = 'mock-token';
 
 function asPartner() {
@@ -27,7 +30,7 @@ function post<T>(path: string, body: unknown = {}) {
 async function dashboard() {
   asPartner();
   const data = await request<AffiliateDashboard | null>('/affiliate/dashboard/me');
-  if (!data) throw new Error('seeded partner missing');
+  if (!data) throw new Error('approved partner missing');
   return data;
 }
 
@@ -45,10 +48,21 @@ async function statusOf(promise: Promise<unknown>) {
  * order paid (unpaid, payable) → admin payout (paid + invoice-request email).
  */
 describe('affiliate contract', () => {
+  beforeAll(async () => {
+    asPartner();
+    const application = await post<AffiliateApplication>('/affiliate/applications', {
+      email: PARTNER_EMAIL,
+      websiteUrl: 'https://baumgartner.ch',
+      description: 'Ich empfehle Datenschutzpartner meinen Kunden.',
+    });
+    asAdmin();
+    await post(`/affiliate/admin/applications/${application.id}/approve`);
+  });
+
   it('serves a partner dashboard without customer identity', async () => {
     const data = await dashboard();
-    expect(data.partner.slug).toBe('lichtweb');
-    expect(data.partner.referralUrl).toBe('https://datenschutzpartner.com/ref/lichtweb');
+    expect(data.partner.slug).toBe(PARTNER_SLUG);
+    expect(data.partner.referralUrl).toBe(`https://datenschutzpartner.com/ref/${PARTNER_SLUG}`);
     expect(data.referrals.length).toBeGreaterThan(0);
     expect(Object.keys(data.referrals[0] ?? {})).not.toContain('customerEmail');
     expect(data.stats.paidEarningsChf).toBeGreaterThan(0);
@@ -63,7 +77,7 @@ describe('affiliate contract', () => {
     });
     expect(link.targetPath).toBe('/eu-rep/questionnaire');
     expect(link.referralUrl).toBe(
-      'https://datenschutzpartner.com/ref/lichtweb?to=/eu-rep/questionnaire&campaign=linkedin'
+      `https://datenschutzpartner.com/ref/${PARTNER_SLUG}?to=/eu-rep/questionnaire&campaign=linkedin`
     );
 
     expect(
@@ -86,14 +100,14 @@ describe('affiliate contract', () => {
 
   it('records visits on the matching marketing link and returns a safe landing path', async () => {
     const result = await post<{ targetPath: string; attributed: boolean }>('/affiliate/clicks', {
-      slug: 'lichtweb',
+      slug: PARTNER_SLUG,
       targetPath: '/eu-rep/questionnaire',
       campaign: 'linkedin',
     });
     expect(result).toMatchObject({ targetPath: '/eu-rep/questionnaire', attributed: true });
 
     const unsafe = await post<{ targetPath: string }>('/affiliate/clicks', {
-      slug: 'lichtweb',
+      slug: PARTNER_SLUG,
       targetPath: '//evil.test',
     });
     expect(unsafe.targetPath).toBe('/');
@@ -110,7 +124,7 @@ describe('affiliate contract', () => {
     const pending = await request<AffiliateAdminReferral[]>(
       '/affiliate/admin/referrals?status=pending'
     );
-    const target = pending.find((row) => row.partnerSlug === 'lichtweb');
+    const target = pending.find((row) => row.partnerSlug === PARTNER_SLUG);
     if (!target) throw new Error('seeded pending referral missing');
 
     const updated = await post<AffiliateAdminReferral>(
@@ -145,7 +159,7 @@ describe('affiliate contract', () => {
 
     const payout = await post<AffiliateAdminPayout>('/affiliate/admin/payouts', request_);
     expect(payout.amountChf).toBeCloseTo(preview.amountChf);
-    expect(payout.invoiceEmailSentTo).toBe('karin@lichtweb.ch');
+    expect(payout.invoiceEmailSentTo).toBe(PARTNER_EMAIL);
     expect(payout.createdBy).toBe('admin@datenschutzpartner.ch');
     expect(await statusOf(post('/affiliate/admin/payouts', request_))).toBe(409);
 

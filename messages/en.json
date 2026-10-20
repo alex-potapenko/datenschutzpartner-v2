@@ -1990,14 +1990,99 @@
     },
     "affiliateAdmin": {
       "title": "Affiliate backoffice",
-      "back": "Affiliate program",
-      "applicationsTitle": "Applications",
-      "applicationsEmpty": "No applications.",
-      "approve": "Approve",
-      "reject": "Reject",
-      "conversionAmounts": "CHF {amount} · commission CHF {commission}",
-      "referralsTitle": "Referrals",
-      "referralsEmpty": "No referrals recorded yet."
+      "back": "My account",
+      "tabsAriaLabel": "Affiliate backoffice sections",
+      "tabs": {
+        "applications": "Applications",
+        "affiliates": "Affiliates",
+        "referrals": "Referrals",
+        "payouts": "Payouts"
+      },
+      "applications": {
+        "title": "Applications",
+        "empty": "No applications yet.",
+        "colApplicant": "Applicant",
+        "colMessage": "Message",
+        "colDate": "Received",
+        "colStatus": "Status",
+        "colActions": "Actions",
+        "approve": "Approve",
+        "reject": "Reject",
+        "approved": "{email} is now an affiliate.",
+        "status": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        }
+      },
+      "affiliates": {
+        "title": "Affiliates",
+        "empty": "No affiliates yet. Approve an application first.",
+        "colPartner": "Affiliate",
+        "colSince": "Since",
+        "colVisits": "Visits",
+        "colReferrals": "Referrals",
+        "colUnpaid": "Unpaid",
+        "colPaid": "Paid out",
+        "colActions": "Actions",
+        "createPayout": "Create payout"
+      },
+      "referrals": {
+        "title": "Referrals",
+        "body": "A referral becomes payable (Unpaid) once the customer has paid the order. Reject referrals for refunded or fraudulent orders.",
+        "filterLabel": "Filter by status",
+        "filterAll": "All",
+        "empty": "No referrals with this status.",
+        "colReference": "Reference",
+        "colPartner": "Affiliate",
+        "colDate": "Date",
+        "colOrder": "Order",
+        "colCommission": "Commission",
+        "colStatus": "Status",
+        "colActions": "Actions",
+        "markPaid": "Mark order paid",
+        "markedPaid": "Order marked as paid.",
+        "markedPaidEmail": "Order marked as paid. Commission email sent to {email}.",
+        "reject": "Reject",
+        "rejected": "Referral rejected.",
+        "rejectConfirm": {
+          "title": "Reject referral?",
+          "body": "Referral {reference} ({commission}) will no longer be paid out. The affiliate sees it as rejected.",
+          "confirm": "Reject referral",
+          "cancel": "Cancel"
+        }
+      },
+      "payouts": {
+        "title": "Payouts",
+        "body": "Creating a payout marks the referrals as paid and emails the affiliate to send an invoice. The money is transferred separately.",
+        "create": "Create payout",
+        "empty": "No payouts yet.",
+        "colDate": "Created",
+        "colPartner": "Affiliate",
+        "colPeriod": "Period",
+        "colReferrals": "Referrals",
+        "colAmount": "Amount",
+        "colInvoiceEmail": "Invoice request sent to",
+        "createdBy": "by {email}"
+      },
+      "createPayout": {
+        "title": "Create payout",
+        "body": "Settles all unpaid referrals of the affiliate within the period.",
+        "partnerLabel": "Affiliate",
+        "partnerPlaceholder": "Select an affiliate",
+        "fromLabel": "From",
+        "toLabel": "To",
+        "periodHint": "Defaults to the previous quarter. Leave a date empty for an open range.",
+        "previewLoading": "Calculating payout …",
+        "nothingToPay": "No unpaid referrals in this period.",
+        "total": "{count, plural, one {# referral} other {# referrals}}",
+        "belowThresholdTitle": "Below the CHF {threshold} minimum",
+        "belowThresholdBody": "You can still create this payout, e.g. when the affiliate leaves the program.",
+        "emailNote": "The affiliate gets an email at {email} asking for an invoice over this amount.",
+        "cancel": "Cancel",
+        "submit": "Create payout & request invoice",
+        "created": "Payout of {amount} created. Invoice request sent to {email}."
+      }
     },
     "allSubscriptions": {
       "title": "All subscriptions",
