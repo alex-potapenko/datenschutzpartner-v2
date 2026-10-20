@@ -15,10 +15,12 @@ import type {
   AffiliateReferralLink,
   AffiliateVisit,
   AffiliateCampaignStats,
+  AffiliateProgramSettings,
 } from '@/api/affiliate';
 import {
   AFFILIATE_CAMPAIGN_PATTERN,
   AFFILIATE_MAX_COMMISSION_PERCENT,
+  affiliateProgramSettingsSchema,
   AFFILIATE_SLUG_PATTERN,
   affiliateReferralStatusSchema,
 } from '@/api/affiliate';
@@ -436,6 +438,18 @@ const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
   6
 );
 
+const affiliateSettings = createCollection<AffiliateProgramSettings & { id: string }>(
+  'affiliate-settings',
+  [{ id: 'program', ...AFFILIATE_PROGRAM_SETTINGS }],
+  1
+);
+
+function programSettings(): AffiliateProgramSettings {
+  const stored = affiliateSettings.all()[0];
+  if (!stored) return AFFILIATE_PROGRAM_SETTINGS;
+  return affiliateProgramSettingsSchema.parse(stored);
+}
+
 function sessionEmail(request: Request): string | null {
   return emailFromLoginToken(tokenFromRequest(request));
 }
@@ -612,7 +626,7 @@ function partnerDashboardFor(partner: AffiliatePartnerRecord): AffiliateDashboar
       unpaidEarningsChf: summary.unpaidChf,
       paidEarningsChf: summary.paidChf,
     },
-    payoutThresholdChf: AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf,
+    payoutThresholdChf: programSettings().payoutThresholdChf,
     payouts: partnerPayouts(partner.id).map(payoutDto),
     referrals: partnerReferrals(partner.id).map((row) => ({
       id: row.id,
@@ -662,6 +676,7 @@ function approveAffiliateApplication(application: AffiliateApplication): Affilia
       email: application.email,
       slug,
       approvedAt: new Date().toISOString(),
+      commissionRate: programSettings().defaultCommissionRate,
     }),
     new Date()
   );
@@ -701,7 +716,7 @@ function payoutPreview(
 ): AffiliatePayoutPreview {
   const referrals = selectPayoutReferrals(partnerReferrals(partner.id), period);
   const amountChf = roundChf(referrals.reduce((sum, row) => sum + row.commissionChf, 0));
-  const threshold = AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf;
+  const threshold = programSettings().payoutThresholdChf;
   return {
     partnerId: partner.id,
     partnerEmail: partner.email,
@@ -2352,7 +2367,7 @@ export const handlers = [
   }),
 
   http.get('/api/affiliate/settings', () => {
-    return HttpResponse.json(AFFILIATE_PROGRAM_SETTINGS);
+    return HttpResponse.json(programSettings());
   }),
 
   http.get('/api/affiliate/applications/me', ({ request }) => {
@@ -2629,6 +2644,16 @@ export const handlers = [
       });
     }
     return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.patch('/api/affiliate/admin/settings', async ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const parsed = affiliateProgramSettingsSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return HttpResponse.json({ message: 'settings_invalid' }, { status: 400 });
+    }
+    affiliateSettings.update('program', parsed.data);
+    return HttpResponse.json(programSettings());
   }),
 
   http.get('/api/affiliate/admin/partners/:id', ({ request, params }) => {

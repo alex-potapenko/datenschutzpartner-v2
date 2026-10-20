@@ -17,6 +17,7 @@ import { AffiliateAdminApplicationsPanel } from './AffiliateAdminApplicationsPan
 import { AffiliateAdminPartnersPanel } from './AffiliateAdminPartnersPanel';
 import { AffiliateAdminPayoutsPanel } from './AffiliateAdminPayoutsPanel';
 import { AffiliateAdminReferralsPanel } from './AffiliateAdminReferralsPanel';
+import { AffiliateAdminSettingsPanel } from './AffiliateAdminSettingsPanel';
 import { AffiliateCreatePayoutDialog } from './AffiliateCreatePayoutDialog';
 import {
   AFFILIATE_ADMIN_DEFAULT_TAB,
@@ -70,6 +71,8 @@ export function AffiliateAdminApp() {
         return <AffiliateAdminPartnersPanel onCreatePayout={openPayoutDialog} />;
       case 'referrals':
         return <AffiliateAdminReferralsPanel />;
+      case 'settings':
+        return <AffiliateAdminSettingsPanel />;
       case 'payouts':
         return (
           <AffiliateAdminPayoutsPanel

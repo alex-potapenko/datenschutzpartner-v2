@@ -48,11 +48,34 @@ export const affiliateApplicationSchema = affiliateApplicationCreateSchema.exten
   reviewedAt: z.string().nullable(),
 });
 
+export const AFFILIATE_PAYOUT_CADENCES = [1, 3, 6, 12] as const;
+
 export const affiliateProgramSettingsSchema = z.object({
   cookieDays: z.number().int().min(1).max(90),
-  defaultCommissionRate: z.number().min(0).max(1),
+  defaultCommissionRate: z.number().min(0).max(0.5),
   payoutThresholdChf: z.number().min(0),
-  payoutCadenceMonths: z.number().int().min(1),
+  payoutCadenceMonths: z
+    .number()
+    .int()
+    .refine((value) => (AFFILIATE_PAYOUT_CADENCES as readonly number[]).includes(value)),
+});
+
+/** Admin form: the rate is entered in percent; new partners get it, existing ones keep theirs. */
+export const affiliateProgramSettingsFormSchema = z.object({
+  commissionPercent: z
+    .number({ error: 'validation.affiliateRate' })
+    .min(0, 'validation.affiliateRate')
+    .max(50, 'validation.affiliateRate'),
+  cookieDays: z
+    .number({ error: 'validation.affiliateCookieDays' })
+    .int('validation.affiliateCookieDays')
+    .min(1, 'validation.affiliateCookieDays')
+    .max(90, 'validation.affiliateCookieDays'),
+  payoutThresholdChf: z
+    .number({ error: 'validation.affiliateThreshold' })
+    .min(0, 'validation.affiliateThreshold')
+    .max(10_000, 'validation.affiliateThreshold'),
+  payoutCadenceMonths: z.number(),
 });
 
 export const affiliateReferralStatusSchema = z.enum(AFFILIATE_REFERRAL_STATUSES);
@@ -251,6 +274,7 @@ export type AffiliateApplicationForm = z.infer<
 export type AffiliateApplicationCreate = z.infer<typeof affiliateApplicationCreateSchema>;
 export type AffiliateApplication = z.infer<typeof affiliateApplicationSchema>;
 export type AffiliateProgramSettings = z.infer<typeof affiliateProgramSettingsSchema>;
+export type AffiliateProgramSettingsForm = z.infer<typeof affiliateProgramSettingsFormSchema>;
 export type AffiliateReferralStatus = z.infer<typeof affiliateReferralStatusSchema>;
 export type AffiliatePartner = z.infer<typeof affiliatePartnerSchema>;
 export type AffiliateReferralLink = z.infer<typeof affiliateReferralLinkSchema>;
@@ -290,6 +314,20 @@ export function useAffiliateProgramSettings() {
   return useQuery({
     queryKey: affiliateKeys.settings(),
     queryFn: () => request<AffiliateProgramSettings>('/affiliate/settings'),
+  });
+}
+
+export function useUpdateAffiliateProgramSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: AffiliateProgramSettings) =>
+      request<AffiliateProgramSettings>('/affiliate/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(settings),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
   });
 }
 

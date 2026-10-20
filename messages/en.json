@@ -2045,7 +2045,8 @@
         "applications": "Applications",
         "affiliates": "Affiliates",
         "referrals": "Referrals",
-        "payouts": "Payouts"
+        "payouts": "Payouts",
+        "settings": "Settings"
       },
       "applications": {
         "title": "Applications",
@@ -2127,7 +2128,7 @@
         "partnerPlaceholder": "Select an affiliate",
         "fromLabel": "From",
         "toLabel": "To",
-        "periodHint": "Defaults to the previous quarter. Leave a date empty for an open range.",
+        "periodHint": "Defaults to the previous payout period. Leave a date empty for an open range.",
         "previewLoading": "Calculating payout …",
         "nothingToPay": "No unpaid referrals in this period.",
         "total": "{count, plural, one {# referral} other {# referrals}}",
@@ -2136,7 +2137,8 @@
         "emailNote": "The affiliate gets an email at {email} asking for an invoice over this amount.",
         "cancel": "Cancel",
         "submit": "Create payout & request invoice",
-        "created": "Payout of {amount} created. Invoice request sent to {email}."
+        "created": "Payout of {amount} created. Invoice request sent to {email}.",
+        "loading": "Loading …"
       },
       "partnerDetail": {
         "title": "Affiliate",
@@ -2168,6 +2170,28 @@
         "deactivated": "Affiliate deactivated",
         "reactivated": "Affiliate reactivated",
         "statusFailed": "Could not change the status"
+      },
+      "settings": {
+        "title": "Program settings",
+        "body": "Changes apply from now on: new partners get the default rate, existing partners keep theirs (change it per affiliate in Details). Existing commissions never change.",
+        "rateLabel": "Default commission rate",
+        "rateHint": "For newly approved affiliates, 0–50 %.",
+        "cookieLabel": "Attribution window",
+        "cookieHint": "Days the last-click cookie stays valid, 1–90.",
+        "days": "days",
+        "thresholdLabel": "Minimum payout",
+        "thresholdHint": "Below this amount the payout dialog shows a warning.",
+        "cadenceLabel": "Payout schedule",
+        "cadenceHint": "Sets the default period in the payout dialog and the text partners see.",
+        "cadence": {
+          "1": "Monthly",
+          "3": "Quarterly",
+          "6": "Every 6 months",
+          "12": "Yearly"
+        },
+        "save": "Save settings",
+        "saved": "Program settings saved",
+        "saveFailed": "Could not save the settings"
       }
     },
     "allSubscriptions": {
@@ -2812,7 +2836,9 @@
     "message": "Please enter a meaningful message",
     "vatId": "Please enter a valid VAT number",
     "department": "Please enter a valid department name",
-    "affiliateRate": "Enter a rate between 0 and 50 %"
+    "affiliateRate": "Enter a rate between 0 and 50 %",
+    "affiliateCookieDays": "Enter 1–90 days",
+    "affiliateThreshold": "Enter an amount between 0 and 10,000"
   },
   "contacts": {
     "title": "Contacts",

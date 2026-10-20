@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   useAffiliateAdminPartners,
+  useAffiliateProgramSettings,
   useCreateAffiliatePayout,
   usePreviewAffiliatePayout,
 } from '@/api/affiliate';
@@ -26,16 +27,18 @@ import {
   Spinner,
   useOverlayState,
 } from '@/components/ui';
-import { previousQuarterPeriod } from '@/lib/affiliate-ledger';
+import { previousPayoutPeriod } from '@/lib/affiliate-ledger';
 import { formatMoney, useDateFormatter } from '@/app/account/_components/account-ui';
 
 type OverlayState = ReturnType<typeof useOverlayState>;
 
 function PayoutForm({
   initialPartnerId,
+  cadenceMonths,
   onDone,
 }: {
   initialPartnerId: string | null;
+  cadenceMonths: number;
   onDone: () => void;
 }) {
   const t = useTranslations('account.affiliateAdmin.createPayout');
@@ -44,7 +47,7 @@ function PayoutForm({
   const partners = useAffiliateAdminPartners();
   const preview = usePreviewAffiliatePayout();
   const createPayout = useCreateAffiliatePayout();
-  const [defaultPeriod] = useState(() => previousQuarterPeriod(new Date()));
+  const [defaultPeriod] = useState(() => previousPayoutPeriod(new Date(), cadenceMonths));
   const [partnerId, setPartnerId] = useState<string | null>(initialPartnerId);
   const [periodStart, setPeriodStart] = useState(defaultPeriod.periodStart);
   const [periodEnd, setPeriodEnd] = useState(defaultPeriod.periodEnd);
@@ -220,6 +223,7 @@ export function AffiliateCreatePayoutDialog({
   initialPartnerId: string | null;
 }) {
   const t = useTranslations('account.affiliateAdmin.createPayout');
+  const settings = useAffiliateProgramSettings();
 
   return (
     <ModalRoot state={state}>
@@ -229,10 +233,15 @@ export function AffiliateCreatePayoutDialog({
             <ModalHeader>
               <ModalHeading>{t('title')}</ModalHeading>
             </ModalHeader>
-            {state.isOpen ? (
+            {state.isOpen && settings.isLoading ? (
+              <ModalBody className="flex justify-center py-10">
+                <Spinner aria-label={t('loading')} />
+              </ModalBody>
+            ) : state.isOpen ? (
               <PayoutForm
                 key={initialPartnerId ?? 'none'}
                 initialPartnerId={initialPartnerId}
+                cadenceMonths={settings.data?.payoutCadenceMonths ?? 3}
                 onDone={() => {
                   state.close();
                 }}

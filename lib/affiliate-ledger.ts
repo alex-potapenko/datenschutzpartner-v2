@@ -85,9 +85,13 @@ function isoDay(date: Date) {
 }
 
 /** Default payout window: the calendar quarter before `now` (payouts run quarterly). */
-export function previousQuarterPeriod(now: Date): { periodStart: string; periodEnd: string } {
-  const currentQuarterStartMonth = Math.floor(now.getUTCMonth() / 3) * 3;
-  const start = new Date(Date.UTC(now.getUTCFullYear(), currentQuarterStartMonth - 3, 1));
-  const end = new Date(Date.UTC(now.getUTCFullYear(), currentQuarterStartMonth, 0));
+/** Previous full calendar period of `cadenceMonths` (1, 3, 6 or 12), aligned to January. */
+export function previousPayoutPeriod(
+  now: Date,
+  cadenceMonths: number
+): { periodStart: string; periodEnd: string } {
+  const currentStartMonth = Math.floor(now.getUTCMonth() / cadenceMonths) * cadenceMonths;
+  const start = new Date(Date.UTC(now.getUTCFullYear(), currentStartMonth - cadenceMonths, 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), currentStartMonth, 0));
   return { periodStart: isoDay(start), periodEnd: isoDay(end) };
 }

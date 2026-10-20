@@ -3,6 +3,7 @@ export const AFFILIATE_ADMIN_TAB_IDS = [
   'affiliates',
   'referrals',
   'payouts',
+  'settings',
 ] as const;
 
 export type AffiliateAdminTab = (typeof AFFILIATE_ADMIN_TAB_IDS)[number];

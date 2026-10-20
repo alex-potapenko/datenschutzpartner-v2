@@ -8,6 +8,7 @@ import type {
   AffiliateCampaignStats,
   AffiliateDashboard,
   AffiliatePayoutPreview,
+  AffiliateProgramSettings,
   AffiliateReferralLink,
 } from './affiliate';
 import { setAuthToken } from '@/lib/auth-session';
@@ -232,6 +233,28 @@ describe('affiliate contract', () => {
       `/affiliate/admin/partners/${partnerId}/reactivate`
     );
     expect(active).toMatchObject({ status: 'active', deactivatedAt: null });
+  });
+
+  it('lets the admin change program settings', async () => {
+    const original = await request<AffiliateProgramSettings>('/affiliate/settings');
+    const patch = (settings: unknown) =>
+      request<AffiliateProgramSettings>('/affiliate/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(settings),
+      });
+
+    asPartner();
+    expect(await statusOf(patch(original))).toBe(403);
+
+    asAdmin();
+    const saved = await patch({ ...original, payoutThresholdChf: 80, payoutCadenceMonths: 6 });
+    expect(saved).toMatchObject({ payoutThresholdChf: 80, payoutCadenceMonths: 6 });
+    expect((await dashboard()).payoutThresholdChf).toBe(80);
+
+    asAdmin();
+    expect(await statusOf(patch({ ...original, payoutCadenceMonths: 5 }))).toBe(400);
+    expect(await statusOf(patch({ ...original, cookieDays: 0 }))).toBe(400);
+    await patch(original);
   });
 
   it('keeps admin endpoints admin-only', async () => {

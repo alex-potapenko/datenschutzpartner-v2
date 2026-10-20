@@ -1963,7 +1963,7 @@
         "partnerTitle": "Partner-Link",
         "partnerBody": "Teile diesen Link überall oder erstelle unten Marketing-Links zu bestimmten Seiten.",
         "slugLabel": "Affiliate-ID",
-        "slugHint": "Wenn du deine ID änderst, funktionieren bereits geteilte Links nicht mehr.",
+        "slugHint": "Wenn Sie Ihre ID ändern, funktionieren bereits geteilte Links nicht mehr.",
         "slugSaved": "Affiliate-ID gespeichert",
         "slugTaken": "Diese ID ist bereits vergeben.",
         "generatorTitle": "Marketing-Link-Generator",
@@ -2007,7 +2007,7 @@
       },
       "visits": {
         "title": "Besuche",
-        "body": "Jeder Klick auf einen deiner Links. Kundendaten werden nie angezeigt.",
+        "body": "Jeder Klick auf einen Ihrer Links. Kundendaten werden nie angezeigt.",
         "empty": "Noch keine Besuche.",
         "colDate": "Datum",
         "colTarget": "Zielseite",
@@ -2023,7 +2023,7 @@
       },
       "campaigns": {
         "title": "Kampagnen-Performance",
-        "body": "Besuche, Empfehlungen und Einnahmen pro Kampagne über alle deine Links. Abgelehnte Empfehlungen werden nicht gezählt.",
+        "body": "Besuche, Empfehlungen und Einnahmen pro Kampagne über alle Ihre Links. Abgelehnte Empfehlungen werden nicht gezählt.",
         "empty": "Noch keine Kampagnendaten.",
         "colCampaign": "Kampagne",
         "colVisits": "Besuche",
@@ -2045,7 +2045,8 @@
         "applications": "Bewerbungen",
         "affiliates": "Affiliates",
         "referrals": "Empfehlungen",
-        "payouts": "Auszahlungen"
+        "payouts": "Auszahlungen",
+        "settings": "Einstellungen"
       },
       "applications": {
         "title": "Bewerbungen",
@@ -2105,7 +2106,7 @@
       },
       "payouts": {
         "title": "Auszahlungen",
-        "body": "Beim Erstellen einer Auszahlung werden die Empfehlungen als ausgezahlt markiert und der Affiliate per E-Mail um eine Rechnung gebeten. Nach der Überweisung markierst du die Auszahlung als überwiesen.",
+        "body": "Beim Erstellen einer Auszahlung werden die Empfehlungen als ausgezahlt markiert und der Affiliate per E-Mail um eine Rechnung gebeten. Nach der Überweisung markieren Sie die Auszahlung als überwiesen.",
         "create": "Auszahlung erstellen",
         "empty": "Noch keine Auszahlungen.",
         "colDate": "Erstellt",
@@ -2127,7 +2128,7 @@
         "partnerPlaceholder": "Affiliate auswählen",
         "fromLabel": "Von",
         "toLabel": "Bis",
-        "periodHint": "Standard ist das vorherige Quartal. Lass ein Datum leer für einen offenen Zeitraum.",
+        "periodHint": "Standard ist der vorherige Auszahlungszeitraum. Lassen Sie ein Datum leer für einen offenen Zeitraum.",
         "previewLoading": "Auszahlung wird berechnet …",
         "nothingToPay": "Keine nicht ausgezahlten Empfehlungen in diesem Zeitraum.",
         "total": "{count, plural, one {# Empfehlung} other {# Empfehlungen}}",
@@ -2136,7 +2137,8 @@
         "emailNote": "Der Affiliate erhält eine E-Mail an {email} mit der Bitte um eine Rechnung über diesen Betrag.",
         "cancel": "Abbrechen",
         "submit": "Auszahlung erstellen & Rechnung anfordern",
-        "created": "Auszahlung über {amount} erstellt. Rechnungsanfrage an {email} gesendet."
+        "created": "Auszahlung über {amount} erstellt. Rechnungsanfrage an {email} gesendet.",
+        "loading": "Wird geladen …"
       },
       "partnerDetail": {
         "title": "Affiliate",
@@ -2168,6 +2170,28 @@
         "deactivated": "Affiliate deaktiviert",
         "reactivated": "Affiliate reaktiviert",
         "statusFailed": "Status konnte nicht geändert werden"
+      },
+      "settings": {
+        "title": "Programmeinstellungen",
+        "body": "Änderungen gelten ab sofort: Neue Partner erhalten den Standardsatz, bestehende behalten ihren (pro Affiliate unter Details änderbar). Bestehende Provisionen ändern sich nie.",
+        "rateLabel": "Standard-Provisionssatz",
+        "rateHint": "Für neu freigegebene Affiliates, 0–50 %.",
+        "cookieLabel": "Zuordnungsfenster",
+        "cookieHint": "Tage, die das Last-Click-Cookie gültig bleibt, 1–90.",
+        "days": "Tage",
+        "thresholdLabel": "Mindestauszahlung",
+        "thresholdHint": "Unter diesem Betrag zeigt der Auszahlungsdialog einen Hinweis.",
+        "cadenceLabel": "Auszahlungsrhythmus",
+        "cadenceHint": "Bestimmt den Standardzeitraum im Auszahlungsdialog und den Text für Partner.",
+        "cadence": {
+          "1": "Monatlich",
+          "3": "Quartalsweise",
+          "6": "Halbjährlich",
+          "12": "Jährlich"
+        },
+        "save": "Einstellungen speichern",
+        "saved": "Programmeinstellungen gespeichert",
+        "saveFailed": "Einstellungen konnten nicht gespeichert werden"
       }
     },
     "allSubscriptions": {
@@ -2812,7 +2836,9 @@
     "message": "Bitte gib eine aussagekräftige Nachricht ein",
     "vatId": "Bitte gib eine gültige Umsatzsteuer-Identifikationsnummer ein",
     "department": "Bitte gib eine gültige Abteilungsbezeichnung ein",
-    "affiliateRate": "Geben Sie einen Satz zwischen 0 und 50 % ein"
+    "affiliateRate": "Geben Sie einen Satz zwischen 0 und 50 % ein",
+    "affiliateCookieDays": "Geben Sie 1–90 Tage ein",
+    "affiliateThreshold": "Geben Sie einen Betrag zwischen 0 und 10’000 ein"
   },
   "contacts": {
     "title": "Kontakte",

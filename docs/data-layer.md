@@ -312,7 +312,7 @@ Product requirements and phasing: [affiliate-program.md](affiliate-program.md).
 
 Prototype contract: manual approval, last-click attribution (configurable `cookieDays`),
 10 % default commission, quarterly payouts with a soft CHF 50 threshold. Pure rules live in
-`lib/affiliate-ledger.ts` (lifecycle sums, payout selection, previous-quarter window) and
+`lib/affiliate-ledger.ts` (lifecycle sums, payout selection, previous payout period for the configured cadence) and
 `lib/affiliate-attribution.ts` (referral URLs, safe landing paths); the contract walk-through
 is `api/affiliate.test.ts`.
 
@@ -327,6 +327,7 @@ page and optional campaign: `/ref/:slug?to=/scan&campaign=newsletter`.
 | Endpoint                                              | Purpose                                                                                                    |
 | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `GET /affiliate/settings`                             | Program config (cookie window, commission rate, payout threshold, payout cadence)                          |
+| `PATCH /affiliate/admin/settings`                     | Admin: update program config (rate ≤ 0.5, cookie 1–90 days, cadence 1/3/6/12 months); applies from now on  |
 | `POST /affiliate/applications`                        | Apply (website, description, email)                                                                        |
 | `GET /affiliate/applications/me`                      | Current user's application                                                                                 |
 | `GET /affiliate/dashboard/me`                         | Partner, marketing links with per-link stats, earnings by status, referrals (no customer data), payouts    |

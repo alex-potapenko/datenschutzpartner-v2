@@ -215,7 +215,7 @@ Order attributed to partner
 | M-23 | CSV export (optional)                                                                           | Accounting export on commit                                           |
 | M-24 | No in-ui bank transfer                                                                          | Copy states external payment                                          |
 
-**Prototype:** history (date, affiliate, period, referrals, amount, createdBy, invoice recipient) and a create dialog: affiliate, period (default previous quarter), preview with the CHF 50 hint, commit. Each payout shows its ID, referral references and status; the admin marks it transferred after the bank transfer. No CSV export yet (M-23).
+**Prototype:** history (date, affiliate, period, referrals, amount, createdBy, invoice recipient) and a create dialog: affiliate, period (default = previous payout period from the cadence setting), preview with the CHF 50 hint, commit. Each payout shows its ID, referral references and status; the admin marks it transferred after the bank transfer. No CSV export yet (M-23).
 
 ### 5.4 Program settings (admin)
 
@@ -224,7 +224,7 @@ Order attributed to partner
 | M-30 | Global: commission rate, cookie days, payout threshold, quarter schedule | API + admin or config service |
 | M-31 | Per-affiliate commission override                                        | Phase 2                       |
 
-**Prototype:** `GET /affiliate/settings` only — no admin UI to change global settings (M-30). The per-affiliate rate (M-31) is edited in the affiliate's Details drawer (0–50 %, applies to new referrals only).
+**Prototype:** Settings tab in the admin (M-30): default commission rate (new partners only), attribution window in days, minimum payout and payout cadence (monthly / quarterly / 6 months / yearly). Changes apply from now on — existing commissions and partner rates stay. Marketing copy on the public affiliate page (10 %, example amount) is static content and must be updated separately. The per-affiliate rate (M-31) is edited in the affiliate's Details drawer (0–50 %, applies to new referrals only).
 
 ---
 
@@ -346,7 +346,7 @@ _(Visits under Referrals or separate tab.)_
 
 **Still open:**
 
-1. Fixed **quarterly payout calendar** vs admin-triggered only (prototype: admin-triggered, default period = previous quarter).
+1. Fixed **quarterly payout calendar** vs admin-triggered only (prototype: admin-triggered, default period = previous period of the configured cadence).
 2. **Slug change:** redirect old `/ref/` URLs (301) vs invalidate (prototype: invalidate).
 3. Show numeric **Affiliate ID** in UI or slug only (prototype: slug only).
 4. **Vouchers:** expiry, usage limits, stacking with other discounts (e.g. volume discount).
@@ -371,6 +371,7 @@ _(Visits under Referrals or separate tab.)_
 | Partner settings                    | Yes (notification email, referral notifications)                        |
 | Admin affiliates + payout flow      | Yes (Affiliates, Referrals, Payouts tabs; create dialog)                |
 | Partner detail, deactivate, rate    | Yes (Affiliates → Details drawer)                                       |
+| Program settings                    | Yes (Settings tab, `PATCH /affiliate/admin/settings`)                   |
 | Visits log                          | Yes (Visits tab, paginated client-side)                                 |
 | Campaign stats                      | Yes (Links tab, `GET /affiliate/partner/me/campaigns`)                  |
 | Vouchers                            | Phase 2 — partner-created, admin max %, commission on discounted amount |

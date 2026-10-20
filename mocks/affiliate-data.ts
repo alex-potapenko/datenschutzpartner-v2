@@ -101,10 +101,11 @@ export function createAffiliatePartnerRecord(input: {
   email: string;
   slug: string;
   approvedAt: string;
+  commissionRate?: number;
 }): AffiliatePartnerRecord {
   return {
     ...input,
-    commissionRate: AFFILIATE_PROGRAM_SETTINGS.defaultCommissionRate,
+    commissionRate: input.commissionRate ?? AFFILIATE_PROGRAM_SETTINGS.defaultCommissionRate,
     notificationEmail: input.email,
     notifyOnReferral: true,
     status: 'active',
