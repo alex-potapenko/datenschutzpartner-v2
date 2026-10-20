@@ -1923,6 +1923,16 @@
           "unpaid": "Unbezahlt",
           "paid": "Bezahlt",
           "rejected": "Abgelehnt"
+        },
+        "statusFilter": {
+          "label": "Nach Status filtern",
+          "all": "Alle",
+          "empty": "Keine Empfehlungen mit diesem Status."
+        },
+        "pagination": {
+          "label": "Seiten der Empfehlungen",
+          "previous": "Zurück",
+          "next": "Weiter"
         }
       },
       "overview": {
@@ -2058,8 +2068,6 @@
       "referrals": {
         "title": "Empfehlungen",
         "body": "Eine Empfehlung wird auszahlbar (Nicht ausgezahlt), sobald der Kunde die Bestellung bezahlt hat. Lehne Empfehlungen bei Rückerstattung oder Missbrauch ab.",
-        "filterLabel": "Nach Status filtern",
-        "filterAll": "Alle",
         "empty": "Keine Empfehlungen mit diesem Status.",
         "colReference": "Referenz",
         "colPartner": "Affiliate",

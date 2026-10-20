@@ -8,13 +8,15 @@ import {
   useMarkAffiliateOrderPaid,
   useRejectAffiliateReferral,
   type AffiliateAdminReferral,
-  type AffiliateReferralStatus,
 } from '@/api/affiliate';
+import {
+  AffiliateReferralStatusFilter,
+  type AffiliateReferralStatusFilterValue,
+} from '@/app/account/_components/AffiliateReferralStatusFilter';
 import { AFFILIATE_REFERRAL_STATUS_TONE } from '@/app/account/_components/AffiliateReferralsTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { StatusPill } from '@/components/shared/StatusPill';
-import { Button, Table, Tabs, useOverlayState } from '@/components/ui';
-import { AFFILIATE_REFERRAL_STATUSES } from '@/lib/affiliate-ledger';
+import { Button, Table, useOverlayState } from '@/components/ui';
 import {
   AccountSection,
   AccountTable,
@@ -23,16 +25,12 @@ import {
   useDateFormatter,
 } from '@/app/account/_components/account-ui';
 
-type StatusFilter = AffiliateReferralStatus | 'all';
-
-const STATUS_FILTERS: StatusFilter[] = ['all', ...AFFILIATE_REFERRAL_STATUSES];
-
 export function AffiliateAdminReferralsPanel() {
   const t = useTranslations('account.affiliateAdmin.referrals');
   const tStatus = useTranslations('account.affiliate.dashboard.referralStatus');
   const tc = useTranslations('common');
   const formatDate = useDateFormatter();
-  const [filter, setFilter] = useState<StatusFilter>('all');
+  const [filter, setFilter] = useState<AffiliateReferralStatusFilterValue>('all');
   const referrals = useAffiliateAdminReferrals(filter === 'all' ? undefined : filter);
   const markPaid = useMarkAffiliateOrderPaid();
   const reject = useRejectAffiliateReferral();
@@ -68,25 +66,7 @@ export function AffiliateAdminReferralsPanel() {
   return (
     <AccountSection title={t('title')} contentClassName="gap-4">
       <p className="text-muted text-sm leading-relaxed">{t('body')}</p>
-      <Tabs
-        selectedKey={filter}
-        onSelectionChange={(key) => {
-          setFilter(String(key) as StatusFilter);
-        }}
-      >
-        <Tabs.ListContainer className="overflow-x-auto">
-          <Tabs.List aria-label={t('filterLabel')} className="!w-auto max-w-full">
-            {STATUS_FILTERS.map((id) => (
-              <Tabs.Tab key={id} id={id} className="!h-auto !w-auto shrink-0">
-                <span className="text-sm font-medium whitespace-nowrap">
-                  {id === 'all' ? t('filterAll') : tStatus(id)}
-                </span>
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs.ListContainer>
-      </Tabs>
+      <AffiliateReferralStatusFilter value={filter} onChange={setFilter} />
 
       <DataState
         isLoading={referrals.isLoading}

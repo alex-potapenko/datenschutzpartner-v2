@@ -1923,6 +1923,16 @@
           "unpaid": "Unpaid",
           "paid": "Paid",
           "rejected": "Rejected"
+        },
+        "statusFilter": {
+          "label": "Filter by status",
+          "all": "All",
+          "empty": "No referrals with this status."
+        },
+        "pagination": {
+          "label": "Referral pages",
+          "previous": "Previous",
+          "next": "Next"
         }
       },
       "overview": {
@@ -2058,8 +2068,6 @@
       "referrals": {
         "title": "Referrals",
         "body": "A referral becomes payable (Unpaid) once the customer has paid the order. Reject referrals for refunded or fraudulent orders.",
-        "filterLabel": "Filter by status",
-        "filterAll": "All",
         "empty": "No referrals with this status.",
         "colReference": "Reference",
         "colPartner": "Affiliate",
