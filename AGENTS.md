@@ -10,6 +10,7 @@ This file is the entry point. For depth, read the focused doc, not the whole cod
 - Need a system overview / project structure? → [`docs/architecture.md`](docs/architecture.md)
 - Need to add an entity, a form, or wire data? → [`docs/data-layer.md`](docs/data-layer.md)
 - Building or theming UI? → [`docs/design-principles.md`](docs/design-principles.md)
+- Affiliate program scope, rules, or phasing? → [`docs/affiliate-program.md`](docs/affiliate-program.md)
 
 When you add or change a feature, update the affected `docs/*.md` in the same change —
 documentation is part of the deliverable, not an afterthought.
