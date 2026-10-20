@@ -21,6 +21,7 @@ export const SERVICE_TAB_IDS = [
   'overview',
   'links',
   'referrals',
+  'visits',
   'payouts',
   'settings',
 ] as const;
@@ -51,6 +52,7 @@ export const AFFILIATE_PARTNER_TAB_IDS = [
   'overview',
   'links',
   'referrals',
+  'visits',
   'payouts',
   'settings',
   'about',

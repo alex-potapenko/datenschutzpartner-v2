@@ -25,6 +25,7 @@ import { AFFILIATE_REF_URL_PREFIX } from '@/lib/affiliate-attribution';
 import { AffiliateReferralCopyButton } from '../../AffiliateReferralCopyButton';
 import { AffiliateReferralLinkRow } from '../../AffiliateReferralLinkRow';
 import { AccountSection, useDateFormatter } from '../../account-ui';
+import { AffiliateCampaignStats } from './AffiliateCampaignStats';
 
 const REFERRAL_ROW_TRANSITION = { duration: 0.26, ease: [0.32, 0.72, 0, 1] as const };
 
@@ -213,6 +214,7 @@ function AffiliateLinkGenerator() {
 
 export function AffiliateLinksPanel({ dashboard }: { dashboard: AffiliateDashboard }) {
   const t = useTranslations('account.affiliate.links');
+  const tCampaigns = useTranslations('account.affiliate.campaigns');
   const tDashboard = useTranslations('account.affiliate.dashboard');
   const reduceMotion = useReducedMotion();
   const formatDate = useDateFormatter();
@@ -295,6 +297,11 @@ export function AffiliateLinksPanel({ dashboard }: { dashboard: AffiliateDashboa
             </motion.p>
           )}
         </AnimatePresence>
+      </AccountSection>
+
+      <AccountSection title={tCampaigns('title')} contentClassName="gap-4">
+        <p className="text-muted text-sm leading-relaxed">{tCampaigns('body')}</p>
+        <AffiliateCampaignStats />
       </AccountSection>
     </div>
   );

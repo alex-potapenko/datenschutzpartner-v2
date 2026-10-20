@@ -1564,7 +1564,8 @@
       "links": "Links",
       "referrals": "Empfehlungen",
       "payouts": "Auszahlungen",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "visits": "Besuche"
     },
     "areaNavAriaLabel": "Kontobereiche",
     "nav": {
@@ -1986,6 +1987,33 @@
         "save": "Speichern",
         "saved": "Einstellungen gespeichert",
         "saveFailed": "Einstellungen konnten nicht gespeichert werden."
+      },
+      "visits": {
+        "title": "Besuche",
+        "body": "Jeder Klick auf einen deiner Links. Kundendaten werden nie angezeigt.",
+        "empty": "Noch keine Besuche.",
+        "colDate": "Datum",
+        "colTarget": "Zielseite",
+        "colReferrer": "Herkunft",
+        "colCampaign": "Kampagne",
+        "colConverted": "Kauf",
+        "direct": "Direkt",
+        "converted": "Konvertiert",
+        "notConverted": "—",
+        "pagination": "Seiten der Besuche",
+        "previous": "Zurück",
+        "next": "Weiter"
+      },
+      "campaigns": {
+        "title": "Kampagnen-Performance",
+        "body": "Besuche, Empfehlungen und Einnahmen pro Kampagne über alle deine Links. Abgelehnte Empfehlungen werden nicht gezählt.",
+        "empty": "Noch keine Kampagnendaten.",
+        "colCampaign": "Kampagne",
+        "colVisits": "Besuche",
+        "colReferrals": "Empfehlungen",
+        "colConversion": "Conversion",
+        "colEarnings": "Einnahmen",
+        "noCampaign": "Ohne Kampagne"
       }
     },
     "affiliateAdmin": {

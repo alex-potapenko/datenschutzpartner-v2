@@ -18,6 +18,7 @@ import { AffiliateOverviewPanel } from './affiliate/AffiliateOverviewPanel';
 import { AffiliatePayoutsPanel } from './affiliate/AffiliatePayoutsPanel';
 import { AffiliateReferralsPanel } from './affiliate/AffiliateReferralsPanel';
 import { AffiliateSettingsPanel } from './affiliate/AffiliateSettingsPanel';
+import { AffiliateVisitsPanel } from './affiliate/AffiliateVisitsPanel';
 import {
   AnimatedServiceTabContent,
   affiliateTabIds,
@@ -31,6 +32,8 @@ function partnerPanel(tab: ServiceTabId, dashboard: AffiliateDashboard): ReactNo
       return <AffiliateLinksPanel dashboard={dashboard} />;
     case 'referrals':
       return <AffiliateReferralsPanel dashboard={dashboard} />;
+    case 'visits':
+      return <AffiliateVisitsPanel />;
     case 'payouts':
       return <AffiliatePayoutsPanel dashboard={dashboard} />;
     case 'settings':

@@ -300,7 +300,7 @@ _(Visits under Referrals or separate tab.)_
 - Referrals
 - Payouts (including create flow)
 
-**Prototype today:** partner tabs Overview, Links, Referrals, Payouts, Settings and How it works (`?section=affiliate&tab=…`); admin `/account/affiliate/admin` has tabs Applications, Affiliates, Referrals (status filter, mark order paid, reject) and Payouts (history + create dialog with period preview and threshold hint).
+**Prototype today:** partner tabs Overview, Links, Referrals, Visits, Payouts, Settings and How it works (`?section=affiliate&tab=…`); admin `/account/affiliate/admin` has tabs Applications, Affiliates, Referrals (status filter, mark order paid, reject) and Payouts (history + create dialog with period preview and threshold hint).
 
 **Code entry points:**
 
@@ -350,18 +350,20 @@ _(Visits under Referrals or separate tab.)_
 
 ## 11. Prototype traceability
 
-| PRD area                            | Prototype today                                          |
-| ----------------------------------- | -------------------------------------------------------- |
-| Application + admin approve         | Yes                                                      |
-| `/ref/` + cookie + visits           | Yes (`?to=` target page and `campaign`, visit recorded)  |
-| Editable affiliate ID (slug)        | Yes (Links tab)                                          |
-| Marketing URL generator + link list | Yes (Links tab)                                          |
-| Dashboard stats                     | Yes (Overview: earnings by status, visits, conversion)   |
-| Referrals with status               | Yes (Overview latest 5, Referrals tab)                   |
-| Payout history (partner)            | Yes (Payouts tab)                                        |
-| Partner settings                    | Yes (notification email, referral notifications)         |
-| Admin affiliates + payout flow      | Yes (Affiliates, Referrals, Payouts tabs; create dialog) |
-| Vouchers, visits log                | No (Phase 2)                                             |
+| PRD area                            | Prototype today                                                         |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| Application + admin approve         | Yes                                                                     |
+| `/ref/` + cookie + visits           | Yes (`?to=` target page and `campaign`, visit recorded)                 |
+| Editable affiliate ID (slug)        | Yes (Links tab)                                                         |
+| Marketing URL generator + link list | Yes (Links tab)                                                         |
+| Dashboard stats                     | Yes (Overview: earnings by status, visits, conversion)                  |
+| Referrals with status               | Yes (Overview latest 5, Referrals tab)                                  |
+| Payout history (partner)            | Yes (Payouts tab)                                                       |
+| Partner settings                    | Yes (notification email, referral notifications)                        |
+| Admin affiliates + payout flow      | Yes (Affiliates, Referrals, Payouts tabs; create dialog)                |
+| Visits log                          | Yes (Visits tab, paginated client-side)                                 |
+| Campaign stats                      | Yes (Links tab, `GET /affiliate/partner/me/campaigns`)                  |
+| Vouchers                            | Phase 2 — partner-created, admin max %, commission on discounted amount |
 
 ---
 

@@ -4,6 +4,7 @@ import type {
   AffiliateAdminPayout,
   AffiliateAdminReferral,
   AffiliateApplication,
+  AffiliateCampaignStats,
   AffiliateDashboard,
   AffiliatePayoutPreview,
   AffiliateReferralLink,
@@ -116,6 +117,20 @@ describe('affiliate contract', () => {
       (row) => row.targetPath === '/eu-rep/questionnaire'
     );
     expect(link?.clicks).toBe(1);
+  });
+
+  it('aggregates visits and referrals per campaign', async () => {
+    asPartner();
+    const stats = await request<AffiliateCampaignStats[]>('/affiliate/partner/me/campaigns');
+    const newsletter = stats.find((row) => row.campaign === 'newsletter');
+    expect(newsletter?.visits).toBeGreaterThan(0);
+    expect(newsletter?.referrals).toBeGreaterThan(0);
+    expect(newsletter?.conversionRate).toBeCloseTo(
+      (newsletter?.referrals ?? 0) / (newsletter?.visits ?? 1)
+    );
+    const totalVisits = stats.reduce((sum, row) => sum + row.visits, 0);
+    const visits = await request<unknown[]>('/affiliate/partner/me/visits');
+    expect(totalVisits).toBe(visits.length);
   });
 
   it('makes a commission payable only once the order is paid', async () => {

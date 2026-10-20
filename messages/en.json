@@ -1564,7 +1564,8 @@
       "links": "Links",
       "referrals": "Referrals",
       "payouts": "Payouts",
-      "settings": "Settings"
+      "settings": "Settings",
+      "visits": "Visits"
     },
     "areaNavAriaLabel": "Account areas",
     "nav": {
@@ -1986,6 +1987,33 @@
         "save": "Save",
         "saved": "Settings saved",
         "saveFailed": "Could not save settings."
+      },
+      "visits": {
+        "title": "Visits",
+        "body": "Every click on one of your links. Customer details are never shown.",
+        "empty": "No visits yet.",
+        "colDate": "Date",
+        "colTarget": "Landing page",
+        "colReferrer": "Came from",
+        "colCampaign": "Campaign",
+        "colConverted": "Purchase",
+        "direct": "Direct",
+        "converted": "Converted",
+        "notConverted": "—",
+        "pagination": "Visits pages",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "campaigns": {
+        "title": "Campaign performance",
+        "body": "Visits, referrals and earnings per campaign across all your links. Rejected referrals are not counted.",
+        "empty": "No campaign data yet.",
+        "colCampaign": "Campaign",
+        "colVisits": "Visits",
+        "colReferrals": "Referrals",
+        "colConversion": "Conversion",
+        "colEarnings": "Earnings",
+        "noCampaign": "Without campaign"
       }
     },
     "affiliateAdmin": {

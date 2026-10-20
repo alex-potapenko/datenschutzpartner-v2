@@ -14,6 +14,7 @@ import type {
   AffiliatePayoutRequest,
   AffiliateReferralLink,
   AffiliateVisit,
+  AffiliateCampaignStats,
 } from '@/api/affiliate';
 import {
   AFFILIATE_CAMPAIGN_PATTERN,
@@ -2404,6 +2405,45 @@ export const handlers = [
       createdAt: row.createdAt,
     }));
     return HttpResponse.json(visits);
+  }),
+
+  http.get('/api/affiliate/partner/me/campaigns', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const visits = partnerVisits(partner.id);
+    const referralCampaign = new Map(
+      visits.filter((row) => row.referralId).map((row) => [row.referralId, row.campaign])
+    );
+    const stats = new Map<string | null, AffiliateCampaignStats>();
+    const entry = (campaign: string | null) => {
+      const existing = stats.get(campaign);
+      if (existing) return existing;
+      const created: AffiliateCampaignStats = {
+        campaign,
+        visits: 0,
+        referrals: 0,
+        conversionRate: 0,
+        earningsChf: 0,
+      };
+      stats.set(campaign, created);
+      return created;
+    };
+    for (const visit of visits) entry(visit.campaign).visits += 1;
+    for (const referral of affiliateReferrals.all()) {
+      if (referral.partnerId !== partner.id || referral.status === 'rejected') continue;
+      const row = entry(referralCampaign.get(referral.id) ?? null);
+      row.referrals += 1;
+      row.earningsChf = roundChf(row.earningsChf + referral.commissionChf);
+    }
+    const rows = [...stats.values()]
+      .map((row) => ({
+        ...row,
+        conversionRate: row.visits > 0 ? row.referrals / row.visits : 0,
+      }))
+      .sort((a, b) => b.visits - a.visits);
+    return HttpResponse.json(rows);
   }),
 
   http.patch('/api/affiliate/partner/me/slug', async ({ request }) => {

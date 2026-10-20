@@ -149,6 +149,15 @@ export const affiliateVisitSchema = z.object({
   createdAt: z.string(),
 });
 
+export const affiliateCampaignStatsSchema = z.object({
+  /** `null` = visits and referrals without a campaign. */
+  campaign: z.string().nullable(),
+  visits: z.number().int(),
+  referrals: z.number().int(),
+  conversionRate: z.number(),
+  earningsChf: z.number(),
+});
+
 export const affiliateSlugUpdateSchema = z.object({
   slug: z.string().trim().regex(AFFILIATE_SLUG_PATTERN, 'validation.affiliateUsername'),
 });
@@ -226,6 +235,7 @@ export type AffiliateReferral = z.infer<typeof affiliateReferralSchema>;
 export type AffiliatePayout = z.infer<typeof affiliatePayoutSchema>;
 export type AffiliateDashboard = z.infer<typeof affiliateDashboardSchema>;
 export type AffiliateVisit = z.infer<typeof affiliateVisitSchema>;
+export type AffiliateCampaignStats = z.infer<typeof affiliateCampaignStatsSchema>;
 export type AffiliatePartnerSettingsUpdate = z.infer<typeof affiliatePartnerSettingsUpdateSchema>;
 export type AffiliateAdminPartner = z.infer<typeof affiliateAdminPartnerSchema>;
 export type AffiliateAdminReferral = z.infer<typeof affiliateAdminReferralSchema>;
@@ -239,6 +249,7 @@ export const affiliateKeys = {
   myApplication: () => [...affiliateKeys.all, 'application', 'me'] as const,
   dashboard: () => [...affiliateKeys.all, 'dashboard', 'me'] as const,
   visits: () => [...affiliateKeys.all, 'visits', 'me'] as const,
+  campaigns: () => [...affiliateKeys.all, 'campaigns', 'me'] as const,
   admin: () => [...affiliateKeys.all, 'admin'] as const,
   adminApplications: () => [...affiliateKeys.admin(), 'applications'] as const,
   adminPartners: () => [...affiliateKeys.admin(), 'partners'] as const,
@@ -286,6 +297,13 @@ export function useAffiliateVisits() {
   return useQuery({
     queryKey: affiliateKeys.visits(),
     queryFn: () => request<AffiliateVisit[]>('/affiliate/partner/me/visits'),
+  });
+}
+
+export function useAffiliateCampaignStats() {
+  return useQuery({
+    queryKey: affiliateKeys.campaigns(),
+    queryFn: () => request<AffiliateCampaignStats[]>('/affiliate/partner/me/campaigns'),
   });
 }
 
