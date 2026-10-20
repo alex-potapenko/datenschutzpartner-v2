@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ApiError, request } from './client';
 import type {
+  AffiliateAdminPartner,
   AffiliateAdminPayout,
   AffiliateAdminReferral,
   AffiliateApplication,
@@ -196,6 +197,41 @@ describe('affiliate contract', () => {
     expect(await statusOf(post(`/affiliate/admin/payouts/${payout.id}/mark-transferred`))).toBe(
       409
     );
+  });
+
+  it('lets the admin override the rate and deactivate a partner without losing data', async () => {
+    const before = await dashboard();
+    const partnerId = before.partner.id;
+    asAdmin();
+    const detail = await request<AffiliateDashboard>(`/affiliate/admin/partners/${partnerId}`);
+    expect(detail.referrals).toHaveLength(before.referrals.length);
+
+    const patch = (commissionRate: number) =>
+      request<AffiliateAdminPartner>(`/affiliate/admin/partners/${partnerId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ commissionRate }),
+      });
+    expect((await patch(0.15)).commissionRate).toBe(0.15);
+    expect(await statusOf(patch(0.9))).toBe(400);
+
+    const inactive = await post<AffiliateAdminPartner>(
+      `/affiliate/admin/partners/${partnerId}/deactivate`
+    );
+    expect(inactive.status).toBe('inactive');
+    const click = await post<{ attributed: boolean }>('/affiliate/clicks', {
+      slug: PARTNER_SLUG,
+      targetPath: '/',
+    });
+    expect(click.attributed).toBe(false);
+    const whileInactive = await dashboard();
+    expect(whileInactive.partner.status).toBe('inactive');
+    expect(whileInactive.stats.visits).toBe(before.stats.visits);
+
+    asAdmin();
+    const active = await post<AffiliateAdminPartner>(
+      `/affiliate/admin/partners/${partnerId}/reactivate`
+    );
+    expect(active).toMatchObject({ status: 'active', deactivatedAt: null });
   });
 
   it('keeps admin endpoints admin-only', async () => {

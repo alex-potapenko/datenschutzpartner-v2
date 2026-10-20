@@ -57,6 +57,9 @@ export const affiliateProgramSettingsSchema = z.object({
 
 export const affiliateReferralStatusSchema = z.enum(AFFILIATE_REFERRAL_STATUSES);
 
+/** `inactive` = deactivated by an admin: links stop attributing, data is kept. */
+export const affiliatePartnerStatusSchema = z.enum(['active', 'inactive']);
+
 export const affiliatePartnerSchema = z.object({
   id: z.string(),
   applicationId: z.string(),
@@ -67,6 +70,8 @@ export const affiliatePartnerSchema = z.object({
   commissionRate: z.number(),
   notificationEmail: z.email(),
   notifyOnReferral: z.boolean(),
+  status: affiliatePartnerStatusSchema,
+  deactivatedAt: z.string().nullable(),
 });
 
 export const affiliateReferralLinkSchema = z.object({
@@ -178,10 +183,22 @@ export const affiliateAdminPartnerSchema = z.object({
   slug: z.string(),
   approvedAt: z.string(),
   commissionRate: z.number(),
+  status: affiliatePartnerStatusSchema,
+  deactivatedAt: z.string().nullable(),
   visits: z.number().int(),
   referralCounts: z.record(affiliateReferralStatusSchema, z.number().int()),
   unpaidEarningsChf: z.number(),
   paidEarningsChf: z.number(),
+});
+
+/** Admin edits the rate in percent; the API stores a 0–1 fraction. Applies to new referrals only. */
+export const AFFILIATE_MAX_COMMISSION_PERCENT = 50;
+
+export const affiliateCommissionRateFormSchema = z.object({
+  percent: z
+    .number({ error: 'validation.affiliateRate' })
+    .min(0, 'validation.affiliateRate')
+    .max(AFFILIATE_MAX_COMMISSION_PERCENT, 'validation.affiliateRate'),
 });
 
 export const affiliateAdminReferralSchema = z.object({
@@ -246,6 +263,8 @@ export type AffiliateVisit = z.infer<typeof affiliateVisitSchema>;
 export type AffiliateCampaignStats = z.infer<typeof affiliateCampaignStatsSchema>;
 export type AffiliatePartnerSettingsUpdate = z.infer<typeof affiliatePartnerSettingsUpdateSchema>;
 export type AffiliateAdminPartner = z.infer<typeof affiliateAdminPartnerSchema>;
+export type AffiliatePartnerStatus = z.infer<typeof affiliatePartnerStatusSchema>;
+export type AffiliateCommissionRateForm = z.infer<typeof affiliateCommissionRateFormSchema>;
 export type AffiliateAdminReferral = z.infer<typeof affiliateAdminReferralSchema>;
 export type AffiliateAdminPayout = z.infer<typeof affiliateAdminPayoutSchema>;
 export type AffiliatePayoutRequest = z.infer<typeof affiliatePayoutRequestSchema>;
@@ -261,6 +280,7 @@ export const affiliateKeys = {
   admin: () => [...affiliateKeys.all, 'admin'] as const,
   adminApplications: () => [...affiliateKeys.admin(), 'applications'] as const,
   adminPartners: () => [...affiliateKeys.admin(), 'partners'] as const,
+  adminPartner: (id: string) => [...affiliateKeys.admin(), 'partners', id] as const,
   adminReferrals: (status?: AffiliateReferralStatus) =>
     [...affiliateKeys.admin(), 'referrals', status ?? 'all'] as const,
   adminPayouts: () => [...affiliateKeys.admin(), 'payouts'] as const,
@@ -432,6 +452,43 @@ export function useAffiliateAdminPartners() {
   return useQuery({
     queryKey: affiliateKeys.adminPartners(),
     queryFn: () => request<AffiliateAdminPartner[]>('/affiliate/admin/partners'),
+  });
+}
+
+/** Partner detail for the admin — same shape as the partner's own dashboard. */
+export function useAffiliateAdminPartner(id: string | null) {
+  return useQuery({
+    queryKey: affiliateKeys.adminPartner(id ?? ''),
+    queryFn: () => request<AffiliateDashboard>(`/affiliate/admin/partners/${id ?? ''}`),
+    enabled: Boolean(id),
+  });
+}
+
+export function useUpdateAffiliatePartnerRate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, commissionRate }: { id: string; commissionRate: number }) =>
+      request<AffiliateAdminPartner>(`/affiliate/admin/partners/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ commissionRate }),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
+  });
+}
+
+export function useSetAffiliatePartnerActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      request<AffiliateAdminPartner>(
+        `/affiliate/admin/partners/${id}/${active ? 'reactivate' : 'deactivate'}`,
+        { method: 'POST' }
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
   });
 }
 

@@ -18,6 +18,7 @@ import type {
 } from '@/api/affiliate';
 import {
   AFFILIATE_CAMPAIGN_PATTERN,
+  AFFILIATE_MAX_COMMISSION_PERCENT,
   AFFILIATE_SLUG_PATTERN,
   affiliateReferralStatusSchema,
 } from '@/api/affiliate';
@@ -407,32 +408,32 @@ const affiliateSeed = createAffiliateSeed();
 const affiliateApplications = createCollection<AffiliateApplication>(
   'affiliate-applications',
   affiliateSeed.applications,
-  4
+  5
 );
 const affiliatePartners = createCollection<AffiliatePartnerRecord>(
   'affiliate-partners',
   affiliateSeed.partners,
-  4
+  5
 );
 const affiliateReferralLinks = createCollection<AffiliateReferralLinkRecord>(
   'affiliate-referral-links',
   affiliateSeed.links,
-  4
+  5
 );
 const affiliateVisits = createCollection<AffiliateVisitRecord>(
   'affiliate-visits',
   affiliateSeed.visits,
-  2
+  3
 );
 const affiliateReferrals = createCollection<AffiliateReferralRecord>(
   'affiliate-referrals',
   affiliateSeed.referrals,
-  2
+  3
 );
 const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
   'affiliate-payouts',
   affiliateSeed.payouts,
-  5
+  6
 );
 
 function sessionEmail(request: Request): string | null {
@@ -513,6 +514,8 @@ function partnerDto(partner: AffiliatePartnerRecord): AffiliatePartner {
     commissionRate: partner.commissionRate,
     notificationEmail: partner.notificationEmail,
     notifyOnReferral: partner.notifyOnReferral,
+    status: partner.status,
+    deactivatedAt: partner.deactivatedAt,
   };
 }
 
@@ -593,7 +596,10 @@ function partnerActivity(partner: AffiliatePartnerRecord) {
 
 function partnerDashboard(email: string): AffiliateDashboard | null {
   const partner = findPartnerByEmail(email);
-  if (!partner) return null;
+  return partner ? partnerDashboardFor(partner) : null;
+}
+
+function partnerDashboardFor(partner: AffiliatePartnerRecord): AffiliateDashboard {
   const { visits, summary } = partnerActivity(partner);
   return {
     partner: partnerDto(partner),
@@ -627,6 +633,8 @@ function adminPartnerDto(partner: AffiliatePartnerRecord): AffiliateAdminPartner
     slug: partner.slug,
     approvedAt: partner.approvedAt,
     commissionRate: partner.commissionRate,
+    status: partner.status,
+    deactivatedAt: partner.deactivatedAt,
     visits,
     referralCounts: summary.counts,
     unpaidEarningsChf: summary.unpaidChf,
@@ -2545,7 +2553,8 @@ export const handlers = [
     if (!slug) return new HttpResponse(null, { status: 400 });
     const targetPath = safeTargetPath(body.targetPath ?? null) ?? '/';
     const campaign = body.campaign?.trim() || null;
-    const partner = findPartnerBySlug(slug);
+    const found = findPartnerBySlug(slug);
+    const partner = found?.status === 'active' ? found : undefined;
     if (partner) {
       const link = partnerLinks(partner.id).find(
         (row) => row.targetPath === targetPath && row.campaign === campaign
@@ -2620,6 +2629,45 @@ export const handlers = [
       });
     }
     return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.get('/api/affiliate/admin/partners/:id', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const partner = findPartnerById(String(params.id));
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(partnerDashboardFor(partner));
+  }),
+
+  http.patch('/api/affiliate/admin/partners/:id', async ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const partner = findPartnerById(String(params.id));
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const body = (await request.json()) as { commissionRate?: number };
+    const rate = body.commissionRate;
+    if (typeof rate !== 'number' || rate < 0 || rate > AFFILIATE_MAX_COMMISSION_PERCENT / 100) {
+      return HttpResponse.json({ message: 'rate_invalid' }, { status: 400 });
+    }
+    const updated = affiliatePartners.update(partner.id, { commissionRate: rate });
+    return HttpResponse.json(adminPartnerDto(updated ?? partner));
+  }),
+
+  http.post('/api/affiliate/admin/partners/:id/deactivate', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const partner = findPartnerById(String(params.id));
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const updated = affiliatePartners.update(partner.id, {
+      status: 'inactive',
+      deactivatedAt: new Date().toISOString(),
+    });
+    return HttpResponse.json(adminPartnerDto(updated ?? partner));
+  }),
+
+  http.post('/api/affiliate/admin/partners/:id/reactivate', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const partner = findPartnerById(String(params.id));
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const updated = affiliatePartners.update(partner.id, { status: 'active', deactivatedAt: null });
+    return HttpResponse.json(adminPartnerDto(updated ?? partner));
   }),
 
   http.get('/api/affiliate/admin/partners', ({ request }) => {

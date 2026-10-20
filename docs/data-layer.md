@@ -341,6 +341,10 @@ page and optional campaign: `/ref/:slug?to=/scan&campaign=newsletter`.
 | `POST /affiliate/admin/applications/:id/approve`      | Admin: approve → partner (prototype seeds demo history)                                                    |
 | `POST /affiliate/admin/applications/:id/reject`       | Admin: reject                                                                                              |
 | `GET /affiliate/admin/partners`                       | Admin: all partners with visits, referral counts, unpaid/paid earnings                                     |
+| `GET /affiliate/admin/partners/:id`                   | Admin: partner detail (same shape as the partner dashboard)                                                |
+| `PATCH /affiliate/admin/partners/:id`                 | Admin: per-affiliate `commissionRate` (0–0.5); applies to new referrals only                               |
+| `POST /affiliate/admin/partners/:id/deactivate`       | Admin: `status: inactive` — clicks stop attributing, data kept                                             |
+| `POST /affiliate/admin/partners/:id/reactivate`       | Admin: back to `active`                                                                                    |
 | `GET /affiliate/admin/referrals?status=`              | Admin: referrals across partners, optional status filter                                                   |
 | `POST /affiliate/admin/referrals/:id/mark-order-paid` | Prototype stand-in for the order-paid webhook: `pending` → `unpaid`                                        |
 | `POST /affiliate/admin/referrals/:id/reject`          | Admin: reject a non-paid referral                                                                          |

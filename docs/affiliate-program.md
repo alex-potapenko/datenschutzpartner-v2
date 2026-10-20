@@ -192,7 +192,7 @@ Order attributed to partner
 | M-03 | Deactivate affiliate                                   | Attribution stops; data retained            |
 | M-04 | Partner detail view                                    | Links, stats, referrals, payouts            |
 
-**Prototype:** applications (M-02) and the affiliates list with visits, referral counts and balances (M-01, active partners only, no rate column). Deactivation (M-03) and a partner detail view (M-04) are not implemented.
+**Prototype:** applications (M-02); the affiliates list (M-01) shows status (active / deactivated), rate, visits, referral counts and balances — rejected applicants stay in the Applications tab. The Details drawer (M-04) shows stats, the per-affiliate rate (M-31), marketing links, referrals and payouts, and deactivates / reactivates the affiliate (M-03): attribution stops (`/affiliate/clicks` returns `attributed: false`), all data stays, and the partner sees a notice on Overview.
 
 ### 5.2 Referrals (deal tracking)
 
@@ -224,7 +224,7 @@ Order attributed to partner
 | M-30 | Global: commission rate, cookie days, payout threshold, quarter schedule | API + admin or config service |
 | M-31 | Per-affiliate commission override                                        | Phase 2                       |
 
-**Prototype:** `GET /affiliate/settings` only — no admin UI to change global settings (M-30).
+**Prototype:** `GET /affiliate/settings` only — no admin UI to change global settings (M-30). The per-affiliate rate (M-31) is edited in the affiliate's Details drawer (0–50 %, applies to new referrals only).
 
 ---
 
@@ -370,6 +370,7 @@ _(Visits under Referrals or separate tab.)_
 | Payout history (partner)            | Yes (Payouts tab)                                                       |
 | Partner settings                    | Yes (notification email, referral notifications)                        |
 | Admin affiliates + payout flow      | Yes (Affiliates, Referrals, Payouts tabs; create dialog)                |
+| Partner detail, deactivate, rate    | Yes (Affiliates → Details drawer)                                       |
 | Visits log                          | Yes (Visits tab, paginated client-side)                                 |
 | Campaign stats                      | Yes (Links tab, `GET /affiliate/partner/me/campaigns`)                  |
 | Vouchers                            | Phase 2 — partner-created, admin max %, commission on discounted amount |

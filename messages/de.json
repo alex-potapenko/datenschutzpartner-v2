@@ -1949,7 +1949,9 @@
         "conversionRate": "Conversion-Rate",
         "commissionNote": "{rate} % Provision auf bezahlte Käufe",
         "latestTitle": "Neueste Empfehlungen",
-        "allReferrals": "Alle Empfehlungen"
+        "allReferrals": "Alle Empfehlungen",
+        "inactiveTitle": "Ihr Affiliate-Konto ist deaktiviert",
+        "inactiveBody": "Ihre Links erfassen keine Besuche und keine neuen Empfehlungen mehr. Bestehende Provisionen und Auszahlungen bleiben sichtbar. Melden Sie sich bei uns, falls es sich um einen Irrtum handelt."
       },
       "payoutInfo": {
         "title": "So funktioniert die Auszahlung",
@@ -2029,6 +2031,10 @@
         "colConversion": "Conversion",
         "colEarnings": "Einnahmen",
         "noCampaign": "Ohne Kampagne"
+      },
+      "partnerStatus": {
+        "active": "Aktiv",
+        "inactive": "Deaktiviert"
       }
     },
     "affiliateAdmin": {
@@ -2068,7 +2074,11 @@
         "colUnpaid": "Nicht ausgezahlt",
         "colPaid": "Ausgezahlt",
         "colActions": "Aktionen",
-        "createPayout": "Auszahlung erstellen"
+        "createPayout": "Auszahlung erstellen",
+        "colStatus": "Status",
+        "colRate": "Satz",
+        "details": "Details",
+        "detailsAria": "Details zu {email} anzeigen"
       },
       "referrals": {
         "title": "Empfehlungen",
@@ -2127,6 +2137,37 @@
         "cancel": "Abbrechen",
         "submit": "Auszahlung erstellen & Rechnung anfordern",
         "created": "Auszahlung über {amount} erstellt. Rechnungsanfrage an {email} gesendet."
+      },
+      "partnerDetail": {
+        "title": "Affiliate",
+        "since": "Partner seit {date}",
+        "deactivatedOn": "Deaktiviert am {date}",
+        "statsTitle": "Leistung",
+        "visits": "Besuche",
+        "unpaid": "Offen",
+        "paid": "Ausbezahlt",
+        "rateTitle": "Provisionssatz",
+        "rateLabel": "Satz für diesen Affiliate",
+        "rateHint": "Gilt nur für neue Empfehlungen; bestehende Provisionen behalten ihren Betrag.",
+        "rateSave": "Speichern",
+        "rateSaved": "Provisionssatz gespeichert",
+        "rateFailed": "Satz konnte nicht gespeichert werden",
+        "linksTitle": "Marketing-Links",
+        "linksEmpty": "Noch keine Marketing-Links.",
+        "linkCampaign": "Kampagne: {campaign}",
+        "linkStats": "{clicks} Besuche · {conversions} Empfehlungen",
+        "referralsTitle": "Empfehlungen ({count})",
+        "payoutsTitle": "Auszahlungen",
+        "payoutsEmpty": "Noch keine Auszahlungen.",
+        "deactivate": "Deaktivieren",
+        "reactivate": "Reaktivieren",
+        "deactivateHint": "Deaktivieren stoppt die Zuordnung. Daten und verdiente Provisionen bleiben erhalten.",
+        "reactivateHint": "Reaktivieren nimmt die Zuordnung für neue Besuche wieder auf.",
+        "deactivateConfirmTitle": "Affiliate deaktivieren?",
+        "deactivateConfirmBody": "Die Links von {email} erfassen keine Besuche und Empfehlungen mehr. Bestehende Provisionen und Auszahlungen bleiben unverändert; Sie können jederzeit reaktivieren.",
+        "deactivated": "Affiliate deaktiviert",
+        "reactivated": "Affiliate reaktiviert",
+        "statusFailed": "Status konnte nicht geändert werden"
       }
     },
     "allSubscriptions": {
@@ -2770,7 +2811,8 @@
     "messageMax": "Die Nachricht ist zu lang",
     "message": "Bitte gib eine aussagekräftige Nachricht ein",
     "vatId": "Bitte gib eine gültige Umsatzsteuer-Identifikationsnummer ein",
-    "department": "Bitte gib eine gültige Abteilungsbezeichnung ein"
+    "department": "Bitte gib eine gültige Abteilungsbezeichnung ein",
+    "affiliateRate": "Geben Sie einen Satz zwischen 0 und 50 % ein"
   },
   "contacts": {
     "title": "Kontakte",

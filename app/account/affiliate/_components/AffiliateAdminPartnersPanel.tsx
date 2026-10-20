@@ -1,8 +1,10 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useAffiliateAdminPartners } from '@/api/affiliate';
-import { Button, Table } from '@/components/ui';
+import { Button, Table, useOverlayState } from '@/components/ui';
+import { AffiliatePartnerStatusPill } from '@/app/account/_components/AffiliatePartnerStatusPill';
 import {
   AccountSection,
   AccountTable,
@@ -10,6 +12,7 @@ import {
   formatMoney,
   useDateFormatter,
 } from '@/app/account/_components/account-ui';
+import { AffiliateAdminPartnerDrawer } from './AffiliateAdminPartnerDrawer';
 
 export function AffiliateAdminPartnersPanel({
   onCreatePayout,
@@ -18,7 +21,10 @@ export function AffiliateAdminPartnersPanel({
 }) {
   const t = useTranslations('account.affiliateAdmin.affiliates');
   const formatDate = useDateFormatter();
+  const format = useFormatter();
   const partners = useAffiliateAdminPartners();
+  const detailDrawer = useOverlayState();
+  const [detailPartnerId, setDetailPartnerId] = useState<string | null>(null);
   const rows = partners.data ?? [];
 
   return (
@@ -34,7 +40,9 @@ export function AffiliateAdminPartnersPanel({
           <AccountTable aria-label={t('title')}>
             <Table.Header>
               <Table.Column isRowHeader>{t('colPartner')}</Table.Column>
+              <Table.Column className="whitespace-nowrap">{t('colStatus')}</Table.Column>
               <Table.Column className="whitespace-nowrap">{t('colSince')}</Table.Column>
+              <Table.Column className="text-right whitespace-nowrap">{t('colRate')}</Table.Column>
               <Table.Column className="text-right whitespace-nowrap">{t('colVisits')}</Table.Column>
               <Table.Column className="text-right whitespace-nowrap">
                 {t('colReferrals')}
@@ -55,8 +63,17 @@ export function AffiliateAdminPartnersPanel({
                       <span className="text-foreground block font-medium">{row.email}</span>
                       <span className="text-muted block font-mono text-xs">{row.slug}</span>
                     </Table.Cell>
+                    <Table.Cell>
+                      <AffiliatePartnerStatusPill status={row.status} />
+                    </Table.Cell>
                     <Table.Cell className="whitespace-nowrap tabular-nums">
                       {formatDate(row.approvedAt)}
+                    </Table.Cell>
+                    <Table.Cell className="text-right tabular-nums">
+                      {format.number(row.commissionRate, {
+                        style: 'percent',
+                        maximumFractionDigits: 1,
+                      })}
                     </Table.Cell>
                     <Table.Cell className="text-right tabular-nums">{row.visits}</Table.Cell>
                     <Table.Cell className="text-right tabular-nums">{referralCount}</Table.Cell>
@@ -67,16 +84,29 @@ export function AffiliateAdminPartnersPanel({
                       {formatMoney(row.paidEarningsChf, 'CHF')}
                     </Table.Cell>
                     <Table.Cell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        isDisabled={row.unpaidEarningsChf <= 0}
-                        onPress={() => {
-                          onCreatePayout(row.id);
-                        }}
-                      >
-                        {t('createPayout')}
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t('detailsAria', { email: row.email })}
+                          onPress={() => {
+                            setDetailPartnerId(row.id);
+                            detailDrawer.open();
+                          }}
+                        >
+                          {t('details')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          isDisabled={row.unpaidEarningsChf <= 0}
+                          onPress={() => {
+                            onCreatePayout(row.id);
+                          }}
+                        >
+                          {t('createPayout')}
+                        </Button>
+                      </div>
                     </Table.Cell>
                   </Table.Row>
                 );
@@ -85,6 +115,7 @@ export function AffiliateAdminPartnersPanel({
           </AccountTable>
         )}
       </AccountSection>
+      <AffiliateAdminPartnerDrawer state={detailDrawer} partnerId={detailPartnerId} />
     </DataState>
   );
 }

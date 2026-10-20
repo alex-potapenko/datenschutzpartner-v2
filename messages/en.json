@@ -1949,7 +1949,9 @@
         "conversionRate": "Conversion rate",
         "commissionNote": "{rate}% commission on paid purchases",
         "latestTitle": "Latest referrals",
-        "allReferrals": "All referrals"
+        "allReferrals": "All referrals",
+        "inactiveTitle": "Your affiliate account is deactivated",
+        "inactiveBody": "Your links no longer record visits or new referrals. Existing commissions and payouts stay visible. Contact us if you think this is a mistake."
       },
       "payoutInfo": {
         "title": "How payouts work",
@@ -2029,6 +2031,10 @@
         "colConversion": "Conversion",
         "colEarnings": "Earnings",
         "noCampaign": "Without campaign"
+      },
+      "partnerStatus": {
+        "active": "Active",
+        "inactive": "Deactivated"
       }
     },
     "affiliateAdmin": {
@@ -2068,7 +2074,11 @@
         "colUnpaid": "Unpaid",
         "colPaid": "Paid out",
         "colActions": "Actions",
-        "createPayout": "Create payout"
+        "createPayout": "Create payout",
+        "colStatus": "Status",
+        "colRate": "Rate",
+        "details": "Details",
+        "detailsAria": "Show details for {email}"
       },
       "referrals": {
         "title": "Referrals",
@@ -2127,6 +2137,37 @@
         "cancel": "Cancel",
         "submit": "Create payout & request invoice",
         "created": "Payout of {amount} created. Invoice request sent to {email}."
+      },
+      "partnerDetail": {
+        "title": "Affiliate",
+        "since": "Partner since {date}",
+        "deactivatedOn": "Deactivated on {date}",
+        "statsTitle": "Performance",
+        "visits": "Visits",
+        "unpaid": "Unpaid",
+        "paid": "Paid out",
+        "rateTitle": "Commission rate",
+        "rateLabel": "Rate for this affiliate",
+        "rateHint": "Applies to new referrals only; existing commissions keep their amount.",
+        "rateSave": "Save",
+        "rateSaved": "Commission rate saved",
+        "rateFailed": "Could not save the rate",
+        "linksTitle": "Marketing links",
+        "linksEmpty": "No marketing links yet.",
+        "linkCampaign": "Campaign: {campaign}",
+        "linkStats": "{clicks} visits · {conversions} referrals",
+        "referralsTitle": "Referrals ({count})",
+        "payoutsTitle": "Payouts",
+        "payoutsEmpty": "No payouts yet.",
+        "deactivate": "Deactivate",
+        "reactivate": "Reactivate",
+        "deactivateHint": "Deactivating stops attribution. Data and earned commissions are kept.",
+        "reactivateHint": "Reactivating resumes attribution for new visits.",
+        "deactivateConfirmTitle": "Deactivate affiliate?",
+        "deactivateConfirmBody": "Links of {email} stop recording visits and referrals. Existing commissions and payouts stay unchanged, and you can reactivate at any time.",
+        "deactivated": "Affiliate deactivated",
+        "reactivated": "Affiliate reactivated",
+        "statusFailed": "Could not change the status"
       }
     },
     "allSubscriptions": {
@@ -2770,7 +2811,8 @@
     "messageMax": "Message is too long",
     "message": "Please enter a meaningful message",
     "vatId": "Please enter a valid VAT number",
-    "department": "Please enter a valid department name"
+    "department": "Please enter a valid department name",
+    "affiliateRate": "Enter a rate between 0 and 50 %"
   },
   "contacts": {
     "title": "Contacts",

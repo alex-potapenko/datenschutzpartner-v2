@@ -5,6 +5,7 @@ import { useSession } from '@/api/auth';
 import type { AffiliateDashboard } from '@/api/affiliate';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import {
+  Alert,
   ArrowsLeftRight,
   ChartBar,
   CheckCircle,
@@ -31,6 +32,19 @@ export function AffiliateOverviewPanel({ dashboard }: { dashboard: AffiliateDash
 
   return (
     <div className="divide-border flex min-w-0 flex-1 flex-col divide-y">
+      {partner.status === 'inactive' ? (
+        <div className="px-4 pt-6 sm:px-8">
+          <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{t('inactiveTitle')}</Alert.Title>
+              <Alert.Description className="text-foreground text-sm">
+                {t('inactiveBody')}
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
+        </div>
+      ) : null}
       <AccountSection title={t('earningsTitle')} contentClassName="gap-6">
         <AffiliatePartnerStatsRow
           items={[
@@ -79,7 +93,7 @@ export function AffiliateOverviewPanel({ dashboard }: { dashboard: AffiliateDash
               label: t('referrals'),
               value: converted,
               format: 'count',
-              note: t('commissionNote', { rate: Math.round(partner.commissionRate * 100) }),
+              note: t('commissionNote', { rate: Math.round(partner.commissionRate * 1000) / 10 }),
             },
             {
               key: 'rate',

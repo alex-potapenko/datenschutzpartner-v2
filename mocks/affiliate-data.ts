@@ -2,6 +2,7 @@ import { affiliateReferralUrl } from '@/lib/affiliate-attribution';
 import { roundChf, type AffiliateReferralStatus } from '@/lib/affiliate-ledger';
 import type {
   AffiliateApplication,
+  AffiliatePartnerStatus,
   AffiliatePayoutStatus,
   AffiliateProgramSettings,
 } from '@/api/affiliate';
@@ -24,6 +25,8 @@ export type AffiliatePartnerRecord = {
   commissionRate: number;
   notificationEmail: string;
   notifyOnReferral: boolean;
+  status: AffiliatePartnerStatus;
+  deactivatedAt: string | null;
 };
 
 export type AffiliateReferralLinkRecord = {
@@ -104,6 +107,8 @@ export function createAffiliatePartnerRecord(input: {
     commissionRate: AFFILIATE_PROGRAM_SETTINGS.defaultCommissionRate,
     notificationEmail: input.email,
     notifyOnReferral: true,
+    status: 'active',
+    deactivatedAt: null,
   };
 }
 
