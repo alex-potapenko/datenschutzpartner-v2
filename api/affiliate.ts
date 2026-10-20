@@ -289,6 +289,31 @@ export function useAffiliateVisits() {
   });
 }
 
+export type AffiliateVisitInput = {
+  slug: string;
+  targetPath: string | null;
+  campaign: string | null;
+  referrer: string | null;
+};
+
+export type AffiliateVisitResult = {
+  ok: true;
+  /** Same-site landing path, already sanitized by the server. */
+  targetPath: string;
+  /** `false` when the slug belongs to no partner — do not set the attribution cookie. */
+  attributed: boolean;
+};
+
+export function useRecordAffiliateVisit() {
+  return useMutation({
+    mutationFn: (input: AffiliateVisitInput) =>
+      request<AffiliateVisitResult>('/affiliate/clicks', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  });
+}
+
 export function useUpdateAffiliateSlug() {
   const queryClient = useQueryClient();
   return useMutation({
