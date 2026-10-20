@@ -98,7 +98,7 @@ Order attributed to partner
 | A-03 | After approval, access partner dashboard                   | Transactional email with base referral URL (production) |
 | A-04 | Leave program (if offered)                                 | Partner deactivated; links stop attributing             |
 
-**Prototype:** application + admin approve/reject — implemented; emails are not simulated (see §6.3).
+**Prototype:** application, admin approve/reject and leaving the program (A-04) — implemented; emails are not simulated (see §6.3).
 
 ### 4.2 Affiliate ID and base link
 
@@ -107,7 +107,7 @@ Order attributed to partner
 | A-10 | Show partner slug/ID and canonical `/ref/{slug}` | Copy affordance; slug editable with uniqueness rules |
 | A-11 | Slug change with validation                      | Redirect policy for old URLs — TBD                   |
 
-**Prototype:** multiple links with editable `pathSegment`; dedicated “Affiliate ID” display — partial.
+**Prototype:** Links tab shows the slug in a `datenschutzpartner.com/ref/` field, editable with uniqueness check; old links stop working after a change (A-11 redirect policy still open).
 
 ### 4.3 Marketing link generator
 
@@ -118,7 +118,7 @@ Order attributed to partner
 | A-22 | List created links: URL, creation date                | Create, delete; target URL not required to be editable    |
 | A-23 | Click on marketing link                               | Visit logged; cookie set; redirect to target              |
 
-**Prototype:** `/ref/[slug]` redirects to home only — **gap**.
+**Prototype:** implemented. Links use `/ref/{slug}?to={path}&campaign={name}`; the generator accepts a path or a full .com/.ch URL; a click records a visit, sets the cookie and redirects to the target.
 
 ### 4.4 Financial overview (statistics)
 
@@ -129,7 +129,7 @@ Order attributed to partner
 | A-32 | Counts: unpaid vs paid referrals; visits; conversion rate | Documented formulas                         |
 | A-33 | Per-link metrics (clicks, conversions, balance)           | Per marketing link                          |
 
-**Prototype:** clicks, conversions, single balance — partial; lifetime paid and conversion rate — missing.
+**Prototype:** implemented. Overview shows unpaid, pending and paid earnings, visits, referrals and conversion rate (referrals ÷ visits); each marketing link shows clicks, conversions and earnings.
 
 ### 4.5 Referrals list (commissions)
 
@@ -139,7 +139,7 @@ Order attributed to partner
 | A-41 | Statuses: Pending, Unpaid, Paid, Rejected                                   | Match admin/system                |
 | A-42 | No customer PII                                                             | QA checklist                      |
 
-**Prototype:** recent conversions without status/description — **gap**.
+**Prototype:** Referrals tab and the latest five on Overview show reference, product, status, date and commission. Pagination and status filter are not implemented on the partner side yet.
 
 ### 4.6 Visits log — should-have
 
@@ -147,7 +147,7 @@ Order attributed to partner
 | ---- | --------------------------------------------------------------------- | ------------------- |
 | A-50 | Log: target URL, referring URL (or “direct”), converted Y/N, datetime | Paginated           |
 
-**Prototype:** aggregate clicks only — **gap**.
+**Prototype:** implemented — Visits tab, 20 per page (client-side).
 
 ### 4.7 Vouchers (discount codes)
 
@@ -167,7 +167,7 @@ Order attributed to partner
 | A-71 | Toggle: notify on successful referral                          | Email when commission becomes Unpaid  |
 | A-72 | Email when **payout initiated** (invoice request)              | Amount, period, instructions          |
 
-**Prototype:** no settings UI; copy hints in i18n only — partial.
+**Prototype:** Settings tab with notification email and referral-notification toggle; emails themselves are backend-only.
 
 ### 4.9 Payouts (partner view)
 
@@ -177,7 +177,7 @@ Order attributed to partner
 | A-81 | Instructions to send invoice to Datenschutzpartner | Static + dynamic amount from payout |
 | A-82 | No “instant withdraw” or implied auto-transfer     | UX matches manual process           |
 
-**Prototype:** payout data in dashboard schema; **UI missing**.
+**Prototype:** Payouts tab with date, period, referral count and amount, plus the invoice instructions. Payouts have no status field yet (A-80).
 
 ---
 
@@ -192,7 +192,7 @@ Order attributed to partner
 | M-03 | Deactivate affiliate                                   | Attribution stops; data retained            |
 | M-04 | Partner detail view                                    | Links, stats, referrals, payouts            |
 
-**Prototype:** applications + flat conversions list — partial.
+**Prototype:** applications (M-02) and the affiliates list with visits, referral counts and balances (M-01, active partners only, no rate column). Deactivation (M-03) and a partner detail view (M-04) are not implemented.
 
 ### 5.2 Referrals (deal tracking)
 
@@ -203,7 +203,7 @@ Order attributed to partner
 | M-12 | Per-referral “mark paid” — optional if batch-only                                       | Align with legacy if required |
 | M-13 | Referral linked to order; order payment drives Pending→Unpaid                           |                               |
 
-**Prototype:** not implemented.
+**Prototype:** status filter, mark order paid (stands in for the payment event, M-13) and reject with confirmation. Edit amount, delete and audit log (M-11) are not implemented.
 
 ### 5.3 Payout processing (critical)
 
@@ -215,7 +215,7 @@ Order attributed to partner
 | M-23 | CSV export (optional)                                                                           | Accounting export on commit                                           |
 | M-24 | No in-ui bank transfer                                                                          | Copy states external payment                                          |
 
-**Prototype:** not implemented; business meaning confirmed by client (payout = invoice signal).
+**Prototype:** history (date, affiliate, period, referrals, amount, createdBy, invoice recipient) and a create dialog: affiliate, period (default previous quarter), preview with the CHF 50 hint, commit. No payout status or CSV export yet (M-20, M-23).
 
 ### 5.4 Program settings (admin)
 
@@ -224,7 +224,7 @@ Order attributed to partner
 | M-30 | Global: commission rate, cookie days, payout threshold, quarter schedule | API + admin or config service |
 | M-31 | Per-affiliate commission override                                        | Phase 2                       |
 
-**Prototype:** `GET /affiliate/settings` partial.
+**Prototype:** `GET /affiliate/settings` only — no admin UI to change global settings (M-30).
 
 ---
 
@@ -335,16 +335,25 @@ _(Visits under Referrals or separate tab.)_
 
 ## 10. Open questions (client / finance / legal)
 
-1. Fixed **quarterly payout calendar** vs admin-triggered only.
-2. **CHF 50 threshold** — hard rule or legacy artifact combined with quarterly runs.
-3. **Slug change:** redirect old `/ref/` URLs (301) vs invalidate.
-4. Show numeric **Affiliate ID** in UI or slug only.
-5. **Vouchers:** discount cap, who sets limits, stacking with other promos.
-6. **Order reference** in partner UI — masked id sufficient?
-7. **Pending referrals:** auto-accept vs admin accept (legacy had Pending).
-8. Production domain (`.ch` vs `.com`).
-9. Re-application after reject.
-10. Refund/chargeback commission policy.
+**Decided during prototyping:**
+
+- **Threshold (Q2):** CHF 50 is a hint in the payout preview only; the admin can create a payout below it.
+- **Pending referrals (Q7):** Pending → Unpaid automatically once the order is paid; the admin can only reject.
+- **Link format:** one slug per partner, marketing links as `/ref/{slug}?to=/path&campaign=…`.
+- **Vouchers (Q5, partly):** partners create codes themselves up to an admin-set maximum discount %; commission is 10% of the amount after the discount.
+- **Emails:** sent by the backend only; the prototype does not simulate them.
+
+**Still open:**
+
+1. Fixed **quarterly payout calendar** vs admin-triggered only (prototype: admin-triggered, default period = previous quarter).
+2. **Slug change:** redirect old `/ref/` URLs (301) vs invalidate (prototype: invalidate).
+3. Show numeric **Affiliate ID** in UI or slug only (prototype: slug only).
+4. **Vouchers:** expiry, usage limits, stacking with other discounts (e.g. volume discount).
+5. **Order reference** in partner UI — masked id sufficient?
+6. Production domain (`.ch` vs `.com`).
+7. Re-application after reject.
+8. Refund/chargeback commission policy.
+9. **Payout status** after the invoice request (e.g. invoice received / transferred) — needed for A-80 / M-20?
 
 ---
 
@@ -381,4 +390,4 @@ _(Visits under Referrals or separate tab.)_
 
 **Document owner:** Product  
 **Engineering:** Frontend (v2), Backend (orders, email, persistence)  
-**Next step:** Sign off §10 → break Phase 1 into epics → extend `api/affiliate.ts` and MSW per [data-layer.md](data-layer.md).
+**Next step:** Phase 1 is in the prototype; Phase 2 in progress (visits and campaign stats done; CSV, per-affiliate rates, vouchers next). Sign off the open questions in §10.
