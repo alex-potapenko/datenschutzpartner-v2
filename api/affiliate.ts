@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { normalizeAffiliateTargetPath } from '@/lib/affiliate-attribution';
+import { AFFILIATE_REFERRAL_STATUSES } from '@/lib/affiliate-ledger';
 import { countLetters } from '@/lib/validation/patterns';
 import { normalizeAndValidateWebsiteUrl } from '@/lib/validation/url';
 import { request } from './client';
@@ -50,7 +52,10 @@ export const affiliateProgramSettingsSchema = z.object({
   cookieDays: z.number().int().min(1).max(90),
   defaultCommissionRate: z.number().min(0).max(1),
   payoutThresholdChf: z.number().min(0),
+  payoutCadenceMonths: z.number().int().min(1),
 });
+
+export const affiliateReferralStatusSchema = z.enum(AFFILIATE_REFERRAL_STATUSES);
 
 export const affiliatePartnerSchema = z.object({
   id: z.string(),
@@ -59,62 +64,152 @@ export const affiliatePartnerSchema = z.object({
   slug: z.string(),
   referralUrl: z.string(),
   approvedAt: z.string(),
+  commissionRate: z.number(),
+  notificationEmail: z.email(),
+  notifyOnReferral: z.boolean(),
 });
 
 export const affiliateReferralLinkSchema = z.object({
   id: z.string(),
-  pathSegment: z.string(),
+  /** Same-site landing path after attribution; `/` is the home page. */
+  targetPath: z.string(),
+  campaign: z.string().nullable(),
   referralUrl: z.string(),
   createdAt: z.string(),
   clicks: z.number().int(),
   conversions: z.number().int(),
-  balanceChf: z.number(),
+  earningsChf: z.number(),
 });
 
-export const affiliateReferralLinkPathUpdateSchema = z.object({
-  pathSegment: z.string().trim().regex(AFFILIATE_SLUG_PATTERN, 'validation.affiliateUsername'),
+export const AFFILIATE_CAMPAIGN_PATTERN = /^[a-z0-9_-]{1,40}$/i;
+
+export const affiliateReferralLinkCreateSchema = z.object({
+  targetPath: z
+    .string()
+    .trim()
+    .refine(
+      (value) => normalizeAffiliateTargetPath(value) !== null,
+      'validation.affiliateTargetPath'
+    ),
+  campaign: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || AFFILIATE_CAMPAIGN_PATTERN.test(value),
+      'validation.affiliateCampaign'
+    ),
+});
+
+/** Partner-facing commission row — never carries customer identity. */
+export const affiliateReferralSchema = z.object({
+  id: z.string(),
+  reference: z.string(),
+  description: z.string(),
+  commissionChf: z.number(),
+  status: affiliateReferralStatusSchema,
+  createdAt: z.string(),
+});
+
+export const affiliatePayoutSchema = z.object({
+  id: z.string(),
+  amountChf: z.number(),
+  periodStart: z.string().nullable(),
+  periodEnd: z.string().nullable(),
+  referralCount: z.number().int(),
+  /** Invoice-request email went out; the bank transfer itself happens outside the product. */
+  createdAt: z.string(),
+});
+
+export const affiliateDashboardStatsSchema = z.object({
+  visits: z.number().int(),
+  conversionRate: z.number(),
+  referralCounts: z.record(affiliateReferralStatusSchema, z.number().int()),
+  /** Waiting for the customer order to be paid. */
+  pendingEarningsChf: z.number(),
+  /** Payable in the next payout run. */
+  unpaidEarningsChf: z.number(),
+  paidEarningsChf: z.number(),
 });
 
 export const affiliateDashboardSchema = z.object({
   partner: affiliatePartnerSchema,
   referralLinks: z.array(affiliateReferralLinkSchema),
-  clicks: z.number().int(),
-  conversions: z.number().int(),
-  commissionBalanceChf: z.number(),
-  committedCommissionChf: z.number(),
+  stats: affiliateDashboardStatsSchema,
   payoutThresholdChf: z.number(),
-  canRequestPayout: z.boolean(),
-  payouts: z.array(
-    z.object({
-      id: z.string(),
-      amountChf: z.number(),
-      status: z.enum(['pending', 'paid']),
-      createdAt: z.string(),
-    })
-  ),
-  recentConversions: z.array(
-    z.object({
-      id: z.string(),
-      orderNumber: z.string(),
-      amountChf: z.number(),
-      commissionChf: z.number(),
-      createdAt: z.string(),
-    })
-  ),
+  payouts: z.array(affiliatePayoutSchema),
+  referrals: z.array(affiliateReferralSchema),
+});
+
+export const affiliateVisitSchema = z.object({
+  id: z.string(),
+  targetPath: z.string(),
+  referrer: z.string().nullable(),
+  campaign: z.string().nullable(),
+  converted: z.boolean(),
+  createdAt: z.string(),
 });
 
 export const affiliateSlugUpdateSchema = z.object({
   slug: z.string().trim().regex(AFFILIATE_SLUG_PATTERN, 'validation.affiliateUsername'),
 });
 
-export const affiliateAdminConversionSchema = z.object({
+export const affiliatePartnerSettingsUpdateSchema = z.object({
+  notificationEmail: z.email('validation.email'),
+  notifyOnReferral: z.boolean(),
+});
+
+export const affiliateAdminPartnerSchema = z.object({
   id: z.string(),
+  email: z.string(),
+  slug: z.string(),
+  approvedAt: z.string(),
+  commissionRate: z.number(),
+  visits: z.number().int(),
+  referralCounts: z.record(affiliateReferralStatusSchema, z.number().int()),
+  unpaidEarningsChf: z.number(),
+  paidEarningsChf: z.number(),
+});
+
+export const affiliateAdminReferralSchema = z.object({
+  id: z.string(),
+  partnerId: z.string(),
   partnerEmail: z.string(),
   partnerSlug: z.string(),
-  orderNumber: z.string(),
-  amountChf: z.number(),
+  reference: z.string(),
+  description: z.string(),
+  orderAmountChf: z.number(),
   commissionChf: z.number(),
+  status: affiliateReferralStatusSchema,
   createdAt: z.string(),
+  payoutId: z.string().nullable(),
+});
+
+export const affiliateAdminPayoutSchema = affiliatePayoutSchema.extend({
+  partnerId: z.string(),
+  partnerEmail: z.string(),
+  partnerSlug: z.string(),
+  referralIds: z.array(z.string()),
+  createdBy: z.string(),
+  method: z.literal('manual'),
+  invoiceEmailSentTo: z.string(),
+});
+
+export const affiliatePayoutRequestSchema = z.object({
+  partnerId: z.string().min(1),
+  periodStart: z.string().nullable(),
+  periodEnd: z.string().nullable(),
+});
+
+export const affiliatePayoutPreviewSchema = z.object({
+  partnerId: z.string(),
+  partnerEmail: z.string(),
+  notificationEmail: z.string(),
+  periodStart: z.string().nullable(),
+  periodEnd: z.string().nullable(),
+  referrals: z.array(affiliateAdminReferralSchema),
+  amountChf: z.number(),
+  payoutThresholdChf: z.number(),
+  belowThreshold: z.boolean(),
 });
 
 export type AffiliateApplicationForm = z.infer<
@@ -123,18 +218,33 @@ export type AffiliateApplicationForm = z.infer<
 export type AffiliateApplicationCreate = z.infer<typeof affiliateApplicationCreateSchema>;
 export type AffiliateApplication = z.infer<typeof affiliateApplicationSchema>;
 export type AffiliateProgramSettings = z.infer<typeof affiliateProgramSettingsSchema>;
+export type AffiliateReferralStatus = z.infer<typeof affiliateReferralStatusSchema>;
 export type AffiliatePartner = z.infer<typeof affiliatePartnerSchema>;
 export type AffiliateReferralLink = z.infer<typeof affiliateReferralLinkSchema>;
+export type AffiliateReferralLinkCreate = z.infer<typeof affiliateReferralLinkCreateSchema>;
+export type AffiliateReferral = z.infer<typeof affiliateReferralSchema>;
+export type AffiliatePayout = z.infer<typeof affiliatePayoutSchema>;
 export type AffiliateDashboard = z.infer<typeof affiliateDashboardSchema>;
-export type AffiliateAdminConversion = z.infer<typeof affiliateAdminConversionSchema>;
+export type AffiliateVisit = z.infer<typeof affiliateVisitSchema>;
+export type AffiliatePartnerSettingsUpdate = z.infer<typeof affiliatePartnerSettingsUpdateSchema>;
+export type AffiliateAdminPartner = z.infer<typeof affiliateAdminPartnerSchema>;
+export type AffiliateAdminReferral = z.infer<typeof affiliateAdminReferralSchema>;
+export type AffiliateAdminPayout = z.infer<typeof affiliateAdminPayoutSchema>;
+export type AffiliatePayoutRequest = z.infer<typeof affiliatePayoutRequestSchema>;
+export type AffiliatePayoutPreview = z.infer<typeof affiliatePayoutPreviewSchema>;
 
 export const affiliateKeys = {
   all: ['affiliate'] as const,
   settings: () => [...affiliateKeys.all, 'settings'] as const,
   myApplication: () => [...affiliateKeys.all, 'application', 'me'] as const,
   dashboard: () => [...affiliateKeys.all, 'dashboard', 'me'] as const,
-  adminApplications: () => [...affiliateKeys.all, 'admin', 'applications'] as const,
-  adminConversions: () => [...affiliateKeys.all, 'admin', 'conversions'] as const,
+  visits: () => [...affiliateKeys.all, 'visits', 'me'] as const,
+  admin: () => [...affiliateKeys.all, 'admin'] as const,
+  adminApplications: () => [...affiliateKeys.admin(), 'applications'] as const,
+  adminPartners: () => [...affiliateKeys.admin(), 'partners'] as const,
+  adminReferrals: (status?: AffiliateReferralStatus) =>
+    [...affiliateKeys.admin(), 'referrals', status ?? 'all'] as const,
+  adminPayouts: () => [...affiliateKeys.admin(), 'payouts'] as const,
 };
 
 export function useAffiliateProgramSettings() {
@@ -172,6 +282,13 @@ export function useAffiliateDashboard() {
   });
 }
 
+export function useAffiliateVisits() {
+  return useQuery({
+    queryKey: affiliateKeys.visits(),
+    queryFn: () => request<AffiliateVisit[]>('/affiliate/partner/me/visits'),
+  });
+}
+
 export function useUpdateAffiliateSlug() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -186,12 +303,13 @@ export function useUpdateAffiliateSlug() {
   });
 }
 
-export function useCreateAffiliateReferralLink() {
+export function useUpdateAffiliatePartnerSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () =>
-      request<AffiliateReferralLink>('/affiliate/partner/me/referral-links', {
-        method: 'POST',
+    mutationFn: (input: AffiliatePartnerSettingsUpdate) =>
+      request<AffiliatePartner>('/affiliate/partner/me/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(input),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: affiliateKeys.dashboard() });
@@ -199,13 +317,13 @@ export function useCreateAffiliateReferralLink() {
   });
 }
 
-export function useUpdateAffiliateReferralLinkPath() {
+export function useCreateAffiliateReferralLink() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, pathSegment }: { id: string; pathSegment: string }) =>
-      request<AffiliateReferralLink>(`/affiliate/partner/me/referral-links/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ pathSegment }),
+    mutationFn: (input: AffiliateReferralLinkCreate) =>
+      request<AffiliateReferralLink>('/affiliate/partner/me/referral-links', {
+        method: 'POST',
+        body: JSON.stringify(input),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: affiliateKeys.dashboard() });
@@ -241,8 +359,7 @@ export function useApproveAffiliateApplication() {
         method: 'POST',
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: affiliateKeys.adminApplications() });
-      void queryClient.invalidateQueries({ queryKey: affiliateKeys.adminConversions() });
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.admin() });
     },
   });
 }
@@ -260,10 +377,82 @@ export function useRejectAffiliateApplication() {
   });
 }
 
-export function useAffiliateAdminConversions() {
+export function useAffiliateAdminPartners() {
   return useQuery({
-    queryKey: affiliateKeys.adminConversions(),
-    queryFn: () => request<AffiliateAdminConversion[]>('/affiliate/admin/conversions'),
+    queryKey: affiliateKeys.adminPartners(),
+    queryFn: () => request<AffiliateAdminPartner[]>('/affiliate/admin/partners'),
+  });
+}
+
+export function useAffiliateAdminReferrals(status?: AffiliateReferralStatus) {
+  return useQuery({
+    queryKey: affiliateKeys.adminReferrals(status),
+    queryFn: () =>
+      request<AffiliateAdminReferral[]>(
+        status ? `/affiliate/admin/referrals?status=${status}` : '/affiliate/admin/referrals'
+      ),
+  });
+}
+
+/**
+ * Prototype (MSW): stands in for the order-paid webhook — moves a pending referral to unpaid
+ * and sends the partner's commission email when enabled.
+ */
+export function useMarkAffiliateOrderPaid() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<AffiliateAdminReferral>(`/affiliate/admin/referrals/${id}/mark-order-paid`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
+  });
+}
+
+export function useRejectAffiliateReferral() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<AffiliateAdminReferral>(`/affiliate/admin/referrals/${id}/reject`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
+  });
+}
+
+export function useAffiliateAdminPayouts() {
+  return useQuery({
+    queryKey: affiliateKeys.adminPayouts(),
+    queryFn: () => request<AffiliateAdminPayout[]>('/affiliate/admin/payouts'),
+  });
+}
+
+export function usePreviewAffiliatePayout() {
+  return useMutation({
+    mutationFn: (input: AffiliatePayoutRequest) =>
+      request<AffiliatePayoutPreview>('/affiliate/admin/payouts/preview', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  });
+}
+
+/** Settles the selected unpaid referrals and emails the partner an invoice request. */
+export function useCreateAffiliatePayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AffiliatePayoutRequest) =>
+      request<AffiliateAdminPayout>('/affiliate/admin/payouts', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: affiliateKeys.all });
+    },
   });
 }
 

@@ -1,23 +1,46 @@
 import { http, HttpResponse } from 'msw';
 import type { Contact, ContactCreate } from '@/api/contacts';
 import type { ContactMessage, ContactMessageCreate } from '@/api/contact-messages';
-import type { AffiliateApplication, AffiliateApplicationCreate } from '@/api/affiliate';
+import type {
+  AffiliateAdminPartner,
+  AffiliateAdminPayout,
+  AffiliateAdminReferral,
+  AffiliateApplication,
+  AffiliateApplicationCreate,
+  AffiliateDashboard,
+  AffiliatePartner,
+  AffiliatePayout,
+  AffiliatePayoutPreview,
+  AffiliatePayoutRequest,
+  AffiliateReferralLink,
+  AffiliateVisit,
+} from '@/api/affiliate';
+import {
+  AFFILIATE_CAMPAIGN_PATTERN,
+  AFFILIATE_SLUG_PATTERN,
+  affiliateReferralStatusSchema,
+} from '@/api/affiliate';
+import { normalizeAffiliateTargetPath, safeTargetPath } from '@/lib/affiliate-attribution';
+import {
+  affiliateConversionRate,
+  roundChf,
+  selectPayoutReferrals,
+  summarizeAffiliateReferrals,
+} from '@/lib/affiliate-ledger';
 import {
   AFFILIATE_PROGRAM_SETTINGS,
-  createAffiliateSeedApplications,
-  createAffiliateSeedConversions,
-  createAffiliateSeedPartners,
-  createAffiliateSeedPayouts,
-  createAffiliateSeedReferralLinks,
-  referralUrl,
+  createAffiliateDemoHistory,
+  createAffiliatePartnerRecord,
+  createAffiliateSeed,
+  partnerReferralUrl,
+  referralLinkUrl,
   slugFromEmail,
-  toAdminConversion,
-  type AffiliateConversionRecord,
   type AffiliatePartnerRecord,
   type AffiliatePayoutRecord,
   type AffiliateReferralLinkRecord,
+  type AffiliateReferralRecord,
+  type AffiliateVisitRecord,
 } from '@/mocks/affiliate-data';
-import { AFFILIATE_SLUG_PATTERN } from '@/api/affiliate';
 import type {
   AccountRole,
   ForgotPasswordInput,
@@ -378,30 +401,35 @@ const contacts = createCollection<Contact>('contacts', [
 
 const contactMessages = createCollection<ContactMessage>('contact-messages', []);
 
+const affiliateSeed = createAffiliateSeed(new Date());
+
 const affiliateApplications = createCollection<AffiliateApplication>(
   'affiliate-applications',
-  createAffiliateSeedApplications(),
-  2
+  affiliateSeed.applications,
+  3
 );
 const affiliatePartners = createCollection<AffiliatePartnerRecord>(
   'affiliate-partners',
-  createAffiliateSeedPartners(),
-  2
-);
-const affiliateConversions = createCollection<AffiliateConversionRecord>(
-  'affiliate-conversions',
-  createAffiliateSeedConversions(),
-  2
-);
-const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
-  'affiliate-payouts',
-  createAffiliateSeedPayouts(),
-  2
+  affiliateSeed.partners,
+  3
 );
 const affiliateReferralLinks = createCollection<AffiliateReferralLinkRecord>(
   'affiliate-referral-links',
-  createAffiliateSeedReferralLinks(),
-  2
+  affiliateSeed.links,
+  3
+);
+const affiliateVisits = createCollection<AffiliateVisitRecord>(
+  'affiliate-visits',
+  affiliateSeed.visits
+);
+const affiliateReferrals = createCollection<AffiliateReferralRecord>(
+  'affiliate-referrals',
+  affiliateSeed.referrals
+);
+const affiliatePayouts = createCollection<AffiliatePayoutRecord>(
+  'affiliate-payouts',
+  affiliateSeed.payouts,
+  3
 );
 
 function sessionEmail(request: Request): string | null {
@@ -422,202 +450,256 @@ function requireAdmin(request: Request): boolean {
   return sessionRole(request) === 'admin';
 }
 
+const byNewest = (a: { createdAt: string }, b: { createdAt: string }) =>
+  b.createdAt.localeCompare(a.createdAt);
+
 function findPartnerByEmail(email: string) {
   return affiliatePartners.all().find((row) => row.email.toLowerCase() === email.toLowerCase());
 }
 
-function referralLinksForPartner(partnerId: string) {
+function findPartnerById(id: string) {
+  return affiliatePartners.all().find((row) => row.id === id);
+}
+
+function findPartnerBySlug(slug: string) {
+  const normalized = slug.trim().toLowerCase();
+  return affiliatePartners.all().find((row) => row.slug.toLowerCase() === normalized);
+}
+
+function isPartnerSlugTaken(slug: string, exceptPartnerId?: string) {
+  const partner = findPartnerBySlug(slug);
+  return Boolean(partner && partner.id !== exceptPartnerId);
+}
+
+function partnerLinks(partnerId: string) {
   return affiliateReferralLinks
     .all()
     .filter((row) => row.partnerId === partnerId)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-function ensurePartnerReferralLinks(partner: AffiliatePartnerRecord) {
-  const existing = referralLinksForPartner(partner.id);
-  if (existing.length > 0) return existing;
-  const link = affiliateReferralLinks.create({
-    id: `link-${partner.id}`,
-    partnerId: partner.id,
-    pathSegment: partner.slug,
-    createdAt: partner.approvedAt,
-    clickCount: partner.clickCount,
-  });
-  return [link];
-}
-
-function findReferralLinkByPathSegment(pathSegment: string) {
-  const normalized = pathSegment.trim().toLowerCase();
-  return affiliateReferralLinks.all().find((row) => row.pathSegment.toLowerCase() === normalized);
-}
-
-function isReferralPathSegmentTaken(pathSegment: string, exceptLinkId?: string) {
-  const normalized = pathSegment.trim().toLowerCase();
-  return affiliateReferralLinks
-    .all()
-    .some((row) => row.id !== exceptLinkId && row.pathSegment.toLowerCase() === normalized);
-}
-
-function conversionsForPartner(partnerId: string) {
-  return affiliateConversions
+function partnerVisits(partnerId: string) {
+  return affiliateVisits
     .all()
     .filter((row) => row.partnerId === partnerId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort(byNewest);
 }
 
-function conversionsForLink(linkId: string, partnerId: string, primaryLinkId: string) {
-  return affiliateConversions.all().filter((row) => {
-    if (row.partnerId !== partnerId) return false;
-    if (row.referralLinkId === linkId) return true;
-    if (!row.referralLinkId && linkId === primaryLinkId) return true;
-    return false;
-  });
+function partnerReferrals(partnerId: string) {
+  return affiliateReferrals
+    .all()
+    .filter((row) => row.partnerId === partnerId)
+    .sort(byNewest);
 }
 
-function conversionCountForLink(linkId: string, partnerId: string, primaryLinkId: string) {
-  return conversionsForLink(linkId, partnerId, primaryLinkId).length;
+function partnerPayouts(partnerId: string) {
+  return affiliatePayouts
+    .all()
+    .filter((row) => row.partnerId === partnerId)
+    .sort(byNewest);
 }
 
-function commissionBalanceChfForLink(linkId: string, partnerId: string, primaryLinkId: string) {
-  return conversionsForLink(linkId, partnerId, primaryLinkId).reduce(
-    (sum, row) => sum + row.commissionChf,
-    0
-  );
-}
-
-function syncPartnerSlugFromPrimaryLink(partnerId: string) {
-  const partner = affiliatePartners.all().find((row) => row.id === partnerId);
-  if (!partner) return;
-  const links = ensurePartnerReferralLinks(partner);
-  const primary = links[0];
-  if (!primary) return;
-  if (partner.slug !== primary.pathSegment) {
-    affiliatePartners.update(partner.id, { slug: primary.pathSegment });
-  }
-}
-
-function mapReferralLinkDto(link: AffiliateReferralLinkRecord, partnerId: string, origin: string) {
-  const links = referralLinksForPartner(partnerId);
-  const primaryLinkId = links[0]?.id ?? link.id;
+function partnerDto(partner: AffiliatePartnerRecord): AffiliatePartner {
   return {
-    id: link.id,
-    pathSegment: link.pathSegment,
-    referralUrl: referralUrl(origin, link.pathSegment),
-    createdAt: link.createdAt,
-    clicks: link.clickCount,
-    conversions: conversionCountForLink(link.id, partnerId, primaryLinkId),
-    balanceChf: commissionBalanceChfForLink(link.id, partnerId, primaryLinkId),
+    id: partner.id,
+    applicationId: partner.applicationId,
+    email: partner.email,
+    slug: partner.slug,
+    referralUrl: partnerReferralUrl(partner.slug),
+    approvedAt: partner.approvedAt,
+    commissionRate: partner.commissionRate,
+    notificationEmail: partner.notificationEmail,
+    notifyOnReferral: partner.notifyOnReferral,
   };
 }
 
-function approveAffiliateApplication(application: AffiliateApplication, origin: string) {
+function referralLinkDto(
+  link: AffiliateReferralLinkRecord,
+  partner: AffiliatePartnerRecord
+): AffiliateReferralLink {
+  const referrals = affiliateReferrals
+    .all()
+    .filter((row) => row.linkId === link.id && row.status !== 'rejected');
+  return {
+    id: link.id,
+    targetPath: link.targetPath,
+    campaign: link.campaign,
+    referralUrl: referralLinkUrl(partner.slug, link),
+    createdAt: link.createdAt,
+    clicks: affiliateVisits.all().filter((row) => row.linkId === link.id).length,
+    conversions: referrals.length,
+    earningsChf: roundChf(referrals.reduce((sum, row) => sum + row.commissionChf, 0)),
+  };
+}
+
+function payoutDto(row: AffiliatePayoutRecord): AffiliatePayout {
+  return {
+    id: row.id,
+    amountChf: row.amountChf,
+    periodStart: row.periodStart,
+    periodEnd: row.periodEnd,
+    referralCount: row.referralIds.length,
+    createdAt: row.createdAt,
+  };
+}
+
+function adminPayoutDto(row: AffiliatePayoutRecord): AffiliateAdminPayout | null {
+  const partner = findPartnerById(row.partnerId);
+  if (!partner) return null;
+  return {
+    ...payoutDto(row),
+    partnerId: partner.id,
+    partnerEmail: partner.email,
+    partnerSlug: partner.slug,
+    referralIds: row.referralIds,
+    createdBy: row.createdBy,
+    method: 'manual',
+    invoiceEmailSentTo: row.invoiceEmailSentTo,
+  };
+}
+
+function adminReferralDto(row: AffiliateReferralRecord): AffiliateAdminReferral | null {
+  const partner = findPartnerById(row.partnerId);
+  if (!partner) return null;
+  return {
+    id: row.id,
+    partnerId: partner.id,
+    partnerEmail: partner.email,
+    partnerSlug: partner.slug,
+    reference: row.reference,
+    description: row.description,
+    orderAmountChf: row.orderAmountChf,
+    commissionChf: row.commissionChf,
+    status: row.status,
+    createdAt: row.createdAt,
+    payoutId: row.payoutId,
+  };
+}
+
+function partnerActivity(partner: AffiliatePartnerRecord) {
+  const visits = partnerVisits(partner.id).length;
+  const summary = summarizeAffiliateReferrals(partnerReferrals(partner.id));
+  return { visits, summary };
+}
+
+function partnerDashboard(email: string): AffiliateDashboard | null {
+  const partner = findPartnerByEmail(email);
+  if (!partner) return null;
+  const { visits, summary } = partnerActivity(partner);
+  return {
+    partner: partnerDto(partner),
+    referralLinks: partnerLinks(partner.id).map((link) => referralLinkDto(link, partner)),
+    stats: {
+      visits,
+      conversionRate: affiliateConversionRate(visits, summary),
+      referralCounts: summary.counts,
+      pendingEarningsChf: summary.pendingChf,
+      unpaidEarningsChf: summary.unpaidChf,
+      paidEarningsChf: summary.paidChf,
+    },
+    payoutThresholdChf: AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf,
+    payouts: partnerPayouts(partner.id).map(payoutDto),
+    referrals: partnerReferrals(partner.id).map((row) => ({
+      id: row.id,
+      reference: row.reference,
+      description: row.description,
+      commissionChf: row.commissionChf,
+      status: row.status,
+      createdAt: row.createdAt,
+    })),
+  };
+}
+
+function adminPartnerDto(partner: AffiliatePartnerRecord): AffiliateAdminPartner {
+  const { visits, summary } = partnerActivity(partner);
+  return {
+    id: partner.id,
+    email: partner.email,
+    slug: partner.slug,
+    approvedAt: partner.approvedAt,
+    commissionRate: partner.commissionRate,
+    visits,
+    referralCounts: summary.counts,
+    unpaidEarningsChf: summary.unpaidChf,
+    paidEarningsChf: summary.paidChf,
+  };
+}
+
+function approveAffiliateApplication(application: AffiliateApplication): AffiliatePartner | null {
   if (application.status === 'approved') {
-    const partner = findPartnerByEmail(application.email);
-    if (!partner) return null;
-    return {
-      id: partner.id,
-      applicationId: partner.applicationId,
-      email: partner.email,
-      slug: partner.slug,
-      referralUrl: referralUrl(origin, partner.slug),
-      approvedAt: partner.approvedAt,
-    };
+    const existing = findPartnerByEmail(application.email);
+    return existing ? partnerDto(existing) : null;
   }
   affiliateApplications.update(application.id, {
     status: 'approved',
     reviewedAt: new Date().toISOString(),
   });
   let slug = slugFromEmail(application.email);
-  if (affiliatePartners.all().some((row) => row.slug === slug)) {
+  if (isPartnerSlugTaken(slug)) {
     slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
   }
-  const partner = affiliatePartners.create({
-    id: `partner-${application.id}`,
-    applicationId: application.id,
-    email: application.email,
-    slug,
-    approvedAt: new Date().toISOString(),
-    clickCount: 0,
-  });
-  const referralLink = affiliateReferralLinks.create({
-    id: `link-${partner.id}`,
-    partnerId: partner.id,
-    pathSegment: slug,
-    createdAt: partner.approvedAt,
-    clickCount: 0,
-  });
-  affiliateConversions.create({
-    id: `conv-${partner.id}`,
-    partnerId: partner.id,
-    referralLinkId: referralLink.id,
-    orderNumber: 'DSP-PROTOTYPE-001',
-    amountChf: 500,
-    commissionChf: 50,
-    createdAt: new Date().toISOString(),
-  });
-  return {
-    id: partner.id,
-    applicationId: partner.applicationId,
-    email: partner.email,
-    slug: partner.slug,
-    referralUrl: referralUrl(origin, partner.slug),
-    approvedAt: partner.approvedAt,
-  };
+  const history = createAffiliateDemoHistory(
+    createAffiliatePartnerRecord({
+      id: `partner-${application.id}`,
+      applicationId: application.id,
+      email: application.email,
+      slug,
+      approvedAt: new Date().toISOString(),
+    }),
+    new Date()
+  );
+  const partner = affiliatePartners.create(history.partner);
+  for (const row of history.links) affiliateReferralLinks.create(row);
+  for (const row of history.visits) affiliateVisits.create(row);
+  for (const row of history.referrals) affiliateReferrals.create(row);
+  for (const row of history.payouts) affiliatePayouts.create(row);
+  return partnerDto(partner);
 }
 
-function partnerDashboard(email: string, origin: string) {
-  const partner = findPartnerByEmail(email);
-  if (!partner) return null;
-
-  const links = referralLinksForPartner(partner.id);
-  if (links.length > 0) {
-    syncPartnerSlugFromPrimaryLink(partner.id);
+function removeAffiliatePartner(partnerId: string) {
+  for (const collection of [
+    affiliateReferralLinks,
+    affiliateVisits,
+    affiliateReferrals,
+    affiliatePayouts,
+  ] as const) {
+    for (const row of collection.all()) {
+      if (row.partnerId === partnerId) collection.remove(row.id);
+    }
   }
-  const conversions = conversionsForPartner(partner.id);
-  const payouts = affiliatePayouts
-    .all()
-    .filter((row) => row.partnerId === partner.id)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  affiliatePartners.remove(partnerId);
+}
 
-  const committedCommissionChf = conversions.reduce((sum, row) => sum + row.commissionChf, 0);
-  const paidChf = payouts
-    .filter((row) => row.status === 'paid')
-    .reduce((sum, row) => sum + row.amountChf, 0);
-  const commissionBalanceChf = Math.max(0, committedCommissionChf - paidChf);
-  const threshold = AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf;
-  const totalClicks = links.reduce((sum, row) => sum + row.clickCount, 0);
-
+function readPayoutRequest(body: Partial<AffiliatePayoutRequest>) {
+  const partner = body.partnerId ? findPartnerById(body.partnerId) : undefined;
   return {
-    partner: {
-      id: partner.id,
-      applicationId: partner.applicationId,
-      email: partner.email,
-      slug: partner.slug,
-      referralUrl: referralUrl(origin, partner.slug),
-      approvedAt: partner.approvedAt,
-    },
-    referralLinks: links.map((link) => mapReferralLinkDto(link, partner.id, origin)),
-    clicks: totalClicks,
-    conversions: conversions.length,
-    commissionBalanceChf,
-    committedCommissionChf,
-    payoutThresholdChf: threshold,
-    canRequestPayout: commissionBalanceChf >= threshold,
-    payouts: payouts.map((row) => ({
-      id: row.id,
-      amountChf: row.amountChf,
-      status: row.status,
-      createdAt: row.createdAt,
-    })),
-    recentConversions: conversions.slice(0, 5).map((row) => ({
-      id: row.id,
-      orderNumber: row.orderNumber,
-      amountChf: row.amountChf,
-      commissionChf: row.commissionChf,
-      createdAt: row.createdAt,
-    })),
+    partner,
+    period: { periodStart: body.periodStart ?? null, periodEnd: body.periodEnd ?? null },
   };
 }
+
+function payoutPreview(
+  partner: AffiliatePartnerRecord,
+  period: { periodStart: string | null; periodEnd: string | null }
+): AffiliatePayoutPreview {
+  const referrals = selectPayoutReferrals(partnerReferrals(partner.id), period);
+  const amountChf = roundChf(referrals.reduce((sum, row) => sum + row.commissionChf, 0));
+  const threshold = AFFILIATE_PROGRAM_SETTINGS.payoutThresholdChf;
+  return {
+    partnerId: partner.id,
+    partnerEmail: partner.email,
+    notificationEmail: partner.notificationEmail,
+    ...period,
+    referrals: referrals
+      .map(adminReferralDto)
+      .filter((row): row is AffiliateAdminReferral => row !== null),
+    amountChf,
+    payoutThresholdChf: threshold,
+    belowThreshold: amountChf < threshold,
+  };
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const billingAddress = createCollection<BillingAddress & { id: string }>(
   'account-billing-address',
@@ -2303,8 +2385,23 @@ export const handlers = [
   http.get('/api/affiliate/dashboard/me', ({ request }) => {
     const email = requireSessionEmail(request);
     if (!email) return HttpResponse.json(null);
-    const origin = new URL(request.url).origin;
-    return HttpResponse.json(partnerDashboard(email, origin));
+    return HttpResponse.json(partnerDashboard(email));
+  }),
+
+  http.get('/api/affiliate/partner/me/visits', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const visits: AffiliateVisit[] = partnerVisits(partner.id).map((row) => ({
+      id: row.id,
+      targetPath: row.targetPath,
+      referrer: row.referrer,
+      campaign: row.campaign,
+      converted: row.referralId !== null,
+      createdAt: row.createdAt,
+    }));
+    return HttpResponse.json(visits);
   }),
 
   http.patch('/api/affiliate/partner/me/slug', async ({ request }) => {
@@ -2315,71 +2412,65 @@ export const handlers = [
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
     if (!AFFILIATE_SLUG_PATTERN.test(slug)) {
-      return HttpResponse.json({ message: 'path_segment_invalid' }, { status: 400 });
+      return HttpResponse.json({ message: 'slug_invalid' }, { status: 400 });
     }
-    if (isReferralPathSegmentTaken(slug)) {
-      return HttpResponse.json({ message: 'path_segment_taken' }, { status: 409 });
+    if (isPartnerSlugTaken(slug, partner.id)) {
+      return HttpResponse.json({ message: 'slug_taken' }, { status: 409 });
     }
-    const links = ensurePartnerReferralLinks(partner);
-    const primary = links[0];
-    if (!primary) return new HttpResponse(null, { status: 404 });
-    affiliateReferralLinks.update(primary.id, { pathSegment: slug });
     const updated = affiliatePartners.update(partner.id, { slug });
     if (!updated) return new HttpResponse(null, { status: 404 });
-    const origin = new URL(request.url).origin;
-    return HttpResponse.json({
-      id: updated.id,
-      applicationId: updated.applicationId,
-      email: updated.email,
-      slug: updated.slug,
-      referralUrl: referralUrl(origin, updated.slug),
-      approvedAt: updated.approvedAt,
-    });
+    return HttpResponse.json(partnerDto(updated));
   }),
 
-  http.post('/api/affiliate/partner/me/referral-links', ({ request }) => {
+  http.patch('/api/affiliate/partner/me/settings', async ({ request }) => {
     const email = requireSessionEmail(request);
     if (!email) return new HttpResponse(null, { status: 401 });
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
-    const origin = new URL(request.url).origin;
-    let pathSegment = `link-${Date.now().toString(36).slice(-6)}`;
-    while (isReferralPathSegmentTaken(pathSegment)) {
-      pathSegment = `link-${Date.now().toString(36).slice(-6)}-${Math.random().toString(36).slice(2, 4)}`;
+    const body = (await request.json()) as {
+      notificationEmail?: string;
+      notifyOnReferral?: boolean;
+    };
+    const notificationEmail = body.notificationEmail?.trim() ?? '';
+    if (!EMAIL_PATTERN.test(notificationEmail)) {
+      return HttpResponse.json({ message: 'email_invalid' }, { status: 400 });
+    }
+    const updated = affiliatePartners.update(partner.id, {
+      notificationEmail,
+      notifyOnReferral: body.notifyOnReferral ?? partner.notifyOnReferral,
+    });
+    if (!updated) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(partnerDto(updated));
+  }),
+
+  http.post('/api/affiliate/partner/me/referral-links', async ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const body = (await request.json()) as { targetPath?: string; campaign?: string };
+    const targetPath = normalizeAffiliateTargetPath(body.targetPath ?? '');
+    if (!targetPath) {
+      return HttpResponse.json({ message: 'target_path_invalid' }, { status: 400 });
+    }
+    const campaign = body.campaign?.trim() || null;
+    if (campaign && !AFFILIATE_CAMPAIGN_PATTERN.test(campaign)) {
+      return HttpResponse.json({ message: 'campaign_invalid' }, { status: 400 });
+    }
+    const duplicate = partnerLinks(partner.id).find(
+      (row) => row.targetPath === targetPath && row.campaign === campaign
+    );
+    if (duplicate) {
+      return HttpResponse.json({ message: 'link_exists' }, { status: 409 });
     }
     const link = affiliateReferralLinks.create({
       id: `link-${partner.id}-${Date.now().toString(36)}`,
       partnerId: partner.id,
-      pathSegment,
+      targetPath,
+      campaign,
       createdAt: new Date().toISOString(),
-      clickCount: 0,
     });
-    return HttpResponse.json(mapReferralLinkDto(link, partner.id, origin), { status: 201 });
-  }),
-
-  http.patch('/api/affiliate/partner/me/referral-links/:id', async ({ request, params }) => {
-    const email = requireSessionEmail(request);
-    if (!email) return new HttpResponse(null, { status: 401 });
-    const body = (await request.json()) as { pathSegment?: string };
-    const pathSegment = body.pathSegment?.trim() ?? '';
-    const partner = findPartnerByEmail(email);
-    if (!partner) return new HttpResponse(null, { status: 404 });
-    const link = affiliateReferralLinks.all().find((row) => row.id === params.id);
-    if (!link || link.partnerId !== partner.id) return new HttpResponse(null, { status: 404 });
-    if (!AFFILIATE_SLUG_PATTERN.test(pathSegment)) {
-      return HttpResponse.json({ message: 'path_segment_invalid' }, { status: 400 });
-    }
-    if (isReferralPathSegmentTaken(pathSegment, link.id)) {
-      return HttpResponse.json({ message: 'path_segment_taken' }, { status: 409 });
-    }
-    const updatedLink = affiliateReferralLinks.update(link.id, { pathSegment });
-    if (!updatedLink) return new HttpResponse(null, { status: 404 });
-    const links = referralLinksForPartner(partner.id);
-    if (links[0]?.id === link.id) {
-      affiliatePartners.update(partner.id, { slug: pathSegment });
-    }
-    const origin = new URL(request.url).origin;
-    return HttpResponse.json(mapReferralLinkDto(updatedLink, partner.id, origin));
+    return HttpResponse.json(referralLinkDto(link, partner), { status: 201 });
   }),
 
   http.delete('/api/affiliate/partner/me/referral-links/:id', ({ request, params }) => {
@@ -2387,88 +2478,56 @@ export const handlers = [
     if (!email) return new HttpResponse(null, { status: 401 });
     const partner = findPartnerByEmail(email);
     if (!partner) return new HttpResponse(null, { status: 404 });
-    const links = referralLinksForPartner(partner.id);
-    const link = links.find((row) => row.id === params.id);
+    const link = partnerLinks(partner.id).find((row) => row.id === params.id);
     if (!link) return new HttpResponse(null, { status: 404 });
     affiliateReferralLinks.remove(link.id);
-    syncPartnerSlugFromPrimaryLink(partner.id);
     return HttpResponse.json({ ok: true as const });
   }),
 
+  /** Visit on `/ref/:slug` — records the visit and returns the safe landing path. */
   http.post('/api/affiliate/clicks', async ({ request }) => {
-    const body = (await request.json()) as { slug?: string; pathSegment?: string };
-    const pathSegment = (body.pathSegment ?? body.slug)?.trim();
-    if (!pathSegment) return new HttpResponse(null, { status: 400 });
-    const link = findReferralLinkByPathSegment(pathSegment);
-    if (link) {
-      affiliateReferralLinks.update(link.id, { clickCount: link.clickCount + 1 });
-      const partner = affiliatePartners.all().find((row) => row.id === link.partnerId);
-      if (partner) {
-        affiliatePartners.update(partner.id, { clickCount: partner.clickCount + 1 });
-      }
+    const body = (await request.json()) as {
+      slug?: string;
+      pathSegment?: string;
+      targetPath?: string | null;
+      campaign?: string | null;
+      referrer?: string | null;
+    };
+    const slug = (body.slug ?? body.pathSegment)?.trim();
+    if (!slug) return new HttpResponse(null, { status: 400 });
+    const targetPath = safeTargetPath(body.targetPath ?? null) ?? '/';
+    const campaign = body.campaign?.trim() || null;
+    const partner = findPartnerBySlug(slug);
+    if (partner) {
+      const link = partnerLinks(partner.id).find(
+        (row) => row.targetPath === targetPath && row.campaign === campaign
+      );
+      affiliateVisits.create({
+        id: `visit-${partner.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        partnerId: partner.id,
+        linkId: link?.id ?? null,
+        targetPath,
+        referrer: body.referrer?.trim() || null,
+        campaign,
+        referralId: null,
+        createdAt: new Date().toISOString(),
+      });
     }
-    return HttpResponse.json({ ok: true as const });
+    return HttpResponse.json({ ok: true as const, targetPath, attributed: Boolean(partner) });
   }),
 
   http.get('/api/affiliate/admin/applications', ({ request }) => {
     if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
-    const rows = affiliateApplications.all().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return HttpResponse.json(rows);
+    return HttpResponse.json(affiliateApplications.all().sort(byNewest));
   }),
 
   http.post('/api/affiliate/admin/applications/:id/approve', ({ request, params }) => {
     if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
-    const id = params.id;
-    const application = affiliateApplications.all().find((row) => row.id === id);
+    const application = affiliateApplications.all().find((row) => row.id === params.id);
     if (!application) return new HttpResponse(null, { status: 404 });
-    const origin = new URL(request.url).origin;
-    const partner = approveAffiliateApplication(application, origin);
+    const partner = approveAffiliateApplication(application);
     if (!partner) return new HttpResponse(null, { status: 404 });
     return HttpResponse.json({ ...partner, prototypeApprovalEmailSent: true });
-  }),
-
-  http.post('/api/affiliate/prototype/simulate-approval-email', ({ request }) => {
-    const email = requireSessionEmail(request);
-    if (!email) return new HttpResponse(null, { status: 401 });
-    const application = affiliateApplications
-      .all()
-      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
-    if (!application) return new HttpResponse(null, { status: 404 });
-    if (application.status === 'rejected') {
-      return HttpResponse.json({ message: 'application_rejected' }, { status: 409 });
-    }
-    const origin = new URL(request.url).origin;
-    const partner = approveAffiliateApplication(application, origin);
-    if (!partner) return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({ referralUrl: partner.referralUrl });
-  }),
-
-  http.post('/api/affiliate/prototype/quit', ({ request }) => {
-    const email = requireSessionEmail(request);
-    if (!email) return new HttpResponse(null, { status: 401 });
-    const partner = findPartnerByEmail(email);
-    if (partner) {
-      for (const row of affiliateConversions.all()) {
-        if (row.partnerId === partner.id) affiliateConversions.remove(row.id);
-      }
-      for (const row of affiliatePayouts.all()) {
-        if (row.partnerId === partner.id) affiliatePayouts.remove(row.id);
-      }
-      for (const row of affiliateReferralLinks.all()) {
-        if (row.partnerId === partner.id) affiliateReferralLinks.remove(row.id);
-      }
-      affiliatePartners.remove(partner.id);
-    }
-    const application = affiliateApplications
-      .all()
-      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
-    if (application) {
-      affiliateApplications.update(application.id, {
-        status: 'rejected',
-        reviewedAt: new Date().toISOString(),
-      });
-    }
-    return HttpResponse.json({ ok: true as const });
   }),
 
   http.post('/api/affiliate/admin/applications/:id/reject', ({ request, params }) => {
@@ -2483,22 +2542,136 @@ export const handlers = [
     );
   }),
 
-  http.get('/api/affiliate/admin/conversions', ({ request }) => {
-    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
-    const rows = affiliateConversions
+  http.post('/api/affiliate/prototype/simulate-approval-email', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const application = affiliateApplications
       .all()
-      .map((row) => {
-        const partner = affiliatePartners.all().find((entry) => entry.id === row.partnerId);
-        if (!partner) return null;
-        const links = ensurePartnerReferralLinks(partner);
-        const linked = row.referralLinkId
-          ? links.find((entry) => entry.id === row.referralLinkId)
-          : links[0];
-        const pathSegment = linked?.pathSegment ?? partner.slug;
-        return toAdminConversion(row, partner, pathSegment);
-      })
-      .filter((row): row is NonNullable<typeof row> => row !== null);
-    return HttpResponse.json(rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    if (!application) return new HttpResponse(null, { status: 404 });
+    if (application.status === 'rejected') {
+      return HttpResponse.json({ message: 'application_rejected' }, { status: 409 });
+    }
+    const partner = approveAffiliateApplication(application);
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ referralUrl: partner.referralUrl });
+  }),
+
+  http.post('/api/affiliate/prototype/quit', ({ request }) => {
+    const email = requireSessionEmail(request);
+    if (!email) return new HttpResponse(null, { status: 401 });
+    const partner = findPartnerByEmail(email);
+    if (partner) removeAffiliatePartner(partner.id);
+    const application = affiliateApplications
+      .all()
+      .find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    if (application) {
+      affiliateApplications.update(application.id, {
+        status: 'rejected',
+        reviewedAt: new Date().toISOString(),
+      });
+    }
+    return HttpResponse.json({ ok: true as const });
+  }),
+
+  http.get('/api/affiliate/admin/partners', ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    return HttpResponse.json(
+      affiliatePartners
+        .all()
+        .sort((a, b) => b.approvedAt.localeCompare(a.approvedAt))
+        .map(adminPartnerDto)
+    );
+  }),
+
+  http.get('/api/affiliate/admin/referrals', ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const status = affiliateReferralStatusSchema.safeParse(
+      new URL(request.url).searchParams.get('status')
+    );
+    const rows = affiliateReferrals
+      .all()
+      .filter((row) => !status.success || row.status === status.data)
+      .sort(byNewest)
+      .map(adminReferralDto)
+      .filter((row): row is AffiliateAdminReferral => row !== null);
+    return HttpResponse.json(rows);
+  }),
+
+  http.post('/api/affiliate/admin/referrals/:id/mark-order-paid', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const referral = affiliateReferrals.all().find((row) => row.id === params.id);
+    if (!referral) return new HttpResponse(null, { status: 404 });
+    if (referral.status !== 'pending') {
+      return HttpResponse.json({ message: 'referral_not_pending' }, { status: 409 });
+    }
+    const updated = affiliateReferrals.update(referral.id, { status: 'unpaid' });
+    const partner = findPartnerById(referral.partnerId);
+    const dto = updated ? adminReferralDto(updated) : null;
+    if (!dto) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({
+      ...dto,
+      commissionEmailSentTo: partner?.notifyOnReferral ? partner.notificationEmail : null,
+    });
+  }),
+
+  http.post('/api/affiliate/admin/referrals/:id/reject', ({ request, params }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const referral = affiliateReferrals.all().find((row) => row.id === params.id);
+    if (!referral) return new HttpResponse(null, { status: 404 });
+    if (referral.status === 'paid') {
+      return HttpResponse.json({ message: 'referral_already_paid' }, { status: 409 });
+    }
+    const updated = affiliateReferrals.update(referral.id, { status: 'rejected' });
+    const dto = updated ? adminReferralDto(updated) : null;
+    if (!dto) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(dto);
+  }),
+
+  http.get('/api/affiliate/admin/payouts', ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    return HttpResponse.json(
+      affiliatePayouts
+        .all()
+        .sort(byNewest)
+        .map(adminPayoutDto)
+        .filter((row): row is AffiliateAdminPayout => row !== null)
+    );
+  }),
+
+  http.post('/api/affiliate/admin/payouts/preview', async ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const { partner, period } = readPayoutRequest(
+      (await request.json()) as Partial<AffiliatePayoutRequest>
+    );
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(payoutPreview(partner, period));
+  }),
+
+  http.post('/api/affiliate/admin/payouts', async ({ request }) => {
+    if (!requireAdmin(request)) return new HttpResponse(null, { status: 403 });
+    const { partner, period } = readPayoutRequest(
+      (await request.json()) as Partial<AffiliatePayoutRequest>
+    );
+    if (!partner) return new HttpResponse(null, { status: 404 });
+    const referrals = selectPayoutReferrals(partnerReferrals(partner.id), period);
+    if (referrals.length === 0) {
+      return HttpResponse.json({ message: 'nothing_to_pay' }, { status: 409 });
+    }
+    const payout = affiliatePayouts.create({
+      id: `payout-${partner.id}-${Date.now().toString(36)}`,
+      partnerId: partner.id,
+      amountChf: roundChf(referrals.reduce((sum, row) => sum + row.commissionChf, 0)),
+      ...period,
+      referralIds: referrals.map((row) => row.id),
+      createdBy: sessionEmail(request) ?? 'admin',
+      createdAt: new Date().toISOString(),
+      invoiceEmailSentTo: partner.notificationEmail,
+    });
+    for (const row of referrals) {
+      affiliateReferrals.update(row.id, { status: 'paid', payoutId: payout.id });
+    }
+    return HttpResponse.json(adminPayoutDto(payout), { status: 201 });
   }),
 
   http.post('/api/dev/reseed-auth-mock', () => {

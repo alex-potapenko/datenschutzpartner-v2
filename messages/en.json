@@ -1887,35 +1887,38 @@
       "dashboard": {
         "linkTitle": "Your affiliate links",
         "linkFieldLabel": "Referral link",
-        "linkHint": "Customers pay full price. Commission on all qualifying purchases within the attribution window.",
         "copyLink": "Copy link",
         "linkCopied": "Link copied",
+        "linkCopiedTooltip": "Copied!",
         "copyFailed": "Could not copy the link",
-        "pathSegmentSave": "Save",
-        "pathSegmentInvalid": "Invalid link format.",
-        "pathSegmentTaken": "This path is already taken.",
         "linkCreated": "Created",
         "linkDelete": "Remove link",
         "linkDeleteFailed": "Could not remove this link.",
         "linksAdd": "Add link",
         "statsAria": "Metrics",
         "stats": {
-          "clicks": "Clicks",
-          "conversions": "Conversions",
-          "balance": "Balance",
-          "totalBalance": "Total balance",
-          "total": "Total (CHF)"
+          "clicks": "Visits",
+          "conversions": "Referrals",
+          "unpaidEarnings": "Unpaid earnings"
         },
-        "payoutReady": "Your balance is at least CHF {threshold}. You may send an invoice to Datenschutzpartner — we sent you an email (prototype).",
-        "payoutPending": "Payout from CHF {threshold} balance. Send an invoice to Datenschutzpartner once the threshold is reached.",
-        "conversionsTitle": "Recent conversions",
-        "conversionsEmpty": "No conversions recorded yet.",
-        "conversionLine": "CHF {amount} → commission CHF {commission}",
-        "conversionsTable": {
-          "colOrder": "Order",
+        "baseLinkLabel": "Your partner link",
+        "linkTarget": "Page",
+        "linkCampaign": "Campaign",
+        "homePage": "Home page",
+        "referralsTitle": "Referrals",
+        "referralsEmpty": "No referrals recorded yet.",
+        "referralsTable": {
+          "colReference": "Reference",
+          "colProduct": "Product",
+          "colStatus": "Status",
           "colDate": "Date",
-          "colAmount": "Amount",
           "colCommission": "Commission"
+        },
+        "referralStatus": {
+          "pending": "Pending",
+          "unpaid": "Unpaid",
+          "paid": "Paid",
+          "rejected": "Rejected"
         }
       }
     },
@@ -1924,11 +1927,11 @@
       "back": "Affiliate program",
       "applicationsTitle": "Applications",
       "applicationsEmpty": "No applications.",
-      "conversionsTitle": "Conversions (partner mapping)",
-      "conversionsEmpty": "No conversions recorded yet.",
       "approve": "Approve",
       "reject": "Reject",
-      "conversionAmounts": "CHF {amount} · commission CHF {commission}"
+      "conversionAmounts": "CHF {amount} · commission CHF {commission}",
+      "referralsTitle": "Referrals",
+      "referralsEmpty": "No referrals recorded yet."
     },
     "allSubscriptions": {
       "title": "All subscriptions",
@@ -2565,6 +2568,8 @@
     "domain": "Please enter a valid website domain",
     "website": "Please enter a valid website URL",
     "affiliateUsername": "Use 3–40 letters, digits, dots, dashes or underscores",
+    "affiliateTargetPath": "Enter a page on datenschutzpartner.com",
+    "affiliateCampaign": "Use up to 40 letters, digits, dashes or underscores",
     "messageMin": "Please enter at least 10 characters",
     "messageMax": "Message is too long",
     "message": "Please enter a meaningful message",

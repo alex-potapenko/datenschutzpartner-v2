@@ -6,22 +6,25 @@ import { useRouter } from 'next/navigation';
 import { useSession, useRequireSession } from '@/api/auth';
 import {
   useAffiliateAdminApplications,
-  useAffiliateAdminConversions,
+  useAffiliateAdminReferrals,
   useApproveAffiliateApplication,
   useRejectAffiliateApplication,
 } from '@/api/affiliate';
+import { AFFILIATE_REFERRAL_STATUS_TONE } from '@/app/account/_components/AffiliateReferralsTable';
 import { NestedScreenShell } from '@/components/shared/NestedScreenShell';
+import { StatusPill } from '@/components/shared/StatusPill';
 import { AFFILIATE_ACCOUNT_HREF } from '@/lib/account-routes';
 import { Button, Spinner } from '@/components/ui';
 
 export function AffiliateAdminApp() {
   const t = useTranslations('account.affiliateAdmin');
   const tAccount = useTranslations('account');
+  const tDashboard = useTranslations('account.affiliate.dashboard');
   const router = useRouter();
   const { isChecking } = useRequireSession();
   const session = useSession();
   const applications = useAffiliateAdminApplications();
-  const conversions = useAffiliateAdminConversions();
+  const referrals = useAffiliateAdminReferrals();
   const approve = useApproveAffiliateApplication();
   const reject = useRejectAffiliateApplication();
 
@@ -103,25 +106,30 @@ export function AffiliateAdminApp() {
         </section>
 
         <section className="flex flex-col gap-4">
-          <h2 className="text-foreground text-lg font-semibold">{t('conversionsTitle')}</h2>
-          {conversions.isLoading ? (
+          <h2 className="text-foreground text-lg font-semibold">{t('referralsTitle')}</h2>
+          {referrals.isLoading ? (
             <Spinner aria-label={tAccount('loading')} />
-          ) : conversions.data?.length === 0 ? (
-            <p className="text-muted text-sm">{t('conversionsEmpty')}</p>
+          ) : referrals.data?.length === 0 ? (
+            <p className="text-muted text-sm">{t('referralsEmpty')}</p>
           ) : (
             <ul className="border-border divide-border flex flex-col divide-y rounded-2xl border text-sm">
-              {conversions.data?.map((row) => (
+              {referrals.data?.map((row) => (
                 <li key={row.id} className="grid gap-1 px-4 py-3 sm:grid-cols-2">
                   <span className="text-foreground font-medium">
-                    {row.orderNumber} · {row.partnerSlug}
+                    {row.reference} · {row.partnerSlug}
                   </span>
                   <span className="text-muted sm:text-right">
                     {t('conversionAmounts', {
-                      amount: row.amountChf.toFixed(2),
+                      amount: row.orderAmountChf.toFixed(2),
                       commission: row.commissionChf.toFixed(2),
                     })}
                   </span>
-                  <span className="text-muted col-span-full text-xs">{row.partnerEmail}</span>
+                  <span className="text-muted text-xs">{row.description}</span>
+                  <span className="sm:text-right">
+                    <StatusPill tone={AFFILIATE_REFERRAL_STATUS_TONE[row.status]}>
+                      {tDashboard(`referralStatus.${row.status}`)}
+                    </StatusPill>
+                  </span>
                 </li>
               ))}
             </ul>

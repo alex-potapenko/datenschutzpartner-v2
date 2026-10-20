@@ -1120,7 +1120,6 @@
       "scanAgain": "Erneut scannen",
       "continue": "Weiter",
       "createPolicy": "Richtlinie erstellen",
-      "createPolicy": "Richtlinie erstellen",
       "validationError": "Bitte fülle alle Pflichtfelder aus.",
       "optionalBadge": "Optional",
       "officerLocaleLabels": {
@@ -1888,35 +1887,38 @@
       "dashboard": {
         "linkTitle": "Deine Affiliate-Links",
         "linkFieldLabel": "Referral-Link",
-        "linkHint": "Kunden zahlen den vollen Preis. Provision auf alle qualifizierten Käufe im Attribution-Zeitraum.",
         "copyLink": "Link kopieren",
         "linkCopied": "Link kopiert",
+        "linkCopiedTooltip": "Kopiert!",
         "copyFailed": "Link konnte nicht kopiert werden",
-        "pathSegmentSave": "Speichern",
-        "pathSegmentInvalid": "Ungültiges Format für den Link.",
-        "pathSegmentTaken": "Dieser Pfad ist bereits vergeben.",
         "linkCreated": "Erstellt",
         "linkDelete": "Link entfernen",
         "linkDeleteFailed": "Link konnte nicht entfernt werden.",
         "linksAdd": "Link hinzufügen",
         "statsAria": "Kennzahlen",
         "stats": {
-          "clicks": "Klicks",
-          "conversions": "Conversions",
-          "balance": "Guthaben",
-          "totalBalance": "Gesamtguthaben",
-          "total": "Total (CHF)"
+          "clicks": "Besuche",
+          "conversions": "Empfehlungen",
+          "unpaidEarnings": "Nicht ausgezahlt"
         },
-        "payoutReady": "Dein Guthaben erreicht mindestens CHF {threshold}. Du kannst Datenschutzpartner eine Rechnung senden — wir haben Dir eine E-Mail geschickt (Prototyp).",
-        "payoutPending": "Auszahlung ab CHF {threshold} Guthaben. Rechnung an Datenschutzpartner senden, sobald der Schwellenwert erreicht ist.",
-        "conversionsTitle": "Letzte Conversions",
-        "conversionsEmpty": "Noch keine Conversions erfasst.",
-        "conversionLine": "CHF {amount} → Provision CHF {commission}",
-        "conversionsTable": {
-          "colOrder": "Bestellung",
+        "baseLinkLabel": "Dein Partner-Link",
+        "linkTarget": "Seite",
+        "linkCampaign": "Kampagne",
+        "homePage": "Startseite",
+        "referralsTitle": "Empfehlungen",
+        "referralsEmpty": "Noch keine Empfehlungen erfasst.",
+        "referralsTable": {
+          "colReference": "Referenz",
+          "colProduct": "Produkt",
+          "colStatus": "Status",
           "colDate": "Datum",
-          "colAmount": "Betrag",
           "colCommission": "Provision"
+        },
+        "referralStatus": {
+          "pending": "Ausstehend",
+          "unpaid": "Unbezahlt",
+          "paid": "Bezahlt",
+          "rejected": "Abgelehnt"
         }
       }
     },
@@ -1925,11 +1927,11 @@
       "back": "Affiliate-Programm",
       "applicationsTitle": "Bewerbungen",
       "applicationsEmpty": "Keine offenen Bewerbungen.",
-      "conversionsTitle": "Conversions (Partner-Zuordnung)",
-      "conversionsEmpty": "Noch keine Conversions erfasst.",
       "approve": "Freigeben",
       "reject": "Ablehnen",
-      "conversionAmounts": "CHF {amount} · Provision CHF {commission}"
+      "conversionAmounts": "CHF {amount} · Provision CHF {commission}",
+      "referralsTitle": "Empfehlungen",
+      "referralsEmpty": "Noch keine Empfehlungen erfasst."
     },
     "allSubscriptions": {
       "title": "Alle Abonnements",
@@ -2566,6 +2568,8 @@
     "domain": "Bitte gib eine gültige Website-Domain ein",
     "website": "Bitte gib eine gültige Website-URL ein",
     "affiliateUsername": "Verwende 3–40 Buchstaben, Zahlen, Punkte, Bindestriche oder Unterstriche",
+    "affiliateTargetPath": "Gib eine Seite auf datenschutzpartner.com ein",
+    "affiliateCampaign": "Verwende bis zu 40 Buchstaben, Zahlen, Bindestriche oder Unterstriche",
     "messageMin": "Bitte gib mindestens 10 Zeichen ein",
     "messageMax": "Die Nachricht ist zu lang",
     "message": "Bitte gib eine aussagekräftige Nachricht ein",

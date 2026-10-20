@@ -84,7 +84,7 @@ export function AffiliatePartnerStatsRow({
     {
       key: 'balance',
       icon: <CurrencyDollar size={18} weight="fill" />,
-      label: t('totalBalance'),
+      label: t('unpaidEarnings'),
       value: (
         <PriceBlock
           currency="CHF"
