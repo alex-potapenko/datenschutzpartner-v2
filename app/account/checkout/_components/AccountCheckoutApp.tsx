@@ -38,7 +38,8 @@ import { PayrexxPaymentScreen } from '@/components/shared/PayrexxPaymentScreen';
 import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
 import { AccountCheckoutConfirmation } from '@/app/account/checkout/_components/AccountCheckoutConfirmation';
 import { CheckoutPaymentButtonSpinner } from '@/components/shared/CheckoutPaymentButtonSpinner';
-import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
+import { Button, CaretRight, useOverlayState } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 const GENERATOR_INCLUDED_KEYS = [
@@ -352,7 +353,12 @@ export function AccountCheckoutApp() {
         detailTitle={checkoutTopBarTitle}
       >
         <CheckoutStatusPanel center>
-          <Spinner aria-label={tAccount('loading')} />
+          <ScanLoader
+            layout="center"
+            label={tAccount('loading')}
+            statusAriaLabel={tAccount('loading')}
+            className="py-0"
+          />
         </CheckoutStatusPanel>
       </AccountCheckoutPageShell>
     );

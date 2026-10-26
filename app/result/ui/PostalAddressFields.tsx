@@ -5,6 +5,7 @@ import type { UidCompany } from '@/api/uid-registry';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { UidCompanyLookup } from './UidCompanyLookup';
 import { Field, TextInput } from './FormSection';
+import { FormFieldLabel } from './FormFieldLabel';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 /** Matches half-width fields in a two-column row with gap-6 (e.g. first name). */
@@ -46,6 +47,9 @@ type PostalAddressFieldsProps = {
   cityError?: string;
   streetLine2Error?: string;
   onAddressFocus?: () => void;
+  /** Optional info dialog beside address labels (questionnaire). */
+  legalEntityInfoTooltip?: string;
+  departmentInfoTooltip?: string;
 };
 
 /** Structured postal address — legal entity, department, lines, postal code + city, country. */
@@ -84,6 +88,8 @@ export function PostalAddressFields({
   cityError,
   streetLine2Error,
   onAddressFocus,
+  legalEntityInfoTooltip,
+  departmentInfoTooltip,
 }: PostalAddressFieldsProps) {
   const t = useTranslations('common.address');
   const legalEntityId = idPrefix ? `${idPrefix}-legal-entity` : undefined;
@@ -115,12 +121,13 @@ export function PostalAddressFields({
     <div className="flex flex-col gap-6">
       {onLegalEntityChange ? (
         <div className="flex flex-col gap-1.5">
-          <label
+          <FormFieldLabel
             htmlFor={legalEntityId}
-            className="text-foreground text-sm leading-snug font-medium"
+            infoTooltip={legalEntityInfoTooltip}
+            infoTooltipLabel={t('legalEntityName')}
           >
             {t('legalEntityName')}
-          </label>
+          </FormFieldLabel>
           <UidCompanyLookup
             id={legalEntityId}
             value={legalEntity}
@@ -153,7 +160,12 @@ export function PostalAddressFields({
       ) : null}
 
       {onDepartmentChange && showPostalLines ? (
-        <Field label={t('department')}>
+        <Field
+          htmlFor={departmentId}
+          label={t('department')}
+          infoTooltip={departmentInfoTooltip}
+          infoTooltipLabel={t('department')}
+        >
           <TextInput
             id={departmentId}
             value={department}

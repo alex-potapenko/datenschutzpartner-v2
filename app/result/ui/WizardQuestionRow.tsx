@@ -4,13 +4,16 @@ import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredB
 import { MetaBadge } from '@/components/shared/MetaBadge';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
 import { cn } from '@/lib/utils';
+import { InfoTooltip } from '@/components/shared/InfoTooltip';
 import { PostalAddressFields } from './PostalAddressFields';
+import { UidCompanyLookup } from './UidCompanyLookup';
 import { Field, RadioGroup, TextInput } from './FormSection';
 
 export type WizardQuestionChoice = { value: string; label: string };
 
 type WizardQuestionLabelProps = {
   label: string;
+  infoTooltip?: string;
   optional?: boolean;
   optionalBadgeLabel?: string;
   required?: boolean;
@@ -23,6 +26,7 @@ type WizardQuestionLabelProps = {
 
 export function WizardQuestionLabel({
   label,
+  infoTooltip,
   optional,
   optionalBadgeLabel,
   required,
@@ -33,11 +37,12 @@ export function WizardQuestionLabel({
   return (
     <p
       className={cn(
-        'text-foreground leading-snug',
+        'text-foreground flex flex-wrap items-center gap-1 leading-snug',
         compact ? 'text-sm font-medium' : 'text-lg font-semibold'
       )}
     >
-      {label}
+      <span>{label}</span>
+      {infoTooltip ? <InfoTooltip label={label}>{infoTooltip}</InfoTooltip> : null}
       {optional && !compact && optionalBadgeLabel ? (
         <MetaBadge kind="optional" className="ml-1.5 align-middle">
           {optionalBadgeLabel}
@@ -58,6 +63,8 @@ export function WizardQuestionLabel({
 
 type WizardQuestionRowShared = WizardQuestionLabelProps & {
   id?: string;
+  /** Dialog help — not used on address field groups. */
+  infoTooltip?: string;
   /** Optional helper copy under the question. */
   description?: string;
   hint?: string;
@@ -93,6 +100,9 @@ export type WizardQuestionRowProps = WizardQuestionRowShared &
         placeholder?: string;
         readOnly?: boolean;
         inputClassName?: string;
+        /** Swiss UID register lookup — company / legal entity name fields. */
+        uidLookup?: boolean;
+        onUidCompanySelect?: (company: UidCompany) => void;
       }
     | {
         variant: 'address';
@@ -118,6 +128,8 @@ export type WizardQuestionRowProps = WizardQuestionRowShared &
         postalCodeError?: string;
         cityError?: string;
         streetLine2Error?: string;
+        legalEntityInfoTooltip?: string;
+        departmentInfoTooltip?: string;
       }
   );
 
@@ -143,9 +155,31 @@ function renderAnswer(props: WizardQuestionRowProps) {
   }
 
   if (props.variant === 'text') {
+    if (props.uidLookup) {
+      return (
+        <>
+          <UidCompanyLookup
+            id={props.id}
+            value={props.value}
+            onValueChange={(next) => {
+              props.onChange({
+                target: { value: next },
+              } as ChangeEvent<HTMLInputElement>);
+            }}
+            onSelect={(company) => {
+              props.onUidCompanySelect?.(company);
+            }}
+            aria-invalid={Boolean(props.required)}
+          />
+          <FieldErrorText message={props.required ? props.requiredBadgeLabel : undefined} />
+        </>
+      );
+    }
+
     return (
       <>
         <TextInput
+          id={props.id}
           type={props.inputType}
           value={props.value}
           onChange={props.onChange}
@@ -186,6 +220,8 @@ function renderAnswer(props: WizardQuestionRowProps) {
         postalCodeError={props.postalCodeError}
         cityError={props.cityError}
         streetLine2Error={props.streetLine2Error}
+        legalEntityInfoTooltip={props.legalEntityInfoTooltip}
+        departmentInfoTooltip={props.departmentInfoTooltip}
       />
     );
   }
@@ -197,6 +233,7 @@ export function WizardQuestionRow(props: WizardQuestionRowProps) {
   const {
     id,
     label,
+    infoTooltip,
     description,
     hint,
     optional,
@@ -229,8 +266,11 @@ export function WizardQuestionRow(props: WizardQuestionRowProps) {
     return (
       <div id={id} className={rowClassName}>
         <Field
+          htmlFor={id}
           label={label}
           description={description}
+          infoTooltip={infoTooltip}
+          infoTooltipLabel={label}
           required={required}
           requiredLabel={showRequiredChip ? requiredBadgeLabel : undefined}
           requiredShakeKey={requiredShakeKey}
@@ -247,6 +287,7 @@ export function WizardQuestionRow(props: WizardQuestionRowProps) {
     <>
       <WizardQuestionLabel
         label={label}
+        infoTooltip={infoTooltip}
         optional={optional}
         optionalBadgeLabel={optionalBadgeLabel}
         required={required}

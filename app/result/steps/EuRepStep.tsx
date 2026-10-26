@@ -3,7 +3,8 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Button, Spinner, useOverlayState } from '@/components/ui';
+import { Button, useOverlayState } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
 import { useSubscriptions } from '@/api/billing';
 import { useSession } from '@/api/auth';
 import {
@@ -24,6 +25,7 @@ import { Container } from '@/components/shared/Container';
 import { WizardQuestionRow } from '../ui/WizardQuestionRow';
 import { TextInput } from '../ui/FormSection';
 import { PostalAddressFields } from '../ui/PostalAddressFields';
+import { UidCompanyLookup } from '../ui/UidCompanyLookup';
 import type { QuestionnaireFormData } from '../content/questionnaire-form';
 import {
   euRepOfferVariant,
@@ -131,11 +133,12 @@ function EuRepPartnerFollowUp({
   const duration = reduceMotion ? 0 : 0.22;
 
   return (
-    <div>
+    <div className="flex w-full flex-col">
       <AnimatePresence mode="wait" initial={false}>
         {branch === 'yes' ? (
           <motion.div
             key="covered"
+            className="flex w-full flex-col"
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -146,6 +149,7 @@ function EuRepPartnerFollowUp({
         ) : branch === 'no' ? (
           <motion.div
             key="follow-up"
+            className="flex w-full flex-col"
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -357,12 +361,12 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
   function validateRepStatusErrors(): FieldErrors {
     const nextErrors: FieldErrors = {};
 
-    if (!namedDatenschutzpartner) {
-      nextErrors.namedDatenschutzpartner = tValidation('required');
+    if (!hasNamedEuRep) {
+      nextErrors.hasNamedEuRep = tValidation('required');
     }
 
-    if (namedDatenschutzpartner === 'no' && !hasNamedEuRep) {
-      nextErrors.hasNamedEuRep = tValidation('required');
+    if (hasNamedEuRep === 'yes' && !namedDatenschutzpartner) {
+      nextErrors.namedDatenschutzpartner = tValidation('required');
     }
 
     return nextErrors;
@@ -474,9 +478,12 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
                 contained={false}
                 bottomBorder={false}
               />
-              <div className="flex flex-1 items-center justify-center py-10">
-                <Spinner aria-label={tAccount('loading')} />
-              </div>
+              <ScanLoader
+                layout="center"
+                label={tAccount('loading')}
+                statusAriaLabel={tAccount('loading')}
+                className="flex-1 py-10"
+              />
             </div>
           </WizardBorderedColumn>
         </Container>
@@ -542,174 +549,199 @@ export function EuRepStep({ formData, initialEuRep, onComplete, onBack }: EuRepS
               />
               <WizardQuestionRow
                 variant="choices"
-                name="namedDatenschutzpartner"
+                name="hasNamedEuRep"
                 options={yesNo}
-                value={namedDatenschutzpartner}
-                label={t('namedDatenschutzpartner', {
-                  company: EU_REP_REPRESENTATIVE.name,
-                })}
-                required={Boolean(errors.namedDatenschutzpartner)}
+                value={hasNamedEuRep}
+                label={t('hasNamedEuRep')}
+                required={Boolean(errors.hasNamedEuRep)}
                 requiredBadgeLabel={tQuestionnaire('requiredBadge')}
                 requiredShakeKey={validationAttempt}
                 onChange={(value) => {
                   const next = value as EuRepYesNo;
-                  setNamedDatenschutzpartner(next);
-                  if (next === 'yes') {
-                    setHasNamedEuRep('yes');
+                  setHasNamedEuRep(next);
+                  setNamedDatenschutzpartner('');
+                  if (next === 'no') {
+                    setOfferSelected(true);
+                    setSelectedPlanId('basis');
                   } else {
-                    setHasNamedEuRep('');
+                    setOfferSelected(false);
                   }
-                  setErrors((current) => ({ ...current, namedDatenschutzpartner: undefined }));
+                  setErrors((current) => ({
+                    ...current,
+                    hasNamedEuRep: undefined,
+                    namedDatenschutzpartner: undefined,
+                  }));
                 }}
               />
 
-              {namedDatenschutzpartner ? (
-                <EuRepPartnerFollowUp branch={namedDatenschutzpartner}>
-                  {(variant) =>
-                    variant === 'covered' ? (
-                      <EuRepWizardCoveredSection
-                        title={t('gotYouCovered')}
-                        body={t('gotYouCoveredRepresentativeIntro')}
-                      >
-                        <EuRepRepresentativeAddress plain hideTitle />
-                      </EuRepWizardCoveredSection>
-                    ) : (
-                      <WizardQuestionRow
-                        variant="choices"
-                        name="hasNamedEuRep"
-                        options={yesNo}
-                        value={hasNamedEuRep}
-                        label={t('hasNamedEuRep')}
-                        required={Boolean(errors.hasNamedEuRep)}
-                        requiredBadgeLabel={tQuestionnaire('requiredBadge')}
-                        requiredShakeKey={validationAttempt}
-                        onChange={(value) => {
-                          const next = value as EuRepYesNo;
-                          setHasNamedEuRep(next);
-                          setOfferSelected(next === 'no');
-                          if (next === 'no') {
-                            setSelectedPlanId('basis');
+              {hasNamedEuRep === 'yes' ? (
+                <>
+                  <WizardQuestionRow
+                    variant="choices"
+                    name="namedDatenschutzpartner"
+                    options={yesNo}
+                    value={namedDatenschutzpartner}
+                    label={t('namedDatenschutzpartner', {
+                      company: EU_REP_REPRESENTATIVE.name,
+                    })}
+                    required={Boolean(errors.namedDatenschutzpartner)}
+                    requiredBadgeLabel={tQuestionnaire('requiredBadge')}
+                    requiredShakeKey={validationAttempt}
+                    followUpClassName="flex w-full flex-col gap-6 pt-10"
+                    followUp={
+                      namedDatenschutzpartner ? (
+                        <EuRepPartnerFollowUp branch={namedDatenschutzpartner}>
+                          {(branchVariant) =>
+                            branchVariant === 'covered' ? (
+                              <EuRepWizardCoveredSection
+                                variant="nested"
+                                title={t('gotYouCovered')}
+                                body={t('gotYouCoveredRepresentativeIntro')}
+                              >
+                                <EuRepRepresentativeAddress plain hideTitle linkify={false} />
+                              </EuRepWizardCoveredSection>
+                            ) : (
+                              <Reveal show={thirdPartyVisible}>
+                                <div
+                                  ref={euRepThirdPartyRef}
+                                  className="flex w-full max-w-[480px] flex-col gap-6"
+                                >
+                                  <div className="flex flex-col gap-1.5">
+                                    <label
+                                      htmlFor="thirdPartyRepName"
+                                      className="text-foreground text-sm font-medium"
+                                    >
+                                      {tQuestionnaire('fields.thirdPartyRepName')}
+                                    </label>
+                                    <UidCompanyLookup
+                                      id="thirdPartyRepName"
+                                      value={thirdPartyRepName}
+                                      onValueChange={(value) => {
+                                        setThirdPartyRepName(value);
+                                        setErrors((current) => ({
+                                          ...current,
+                                          thirdPartyRepName: undefined,
+                                        }));
+                                      }}
+                                      onSelect={(company) => {
+                                        setThirdPartyRepStreet(company.street);
+                                        setThirdPartyRepPostalCode(company.postalCode);
+                                        setThirdPartyRepCity(company.city);
+                                        setErrors((current) => ({
+                                          ...current,
+                                          thirdPartyRepName: undefined,
+                                          thirdPartyRepStreet: undefined,
+                                          thirdPartyRepPostalCode: undefined,
+                                          thirdPartyRepCity: undefined,
+                                        }));
+                                      }}
+                                      aria-invalid={Boolean(errors.thirdPartyRepName)}
+                                    />
+                                    <FieldErrorText message={errors.thirdPartyRepName} />
+                                  </div>
+
+                                  <PostalAddressFields
+                                    street={thirdPartyRepStreet}
+                                    postalCode={thirdPartyRepPostalCode}
+                                    city={thirdPartyRepCity}
+                                    onStreetChange={(value) => {
+                                      setThirdPartyRepStreet(value);
+                                      setErrors((current) => ({
+                                        ...current,
+                                        thirdPartyRepStreet: undefined,
+                                      }));
+                                    }}
+                                    onPostalCodeChange={(value) => {
+                                      setThirdPartyRepPostalCode(value);
+                                      setErrors((current) => ({
+                                        ...current,
+                                        thirdPartyRepPostalCode: undefined,
+                                      }));
+                                    }}
+                                    onCityChange={(value) => {
+                                      setThirdPartyRepCity(value);
+                                      setErrors((current) => ({
+                                        ...current,
+                                        thirdPartyRepCity: undefined,
+                                      }));
+                                    }}
+                                    countryDisplayLabel={displayCountryLabel(
+                                      thirdPartyRepCountry,
+                                      tCommon('countrySwitzerland')
+                                    )}
+                                    countryError={errors.thirdPartyRepCountry}
+                                    showLine2={false}
+                                    line1Error={errors.thirdPartyRepStreet}
+                                    postalCodeError={errors.thirdPartyRepPostalCode}
+                                    cityError={errors.thirdPartyRepCity}
+                                  />
+
+                                  <div className="flex flex-col gap-1.5">
+                                    <label
+                                      htmlFor="thirdPartyRepEmail"
+                                      className="text-foreground text-sm font-medium"
+                                    >
+                                      {tQuestionnaire('fields.thirdPartyRepEmail')}
+                                    </label>
+                                    <TextInput
+                                      type="email"
+                                      value={thirdPartyRepEmail}
+                                      onChange={(event) => {
+                                        setThirdPartyRepEmail(event.target.value);
+                                        setErrors((current) => ({
+                                          ...current,
+                                          thirdPartyRepEmail: undefined,
+                                        }));
+                                      }}
+                                    />
+                                    <FieldErrorText message={errors.thirdPartyRepEmail} />
+                                  </div>
+
+                                  {offerVariant === 'switch' && !offerSelected ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-fit rounded-full"
+                                      onPress={() => {
+                                        setHasNamedEuRep('no');
+                                        setNamedDatenschutzpartner('');
+                                        setOfferSelected(true);
+                                        setSelectedPlanId('basis');
+                                        setErrors((current) => ({
+                                          ...current,
+                                          hasNamedEuRep: undefined,
+                                          namedDatenschutzpartner: undefined,
+                                          thirdPartyRepName: undefined,
+                                          thirdPartyRepStreet: undefined,
+                                          thirdPartyRepPostalCode: undefined,
+                                          thirdPartyRepCity: undefined,
+                                          thirdPartyRepCountry: undefined,
+                                          thirdPartyRepEmail: undefined,
+                                        }));
+                                      }}
+                                    >
+                                      {t('switchToDatenschutzpartner')}
+                                    </Button>
+                                  ) : null}
+                                </div>
+                              </Reveal>
+                            )
                           }
-                          setErrors((current) => ({ ...current, hasNamedEuRep: undefined }));
-                        }}
-                        followUp={
-                          <Reveal show={thirdPartyVisible}>
-                            <div
-                              ref={euRepThirdPartyRef}
-                              className="flex w-full flex-col gap-6 pt-6 lg:w-1/2"
-                            >
-                              <div className="flex flex-col gap-1.5">
-                                <label
-                                  htmlFor="thirdPartyRepName"
-                                  className="text-foreground text-sm font-medium"
-                                >
-                                  {tQuestionnaire('fields.thirdPartyRepName')}
-                                </label>
-                                <TextInput
-                                  value={thirdPartyRepName}
-                                  onChange={(event) => {
-                                    setThirdPartyRepName(event.target.value);
-                                    setErrors((current) => ({
-                                      ...current,
-                                      thirdPartyRepName: undefined,
-                                    }));
-                                  }}
-                                />
-                                <FieldErrorText message={errors.thirdPartyRepName} />
-                              </div>
-
-                              <PostalAddressFields
-                                street={thirdPartyRepStreet}
-                                postalCode={thirdPartyRepPostalCode}
-                                city={thirdPartyRepCity}
-                                onStreetChange={(value) => {
-                                  setThirdPartyRepStreet(value);
-                                  setErrors((current) => ({
-                                    ...current,
-                                    thirdPartyRepStreet: undefined,
-                                  }));
-                                }}
-                                onPostalCodeChange={(value) => {
-                                  setThirdPartyRepPostalCode(value);
-                                  setErrors((current) => ({
-                                    ...current,
-                                    thirdPartyRepPostalCode: undefined,
-                                  }));
-                                }}
-                                onCityChange={(value) => {
-                                  setThirdPartyRepCity(value);
-                                  setErrors((current) => ({
-                                    ...current,
-                                    thirdPartyRepCity: undefined,
-                                  }));
-                                }}
-                                countryDisplayLabel={displayCountryLabel(
-                                  thirdPartyRepCountry,
-                                  tCommon('countrySwitzerland')
-                                )}
-                                countryError={errors.thirdPartyRepCountry}
-                                showLine2={false}
-                                line1Error={errors.thirdPartyRepStreet}
-                                postalCodeError={errors.thirdPartyRepPostalCode}
-                                cityError={errors.thirdPartyRepCity}
-                              />
-
-                              <div className="flex flex-col gap-1.5">
-                                <label
-                                  htmlFor="thirdPartyRepEmail"
-                                  className="text-foreground text-sm font-medium"
-                                >
-                                  {tQuestionnaire('fields.thirdPartyRepEmail')}
-                                </label>
-                                <TextInput
-                                  type="email"
-                                  value={thirdPartyRepEmail}
-                                  onChange={(event) => {
-                                    setThirdPartyRepEmail(event.target.value);
-                                    setErrors((current) => ({
-                                      ...current,
-                                      thirdPartyRepEmail: undefined,
-                                    }));
-                                  }}
-                                />
-                                <FieldErrorText message={errors.thirdPartyRepEmail} />
-                              </div>
-
-                              {offerVariant === 'switch' && !offerSelected ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-fit rounded-full"
-                                  onPress={() => {
-                                    setHasNamedEuRep('no');
-                                    setOfferSelected(true);
-                                    setSelectedPlanId('basis');
-                                    setErrors((current) => ({
-                                      ...current,
-                                      hasNamedEuRep: undefined,
-                                      thirdPartyRepName: undefined,
-                                      thirdPartyRepStreet: undefined,
-                                      thirdPartyRepPostalCode: undefined,
-                                      thirdPartyRepCity: undefined,
-                                      thirdPartyRepCountry: undefined,
-                                      thirdPartyRepEmail: undefined,
-                                    }));
-                                  }}
-                                >
-                                  {t('switchToDatenschutzpartner')}
-                                </Button>
-                              ) : null}
-                            </div>
-                          </Reveal>
-                        }
-                      />
-                    )
-                  }
-                </EuRepPartnerFollowUp>
+                        </EuRepPartnerFollowUp>
+                      ) : null
+                    }
+                    onChange={(value) => {
+                      const next = value as EuRepYesNo;
+                      setNamedDatenschutzpartner(next);
+                      setOfferSelected(false);
+                      setErrors((current) => ({ ...current, namedDatenschutzpartner: undefined }));
+                    }}
+                  />
+                </>
               ) : null}
             </div>
 
-            {namedDatenschutzpartner === 'no' ? (
+            {hasNamedEuRep === 'no' || namedDatenschutzpartner === 'no' ? (
               <div
                 className={cn('flex min-h-0 flex-col overflow-visible', showEuRepOffer && 'flex-1')}
               >

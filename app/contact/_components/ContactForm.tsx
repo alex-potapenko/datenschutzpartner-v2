@@ -16,6 +16,7 @@ import {
 } from '@/api/contact-messages';
 import { Button, Input, ListBox, Select, TextArea } from '@/components/ui';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
+import { UidCompanyLookup } from '@/app/result/ui/UidCompanyLookup';
 
 function Field({
   id,
@@ -142,12 +143,20 @@ export function ContactForm({
           />
         </Field>
         <Field id="company" label={t('company')} error={errors.company?.message}>
-          <Input
-            id="company"
-            variant="secondary"
-            placeholder={t('companyPlaceholder')}
-            fullWidth
-            {...register('company')}
+          <Controller
+            name="company"
+            control={control}
+            render={({ field }) => (
+              <UidCompanyLookup
+                id="company"
+                value={field.value}
+                onValueChange={field.onChange}
+                onSelect={(company) => {
+                  field.onChange(company.name);
+                }}
+                aria-invalid={Boolean(errors.company)}
+              />
+            )}
           />
         </Field>
       </div>

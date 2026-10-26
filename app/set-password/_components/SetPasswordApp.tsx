@@ -16,7 +16,8 @@ import { useActivateTwoFactor, useStartTwoFactorSetup } from '@/api/two-factor';
 import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { RecoveryCodesPanel, TwoFactorSetupPanel } from '@/components/shared/two-factor';
-import { Button, Input, Label, Spinner } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
+import { Button, Input, Label } from '@/components/ui';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 type Step = 'password' | 'intro' | 'two-factor' | 'recovery';
@@ -99,9 +100,12 @@ export function SetPasswordApp() {
 
   if (invite.isLoading) {
     return (
-      <div className="flex justify-center py-8">
-        <Spinner aria-label={t('validating')} />
-      </div>
+      <ScanLoader
+        layout="center"
+        label={t('validating')}
+        statusAriaLabel={t('validating')}
+        className="py-8"
+      />
     );
   }
 
@@ -147,15 +151,6 @@ export function SetPasswordApp() {
             );
           }}
         />
-        {!invite.data.twoFactorRequired ? (
-          <button
-            type="button"
-            className="text-muted hover:text-foreground cursor-pointer self-center text-sm underline underline-offset-4 transition-colors"
-            onClick={finish}
-          >
-            {t('skipTwoFactor')}
-          </button>
-        ) : null}
       </div>
     );
   }

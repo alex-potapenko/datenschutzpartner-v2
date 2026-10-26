@@ -48,13 +48,16 @@ export function RecoveryCodesPanel({
 
   function downloadCodes() {
     const blob = new Blob([formatRecoveryCodesForDownload(codes, accountName)], {
-      type: 'text/plain',
+      type: 'text/plain;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = 'datenschutzpartner-recovery-codes.txt';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     URL.revokeObjectURL(url);
   }
 
@@ -74,6 +77,7 @@ export function RecoveryCodesPanel({
         <Button
           variant="outline"
           size="sm"
+          className="normal-case"
           onPress={() => {
             void copyCodes();
           }}
@@ -81,7 +85,7 @@ export function RecoveryCodesPanel({
           {copied ? <Check size={16} weight="bold" /> : <Copy size={16} />}
           {t('recoveryCopy')}
         </Button>
-        <Button variant="outline" size="sm" onPress={downloadCodes}>
+        <Button variant="outline" size="sm" className="normal-case" onPress={downloadCodes}>
           <DownloadSimple size={16} />
           {t('recoveryDownload')}
         </Button>

@@ -16,7 +16,8 @@ import { StepFooter } from '@/app/result/ui/StepFooter';
 import { StepLayout } from '@/app/result/ui/StepLayout';
 import { WizardBorderedColumn } from '@/app/result/ui/WizardBorderedColumn';
 import { Container } from '@/components/shared/Container';
-import { Button, Spinner } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
+import { Button } from '@/components/ui';
 import {
   policyManualScanHref,
   privacyPolicyAccountHref,
@@ -102,9 +103,12 @@ export function PolicyManualScanApp() {
       showStepBar={false}
     >
       {phase === 'loading' || (document.isLoading && !site) ? (
-        <div className="flex min-h-60 flex-1 items-center justify-center py-20">
-          <Spinner aria-label={tAccount('loading')} />
-        </div>
+        <ScanLoader
+          layout="center"
+          label={tAccount('loading')}
+          statusAriaLabel={tAccount('loading')}
+          className="min-h-60 flex-1 py-20"
+        />
       ) : null}
 
       <AnimatePresence mode="wait">

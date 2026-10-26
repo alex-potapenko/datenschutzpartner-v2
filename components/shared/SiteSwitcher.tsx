@@ -3,7 +3,7 @@
 import { useState, type ComponentType, type CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
 import { isPolicySubscriptionOnTrial, useSubscriptions } from '@/api/billing';
-import { Buildings, Cookie, Globe, Spinner } from '@/components/ui';
+import { Buildings, Check, Cookie, Globe, Spinner } from '@/components/ui';
 import { MetaBadge } from '@/components/shared/MetaBadge';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { cn } from '@/lib/utils';
@@ -164,6 +164,7 @@ function SidebarSiteList({
                 />
               );
             })}
+            {isActive ? <Check size={16} weight="bold" className="shrink-0" aria-hidden /> : null}
           </button>
         );
       })}

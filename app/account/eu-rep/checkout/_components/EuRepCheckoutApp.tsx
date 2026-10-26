@@ -44,20 +44,7 @@ import { StepFooter } from '@/app/result/ui/StepFooter';
 import { WizardBorderedColumn } from '@/app/result/ui/WizardBorderedColumn';
 import { EuRepCheckoutStepBar, type EuRepCheckoutStepId } from './EuRepCheckoutStepBar';
 import { EuRepCheckoutWelcomeBenefits } from './EuRepCheckoutWelcomeBenefits';
-import {
-  Button,
-  CaretRight,
-  ModalRoot,
-  ModalBackdrop,
-  ModalContainer,
-  ModalDialog,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalHeading,
-  Spinner,
-  useOverlayState,
-} from '@/components/ui';
+import { Button, CaretRight, useOverlayState } from '@/components/ui';
 import { PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
 import { useConfirmingPaymentFlow } from '@/lib/use-confirming-payment-flow';
 import { payrexxOrderLinesFromEuRepCheckout } from '@/lib/payrexx-order-lines';
@@ -66,6 +53,7 @@ import { usePayrexxPaymentFlow } from '@/lib/use-payrexx-payment-flow';
 import { CheckoutPaymentButtonSpinner } from '@/components/shared/CheckoutPaymentButtonSpinner';
 import { PayrexxPaymentScreen } from '@/components/shared/PayrexxPaymentScreen';
 import { ConfirmingStatusScreen } from '@/components/shared/ConfirmingStatusScreen';
+import { ScanLoader } from '@/components/shared/ScanLoader';
 import { PaymentConfirmationCrossfade } from '@/components/shared/PaymentConfirmationCrossfade';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import {
@@ -264,17 +252,6 @@ function collectCheckoutValidationIssues({
   };
 }
 
-function hasCheckoutErrorsBesidesTermsAcceptance(
-  entityErrors: EntityErrors,
-  guestErrors: EuRepGuestAccountErrors
-): boolean {
-  if (Object.values(entityErrors).some(Boolean)) return true;
-
-  return Object.entries(guestErrors).some(
-    ([key, message]) => Boolean(message) && key !== 'acceptTerms'
-  );
-}
-
 export function EuRepCheckoutApp() {
   const t = useTranslations('account.euRepCheckout');
   const tValidation = useTranslations('validation');
@@ -287,7 +264,6 @@ export function EuRepCheckoutApp() {
   const tSummary = useTranslations('result.summary');
   const tCommon = useTranslations('common');
   const orderLabels = usePayrexxOrderLineLabels();
-  const tQuestionnaire = useTranslations('result.questionnaireStep');
   const router = useRouter();
   const searchParams = useSearchParams();
   const session = useSession();
@@ -318,7 +294,6 @@ export function EuRepCheckoutApp() {
   // POC STUB (Payrexx): in-page simulation; production redirects to the session's Payrexx URL.
   const payrexx = usePayrexxPaymentFlow();
   const { phase: accountPhase, run: runCreateAccountFlow } = useConfirmingPaymentFlow();
-  const validationModal = useOverlayState();
   const checkoutConfirm = useOverlayState();
   const pendingCheckoutActionRef = useRef<(() => Promise<void>) | null>(null);
   const [promoDraft, setPromoDraft] = useState('');
@@ -375,6 +350,7 @@ export function EuRepCheckoutApp() {
     [entity.legalEntity, orderLabels, selectedPlanLabel]
   );
   const confirmQuit = hasEntityProgress(entity) || selectedPlanId !== initialPlan;
+
   const isContinueLoading = payrexx.isOpening;
   const isProcessing =
     isContinueLoading ||
@@ -470,9 +446,6 @@ export function EuRepCheckoutApp() {
     const validation = validateEntity(entity, tValidation);
     setErrors(validation.errors);
     if (!validation.ok) {
-      if (Object.values(validation.errors).some(Boolean)) {
-        validationModal.open();
-      }
       return;
     }
 
@@ -567,11 +540,6 @@ export function EuRepCheckoutApp() {
     }
 
     if (!validation.ok) {
-      if (
-        hasCheckoutErrorsBesidesTermsAcceptance(validation.entityErrors, validation.guestErrors)
-      ) {
-        validationModal.open();
-      }
       return;
     }
 
@@ -618,8 +586,13 @@ export function EuRepCheckoutApp() {
         {accentHeader}
         <StepFrame centerContent>
           <Container>
-            <div className="border-border flex min-h-32 items-center justify-center border-r border-l py-10">
-              <Spinner aria-label={tAccount('loading')} />
+            <div className="border-border flex min-h-32 border-r border-l py-6">
+              <ScanLoader
+                layout="center"
+                label={tAccount('loading')}
+                statusAriaLabel={tAccount('loading')}
+                className="min-h-32 py-10"
+              />
             </div>
           </Container>
         </StepFrame>
@@ -806,36 +779,6 @@ export function EuRepCheckoutApp() {
 
   const checkoutDialogs = (
     <>
-      <ModalRoot state={validationModal}>
-        <ModalBackdrop isDismissable>
-          <ModalContainer size="sm">
-            <ModalDialog>
-              <ModalHeader>
-                <ModalHeading>{t('validationAlert.title')}</ModalHeading>
-              </ModalHeader>
-              <ModalBody>
-                <div className="text-foreground flex flex-col gap-3 text-sm leading-relaxed">
-                  <p>{t('validationAlert.body')}</p>
-                  <ul className="list-disc space-y-1 pl-5">
-                    <li>{tQuestionnaire('fields.streetLine2')}</li>
-                  </ul>
-                </div>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    validationModal.close();
-                  }}
-                >
-                  {t('validationAlert.ok')}
-                </Button>
-              </ModalFooter>
-            </ModalDialog>
-          </ModalContainer>
-        </ModalBackdrop>
-      </ModalRoot>
-
       <ConfirmDialog
         state={checkoutConfirm}
         title={t('checkoutConfirm.title')}

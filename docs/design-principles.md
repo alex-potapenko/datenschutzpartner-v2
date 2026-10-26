@@ -37,6 +37,8 @@ Required state: a single control (label + input, text area, select, checkbox) sh
 
 In-page anchor navigation (`href="#…"`) uses native smooth scrolling via `scroll-behavior: smooth` on `html` (also gated by `prefers-reduced-motion`).
 
+**Async status loaders** use `ScanLoader` in `components/shared/ScanLoader.tsx` — same rainbow pill as the website scan (`scan-pill-visual`), with a spinner in the leading slot (`layout`: `pill` | `center` | `page`). The live URL scan step keeps `ScanForm` with the magnifying-glass animation.
+
 ## Theming a client project
 
 Edit `styles/tokens.css` only — replace the `--key-*` ramp with the client's brand color.

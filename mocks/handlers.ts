@@ -208,11 +208,8 @@ const authAccounts = createCollection<AuthAccountRecord>(
   8
 );
 
-function shouldSuggestTwoFactorSetup(account: AuthAccountRecord | undefined): boolean {
-  if (!account || account.role !== 'member') return false;
-  if (isTwoFactorEnabled(account)) return false;
-  if (resolveMemberSignInMethod(account) === 'magic_link') return false;
-  return account.twoFactorSetupSuggested;
+function shouldSuggestTwoFactorSetup(): boolean {
+  return false;
 }
 
 type MagicLoginTokenRecord = {
@@ -239,17 +236,27 @@ function isTwoFactorEnabled(account: AuthAccountRecord): boolean {
   return Boolean(account.totpSecret);
 }
 
+/** Members on password sign-in must configure 2FA before they get a session. */
+function memberPasswordTwoFactorMandatory(account: AuthAccountRecord): boolean {
+  return account.role === 'member' && resolveMemberSignInMethod(account) === 'password';
+}
+
+function twoFactorSetupMandatory(account: AuthAccountRecord): boolean {
+  if (isTwoFactorEnabled(account)) return false;
+  return account.twoFactorRequired || memberPasswordTwoFactorMandatory(account);
+}
+
 function twoFactorFlags(account: AuthAccountRecord) {
   return {
     requiresTwoFactor: isTwoFactorEnabled(account),
-    twoFactorSetupRequired: account.twoFactorRequired && !isTwoFactorEnabled(account),
+    twoFactorSetupRequired: twoFactorSetupMandatory(account),
   };
 }
 
 function twoFactorStatus(account: AuthAccountRecord): TwoFactorStatus {
   return {
     enabled: isTwoFactorEnabled(account),
-    required: account.twoFactorRequired,
+    required: account.twoFactorRequired || memberPasswordTwoFactorMandatory(account),
     activatedAt: account.twoFactorActivatedAt,
     recoveryCodesRemaining: account.recoveryCodes.filter((entry) => !entry.usedAt).length,
     recoveryCodesTotal: account.recoveryCodes.length,
@@ -2784,6 +2791,18 @@ export const handlers = [
     return HttpResponse.json({ ok: true as const });
   }),
 
+  http.get('/api/dev/lucas-two-factor-prototype-code', async () => {
+    const account = findAuthAccountByEmail(MOCK_MEMBER_EMAIL);
+    if (!account?.totpSecret) {
+      return HttpResponse.json({ enabled: false as const });
+    }
+
+    return HttpResponse.json({
+      enabled: true as const,
+      prototypeCode: await generateTotpCode(account.totpSecret),
+    });
+  }),
+
   http.post('/api/dev/reset-admin-two-factor', () => {
     const account = findAuthAccountByEmail(MOCK_ADMIN_EMAIL);
     if (account) {
@@ -2893,9 +2912,9 @@ export const handlers = [
       if (!accepted) {
         return HttpResponse.json({ message: 'invalid_two_factor' }, { status: 401 });
       }
-    } else if (account.twoFactorRequired) {
-      // Password was correct, but the account may not have a session until
-      // an authenticator is configured.
+    } else if (twoFactorSetupMandatory(account)) {
+      // Password was correct, but the account may not get a session until
+      // an authenticator is configured (admin policy or member password sign-in).
       return HttpResponse.json({
         email,
         twoFactorSetupRequired: true,
@@ -3130,12 +3149,11 @@ export const handlers = [
     }
 
     if (body.method === 'magic_link') {
+      if (isTwoFactorEnabled(account)) {
+        return HttpResponse.json({ message: 'two_factor_active' }, { status: 409 });
+      }
       authAccounts.update(account.id, {
         memberSignInMethod: 'magic_link',
-        totpSecret: null,
-        pendingTotpSecret: null,
-        twoFactorActivatedAt: null,
-        recoveryCodes: [],
         twoFactorSetupSuggested: true,
       });
     } else {
@@ -3253,6 +3271,7 @@ export const handlers = [
       twoFactorActivatedAt: new Date().toISOString(),
       recoveryCodes: recoveryCodes.map((code) => ({ code, usedAt: null })),
       twoFactorSetupSuggested: false,
+      ...(account.role === 'member' ? { memberSignInMethod: 'password' as const } : {}),
     });
 
     return HttpResponse.json({
@@ -3279,6 +3298,10 @@ export const handlers = [
 
     if (!account) {
       return HttpResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
+
+    if (isTwoFactorEnabled(account)) {
+      return HttpResponse.json({ message: 'two_factor_cannot_be_disabled' }, { status: 403 });
     }
 
     if (body.password !== account.password) {
@@ -3330,7 +3353,7 @@ export const handlers = [
     return HttpResponse.json({
       email: account.email,
       needsPassword: invite.needsPassword,
-      twoFactorRequired: account.twoFactorRequired,
+      twoFactorRequired: twoFactorSetupMandatory(account),
       twoFactorEnabled: isTwoFactorEnabled(account),
     } satisfies InviteValidation);
   }),
@@ -3351,7 +3374,8 @@ export const handlers = [
       authAccounts.update(account.id, { password: body.password });
     }
 
-    if (account.twoFactorRequired && !isTwoFactorEnabled(account)) {
+    const accountAfterPatch = findAuthAccountByEmail(account.email) ?? account;
+    if (twoFactorSetupMandatory(accountAfterPatch)) {
       return HttpResponse.json({ message: 'two_factor_required' }, { status: 409 });
     }
 

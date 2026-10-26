@@ -193,6 +193,22 @@ export function useSetDevMemberSignInMethod() {
   });
 }
 
+export const devLucasTwoFactorPrototypeCodeKey = [
+  'dev',
+  'lucas-two-factor-prototype-code',
+] as const;
+
+/** Prototype only — current Lucas TOTP for MSW (matches stored secret, not Google Auth). */
+export function useDevLucasTwoFactorPrototypeCode(active: boolean) {
+  return useQuery({
+    queryKey: devLucasTwoFactorPrototypeCodeKey,
+    queryFn: () =>
+      request<{ enabled: boolean; prototypeCode?: string }>('/dev/lucas-two-factor-prototype-code'),
+    enabled: active,
+    refetchInterval: active ? 15_000 : false,
+  });
+}
+
 /** Prototype only — clears two-factor on the Lucas member seed account. */
 export function useDisableLucasTwoFactor() {
   const queryClient = useQueryClient();
@@ -206,6 +222,7 @@ export function useDisableLucasTwoFactor() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
       void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+      void queryClient.invalidateQueries({ queryKey: devLucasTwoFactorPrototypeCodeKey });
     },
   });
 }

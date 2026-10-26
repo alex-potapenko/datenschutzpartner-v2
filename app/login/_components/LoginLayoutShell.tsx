@@ -1,7 +1,8 @@
 'use client';
 
 import { Suspense } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { loginHrefWithPreservedEmail } from '@/lib/login-routes';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
@@ -18,6 +19,7 @@ const formStageMinHeightClass = 'min-h-[26rem] sm:min-h-[28rem]';
 
 export function LoginLayoutShell() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isForgotPassword = pathname.endsWith('/forgot-password');
   const isMagicLinkVerify = pathname.endsWith('/verify');
   const tLogin = useTranslations('login');
@@ -30,7 +32,11 @@ export function LoginLayoutShell() {
     duration: reduceMotion ? 0 : routeTransition.duration,
   };
 
-  const backHref = isForgotPassword || isMagicLinkVerify ? '/login' : '/';
+  const backHref = isForgotPassword
+    ? loginHrefWithPreservedEmail(searchParams.get('email'), searchParams.get('returnTo'))
+    : isMagicLinkVerify
+      ? '/login'
+      : '/';
   const backLabel = isForgotPassword || isMagicLinkVerify ? tForgot('backToLogin') : tc('backHome');
   const contentKey = isForgotPassword
     ? 'forgot-password'
@@ -61,7 +67,9 @@ export function LoginLayoutShell() {
                   className="col-start-1 row-start-1 flex w-full flex-col gap-6"
                 >
                   {isForgotPassword ? (
-                    <ForgotPasswordForm />
+                    <Suspense fallback={null}>
+                      <ForgotPasswordForm />
+                    </Suspense>
                   ) : isMagicLinkVerify ? (
                     <LoginMagicLinkVerify />
                   ) : (

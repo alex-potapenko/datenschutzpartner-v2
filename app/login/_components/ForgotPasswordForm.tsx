@@ -1,13 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { useForgotPassword, type ForgotPasswordInput } from '@/api/auth';
-import { Button, Input } from '@/components/ui';
-import { NavigationLink } from '@/components/shared/NavigationLink';
+import { Button, EnvelopeSimple, Input } from '@/components/ui';
 import { z } from 'zod';
+import { useLoginDev } from './login-dev-context';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
 function Field({
@@ -33,11 +34,13 @@ function Field({
 }
 
 export function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
   const t = useTranslations('forgotPassword');
   const tv = useTranslations('validation');
   const [sent, setSent] = useState(false);
-  const [setupUrl, setSetupUrl] = useState<string | undefined>();
   const forgotPassword = useForgotPassword();
+  const { setPrototypePasswordSetupUrl } = useLoginDev();
+  const emailFromQuery = searchParams.get('email')?.trim().toLowerCase() ?? '';
 
   const schema = useMemo(
     () =>
@@ -50,28 +53,50 @@ export function ForgotPasswordForm() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
-  } = useForm<ForgotPasswordInput>({ resolver: zodResolver(schema) });
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: emailFromQuery },
+  });
+
+  useEffect(() => {
+    if (emailFromQuery) {
+      reset({ email: emailFromQuery });
+    }
+  }, [emailFromQuery, reset]);
+
+  useEffect(() => {
+    return () => {
+      setPrototypePasswordSetupUrl(null);
+    };
+  }, [setPrototypePasswordSetupUrl]);
 
   async function onSubmit(values: ForgotPasswordInput) {
     const result = await forgotPassword.mutateAsync(values);
-    setSetupUrl(result.prototypeSetupUrl);
+    setPrototypePasswordSetupUrl(result.prototypeSetupUrl ?? null);
     setSent(true);
   }
 
   if (sent) {
     return (
       <>
-        <h1 className="text-foreground mb-4 text-center text-2xl font-bold sm:text-3xl">
-          {t('title')}
+        <h1 className="text-foreground mb-6 text-center text-2xl font-bold sm:text-3xl">
+          {t('successTitle')}
         </h1>
-        <p className="text-foreground mb-6 text-center leading-relaxed">{t('success')}</p>
-        {setupUrl ? (
-          <p className="text-muted bg-key-50 mb-6 rounded-lg px-4 py-3 text-center text-sm leading-relaxed">
-            {t('prototypeHint')}{' '}
-            <NavigationLink href={setupUrl}>{t('prototypeLink')}</NavigationLink>
+        <div className="flex w-full flex-col items-center gap-3 text-center">
+          <span
+            className="bg-key-50 flex size-11 shrink-0 items-center justify-center rounded-xl"
+            aria-hidden
+          >
+            <EnvelopeSimple size={22} weight="fill" className="text-accent" />
+          </span>
+          <p className="text-foreground text-sm leading-relaxed">
+            {t('successNotice')}
+            <br />
+            {t('successInbox')}
           </p>
-        ) : null}
+        </div>
       </>
     );
   }
@@ -81,7 +106,7 @@ export function ForgotPasswordForm() {
       <h1 className="text-foreground mb-3 text-center text-2xl font-bold sm:text-3xl">
         {t('title')}
       </h1>
-      <p className="text-muted mb-6 text-center text-sm leading-relaxed sm:text-base">
+      <p className="text-foreground mb-6 text-center text-sm leading-relaxed whitespace-pre-line sm:text-base">
         {t('description')}
       </p>
 

@@ -61,7 +61,7 @@ Verification accepts ±1 period of clock drift.
 | `GET /account/two-factor`                 | `{ enabled, required, activatedAt, recoveryCodesRemaining, recoveryCodesTotal }`                                                      |
 | `POST /account/two-factor/setup`          | Issues a pending secret + `otpauthUri` for the QR code                                                                                |
 | `POST /account/two-factor/activate`       | Verifies the first code, enables 2FA, returns 10 recovery codes                                                                       |
-| `POST /account/two-factor/disable`        | Password-confirmed; clears the secret and all recovery codes                                                                          |
+| `POST /account/two-factor/disable`        | Rejected with `403` once 2FA is active (product rule: cannot turn off, only rotate codes / re-bind)                                   |
 | `POST /account/two-factor/recovery-codes` | Code-confirmed regeneration; invalidates the previous set                                                                             |
 | `POST /auth/invite/validate`              | Setup link → `{ email, needsPassword, twoFactorRequired, twoFactorEnabled }`                                                          |
 | `POST /auth/invite/complete`              | Stores the password and exchanges the link for a session                                                                              |
@@ -73,12 +73,17 @@ in place of a TOTP code and burns it.
 
 Accounts flagged `twoFactorRequired` (admins) get no session from `POST /auth/login`
 until setup is done — the response carries `twoFactorSetupRequired` plus a
-`setupToken`, and the login page forwards to `/set-password?token=…`.
+`setupToken`, and the login page forwards to `/set-password?token=…`. The same
+applies to **members on password sign-in** (`memberSignInMethod: password`): first
+successful password check must complete 2FA setup before a session is issued; there
+is no optional “maybe later” nudge. Once 2FA is active, Profile/Settings exposes
+recovery-code rotation only — not disable (API returns `403`).
 `POST /auth/forgot-password` returns `prototypeSetupUrl` so the mailed link can be
 followed without an inbox; `POST /account/two-factor/setup` returns `prototypeCode`
 so the flow can be demoed without a phone. Both are prototype-only fields.
 
-**Handover note:** the mock keeps secrets in `localStorage`. A real backend stores
+**Handover note:** the mock keeps secrets in `localStorage` (handlers run on the
+main thread via fetch interception so that store stays consistent). A real backend stores
 them encrypted, hashes recovery codes, rate-limits activation and login, and
 requires recent authentication before `setup`.
 

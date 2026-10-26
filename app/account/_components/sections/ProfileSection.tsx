@@ -21,11 +21,12 @@ import {
   type Profile,
 } from '@/api/account';
 import {
-  useDisableTwoFactor,
+  invalidateTwoFactorQueries,
   useRegenerateRecoveryCodes,
   useStartTwoFactorSetup,
   useTwoFactorStatus,
 } from '@/api/two-factor';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Button,
   Chip,
@@ -331,89 +332,7 @@ function LanguagePreference() {
   );
 }
 
-function DisableTwoFactorDialog({ state }: { state: OverlayState }) {
-  const t = useTranslations('twoFactor');
-  const disable = useDisableTwoFactor();
-  const [password, setPassword] = useState('');
-  const [failed, setFailed] = useState(false);
-
-  function close() {
-    setPassword('');
-    setFailed(false);
-    state.close();
-  }
-
-  return (
-    <ModalRoot
-      state={{
-        ...state,
-        setOpen: (open: boolean) => {
-          if (!open) close();
-          state.setOpen(open);
-        },
-        close,
-      }}
-    >
-      <ModalBackdrop isDismissable>
-        <ModalContainer size="sm">
-          <ModalDialog>
-            <ModalHeader>
-              <ModalHeading>{t('disableTitle')}</ModalHeading>
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-4">
-                <p className="text-foreground text-sm leading-relaxed">{t('disableBody')}</p>
-                <Field
-                  id="disableTwoFactorPassword"
-                  label={t('passwordLabel')}
-                  error={failed ? t('passwordInvalid') : undefined}
-                >
-                  <Input
-                    id="disableTwoFactorPassword"
-                    type="password"
-                    autoComplete="current-password"
-                    variant="secondary"
-                    fullWidth
-                    value={password}
-                    onChange={(event) => {
-                      setPassword(event.target.value);
-                      setFailed(false);
-                    }}
-                  />
-                </Field>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="outline" onPress={close}>
-                {t('cancel')}
-              </Button>
-              <Button
-                variant="primary"
-                isDisabled={!password || disable.isPending}
-                onPress={() => {
-                  disable.mutate(
-                    { password },
-                    {
-                      onSuccess: () => {
-                        toast.success(t('disableSuccess'));
-                        close();
-                      },
-                      onError: () => {
-                        setFailed(true);
-                      },
-                    }
-                  );
-                }}
-              >
-                {t('disableCta')}
-              </Button>
-            </ModalFooter>
-          </ModalDialog>
-        </ModalContainer>
-      </ModalBackdrop>
-    </ModalRoot>
-  );
-}
+const REGENERATE_RECOVERY_CODES_FORM_ID = 'regenerate-recovery-codes-form';
 
 function RegenerateRecoveryCodesDialog({
   state,
@@ -423,29 +342,44 @@ function RegenerateRecoveryCodesDialog({
   accountName: string;
 }) {
   const t = useTranslations('twoFactor');
+  const queryClient = useQueryClient();
   const regenerate = useRegenerateRecoveryCodes();
   const [code, setCode] = useState('');
   const [codes, setCodes] = useState<string[]>([]);
   const [codeInvalid, setCodeInvalid] = useState(false);
 
-  function close() {
+  function resetForm() {
     setCode('');
     setCodes([]);
     setCodeInvalid(false);
+  }
+
+  function close() {
+    resetForm();
     state.close();
   }
 
-  return (
-    <ModalRoot
-      state={{
-        ...state,
-        setOpen: (open: boolean) => {
-          if (!open) close();
-          state.setOpen(open);
+  function submitCode() {
+    if (code.length !== 6 || regenerate.isPending) {
+      return;
+    }
+
+    regenerate.mutate(
+      { code },
+      {
+        onSuccess: (result) => {
+          setCodes(result.recoveryCodes);
+          toast.success(t('regenerateSuccess'));
         },
-        close,
-      }}
-    >
+        onError: () => {
+          setCodeInvalid(true);
+        },
+      }
+    );
+  }
+
+  return (
+    <ModalRoot state={state}>
       <ModalBackdrop isDismissable={codes.length === 0}>
         <ModalContainer size="md">
           <ModalDialog>
@@ -459,24 +393,34 @@ function RegenerateRecoveryCodesDialog({
                   accountName={accountName}
                   confirmLabel={t('recoveryDone')}
                   onConfirm={() => {
+                    invalidateTwoFactorQueries(queryClient);
                     close();
                   }}
                 />
               ) : (
-                <div className="flex flex-col gap-4">
+                <form
+                  id={REGENERATE_RECOVERY_CODES_FORM_ID}
+                  className="flex flex-col gap-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitCode();
+                  }}
+                >
                   <p className="text-foreground text-sm leading-relaxed">{t('regenerateBody')}</p>
                   <TotpInput
                     aria-label={t('codeLabel')}
                     value={code}
                     isInvalid={codeInvalid}
                     isDisabled={regenerate.isPending}
+                    // eslint-disable-next-line jsx-a11y/no-autofocus -- confirm regeneration with OTP
+                    autoFocus
                     onChange={(value) => {
                       setCode(value);
                       setCodeInvalid(false);
                     }}
                   />
                   <FieldErrorText message={codeInvalid ? t('codeInvalid') : undefined} />
-                </div>
+                </form>
               )}
             </ModalBody>
             {codes.length === 0 ? (
@@ -486,23 +430,12 @@ function RegenerateRecoveryCodesDialog({
                 </Button>
                 <Button
                   variant="primary"
+                  type="submit"
+                  form={REGENERATE_RECOVERY_CODES_FORM_ID}
                   isDisabled={code.length !== 6 || regenerate.isPending}
-                  onPress={() => {
-                    regenerate.mutate(
-                      { code },
-                      {
-                        onSuccess: (result) => {
-                          setCodes(result.recoveryCodes);
-                          toast.success(t('regenerateSuccess'));
-                        },
-                        onError: () => {
-                          setCodeInvalid(true);
-                        },
-                      }
-                    );
-                  }}
+                  isPending={regenerate.isPending}
                 >
-                  {t('regenerateCta')}
+                  {t('regenerateConfirmCta')}
                 </Button>
               </ModalFooter>
             ) : null}
@@ -513,16 +446,24 @@ function RegenerateRecoveryCodesDialog({
   );
 }
 
-function TwoFactorSectionActions({ profile }: { profile: Profile }) {
+function TwoFactorSectionActions({
+  profile,
+  onOpenRegenerate,
+}: {
+  profile: Profile;
+  onOpenRegenerate: () => void;
+}) {
   const t = useTranslations('twoFactor');
   const status = useTwoFactorStatus();
   const startSetup = useStartTwoFactorSetup();
   const enableDialog = useOverlayState();
-  const disableDialog = useOverlayState();
-  const regenerateDialog = useOverlayState();
 
   // Rendering the enable button before the status arrives would flash the
   // wrong state for accounts that already have 2FA.
+  if (status.isPending) {
+    return null;
+  }
+
   if (!status.data) {
     return null;
   }
@@ -538,25 +479,8 @@ function TwoFactorSectionActions({ profile }: { profile: Profile }) {
             {status.data.recoveryCodesTotal}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              onPress={() => {
-                regenerateDialog.open();
-              }}
-            >
+            <Button variant="outline" size="sm" className="w-fit" onPress={onOpenRegenerate}>
               {t('regenerateCta')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              onPress={() => {
-                disableDialog.open();
-              }}
-            >
-              {t('disableCta')}
             </Button>
           </div>
         </>
@@ -595,8 +519,6 @@ function TwoFactorSectionActions({ profile }: { profile: Profile }) {
           startSetup.reset();
         }}
       />
-      <DisableTwoFactorDialog state={disableDialog} />
-      <RegenerateRecoveryCodesDialog state={regenerateDialog} accountName={profile.email} />
     </>
   );
 }
@@ -609,9 +531,14 @@ function PasswordSignInSecurityOptions({
   twoFactorEnabled: boolean | undefined;
 }) {
   const t = useTranslations('account.accountDetails');
+  const regenerateDialog = useOverlayState();
 
   return (
     <>
+      <div className="flex flex-col gap-2">
+        <Label elementType="p">{t('password')}</Label>
+        <SecuritySection />
+      </div>
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Label elementType="p">{t('twoFactorTitle')}</Label>
@@ -622,13 +549,15 @@ function PasswordSignInSecurityOptions({
           ) : null}
         </div>
         <div className="flex flex-col gap-4">
-          <TwoFactorSectionActions profile={profile} />
+          <TwoFactorSectionActions
+            profile={profile}
+            onOpenRegenerate={() => {
+              regenerateDialog.open();
+            }}
+          />
         </div>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label elementType="p">{t('password')}</Label>
-        <SecuritySection />
-      </div>
+      <RegenerateRecoveryCodesDialog state={regenerateDialog} accountName={profile.email} />
     </>
   );
 }

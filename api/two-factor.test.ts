@@ -115,20 +115,22 @@ describe('two-factor contract', () => {
     expect(status.recoveryCodesRemaining).toBe(9);
   });
 
-  it('disables only with the correct password', async () => {
+  it('regenerates recovery codes after a valid authenticator code', async () => {
+    const result = await request<TwoFactorActivation>('/account/two-factor/recovery-codes', {
+      method: 'POST',
+      body: JSON.stringify({ code: await generateTotpCode(secret) }),
+    });
+    expect(result.recoveryCodes).toHaveLength(10);
+    expect(result.status.recoveryCodesTotal).toBe(10);
+  });
+
+  it('does not allow disabling an active authenticator', async () => {
     await expect(
       request('/account/two-factor/disable', {
         method: 'POST',
-        body: JSON.stringify({ password: 'wrong' }),
+        body: JSON.stringify({ password: ADMIN_PASSWORD }),
       })
-    ).rejects.toMatchObject({ status: 400 });
-
-    const status = await request<TwoFactorStatus>('/account/two-factor/disable', {
-      method: 'POST',
-      body: JSON.stringify({ password: ADMIN_PASSWORD }),
-    });
-    expect(status.enabled).toBe(false);
-    expect(status.recoveryCodesTotal).toBe(0);
+    ).rejects.toMatchObject({ status: 403 });
   });
 });
 
@@ -164,5 +166,57 @@ describe('member login', () => {
     });
     expect(identified.loginMethod).toBe('magic_link');
     expect(identified.prototypeMagicLinkUrl).toBeUndefined();
+  });
+
+  it('requires 2FA setup before a session for password-mode Lucas', async () => {
+    await request('/dev/set-member-sign-in-method', {
+      method: 'POST',
+      body: JSON.stringify({ method: 'password' }),
+    });
+
+    const pending = await login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD });
+    expect(pending.token).toBeUndefined();
+    expect(pending.twoFactorSetupRequired).toBe(true);
+    expect(pending.setupToken).toBeTruthy();
+  });
+
+  it('accepts Lucas TOTP at login after activation in account settings', async () => {
+    await request('/dev/set-member-sign-in-method', {
+      method: 'POST',
+      body: JSON.stringify({ method: 'password' }),
+    });
+
+    const session = await login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD });
+    setAuthToken(session.token ?? '');
+
+    const setup = await request<TwoFactorSetup>('/account/two-factor/setup', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+
+    await request<TwoFactorActivation>('/account/two-factor/activate', {
+      method: 'POST',
+      body: JSON.stringify({ code: await generateTotpCode(setup.secret) }),
+    });
+
+    setAuthToken('');
+
+    const identified = await request<LoginIdentifyResponse>('/auth/login/identify', {
+      method: 'POST',
+      body: JSON.stringify({ email: MEMBER_EMAIL }),
+    });
+    expect(identified.loginMethod).toBe('password');
+    expect(identified.requiresTwoFactor).toBe(true);
+
+    await expect(login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD })).rejects.toMatchObject({
+      status: 401,
+    });
+
+    const authed = await login({
+      email: MEMBER_EMAIL,
+      password: MEMBER_PASSWORD,
+      twoFactorCode: await generateTotpCode(setup.secret),
+    });
+    expect(authed.token).toBeTruthy();
   });
 });

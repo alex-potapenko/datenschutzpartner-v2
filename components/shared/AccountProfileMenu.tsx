@@ -17,9 +17,7 @@ import {
   Receipt,
   SignOut,
   UserCircle,
-  useOverlayState,
 } from '@/components/ui';
-import { ConfirmDialog } from './ConfirmDialog';
 import { cn } from '@/lib/utils';
 
 const topBarOutlineTriggerClass =
@@ -39,7 +37,6 @@ export function AccountProfileMenu({
   const router = useRouter();
   const queryClient = useQueryClient();
   const profile = useProfile();
-  const logout = useOverlayState();
 
   const displayName = profile.data?.displayName ?? '';
   const firstName = profile.data?.firstName ?? displayName.split(' ')[0] ?? '';
@@ -57,7 +54,6 @@ export function AccountProfileMenu({
   function handleLogout() {
     clearAuthToken();
     queryClient.clear();
-    logout.close();
     router.push('/');
   }
 
@@ -116,9 +112,7 @@ export function AccountProfileMenu({
               textValue={t('nav.logout')}
               className="border-border mt-1 border-t px-3 py-2.5 pt-3"
               onAction={() => {
-                handleMenuAction(() => {
-                  logout.open();
-                });
+                handleMenuAction(handleLogout);
               }}
             >
               <span className="text-danger flex items-center gap-3">
@@ -129,15 +123,6 @@ export function AccountProfileMenu({
           </DropdownMenu>
         </DropdownPopover>
       </DropdownRoot>
-
-      <ConfirmDialog
-        state={logout}
-        title={t('logout.confirmTitle')}
-        body={t('logout.confirmBody')}
-        confirmLabel={t('logout.confirm')}
-        cancelLabel={t('logout.cancel')}
-        onConfirm={handleLogout}
-      />
     </>
   );
 }

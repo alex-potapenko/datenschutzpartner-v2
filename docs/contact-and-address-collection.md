@@ -17,16 +17,16 @@ Review of all places in `datenschutzpartner-v2` where users are asked for contac
 | Address line 2                  | No                                                                                                                       |
 | Email                           | Yes                                                                                                                      |
 | Country (controller)            | Required in backend logic, but **no separate UI field** — defaults to Switzerland; can be filled via optional UID lookup |
-| UID lookup (CHE / company name) | Optional — auto-fills name, street, postal code, city, country                                                           |
+| UID lookup (CHE / company name) | Optional on **legal entity** — auto-fills name, street, postal code, city, country                                       |
 
 ### If DPO = yes
 
-| Field                                  | Required?                          |
-| -------------------------------------- | ---------------------------------- |
-| DPO company name                       | Yes                                |
-| DPO designation                        | No                                 |
-| DPO street, postal code, city, country | Yes                                |
-| DPO email                              | In schema, but **not shown in UI** |
+| Field                                  | Required?                                     |
+| -------------------------------------- | --------------------------------------------- |
+| DPO company name                       | Yes — **UID lookup** fills name + DPO address |
+| DPO designation                        | No                                            |
+| DPO street, postal code, city, country | Yes                                           |
+| DPO email                              | In schema, but **not shown in UI**            |
 
 ### If third-party EU representative = yes (GDPR applicable)
 
@@ -41,11 +41,12 @@ Review of all places in `datenschutzpartner-v2` where users are asked for contac
 **Screen:** EU Rep step at end of generator wizard  
 **Code:** `app/result/steps/EuRepStep.tsx`, `EuRepWizardOffer.tsx`, `EuRepContractFields.tsx`
 
-| Field             | Required?         |
-| ----------------- | ----------------- |
-| Legal entity name | Yes               |
-| Forwarding email  | Yes               |
-| Postal address    | **Not collected** |
+| Field                       | Required?                                 |
+| --------------------------- | ----------------------------------------- |
+| Legal entity name (offer)   | Yes — UID lookup                          |
+| Third-party rep name        | Yes — UID lookup fills name + address     |
+| Forwarding email            | Yes                                       |
+| Postal address (offer path) | Via `EuRepContractFields` when applicable |
 
 ---
 
@@ -110,15 +111,15 @@ Review of all places in `datenschutzpartner-v2` where users are asked for contac
 **Screen:** Account → Payment details  
 **Code:** `app/account/_components/sections/PaymentDetailsSection.tsx`
 
-| Field                      | Required? |
-| -------------------------- | --------- |
-| Billing email              | Yes       |
-| First name, Last name      | Yes       |
-| Company                    | No        |
-| Street (line 1)            | Yes       |
-| Address line 2             | No        |
-| Postal code, City, Country | Yes       |
-| VAT ID                     | No        |
+| Field                      | Required?                |
+| -------------------------- | ------------------------ |
+| Billing email              | Yes                      |
+| First name, Last name      | Yes                      |
+| Company                    | No — UID lookup optional |
+| Street (line 1)            | Yes                      |
+| Address line 2             | No                       |
+| Postal code, City, Country | Yes                      |
+| VAT ID                     | No                       |
 
 **Note:** Checkout screens (policy trial, generator upgrade, EU Rep) do **not** ask for billing address.
 
@@ -128,13 +129,13 @@ Review of all places in `datenschutzpartner-v2` where users are asked for contac
 
 **Code:** `app/contact/_components/ContactForm.tsx`
 
-| Field   | Required? |
-| ------- | --------- |
-| Name    | Yes       |
-| Company | No        |
-| Email   | Yes       |
-| Subject | Yes       |
-| Message | Yes       |
+| Field   | Required?                |
+| ------- | ------------------------ |
+| Name    | Yes                      |
+| Company | No — UID lookup optional |
+| Email   | Yes                      |
+| Subject | Yes                      |
+| Message | Yes                      |
 
 The company address shown on the page is static content, not a form field.
 
@@ -142,12 +143,12 @@ The company address shown on the page is static content, not a form field.
 
 ## 9. Auth & newsletter
 
-| Location                                         | Fields          |
-| ------------------------------------------------ | --------------- |
-| Login                                            | Email, password |
-| Forgot password                                  | Email           |
-| Newsletter section (landing)                     | Email only      |
-| EU Rep questionnaire outcome — newsletter signup | Email only      |
+| Location                                         | Fields                               |
+| ------------------------------------------------ | ------------------------------------ |
+| Login                                            | Email, password                      |
+| Forgot password                                  | Email                                |
+| Newsletter section (landing)                     | Optional company (UID lookup), email |
+| EU Rep questionnaire outcome — newsletter signup | Email only                           |
 
 ---
 

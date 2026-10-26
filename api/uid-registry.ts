@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { request } from './client';
 
 /**
- * Swiss UID registry lookup — autocomplete for company name and address fields
- * in the privacy questionnaire. Prototype uses mocked Zefix-style results.
+ * Swiss UID registry lookup — modal search for any company / legal-entity name field
+ * (questionnaire, EU Rep, billing, contact, newsletter). Prototype uses mocked Zefix-style results.
  */
 export const uidCompanySchema = z.object({
   uid: z.string(),

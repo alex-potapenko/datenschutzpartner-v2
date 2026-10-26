@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useVerifyEmail } from '@/api/auth';
-import { Spinner } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
 import { Logo } from '@/components/shared/Logo';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { emptyEuRepState, readWizardState, writeWizardState } from '@/app/result/wizard-state';
@@ -89,15 +89,16 @@ function VerifyEmailContent() {
             <p className="text-foreground text-sm leading-relaxed">{t('missingToken')}</p>
           ) : verify.isError ? (
             <p className="text-foreground text-sm leading-relaxed">{t('failedBody')}</p>
-          ) : (
-            <p className="text-foreground text-sm leading-relaxed">{t('processing')}</p>
-          )}
+          ) : null}
         </div>
 
         {token && !verify.isError ? (
-          <div className="flex justify-center py-4">
-            <Spinner aria-label={t('processing')} />
-          </div>
+          <ScanLoader
+            layout="center"
+            label={t('processing')}
+            statusAriaLabel={t('processing')}
+            className="py-4"
+          />
         ) : null}
 
         <NavigationLink href="/login" chevron="left" className="self-center">
@@ -114,9 +115,7 @@ export function VerifyEmailApp() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-dvh items-center justify-center">
-          <Spinner aria-label={t('processing')} />
-        </div>
+        <ScanLoader layout="page" label={t('processing')} statusAriaLabel={t('processing')} />
       }
     >
       <VerifyEmailContent />

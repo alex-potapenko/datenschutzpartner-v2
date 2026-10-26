@@ -22,7 +22,8 @@ import {
   VolumeDiscountNote,
   VolumeDiscountThresholdsDialog,
 } from '@/components/shared/VolumeDiscountDialog';
-import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
+import { Button, CaretRight, useOverlayState } from '@/components/ui';
 import { NestedScreenShell } from '@/components/shared/NestedScreenShell';
 import { SiteQuantityStepper } from '@/components/shared/SiteQuantityStepper';
 import { payrexxOrderLinesFromGeneratorCheckout } from '@/lib/payrexx-order-lines';
@@ -187,9 +188,12 @@ export function GeneratorCheckoutApp() {
   if (isChecking || isDataLoading) {
     return (
       <GeneratorUpgradePageShell backLabel={tCommon('back')} detailTitle={tService('label')}>
-        <div className="flex min-h-40 items-center justify-center py-20">
-          <Spinner aria-label={tAccount('loading')} />
-        </div>
+        <ScanLoader
+          layout="center"
+          label={tAccount('loading')}
+          statusAriaLabel={tAccount('loading')}
+          className="min-h-40 py-20"
+        />
       </GeneratorUpgradePageShell>
     );
   }

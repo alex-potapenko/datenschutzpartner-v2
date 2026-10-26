@@ -54,6 +54,11 @@ function invalidateTwoFactor(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: authKeys.session });
 }
 
+/** Call after the user finishes a 2FA settings flow (e.g. saved new recovery codes). */
+export function invalidateTwoFactorQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  invalidateTwoFactor(queryClient);
+}
+
 export function useTwoFactorStatus(enabled = true) {
   return useQuery({
     queryKey: twoFactorKeys.status,
@@ -118,16 +123,11 @@ export function useDismissTwoFactorSetupSuggestion() {
 }
 
 export function useRegenerateRecoveryCodes() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (input: TwoFactorCodeInput) =>
       request<TwoFactorActivation>('/account/two-factor/recovery-codes', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
-    onSuccess: () => {
-      invalidateTwoFactor(queryClient);
-    },
   });
 }

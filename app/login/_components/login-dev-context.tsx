@@ -18,6 +18,9 @@ type LoginDevContextValue = {
   setPrototypeMagicLinkUrl: (url: string | null) => void;
   adminLoginBypass: AdminLoginBypassCredentials | null;
   setAdminLoginBypass: (credentials: AdminLoginBypassCredentials | null) => void;
+  /** MSW forgot-password success — setup link shown in the login footer. */
+  prototypePasswordSetupUrl: string | null;
+  setPrototypePasswordSetupUrl: (url: string | null) => void;
 };
 
 const LoginDevContext = createContext<LoginDevContextValue | null>(null);
@@ -29,6 +32,7 @@ export function LoginDevProvider({ children }: { children: ReactNode }) {
   const [adminLoginBypass, setAdminLoginBypass] = useState<AdminLoginBypassCredentials | null>(
     null
   );
+  const [prototypePasswordSetupUrl, setPrototypePasswordSetupUrl] = useState<string | null>(null);
 
   const value = useMemo(
     () => ({
@@ -40,8 +44,16 @@ export function LoginDevProvider({ children }: { children: ReactNode }) {
       setPrototypeMagicLinkUrl,
       adminLoginBypass,
       setAdminLoginBypass,
+      prototypePasswordSetupUrl,
+      setPrototypePasswordSetupUrl,
     }),
-    [step, prototypeMagicLinkReady, prototypeMagicLinkUrl, adminLoginBypass]
+    [
+      step,
+      prototypeMagicLinkReady,
+      prototypeMagicLinkUrl,
+      adminLoginBypass,
+      prototypePasswordSetupUrl,
+    ]
   );
 
   return <LoginDevContext.Provider value={value}>{children}</LoginDevContext.Provider>;

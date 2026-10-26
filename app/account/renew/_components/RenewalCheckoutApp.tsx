@@ -31,7 +31,8 @@ import {
   VolumeDiscountNote,
   VolumeDiscountThresholdsDialog,
 } from '@/components/shared/VolumeDiscountDialog';
-import { Button, CaretRight, Spinner, useOverlayState } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
+import { Button, CaretRight, useOverlayState } from '@/components/ui';
 import { CheckoutPaymentButtonSpinner } from '@/components/shared/CheckoutPaymentButtonSpinner';
 import { SUBSCRIPTION_RENEWAL_HREF, safeAccountReturnTo } from '@/lib/account-routes';
 import { cn } from '@/lib/utils';
@@ -119,7 +120,12 @@ export function RenewalCheckoutApp() {
     if (isChecking || subscriptions.isLoading || documents.isLoading || euRepContracts.isLoading) {
       return (
         <StatusPanel>
-          <Spinner aria-label={tAccount('loading')} />
+          <ScanLoader
+            layout="center"
+            label={tAccount('loading')}
+            statusAriaLabel={tAccount('loading')}
+            className="py-0"
+          />
         </StatusPanel>
       );
     }

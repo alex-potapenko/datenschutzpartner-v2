@@ -9,6 +9,8 @@ import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { useEuRepScope } from '@/components/shared/eu-rep-scope';
 import { Spinner, cn } from '@/components/ui';
 
+const EU_REP_SIDEBAR_ACCENT = 'var(--accent)';
+
 export function EuRepContractSidebarNav() {
   const t = useTranslations('account.contractSwitcher');
   const tAccount = useTranslations('account');
@@ -58,9 +60,11 @@ export function EuRepContractSidebarNav() {
               (row) => row.id === contract.subscriptionId
             );
             const onTrial = subscription ? isEuRepSubscriptionOnTrial(subscription) : false;
-            const showStatus =
-              !onTrial &&
-              (subscription?.status === 'cancelled' || subscription?.status === 'expired');
+            const inactiveSubscription =
+              subscription &&
+              (subscription.status === 'cancelled' || subscription.status === 'expired')
+                ? subscription
+                : null;
 
             return (
               <button
@@ -71,20 +75,28 @@ export function EuRepContractSidebarNav() {
                   selectContract(contract.id);
                 }}
                 className={cn(
-                  'flex min-h-12 w-full cursor-pointer items-center gap-2 px-5 text-left text-sm font-medium transition-colors',
+                  'flex min-h-12 w-full cursor-pointer items-center gap-2 px-5 text-left text-sm font-medium transition-[color,background-color,box-shadow] duration-200',
                   isActive
-                    ? 'bg-key-50 text-accent shadow-[inset_2px_0_0_0_var(--accent)]'
+                    ? 'text-foreground'
                     : 'text-foreground hover:bg-[color-mix(in_srgb,var(--foreground)_5%,transparent)]'
                 )}
+                style={
+                  isActive
+                    ? {
+                        background: `color-mix(in oklab, ${EU_REP_SIDEBAR_ACCENT} 10%, transparent)`,
+                        boxShadow: `inset 2px 0 0 0 ${EU_REP_SIDEBAR_ACCENT}`,
+                      }
+                    : undefined
+                }
               >
                 <span className="min-w-0 flex-1 truncate">{contract.legalEntity}</span>
                 {onTrial ? (
                   <MetaBadge kind="trial" className="shrink-0">
                     {tAccount('nav.trial')}
                   </MetaBadge>
-                ) : showStatus && subscription ? (
-                  <StatusPill tone={statusTone(subscription.status)}>
-                    {ts(subscription.status)}
+                ) : inactiveSubscription ? (
+                  <StatusPill tone={statusTone(inactiveSubscription.status)}>
+                    {ts(inactiveSubscription.status)}
                   </StatusPill>
                 ) : null}
               </button>

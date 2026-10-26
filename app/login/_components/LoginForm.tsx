@@ -19,15 +19,16 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import type { FieldErrors } from 'react-hook-form';
 import { ApiError } from '@/api/client';
 import { useIdentifyLogin, useLogin } from '@/api/auth';
+import { isApiErrorCode } from '@/lib/api-error';
 import { env } from '@/env';
 import { storePrototypeMagicLoginUrl } from '@/lib/magic-login-prototype';
 import { useLoginDev } from './login-dev-context';
+import { loginForgotPasswordHref } from '@/lib/login-routes';
 import { storeLoginCredential } from '@/lib/store-login-credential';
 import { AnimatedDirectionalPanel } from '@/app/account/_components/AnimatedDirectionalPanel';
 import { showDangerToast } from '@/components/shared/dangerToast';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { TotpInput } from '@/components/shared/TotpInput';
-import { TwoFactorProactiveOffer } from '@/components/shared/two-factor';
 import {
   Button,
   CheckCircle,
@@ -114,8 +115,6 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [authFailed, setAuthFailed] = useState(false);
   const [isCollapsingPostEmailBlock, setIsCollapsingPostEmailBlock] = useState(false);
-  const [twoFactorProactiveOpen, setTwoFactorProactiveOpen] = useState(false);
-  const [twoFactorProactiveNonce, setTwoFactorProactiveNonce] = useState(0);
   const [postEmailSlide, setPostEmailSlide] = useState<PostEmailSlide>({
     axis: 'y',
     direction: 'forward',
@@ -181,6 +180,19 @@ export function LoginForm() {
   });
 
   const returnTo = searchParams.get('returnTo') ?? '/account';
+  const emailFieldValue = emailForm.watch('email');
+
+  const forgotPasswordHref = useMemo(
+    () => loginForgotPasswordHref(email || emailFieldValue, returnTo),
+    [email, emailFieldValue, returnTo]
+  );
+
+  useEffect(() => {
+    const fromQuery = searchParams.get('email')?.trim().toLowerCase();
+    if (!fromQuery) return;
+    setEmail(fromQuery);
+    emailForm.setValue('email', fromQuery);
+  }, [emailForm, searchParams]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -212,18 +224,19 @@ export function LoginForm() {
   const passwordInvalid = Boolean(passwordForm.formState.errors.password) || authFailed;
   const totpInvalid = authFailed;
 
+  function resolveLoginPassword(): string {
+    return passwordForm.getValues('password') || password;
+  }
+
   async function completeLogin(credential: { twoFactorCode?: string; recoveryCode?: string }) {
     setAuthFailed(false);
 
-    if (twoFactorProactiveOpen) {
-      setTwoFactorProactiveNonce((nonce) => nonce + 1);
-      return;
-    }
+    const loginPassword = resolveLoginPassword();
 
     try {
       const result = await login.mutateAsync({
         email,
-        password,
+        password: loginPassword,
         ...credential,
       });
 
@@ -237,24 +250,25 @@ export function LoginForm() {
         return;
       }
 
-      await storeLoginCredential(email, password);
+      await storeLoginCredential(email, loginPassword);
       toast.success(t('success'));
-      if (result.suggestTwoFactorSetup) {
-        setTwoFactorProactiveOpen(true);
-        setTwoFactorProactiveNonce((nonce) => nonce + 1);
-        return;
-      }
       startTransition(() => {
         router.push(returnTo);
       });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setAuthFailed(true);
-        showDangerToast(
-          step === 'totp' || requiresTwoFactor
-            ? t('errors.invalidCredentialsOr2fa')
-            : t('errors.invalidCredentials')
-        );
+        if (step === 'totp') {
+          if (isApiErrorCode(error, 'invalid_two_factor')) {
+            showDangerToast(t('errors.invalid2fa'));
+          } else if (isApiErrorCode(error, 'invalid_credentials')) {
+            showDangerToast(t('errors.invalidPasswordOn2faStep'));
+          } else {
+            showDangerToast(t('errors.invalidCredentialsOr2fa'));
+          }
+        } else {
+          showDangerToast(t('errors.invalidCredentials'));
+        }
         return;
       }
       showDangerToast(t('errors.generic'));
@@ -299,15 +313,39 @@ export function LoginForm() {
     }
   }
 
-  function onPasswordSubmit(values: PasswordStepValues) {
+  async function onPasswordSubmit(values: PasswordStepValues) {
     setAuthFailed(false);
     setPassword(values.password);
 
     if (requiresTwoFactor) {
-      setAdminLoginBypass({ email, password: values.password });
-      setTotpCode('');
-      setPostEmailSlide({ axis: 'x', direction: 'forward' });
-      setStep('totp');
+      try {
+        const result = await login.mutateAsync({ email, password: values.password });
+        if (result.token) {
+          await storeLoginCredential(email, values.password);
+          toast.success(t('success'));
+          startTransition(() => {
+            router.push(returnTo);
+          });
+          return;
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          if (isApiErrorCode(error, 'invalid_two_factor')) {
+            setAdminLoginBypass({ email, password: values.password });
+            setTotpCode('');
+            setPostEmailSlide({ axis: 'x', direction: 'forward' });
+            setStep('totp');
+            return;
+          }
+          setAuthFailed(true);
+          showDangerToast(t('errors.invalidCredentials'));
+          return;
+        }
+        showDangerToast(t('errors.generic'));
+        return;
+      }
+
+      showDangerToast(t('errors.generic'));
       return;
     }
 
@@ -372,10 +410,15 @@ export function LoginForm() {
     }
 
     if (step === 'password') {
-      void passwordForm.handleSubmit(onPasswordSubmit, (fieldErrors) => {
-        const message = firstValidationMessage(fieldErrors);
-        if (message) showDangerToast(message);
-      })();
+      void passwordForm.handleSubmit(
+        (values) => {
+          void onPasswordSubmit(values);
+        },
+        (fieldErrors) => {
+          const message = firstValidationMessage(fieldErrors);
+          if (message) showDangerToast(message);
+        }
+      )();
       return;
     }
 
@@ -591,7 +634,7 @@ export function LoginForm() {
                           </div>
 
                           <div className="flex justify-end">
-                            <NavigationLink href="/login/forgot-password" size="sm">
+                            <NavigationLink href={forgotPasswordHref} size="sm">
                               {t('forgotPassword')}
                             </NavigationLink>
                           </div>
@@ -703,7 +746,7 @@ export function LoginForm() {
                   step === 'email'
                     ? identify.isPending
                     : step === 'password'
-                      ? false
+                      ? login.isPending
                       : login.isPending
                 }
                 isDisabled={
@@ -733,17 +776,6 @@ export function LoginForm() {
           )}
         </AnimatePresence>
       </form>
-      <TwoFactorProactiveOffer
-        open={twoFactorProactiveOpen}
-        reopenNonce={twoFactorProactiveNonce}
-        accountEmail={email}
-        onFinished={() => {
-          setTwoFactorProactiveOpen(false);
-          startTransition(() => {
-            router.push(returnTo);
-          });
-        }}
-      />
     </>
   );
 }

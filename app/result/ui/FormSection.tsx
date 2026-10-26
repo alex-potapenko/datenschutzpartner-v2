@@ -9,6 +9,7 @@ import {
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { ValidationRequiredBadge } from '@/components/shared/ValidationRequiredBadge';
+import { FormFieldLabel } from './FormFieldLabel';
 
 interface FormSectionProps {
   title: string;
@@ -42,6 +43,8 @@ interface FieldProps {
   requiredShakeKey?: number;
   /** When set, suppresses the required chip (inline error already shown). */
   error?: string;
+  infoTooltip?: string;
+  infoTooltipLabel?: string;
 }
 
 export function Field({
@@ -56,22 +59,30 @@ export function Field({
   requiredLabel,
   requiredShakeKey,
   error,
+  infoTooltip,
+  infoTooltipLabel,
 }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-foreground text-sm leading-snug font-medium">
-        {label}
+      <div className="inline-flex flex-wrap items-center">
+        <FormFieldLabel
+          htmlFor={htmlFor}
+          infoTooltip={infoTooltip}
+          infoTooltipLabel={infoTooltipLabel ?? label}
+        >
+          {label}
+        </FormFieldLabel>
         {requiredLabel ? (
           <ValidationRequiredBadge
             show={Boolean(required)}
             fieldError={error}
             shakeKey={requiredShakeKey}
-            className="ml-1.5"
+            className="ml-1"
           >
             {requiredLabel}
           </ValidationRequiredBadge>
         ) : null}
-      </label>
+      </div>
       {description ? (
         <p className={cn('text-muted text-sm leading-relaxed', descriptionClassName)}>
           {description}

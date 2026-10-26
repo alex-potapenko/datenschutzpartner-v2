@@ -231,6 +231,8 @@
     "devAdminDisable2faLogin": "2FA deaktivieren und anmelden",
     "devAdminMagicLink": "E-Mail-Anmelde-Link simulieren",
     "devMagicLinkMissing": "Kein Anmelde-Link gespeichert. Zuerst mit der Member-E-Mail fortfahren.",
+    "devLucasTotpPrototype": "Debug-Info: Lucas-Mock-Code (stimmt mit Google Authenticator nur bei synchronem Setup): {code}",
+    "devLucasTotpPrototypeOff": "Debug-Info: Kein 2FA-Secret für Lucas im Mock — in Debug-Info 2FA deaktivieren und neu einrichten.",
     "email": "E-Mail",
     "editEmail": "E-Mail-Adresse bearbeiten",
     "emailPlaceholder": "maria@muster.ch",
@@ -263,6 +265,8 @@
     "errors": {
       "invalidCredentials": "E-Mail oder Passwort ist falsch.",
       "invalidCredentialsOr2fa": "Passwort oder Authentifizierungscode ist falsch.",
+      "invalid2fa": "Authentifizierungscode ist falsch. Verwende den aktuellen Code aus Deiner App.",
+      "invalidPasswordOn2faStep": "Passwort ist falsch. Bearbeite die E-Mail, um zurückzugehen und Dein Passwort erneut einzugeben.",
       "generic": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
     }
   },
@@ -270,12 +274,14 @@
     "metaTitle": "Passwort vergessen — Datenschutzpartner",
     "metaDescription": "Fordere einen Link zum Zurücksetzen Deines Passworts an.",
     "title": "Passwort vergessen",
-    "description": "Gib Deine E-Mail-Adresse ein. Wir senden Dir einen Link zum Zurücksetzen Deines Passworts.",
+    "description": "Gib Deine E-Mail-Adresse ein. Wir senden Dir einen Link\nzum Zurücksetzen Deines Passworts.",
     "email": "E-Mail",
     "emailPlaceholder": "maria@muster.ch",
     "submit": "Link senden",
     "backToLogin": "Anmelden",
-    "success": "Falls ein Konto mit dieser E-Mail existiert, haben wir Dir einen Link zum Zurücksetzen gesendet.",
+    "successTitle": "E-Mail versendet",
+    "successNotice": "Falls ein Konto mit dieser E-Mail existiert, haben wir Dir einen Link zum Zurücksetzen gesendet.",
+    "successInbox": "Bitte prüfe Dein Postfach und klicke auf den Link, um ein neues Passwort festzulegen.",
     "prototypeHint": "Prototyp: Die E-Mail wird nicht wirklich versendet.",
     "prototypeLink": "Einrichtungs-Link öffnen"
   },
@@ -323,13 +329,14 @@
     "recoveryTitle": "Wiederherstellungscodes sichern",
     "recoveryBody": "Jeder Code funktioniert einmal, falls Du keinen Zugriff mehr auf Deine Authenticator-App hast. Bewahre sie sicher auf — sie werden nur jetzt angezeigt.",
     "recoveryCopy": "Kopieren",
-    "recoveryDownload": "Herunterladen",
+    "recoveryDownload": "Als .txt-Datei herunterladen",
     "recoveryConfirm": "Ich habe meine Wiederherstellungscodes gesichert.",
     "recoveryDone": "Fertig",
     "recoveryAvailableLabel": "Wiederherstellungscodes verfügbar:",
     "regenerateTitle": "Neue Wiederherstellungscodes",
     "regenerateBody": "Bestätige mit Deinem Authenticator-Code. Die bisherigen Wiederherstellungscodes werden sofort ungültig.",
     "regenerateCta": "Neue Codes erzeugen",
+    "regenerateConfirmCta": "Bestätigen",
     "regenerateSuccess": "Neue Wiederherstellungscodes erzeugt.",
     "disableTitle": "Zwei-Faktor-Authentifizierung deaktivieren",
     "disableBody": "Bestätige mit Deinem Passwort. Dein Authenticator-Eintrag und alle Wiederherstellungscodes werden gelöscht.",
@@ -878,7 +885,7 @@
       "website": "Website",
       "scan": "Scan",
       "scanning": "Website-Scanner",
-      "questionnaire": "Allgemeine Information",
+      "questionnaire": "Allgemeine Informationen",
       "euRep": "EU-Vertretung",
       "summary": "Konto",
       "confirmation": "Kontoerstellung"
@@ -945,7 +952,7 @@
     },
     "scanStep": {
       "scanningTitle": "{domain} wird gescannt …",
-      "scanningWebsite": "Deine Website wird gescannt",
+      "scanningWebsite": "Deine Website wird gescannt…",
       "creatingPolicy": "Erstelle Datenschutzerklärung",
       "scanningDescription": "Deine Website wird auf Datenverarbeitungs-Tools und Technologien analysiert.",
       "phases": {
@@ -1134,11 +1141,30 @@
         "country": "Schweiz"
       },
       "fieldInfo": {
+        "address": "Postadresse des für diese Website datenschutzrechtlich Verantwortlichen. Sie erscheint in der Datenschutzerklärung.",
+        "legalEntityName": "Offizieller Name der juristischen Person, die über Zwecke und Mittel der Datenbearbeitung entscheidet.",
+        "department": "Optionale Abteilung oder Einheit (z. B. Recht oder HR), wenn sie in der Erklärung genannt werden soll.",
+        "line1": "Strasse und Hausnummer der Adresse des Verantwortlichen.",
+        "line2": "Optionale zweite Zeile (z. B. Postfach oder c/o).",
+        "postalCode": "Postleitzahl der Adresse des Verantwortlichen.",
+        "city": "Ort der Adresse des Verantwortlichen.",
+        "country": "Land, in dem der Verantwortliche niedergelassen ist.",
+        "email": "Kontakt-E-Mail für Datenschutzanfragen; sie wird in der Erklärung veröffentlicht.",
         "hasDpo": "Ein Datenschutzbeauftragter ist für einige Organisationen nach Schweizer Recht und DSGVO vorgesehen — etwa für Behörden, umfangreiche Überwachung oder die Bearbeitung besonders schützenswerter Daten.",
+        "dpoCompanyName": "Juristische Person des Datenschutzbeauftragten (eigenes Unternehmen oder externer Anbieter).",
+        "dpoDesignation": "Funktionsbezeichnung (z. B. «Datenschutzbeauftragter»), namentliche Person oder leer lassen, wenn nur eine externe Firma angegeben ist. Die Bezeichnung wird in die Datenschutzerklärung übernommen und für andere Sprachversionen übersetzt, sofern ein Standardbegriff existiert.",
         "gdprApplicable": "Die DSGVO kann anwendbar sein, wenn Du Waren oder Dienstleistungen für Personen in der EU/im EWR anbietest oder deren Verhalten beobachtest — auch wenn Dein Unternehmen in der Schweiz ansässig ist.",
+        "offersToEU": "Ja, wenn sich Dein Angebot (auch kostenlose Inhalte) an Personen in der EU oder im EWR richtet.",
+        "monitorsEUBehaviour": "Ja, wenn Du das Verhalten von Personen in der EU/im EWR auf Deiner Website oder in Deiner App verfolgst oder auswertest (z. B. Analytics, Profiling).",
+        "transfersAbroad": "Gib an, ob Personendaten die Schweiz verlassen und gegebenenfalls wie weit.",
         "usesProfiling": "Profiling ist jede automatisierte Auswertung persönlicher Aspekte — zum Beispiel personalisierte Werbung, Scoring oder Verhaltensanalyse.",
         "processesSpecialData": "Besonders schützenswerte Daten umfassen Gesundheitsdaten, religiöse oder politische Ansichten, Gewerkschaftszugehörigkeit, genetische oder biometrische Daten sowie Angaben zum Sexualleben oder zur sexuellen Orientierung.",
-        "dpoDesignation": "Funktionsbezeichnung (z. B. «Datenschutzbeauftragter»), namentliche Person oder leer lassen, wenn nur eine externe Firma angegeben ist. Die Bezeichnung wird in die Datenschutzerklärung übernommen und für andere Sprachversionen übersetzt, sofern ein Standardbegriff existiert."
+        "usesAiProcessing": "Umfasst automatisierte Entscheidungen, maschinelles Lernen oder generative KI, die Personendaten bearbeiten.",
+        "acceptsApplications": "Ob Bewerberinnen und Bewerber über diese Website oder verbundene Kanäle sich bewerben können.",
+        "hasTalentPool": "Ein Talentpool speichert Bewerberdaten über ein einzelnes Bewerbungsverfahren hinaus.",
+        "usesVideoSurveillance": "Feste oder mobile Kameras, die identifizierbare Personen auf Deinem Betriebsgelände oder Grundstück aufzeichnen.",
+        "videoRetention": "Wie lange Videoaufnahmen aufbewahrt werden, bevor sie gelöscht oder anonymisiert werden.",
+        "videoRetentionDuration": "Speicherdauer angeben, wenn Aufnahmen für eine feste Dauer gespeichert werden."
       },
       "categories": {
         "controller": "Datenschutzrechtliche Verantwortung",
@@ -1156,7 +1182,7 @@
         "streetLine1": "Adresszeile 1",
         "streetLine2": "Adresszeile 2",
         "address": "Adresse",
-        "hasDpo": "Gibt es einen Datenschutzbeaufragten?",
+        "hasDpo": "Gibt es einen Datenschutzbeauftragten?",
         "dpoCompanyName": "Juristische Person",
         "dpoOfficerType": "Beauftragter",
         "dpoOfficerName": "Name",
@@ -1177,7 +1203,7 @@
         "videoRetention": "Wie lange werden die Aufnahmen gespeichert?",
         "videoRetentionDuration": "Speicherdauer",
         "hasThirdPartyEuRep": "Hast Du bereits eine EU-Datenschutzvertretung bei einem anderen Anbieter?",
-        "thirdPartyRepName": "Name der Vertretung",
+        "thirdPartyRepName": "Name deiner Vertretung",
         "thirdPartyRepAddress": "Adresse",
         "thirdPartyRepCountry": "Land",
         "thirdPartyRepEmail": "E‑Mail"
@@ -2233,11 +2259,6 @@
         "body": "Erstelle ein Konto, um Deine EU-Vertretung abzuschliessen.",
         "payCta": "Weiter zur Zahlung",
         "registrationFailed": "Dein Konto konnte nicht erstellt werden. Bitte erneut versuchen."
-      },
-      "validationAlert": {
-        "title": "Pflichtfelder fehlen",
-        "body": "Alle Felder in diesem Formular sind Pflichtfelder, ausser:",
-        "ok": "OK"
       },
       "activation": {
         "titleLine1": "Bestellung erfolgreich bezahlt.",

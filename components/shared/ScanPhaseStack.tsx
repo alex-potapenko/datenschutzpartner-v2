@@ -14,8 +14,7 @@ import {
   type ScanPhaseId,
 } from '@/app/result/content/scan-phases';
 
-const SCAN_BORDER_GRADIENT_STOPS = ['#ef4444', '#f97316', '#7c3aed', '#3b82f6', '#16a34a'] as const;
-const scanBorderGradientConic = `conic-gradient(from 0deg, ${SCAN_BORDER_GRADIENT_STOPS.join(', ')}, ${SCAN_BORDER_GRADIENT_STOPS[0]})`;
+import { scanBorderGradientConic } from '@/components/shared/scan-pill-visual';
 
 const ICON_SIZE = 24;
 const CHIP_ICON_SIZE = 20;

@@ -18,10 +18,11 @@ import {
 } from '@/lib/account-routes';
 import { writePendingScanUrl } from '@/lib/pending-scan-url';
 import { normalizeAndValidateWebsiteUrl } from '@/lib/validation/url';
-
-const SCAN_BORDER_GRADIENT_STOPS = ['#ef4444', '#f97316', '#7c3aed', '#3b82f6', '#16a34a'] as const;
-const scanBorderGradientLinear = `linear-gradient(135deg, ${SCAN_BORDER_GRADIENT_STOPS.join(', ')})`;
-const scanBorderGradientConic = `conic-gradient(from 0deg, ${SCAN_BORDER_GRADIENT_STOPS.join(', ')}, ${SCAN_BORDER_GRADIENT_STOPS[0]})`;
+import {
+  ScanPillBorderRing,
+  scanBorderGradientConic,
+  scanBorderGradientLinear,
+} from '@/components/shared/scan-pill-visual';
 
 const IDLE_PILL_WIDTH = 480;
 const GLOBE_SIZE = 24;
@@ -203,30 +204,6 @@ function OrbitingScanIcon({ icon: Icon, size }: { icon: typeof Globe; size: numb
   );
 }
 
-/** 3px ring painted on the edge — does not inset/shift the inner content. */
-function ScanBorderRing({ active }: { active: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        'pointer-events-none absolute inset-0 overflow-hidden rounded-full transition-opacity duration-500',
-        active ? 'opacity-100' : 'opacity-0'
-      )}
-      style={{
-        padding: 3,
-        WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-        WebkitMaskComposite: 'xor',
-        maskComposite: 'exclude',
-      }}
-    >
-      <span
-        className="absolute top-1/2 left-1/2 aspect-square w-[250%] -translate-x-1/2 -translate-y-1/2 animate-[spin_1.2s_linear_infinite] motion-reduce:animate-none"
-        style={{ background: scanBorderGradientConic }}
-      />
-    </span>
-  );
-}
-
 export function ScanForm({
   dark,
   className,
@@ -348,7 +325,7 @@ export function ScanForm({
       <span
         ref={textMeasureRef}
         aria-hidden
-        className="pointer-events-none invisible absolute text-base font-bold whitespace-nowrap sm:text-lg"
+        className="pointer-events-none invisible absolute text-base font-semibold whitespace-nowrap sm:text-lg"
       >
         {visibleLabel}
       </span>
@@ -398,7 +375,7 @@ export function ScanForm({
               : undefined
         }
       >
-        <ScanBorderRing active={scanning} />
+        <ScanPillBorderRing active={scanning} />
 
         <div className="relative z-10 flex min-w-0 flex-1 items-center gap-3">
           <div
@@ -450,7 +427,7 @@ export function ScanForm({
                     animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                     exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
                     transition={SCAN_PHASE_TRANSITION}
-                    className="block shrink-0 text-base font-bold whitespace-nowrap sm:text-lg"
+                    className="block shrink-0 text-base font-semibold whitespace-nowrap sm:text-lg"
                     style={{ color: 'var(--accent)' }}
                   >
                     {visibleLabel}
@@ -458,7 +435,7 @@ export function ScanForm({
                 </AnimatePresence>
               ) : (
                 <span
-                  className="block shrink-0 text-base font-bold whitespace-nowrap sm:text-lg"
+                  className="block shrink-0 text-base font-semibold whitespace-nowrap sm:text-lg"
                   style={{ color: 'var(--accent)' }}
                 >
                   {visibleLabel}

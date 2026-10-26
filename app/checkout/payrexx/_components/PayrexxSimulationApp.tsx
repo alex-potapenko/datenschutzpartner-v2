@@ -9,7 +9,8 @@ import {
   useCheckoutSession,
   useCompleteCheckoutSession,
 } from '@/api/checkout';
-import { Button, Spinner } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
+import { Button } from '@/components/ui';
 import { PayrexxPaymentForm, PayrexxPaymentFrame } from '@/components/shared/PayrexxPaymentScreen';
 import { safeAccountReturnTo } from '@/lib/account-routes';
 import { payrexxOrderLinesFromSession } from '@/lib/payrexx-order-lines';
@@ -72,9 +73,12 @@ export function PayrexxSimulationApp() {
   let content;
   if (session.isLoading) {
     content = (
-      <div className="flex min-h-48 items-center justify-center">
-        <Spinner aria-label={t('loading')} />
-      </div>
+      <ScanLoader
+        layout="center"
+        label={t('loading')}
+        statusAriaLabel={t('loading')}
+        className="min-h-48"
+      />
     );
   } else if (!session.data || session.data.status === 'completed') {
     content = (

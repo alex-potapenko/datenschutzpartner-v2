@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { authKeys, consumeMagicLinkLogin } from '@/api/auth';
-import { Spinner } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 
 type VerifyState = 'loading' | 'error';
@@ -81,10 +81,12 @@ function LoginMagicLinkVerifyContent() {
       <h1 className="text-foreground mb-6 text-center text-2xl font-bold sm:text-3xl">
         {t('title')}
       </h1>
-      <div className="flex flex-col items-center gap-3 py-8">
-        <Spinner size="lg" aria-hidden />
-        <p className="text-muted text-center text-sm">{t('magicLinkVerifying')}</p>
-      </div>
+      <ScanLoader
+        layout="center"
+        label={t('magicLinkVerifying')}
+        statusAriaLabel={t('magicLinkVerifying')}
+        className="py-8"
+      />
     </>
   );
 }

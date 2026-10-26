@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Logo } from '@/components/shared/Logo';
 import { NavigationLink } from '@/components/shared/NavigationLink';
-import { Spinner } from '@/components/ui';
+import { ScanLoader } from '@/components/shared/ScanLoader';
 import { SetPasswordApp } from './_components/SetPasswordApp';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SetPasswordPage() {
   const tc = await getTranslations('common');
+  const t = await getTranslations('setPassword');
 
   return (
     <main className="bg-background flex min-h-dvh items-center justify-center px-4 py-12">
@@ -31,9 +32,12 @@ export default async function SetPasswordPage() {
         </Link>
         <Suspense
           fallback={
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
+            <ScanLoader
+              layout="center"
+              label={t('validating')}
+              statusAriaLabel={t('validating')}
+              className="py-8"
+            />
           }
         >
           <SetPasswordApp />

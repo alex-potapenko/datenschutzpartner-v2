@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import { NavigationLink } from './NavigationLink';
 import { COMPANY_NAME_PATTERN, PERSON_NAME_PATTERN } from '@/lib/validation/patterns';
 import { newsletterMembershipInputClassName } from '@/components/shared/newsletter-membership-input';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
+import { UidCompanyLookup } from '@/app/result/ui/UidCompanyLookup';
 
 const newsletterPanelClassName =
   'w-full rounded-2xl bg-white p-4 [box-shadow:var(--shadow-soft-panel)] sm:p-8';
@@ -75,6 +76,7 @@ export function NewsletterSubscribeCard({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<NewsletterFormValues>({
@@ -155,14 +157,19 @@ export function NewsletterSubscribeCard({
           </div>
 
           <Field label={t('companyLabel')}>
-            <Input
-              variant="secondary"
-              fullWidth
-              className={newsletterMembershipInputClassName}
-              autoComplete="organization"
-              placeholder={optionalPlaceholder}
-              aria-invalid={Boolean(errors.company)}
-              {...register('company')}
+            <Controller
+              name="company"
+              control={control}
+              render={({ field }) => (
+                <UidCompanyLookup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  onSelect={(company) => {
+                    field.onChange(company.name);
+                  }}
+                  aria-invalid={Boolean(errors.company)}
+                />
+              )}
             />
             <FieldErrorText message={errors.company?.message} />
           </Field>

@@ -320,6 +320,8 @@ export function QuestionnaireStep({
               requiredShakeKey={validationAttempt}
               optionalBadgeLabel={optionalBadge}
               idPrefix="questionnaire-field"
+              legalEntityInfoTooltip={t('fieldInfo.legalEntityName')}
+              departmentInfoTooltip={t('fieldInfo.department')}
               legalEntity={form.companyName}
               onLegalEntityChange={(value) => {
                 set('companyName', value);
@@ -365,6 +367,7 @@ export function QuestionnaireStep({
               variant="text"
               id={fieldId('email')}
               label={t('fields.email')}
+              infoTooltip={t('fieldInfo.email')}
               inputType="email"
               value={form.email}
               required={isRequired('email')}
@@ -380,7 +383,6 @@ export function QuestionnaireStep({
               id={fieldId('hasDpo')}
               name="hasDpo"
               label={t('fields.hasDpo')}
-              description={t('fieldInfo.hasDpo')}
               options={yesNo}
               value={form.hasDpo}
               required={isRequired('hasDpo')}
@@ -398,10 +400,29 @@ export function QuestionnaireStep({
                         variant="text"
                         id={fieldId('dpoCompanyName')}
                         label={t('fields.dpoCompanyName')}
+                        infoTooltip={t('fieldInfo.dpoCompanyName')}
                         value={form.dpoCompanyName}
                         required={isRequired('dpoCompanyName')}
                         requiredBadgeLabel={requiredBadge}
                         requiredShakeKey={validationAttempt}
+                        uidLookup
+                        onUidCompanySelect={(company) => {
+                          clearRequired(
+                            'dpoCompanyName',
+                            'dpoStreet',
+                            'dpoPostalCode',
+                            'dpoCity',
+                            'dpoCountry'
+                          );
+                          setForm((current) => ({
+                            ...current,
+                            dpoCompanyName: company.name,
+                            dpoStreet: company.street,
+                            dpoPostalCode: company.postalCode,
+                            dpoCity: company.city,
+                            dpoCountry: company.country,
+                          }));
+                        }}
                         onChange={(e) => {
                           set('dpoCompanyName', e.target.value);
                         }}
@@ -409,7 +430,7 @@ export function QuestionnaireStep({
                       <DpoOfficerField
                         id={fieldId('dpoDesignationEn')}
                         label={t('fields.dpoOfficerType')}
-                        description={t('fieldInfo.dpoDesignation')}
+                        infoTooltip={t('fieldInfo.dpoDesignation')}
                         optionalBadge={optionalBadge}
                         valueEn={form.dpoDesignationEn}
                         valueDe={form.dpoDesignationDe}
@@ -423,6 +444,7 @@ export function QuestionnaireStep({
                     </div>
                     <PostalAddressFields
                       idPrefix="questionnaire-field-dpo"
+                      departmentInfoTooltip={t('fieldInfo.department')}
                       department={form.dpoDepartment}
                       onDepartmentChange={(value) => {
                         set('dpoDepartment', value);
@@ -443,10 +465,10 @@ export function QuestionnaireStep({
                       onCityChange={(value) => {
                         set('dpoCity', value);
                       }}
-                      countryDisplayLabel={displayCountryLabel(
-                        form.dpoCountry,
-                        tCommon('countrySwitzerland')
-                      )}
+                      country={form.dpoCountry}
+                      onCountryChange={(value) => {
+                        set('dpoCountry', value);
+                      }}
                       optionalBadge={optionalBadge}
                       line1Error={isRequired('dpoStreet') ? requiredBadge : undefined}
                       postalCodeError={isRequired('dpoPostalCode') ? requiredBadge : undefined}
@@ -463,7 +485,6 @@ export function QuestionnaireStep({
               id={fieldId('gdprApplicable')}
               name="gdprApplicable"
               label={t('fields.gdprApplicable')}
-              description={t('fieldInfo.gdprApplicable')}
               options={yesNoDontKnow}
               value={form.gdprApplicable}
               required={isRequired('gdprApplicable')}
@@ -529,7 +550,6 @@ export function QuestionnaireStep({
               id={fieldId('usesProfiling')}
               name="usesProfiling"
               label={t('fields.usesProfiling')}
-              description={t('fieldInfo.usesProfiling')}
               options={yesNoDontKnow}
               value={form.usesProfiling}
               required={isRequired('usesProfiling')}
@@ -544,7 +564,6 @@ export function QuestionnaireStep({
               id={fieldId('processesSpecialData')}
               name="processesSpecialData"
               label={t('fields.processesSpecialData')}
-              description={t('fieldInfo.processesSpecialData')}
               options={yesNoDontKnow}
               value={form.processesSpecialData}
               required={isRequired('processesSpecialData')}

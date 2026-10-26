@@ -231,6 +231,8 @@
     "devAdminDisable2faLogin": "Disable 2FA and log in",
     "devAdminMagicLink": "Simulate email login link",
     "devMagicLinkMissing": "No login link stored. Continue with the member email first.",
+    "devLucasTotpPrototype": "Debug info: Lucas mock code (must match Google Authenticator if setup is in sync): {code}",
+    "devLucasTotpPrototypeOff": "Debug info: Lucas has no 2FA secret in mock storage — disable 2FA in Debug info and set it up again.",
     "email": "Email",
     "editEmail": "Edit email address",
     "emailPlaceholder": "jane@example.com",
@@ -263,6 +265,8 @@
     "errors": {
       "invalidCredentials": "Incorrect email or password.",
       "invalidCredentialsOr2fa": "Incorrect password or authentication code.",
+      "invalid2fa": "Incorrect authentication code. Try the current code from your app.",
+      "invalidPasswordOn2faStep": "Incorrect password. Edit your email to go back and enter your password again.",
       "generic": "Sign-in failed. Please try again."
     }
   },
@@ -270,12 +274,14 @@
     "metaTitle": "Forgot Password — Datenschutzpartner",
     "metaDescription": "Request a link to reset your password.",
     "title": "Forgot password",
-    "description": "Enter your email address and we will send you a link to reset your password.",
+    "description": "Enter your email address and we will send you a link\nto reset your password.",
     "email": "Email",
     "emailPlaceholder": "jane@example.com",
     "submit": "Send Link",
     "backToLogin": "Log In",
-    "success": "If an account exists for this email, we have sent a reset link.",
+    "successTitle": "Email sent",
+    "successNotice": "If an account exists for this email, we have sent a reset link.",
+    "successInbox": "Check your inbox and click the link to reset your password.",
     "prototypeHint": "Prototype: the email is not actually sent.",
     "prototypeLink": "Open the setup link"
   },
@@ -323,13 +329,14 @@
     "recoveryTitle": "Save your recovery codes",
     "recoveryBody": "Each code works once if you lose access to your authenticator app. Store them somewhere safe — they are shown only now.",
     "recoveryCopy": "Copy",
-    "recoveryDownload": "Download",
-    "recoveryConfirm": "I Have Saved My Recovery Codes.",
+    "recoveryDownload": "Download as .txt",
+    "recoveryConfirm": "I have saved my recovery codes.",
     "recoveryDone": "Done",
     "recoveryAvailableLabel": "Recovery codes available:",
     "regenerateTitle": "New recovery codes",
     "regenerateBody": "Confirm with your authenticator code. The previous recovery codes stop working immediately.",
     "regenerateCta": "Generate New Codes",
+    "regenerateConfirmCta": "Confirm",
     "regenerateSuccess": "New recovery codes generated.",
     "disableTitle": "Disable two-factor authentication",
     "disableBody": "Confirm with your password. Your authenticator entry and all recovery codes will be deleted.",
@@ -945,7 +952,7 @@
     },
     "scanStep": {
       "scanningTitle": "Scanning {domain} …",
-      "scanningWebsite": "Scanning your website",
+      "scanningWebsite": "Scanning your website…",
       "creatingPolicy": "Creating privacy policy",
       "scanningDescription": "Analyzing your website for data processing tools and technologies.",
       "phases": {
@@ -1134,11 +1141,30 @@
         "country": "Switzerland"
       },
       "fieldInfo": {
+        "address": "Postal address of the data controller responsible for this website. It appears in the privacy policy.",
+        "legalEntityName": "Official name of the legal entity that decides why and how personal data is processed.",
+        "department": "Optional department or unit (e.g. legal or HR) if you want it shown in the policy.",
+        "line1": "Street and house number of the controller’s address.",
+        "line2": "Optional second line (e.g. P.O. box or c/o).",
+        "postalCode": "Postal code for the controller’s address.",
+        "city": "City for the controller’s address.",
+        "country": "Country where the controller is established.",
+        "email": "Contact email for privacy requests; it is published in the policy.",
         "hasDpo": "A data protection officer is required for some organisations under Swiss law and the GDPR — for example public authorities, large-scale monitoring, or sensitive data processing.",
+        "dpoCompanyName": "Legal entity of the data protection officer (your organisation or an external provider).",
+        "dpoDesignation": "A function title (e.g. “Data protection officer”), a named person, or leave blank when only a third-party company is listed. The designation is inserted into the policy text and translated for other language versions where a standard term exists.",
         "gdprApplicable": "The GDPR may apply if you offer goods or services to people in the EU/EEA or monitor their behaviour, even when your company is based in Switzerland.",
+        "offersToEU": "Answer yes if your offering (including free content) is aimed at people in the EU or EEA.",
+        "monitorsEUBehaviour": "Answer yes if you track or analyse how people in the EU/EEA use your site or app (e.g. analytics, profiling).",
+        "transfersAbroad": "Indicate whether personal data is transferred outside Switzerland and, if so, how broadly.",
         "usesProfiling": "Profiling means any automated processing used to evaluate personal aspects — for example personalised advertising, scoring, or behavioural analysis.",
         "processesSpecialData": "Special categories include health data, religious or political views, trade union membership, genetic or biometric data, and data about sex life or sexual orientation.",
-        "dpoDesignation": "A function title (e.g. “Data protection officer”), a named person, or leave blank when only a third-party company is listed. The designation is inserted into the policy text and translated for other language versions where a standard term exists."
+        "usesAiProcessing": "Includes automated decision-making, machine learning, or generative AI that processes personal data.",
+        "acceptsApplications": "Whether job applicants can submit applications via this website or related channels.",
+        "hasTalentPool": "A talent pool stores candidate data beyond a single application process.",
+        "usesVideoSurveillance": "Fixed or mobile cameras that record identifiable persons on your premises or property.",
+        "videoRetention": "How long video recordings are kept before deletion or anonymisation.",
+        "videoRetentionDuration": "Enter the retention period when recordings are stored for a fixed duration."
       },
       "categories": {
         "controller": "Data protection responsibility",
@@ -1177,7 +1203,7 @@
         "videoRetention": "How long are recordings stored?",
         "videoRetentionDuration": "Retention period",
         "hasThirdPartyEuRep": "Do you already have an EU data protection representative with another provider?",
-        "thirdPartyRepName": "Representative name",
+        "thirdPartyRepName": "Your representative name",
         "thirdPartyRepAddress": "Address",
         "thirdPartyRepCountry": "Country",
         "thirdPartyRepEmail": "Email"
@@ -2233,11 +2259,6 @@
         "body": "Create an account to complete your EU representation order.",
         "payCta": "Continue with Payment",
         "registrationFailed": "We could not create your account. Please try again."
-      },
-      "validationAlert": {
-        "title": "Required fields missing",
-        "body": "All fields in this form are required, except:",
-        "ok": "OK"
       },
       "activation": {
         "titleLine1": "Order successfully paid.",

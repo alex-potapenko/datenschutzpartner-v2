@@ -9,7 +9,7 @@ import { Field, TextInput } from './FormSection';
 type DpoOfficerFieldProps = {
   id?: string;
   label: string;
-  description?: string;
+  infoTooltip?: string;
   optionalBadge?: string;
   valueEn: string;
   valueDe: string;
@@ -20,7 +20,7 @@ type DpoOfficerFieldProps = {
 export function DpoOfficerField({
   id,
   label,
-  description,
+  infoTooltip,
   optionalBadge,
   valueEn,
   valueDe,
@@ -56,7 +56,7 @@ export function DpoOfficerField({
   }
 
   return (
-    <Field label={label} description={description}>
+    <Field htmlFor={id} label={label} infoTooltip={infoTooltip} infoTooltipLabel={label}>
       <div className="flex flex-col gap-1.5">
         <TextInput
           id={id}

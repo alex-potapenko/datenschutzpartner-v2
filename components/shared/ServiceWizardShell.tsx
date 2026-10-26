@@ -92,6 +92,12 @@ export function ServiceWizardShell({
     }
   }
 
+  /** Profile menu items leave the wizard — same confirmation as Quit. */
+  function handleProfileMenuLeaveRequest() {
+    if (quitDisabled) return;
+    modal.open();
+  }
+
   function handleFaqOpen() {
     if (faqContent) {
       setFaqOpen(true);
@@ -122,7 +128,7 @@ export function ServiceWizardShell({
         faqShortLabel={faqShortLabel}
         onFaqOpen={handleFaqOpen}
         showProfileMenu={isAuthenticated && !faqOpen}
-        onLeaveRequest={confirmQuit && !quitDisabled ? handleQuitRequest : undefined}
+        onLeaveRequest={!quitDisabled ? handleProfileMenuLeaveRequest : undefined}
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

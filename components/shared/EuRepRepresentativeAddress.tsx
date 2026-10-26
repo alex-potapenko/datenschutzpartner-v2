@@ -8,9 +8,12 @@ import { navigationLinkClassName } from '@/components/shared/NavigationLink';
 export function EuRepRepresentativeAddress({
   hideTitle = false,
   plain = false,
+  linkify = true,
 }: {
   hideTitle?: boolean;
   plain?: boolean;
+  /** When false, company name and email render as plain text (e.g. wizard “already covered”). */
+  linkify?: boolean;
 }) {
   const t = useTranslations('euRepRepresentative');
   const representative = EU_REP_REPRESENTATIVE;
@@ -28,14 +31,18 @@ export function EuRepRepresentativeAddress({
         <p className="text-foreground text-sm font-semibold">{t('previewTitle')}</p>
       )}
       <p className="text-foreground text-base leading-relaxed">
-        <a
-          href={representative.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClassName}
-        >
-          {representative.name}
-        </a>
+        {linkify ? (
+          <a
+            href={representative.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClassName}
+          >
+            {representative.name}
+          </a>
+        ) : (
+          representative.name
+        )}
         <br />
         {representative.street}
         <br />
@@ -43,9 +50,13 @@ export function EuRepRepresentativeAddress({
         <br />
         {t('country')}
         <br />
-        <a href={`mailto:${representative.email}`} className={linkClassName}>
-          {representative.email}
-        </a>
+        {linkify ? (
+          <a href={`mailto:${representative.email}`} className={linkClassName}>
+            {representative.email}
+          </a>
+        ) : (
+          representative.email
+        )}
       </p>
     </div>
   );
