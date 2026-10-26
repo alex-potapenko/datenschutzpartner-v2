@@ -208,7 +208,8 @@ const authAccounts = createCollection<AuthAccountRecord>(
   8
 );
 
-function shouldSuggestTwoFactorSetup(): boolean {
+function shouldSuggestTwoFactorSetup(account: AuthAccountRecord | undefined): boolean {
+  void account;
   return false;
 }
 

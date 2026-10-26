@@ -186,17 +186,23 @@ describe('member login', () => {
       body: JSON.stringify({ method: 'password' }),
     });
 
-    const session = await login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD });
-    setAuthToken(session.token ?? '');
+    const pending = await login({ email: MEMBER_EMAIL, password: MEMBER_PASSWORD });
+    const setupAuthBody = pending.setupToken ? { setupToken: pending.setupToken } : {};
+    if (pending.token) {
+      setAuthToken(pending.token);
+    }
 
     const setup = await request<TwoFactorSetup>('/account/two-factor/setup', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(setupAuthBody),
     });
 
     await request<TwoFactorActivation>('/account/two-factor/activate', {
       method: 'POST',
-      body: JSON.stringify({ code: await generateTotpCode(setup.secret) }),
+      body: JSON.stringify({
+        ...setupAuthBody,
+        code: await generateTotpCode(setup.secret),
+      }),
     });
 
     setAuthToken('');
