@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Container } from './Container';
 import { NavigationLink } from './NavigationLink';
+import { TeamHeroImage } from './TeamHeroImage';
 
 export async function AboutSection() {
   const t = await getTranslations('aboutSection');
@@ -19,12 +20,8 @@ export async function AboutSection() {
             </div>
           </div>
 
-          <div className="squircle aspect-[4/3] w-full overflow-hidden lg:aspect-auto lg:flex-1 lg:self-stretch">
-            <img
-              src="/team.webp"
-              alt={t('imageAlt')}
-              className="h-full w-full object-cover object-top"
-            />
+          <div className="squircle w-full min-w-0 lg:w-2/3 lg:shrink-0">
+            <TeamHeroImage alt={t('imageAlt')} />
           </div>
         </div>
       </Container>

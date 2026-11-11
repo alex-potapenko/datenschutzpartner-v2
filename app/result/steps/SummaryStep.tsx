@@ -168,7 +168,7 @@ export function SummaryStep({
 
               <div className="flex flex-col gap-6 px-4 pt-8 pb-8 sm:px-8 sm:pb-10 lg:pb-12">
                 <form className="flex w-full flex-col items-start gap-6 text-left" noValidate>
-                  <div className="grid w-full grid-cols-2 gap-5">
+                  <div className="grid w-full grid-cols-2 items-start gap-5">
                     <Field label={t('firstNameLabel')}>
                       <Input
                         variant="secondary"

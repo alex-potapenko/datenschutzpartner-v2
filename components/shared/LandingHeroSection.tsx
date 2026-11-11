@@ -88,9 +88,9 @@ export function LandingHeroSection() {
                   alt={t('heroClientPortraitAlt')}
                   width={480}
                   height={480}
-                  className="relative z-10 mx-auto block w-full max-w-[480px] translate-x-[-80px] object-contain object-bottom [filter:drop-shadow(0_16px_40px_color-mix(in_srgb,var(--key-500)_20%,transparent))]"
+                  className="relative z-10 mx-auto block w-full max-w-[480px] translate-x-[-40px] object-contain object-bottom [filter:drop-shadow(0_16px_40px_color-mix(in_srgb,var(--key-500)_20%,transparent))]"
                 />
-                <figcaption className="absolute top-[34%] right-0 z-20 w-[min(100%,300px)] translate-x-[100px] translate-y-[112px] sm:top-[36%] sm:w-[min(100%,320px)] lg:top-[38%]">
+                <figcaption className="absolute top-[34%] right-0 z-20 w-[min(100%,300px)] translate-x-[100px] translate-y-16 sm:top-[36%] sm:w-[min(100%,320px)] lg:top-[38%]">
                   <blockquote className="m-0 text-left text-sm leading-snug">
                     <p className="text-key-500 font-display m-0 inline font-medium">
                       {t('heroClientQuoteLine1')}

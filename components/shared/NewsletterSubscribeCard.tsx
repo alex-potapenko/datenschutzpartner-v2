@@ -128,7 +128,7 @@ export function NewsletterSubscribeCard({
             .join(' ')}
           aria-hidden={submitted || undefined}
         >
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2">
             <Field label={t('firstNameLabel')}>
               <Input
                 variant="secondary"

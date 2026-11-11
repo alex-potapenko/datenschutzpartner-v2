@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import type { UidCompany } from '@/api/uid-registry';
 import { CountryAutocomplete } from './CountryAutocomplete';
 import { UidCompanyLookup } from './UidCompanyLookup';
-import { Field, TextInput } from './FormSection';
+import { Field, TextInput, formMultiFieldRowClassName } from './FormSection';
 import { FormFieldLabel } from './FormFieldLabel';
 import { FieldErrorText } from '@/components/shared/FieldErrorText';
 
@@ -228,7 +228,7 @@ export function PostalAddressFields({
       ) : null}
 
       {showPostalLines ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
+        <div className={formMultiFieldRowClassName}>
           <div className="flex w-20 shrink-0 flex-col gap-1.5">
             <label htmlFor={postalId} className="text-foreground text-sm leading-snug font-medium">
               {t('postalCode')}

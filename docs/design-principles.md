@@ -33,6 +33,8 @@ Use `motion/react` for transitions HeroUI/CSS can't express (page, tab, list ent
 
 Inline validation messages under inputs, text areas, selects and checkboxes use `FieldErrorText` (`components/shared/FieldErrorText.tsx`) — never a bare `<p className="text-danger …">`. It fades and slides the line in when the message appears and out when it clears; a changed message on an already visible line does not replay the animation.
 
+Rows with more than one field (PLZ + Ort, Vorname + Nachname, …) must **top-align** columns (`sm:items-start` on flex rows, `items-start` on grids). Never `items-end` / `items-center` when each column has its own `FieldErrorText` — otherwise the valid field shifts when a neighbour shows an error. Reuse `formMultiFieldRowClassName` from `app/result/ui/FormSection.tsx` for horizontal field rows; affiliate draft rows that share one error under the row and align inputs to icon buttons are the exception.
+
 Required state: a single control (label + input, text area, select, checkbox) shows its "Required" message as `FieldErrorText` under the control. The `ValidationRequiredBadge` chip next to the label is reserved for grouped questions — choice rows, the address block as a whole, and multi-control rows such as retention amount + unit.
 
 In-page anchor navigation (`href="#…"`) uses native smooth scrolling via `scroll-behavior: smooth` on `html` (also gated by `prefers-reduced-motion`).

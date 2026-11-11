@@ -8,7 +8,7 @@ import { FullBleedDivider } from '@/components/shared/FullBleedDivider';
 const TEAM = [
   {
     name: 'Cornelia Diethelm',
-    photo: '/photo-cornelia.jpg',
+    photo: '/photo-cornelia.webp',
     bioKey: 'corneliaBio',
     links: {
       cdr: 'https://digitalresponsibility.ch',
@@ -16,7 +16,7 @@ const TEAM = [
   },
   {
     name: 'Andreas Von Gunten',
-    photo: '/photo-andreas.jpg',
+    photo: '/photo-andreas.webp',
     bioKey: 'andreasBio',
     links: {
       smartkmu: 'https://smartkmu.ch',
@@ -24,13 +24,13 @@ const TEAM = [
   },
   {
     name: 'Marc-Antonio Messmer',
-    photo: '/photo-marc-antonio.jpg',
+    photo: '/photo-marc-antonio.webp',
     bioKey: 'marcBio',
     links: {},
   },
   {
     name: 'Martin Steiger',
-    photo: '/photo-martin.jpg',
+    photo: '/photo-martin.webp',
     bioKey: 'martinBio',
     links: {
       steiger: 'https://steigerlegal.ch',
@@ -64,7 +64,7 @@ function TeamMemberCard({
   return (
     <article
       className={[
-        'border-border flex gap-4 px-4 py-6 sm:gap-8 sm:px-8 sm:py-8',
+        'border-border flex flex-col items-start gap-8 px-4 py-6 sm:px-8 sm:py-8 lg:flex-row lg:items-start',
         !isLast && 'border-b sm:border-b-0',
         isBottomRow && 'sm:border-t',
         isLeftColumn && 'sm:border-r',
@@ -72,8 +72,12 @@ function TeamMemberCard({
         .filter(Boolean)
         .join(' ')}
     >
-      <div className="relative size-24 shrink-0 overflow-hidden sm:size-40">
-        <img src={photo} alt={name} className="size-full object-cover object-top" />
+      <div className="relative size-40 shrink-0 overflow-hidden">
+        <img
+          src={photo}
+          alt={name}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
       </div>
       <div className="flex min-w-0 flex-col gap-2">
         <h3 className="text-foreground text-base font-semibold">{name}</h3>

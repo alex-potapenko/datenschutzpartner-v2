@@ -8,7 +8,7 @@ type InsightArticleMetaBarProps = {
   article: InsightArticle;
 };
 
-const MARTIN_STEIGER_PHOTO = '/photo-martin.jpg';
+const MARTIN_STEIGER_PHOTO = '/photo-martin.webp';
 
 function PersonAvatar({ name }: { name: string }) {
   return (

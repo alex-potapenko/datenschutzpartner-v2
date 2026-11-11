@@ -661,7 +661,7 @@ export function QuestionnaireStep({
                   requiredBadgeLabel={requiredBadge}
                   requiredShakeKey={validationAttempt}
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                     <TextInput
                       value={form.videoRetentionAmount}
                       onChange={(e) => {

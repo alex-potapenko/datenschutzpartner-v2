@@ -96,6 +96,9 @@ export function Field({
   );
 }
 
+/** Top-align columns so inline validation in one field does not shift siblings. */
+export const formMultiFieldRowClassName = 'flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-5';
+
 interface TextInputProps {
   id?: string;
   value?: string;

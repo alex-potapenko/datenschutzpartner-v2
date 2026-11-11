@@ -119,7 +119,7 @@ export function PaymentDetailsSection() {
               />
             </Field>
 
-            <div className="flex flex-col gap-6 sm:flex-row">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="sm:flex-1">
                 <Field id="billingFirstName" label={t('firstName')} error={err('firstName')}>
                   <Input

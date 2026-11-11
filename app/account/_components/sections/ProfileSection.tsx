@@ -247,7 +247,7 @@ function PersonalDetailsForm({ profile }: { profile: Profile }) {
       }}
       noValidate
     >
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid items-start gap-6 sm:grid-cols-2">
         <Field id="profileFirstName" label={t('firstName')} error={err('firstName')}>
           <Input
             id="profileFirstName"

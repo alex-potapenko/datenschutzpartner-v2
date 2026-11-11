@@ -5,6 +5,7 @@ import { TeamGrid } from './_components/TeamGrid';
 import { LegalMarkdown } from '@/components/shared/LegalMarkdown';
 import { RegularPage } from '@/components/shared/RegularPage';
 import { loadAboutClosingMarkdown } from '@/lib/load-about-content';
+import { TeamHeroImage } from '@/components/shared/TeamHeroImage';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('about');
@@ -33,13 +34,7 @@ export default async function AboutPage() {
           </p>
         </>
       }
-      media={
-        <img
-          src="/team.webp"
-          alt={t('teamImageAlt')}
-          className="border-border block aspect-[16/9] w-full border-b object-cover object-center"
-        />
-      }
+      media={<TeamHeroImage alt={t('teamImageAlt')} className="border-border border-b" />}
     >
       <TeamGrid />
       <div className="px-4 py-12 sm:px-8 sm:py-16">

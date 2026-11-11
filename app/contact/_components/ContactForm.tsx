@@ -131,7 +131,7 @@ export function ContactForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-5 sm:grid-cols-2">
         <Field id="name" label={t('name')} error={errors.name?.message}>
           <Input
             id="name"
