@@ -72,7 +72,7 @@ const PORTRAIT_CLASS =
   'block w-full object-contain object-bottom [filter:drop-shadow(0_16px_40px_color-mix(in_srgb,var(--key-500)_20%,transparent))]';
 
 const CAPTION_CLASS =
-  'absolute top-[34%] right-0 z-20 w-full max-w-[260px] translate-x-[60px] translate-y-16 sm:top-[36%] lg:top-[38%]';
+  'absolute top-[34%] right-0 z-20 w-full max-w-[260px] translate-x-[60px] translate-y-[44px] sm:top-[36%] lg:top-[38%]';
 
 function CarouselSlideCopy({
   slideId,
