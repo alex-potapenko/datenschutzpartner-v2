@@ -24,7 +24,7 @@ const TEAM = [
   },
   {
     name: 'Marc-Antonio Messmer',
-    photo: '/photo-marc-antonio.webp',
+    photo: '/photo-toni.webp',
     bioKey: 'marcBio',
     links: {},
   },

@@ -9,7 +9,7 @@ import { TrustBadge } from '@/components/shared/TrustBadge';
 import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 import { HeroOrbitSystem } from '@/components/shared/HeroOrbitSystem';
 
-const HERO_PORTRAIT_SRC = '/martin.png';
+const HERO_PORTRAIT_SRC = '/photo-martin-home.png';
 
 export function LandingHeroSection() {
   const locale = useLocale();
