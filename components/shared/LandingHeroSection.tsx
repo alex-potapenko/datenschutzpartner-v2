@@ -8,8 +8,7 @@ import { Container } from '@/components/shared/Container';
 import { TrustBadge } from '@/components/shared/TrustBadge';
 import { HeroGlowOrbs } from '@/components/shared/HeroGlowOrbs';
 import { HeroOrbitSystem } from '@/components/shared/HeroOrbitSystem';
-
-const HERO_PORTRAIT_SRC = '/photo-martin-home.png';
+import { HeroClientCarousel } from '@/components/shared/HeroClientCarousel';
 
 export function LandingHeroSection() {
   const locale = useLocale();
@@ -82,29 +81,7 @@ export function LandingHeroSection() {
 
           <div className="pointer-events-auto relative min-h-[280px] sm:min-h-[360px] lg:h-0 lg:min-h-full">
             <div className="relative flex h-full min-h-[inherit] flex-col justify-end px-4 sm:px-8">
-              <figure className="relative m-0 flex h-full min-h-[inherit] w-full flex-col justify-end">
-                <img
-                  src={HERO_PORTRAIT_SRC}
-                  alt={t('heroClientPortraitAlt')}
-                  width={480}
-                  height={480}
-                  className="relative z-10 mx-auto block w-full max-w-[480px] translate-x-[-40px] object-contain object-bottom [filter:drop-shadow(0_16px_40px_color-mix(in_srgb,var(--key-500)_20%,transparent))]"
-                />
-                <figcaption className="absolute top-[34%] right-0 z-20 w-[min(100%,300px)] translate-x-[100px] translate-y-16 sm:top-[36%] sm:w-[min(100%,320px)] lg:top-[38%]">
-                  <blockquote className="m-0 text-left text-sm leading-snug">
-                    <p className="text-key-500 font-display m-0 inline font-medium">
-                      {t('heroClientQuoteLine1')}
-                      <br />
-                      {t('heroClientQuoteLine2')}
-                    </p>
-                    <cite className="mt-2 block font-normal not-italic">
-                      <small className="text-foreground text-sm">
-                        {t('heroClientName')}, {t('heroClientRole')}
-                      </small>
-                    </cite>
-                  </blockquote>
-                </figcaption>
-              </figure>
+              <HeroClientCarousel />
             </div>
           </div>
         </div>

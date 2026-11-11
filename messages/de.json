@@ -153,12 +153,34 @@
     "heroTitleLine1": "Prüfe Deine Website",
     "heroTitleHighlight": "auf Datenschutzrisiken",
     "heroSubtitle": "Wir scannen Deine Website und erstellen automatisch eine rechtlich geprüfte Datenschutzerklärung, die zu Deiner Situation passt — in Minuten.",
-    "heroClientPortraitAlt": "Martin Steiger, Mitgründer von Datenschutzpartner",
-    "heroClientQuoteLine1": "«Datenschutz muss im Alltag funktionieren,",
-    "heroClientQuoteLine2": "nicht nur im Vertrag.»",
-    "heroClientName": "Martin Steiger",
-    "heroClientRole": "Geschäftsführer und Mitgründer",
-    "heroClientAttribution": "Martin Steiger, Geschäftsführer und Mitgründer",
+    "heroClientCarouselAriaLabel": "Stimmen aus dem Team",
+    "heroClientCarouselSlideStatus": "Folie {current} von {total}",
+    "heroCarouselSlides": {
+      "martin": {
+        "portraitAlt": "Martin Steiger, Mitgründer von Datenschutzpartner",
+        "quote": "«Datenschutz muss im Alltag funktionieren, nicht nur im Vertrag.»",
+        "name": "Martin Steiger",
+        "role": "Mitgründer und Geschäftsführer"
+      },
+      "cornelia": {
+        "portraitAlt": "Cornelia Diethelm, Geschäftsleitung von Datenschutzpartner",
+        "quote": "«Vertrauen entsteht, wenn Ethik\nin jede Produktentscheidung einfliesst.»",
+        "name": "Cornelia Diethelm",
+        "role": "Mitinhaberin und Mitglied\nder Geschäftsleitung"
+      },
+      "andreas": {
+        "portraitAlt": "Andreas Von Gunten, Geschäftsleitung von Datenschutzpartner",
+        "quote": "«Klare Prozesse machen Datenschutz\nvom Pflichtprogramm zum Alltag.»",
+        "name": "Andreas Von Gunten",
+        "role": "Mitgründer und Geschäftsführer"
+      },
+      "toni": {
+        "portraitAlt": "Marc-Antonio Messmer, Operations bei Datenschutzpartner",
+        "quote": "«Wenn die Tools stimmen,\nmerken Kundinnen und Kunden die Compliance kaum.»",
+        "name": "Marc-Antonio Messmer",
+        "role": "Digital Business & Operations Manager"
+      }
+    },
     "trustBusinesses": "2'400+",
     "trustBusinessesSub": "Unternehmen vertrauen uns",
     "trustSwiss": "Rechtsexpertise aus der Schweiz",

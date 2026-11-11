@@ -153,12 +153,34 @@
     "heroTitleLine1": "Check your website for",
     "heroTitleHighlight": "privacy risks",
     "heroSubtitle": "We scan your website and generate a legally reviewed privacy policy that fits your situation — automatically and in minutes.",
-    "heroClientPortraitAlt": "Martin Steiger, co-founder of Datenschutzpartner",
-    "heroClientQuoteLine1": "“Privacy has to work in practice,",
-    "heroClientQuoteLine2": "not just on paper.”",
-    "heroClientName": "Martin Steiger",
-    "heroClientRole": "CEO and co-founder",
-    "heroClientAttribution": "Martin Steiger, CEO and co-founder",
+    "heroClientCarouselAriaLabel": "Team voices",
+    "heroClientCarouselSlideStatus": "Slide {current} of {total}",
+    "heroCarouselSlides": {
+      "martin": {
+        "portraitAlt": "Martin Steiger, co-founder of Datenschutzpartner",
+        "quote": "“Privacy has to work in practice, not just on paper.”",
+        "name": "Martin Steiger",
+        "role": "Co-founder and CEO"
+      },
+      "cornelia": {
+        "portraitAlt": "Cornelia Diethelm, executive team at Datenschutzpartner",
+        "quote": "“Trust is built when ethics\nare part of every product decision.”",
+        "name": "Cornelia Diethelm",
+        "role": "Co-owner and member\nof the executive board"
+      },
+      "andreas": {
+        "portraitAlt": "Andreas Von Gunten, executive team at Datenschutzpartner",
+        "quote": "“Solid processes turn privacy\nfrom paperwork into everyday routine.”",
+        "name": "Andreas Von Gunten",
+        "role": "Co-founder and CEO"
+      },
+      "toni": {
+        "portraitAlt": "Marc-Antonio Messmer, operations at Datenschutzpartner",
+        "quote": "“When the tools are right,\ncompliance feels invisible to clients.”",
+        "name": "Marc-Antonio Messmer",
+        "role": "Digital Business & Operations Manager"
+      }
+    },
     "trustBusinesses": "2,400+",
     "trustBusinessesSub": "businesses trust us",
     "trustSwiss": "Legal expertise from Switzerland",
