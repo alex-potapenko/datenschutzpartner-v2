@@ -9,8 +9,8 @@ export async function AboutSection() {
   return (
     <section className="border-border bg-background border-b">
       <Container>
-        <div className="border-border relative flex flex-col items-start gap-8 border-r border-l p-4 pt-16 sm:p-8 sm:pt-24 lg:flex-row lg:gap-24 lg:pt-36">
-          <div className="flex w-full shrink-0 flex-col gap-6 lg:w-1/3">
+        <div className="border-border relative flex min-w-0 flex-col items-start gap-8 border-r border-l p-4 pt-16 sm:p-8 sm:pt-24 lg:grid lg:grid-cols-3 lg:gap-24 lg:pt-36">
+          <div className="flex w-full min-w-0 flex-col gap-6 lg:col-span-1">
             <h2 className="text-foreground text-xl font-bold sm:text-2xl lg:text-3xl">
               {t('title')}
             </h2>
@@ -20,8 +20,8 @@ export async function AboutSection() {
             </div>
           </div>
 
-          <div className="squircle w-full min-w-0 lg:w-2/3 lg:shrink-0">
-            <TeamHeroImage alt={t('imageAlt')} />
+          <div className="w-full min-w-0 lg:col-span-2">
+            <TeamHeroImage alt={t('imageAlt')} squircle />
           </div>
         </div>
       </Container>

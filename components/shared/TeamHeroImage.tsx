@@ -1,22 +1,40 @@
 import { cn } from '@/lib/utils';
 
+export const TEAM_HERO_IMAGE_SRC = '/team.webp';
+export const GENERATOR_HERO_IMAGE_SRC = '/generator-hero.webp';
+
+/** Cover panel (no squircle). Default aspect matches team.webp (1024×682). */
+export const teamHeroCoverClassName = 'relative aspect-[1024/682] w-full bg-cover bg-center';
+
 type TeamHeroImageProps = {
   alt: string;
   className?: string;
+  imageSrc?: string;
+  /** Squircle corners for marketing teasers (e.g. home About block). */
+  squircle?: boolean;
 };
 
-/** Full-width team frame (1024×682 source); image shifted up inside a fixed aspect box. */
-export function TeamHeroImage({ alt, className }: TeamHeroImageProps) {
+export function TeamHeroCover({
+  alt,
+  className,
+  imageSrc = TEAM_HERO_IMAGE_SRC,
+  squircle = false,
+}: TeamHeroImageProps) {
   return (
-    <div className={cn('relative aspect-[1024/682] w-full overflow-hidden', className)}>
-      <img
-        src="/team.webp"
-        alt={alt}
-        width={1024}
-        height={682}
-        decoding="async"
-        className="absolute top-[-52px] left-0 h-[calc(100%+52px)] w-full object-cover object-top"
-      />
-    </div>
+    <div
+      role="img"
+      aria-label={alt}
+      className={cn(
+        teamHeroCoverClassName,
+        'max-w-full min-w-0',
+        squircle && 'squircle overflow-hidden',
+        className
+      )}
+      style={{ backgroundImage: `url('${imageSrc}')` }}
+    />
   );
+}
+
+export function TeamHeroImage(props: TeamHeroImageProps) {
+  return <TeamHeroCover {...props} />;
 }

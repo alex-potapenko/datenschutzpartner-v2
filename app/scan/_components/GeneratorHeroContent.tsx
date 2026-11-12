@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { FileText, cn } from '@/components/ui';
 import { ScanForm } from '@/components/shared/ScanForm';
+import { GENERATOR_HERO_IMAGE_SRC, TeamHeroCover } from '@/components/shared/TeamHeroImage';
 
 type GeneratorHeroContentProps = {
   fillSubscriptionId?: string;
@@ -65,11 +66,10 @@ export function GeneratorHeroContent({
       </div>
 
       {showImage ? (
-        <div
-          role="img"
-          aria-label={t('heroImageAlt')}
-          className="relative order-1 aspect-[2/1] w-full bg-cover bg-center lg:order-2 lg:aspect-auto lg:min-h-[320px]"
-          style={{ backgroundImage: "url('/team.webp')" }}
+        <TeamHeroCover
+          alt={t('heroImageAlt')}
+          imageSrc={GENERATOR_HERO_IMAGE_SRC}
+          className="order-1 aspect-[2/1] lg:order-2 lg:aspect-auto lg:min-h-[320px]"
         />
       ) : null}
     </div>
