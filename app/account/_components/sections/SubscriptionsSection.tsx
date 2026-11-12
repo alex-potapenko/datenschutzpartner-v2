@@ -260,7 +260,7 @@ export function SubscriptionsSection() {
             });
           }
         : undefined,
-      continueLabel: tMembership('continueSubscription'),
+      continueLabel: tMembership('resumeSubscription'),
       isContinuing: continueSubscription.isPending,
       continueOpensCheckout: subscriptionRequiresPaidRenewal(policySubscription),
       onAction: showPolicyCheckout

@@ -38,6 +38,12 @@ export const EU_REP_REPRESENTATIVE = {
   website: 'https://datenschutzpartner.eu/',
 } as const;
 
+/** Plain-text block for clipboard (Art. 27 address as shown to customers). */
+export function formatEuRepRepresentativeAddressForClipboard(countryLabel: string): string {
+  const r = EU_REP_REPRESENTATIVE;
+  return [r.name, r.street, `${r.postalCode} ${r.city}`, countryLabel, r.email].join('\n');
+}
+
 export const euRepContractStatusEnum = z.enum(['active', 'cancelled']);
 export type EuRepContractStatus = z.infer<typeof euRepContractStatusEnum>;
 

@@ -104,6 +104,7 @@ import {
 
   // Status
   CheckCircleIcon as CheckCircle,
+  PulseIcon as Pulse,
   InfoIcon as Info,
   CrownIcon as Crown,
   LightningIcon as Lightning,
@@ -216,6 +217,7 @@ export {
 
   // Status
   CheckCircle,
+  Pulse,
   Info,
   Crown,
   Lightning,

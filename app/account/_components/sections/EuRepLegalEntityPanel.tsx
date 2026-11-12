@@ -204,7 +204,7 @@ function EuRepLegalEntityPanelContent({ contract }: { contract: EuRepContract })
           icon={<MapPin size={18} weight="fill" />}
           title={t('sectionPublishedAddress')}
         />
-        <EuRepRepresentativeAddress hideTitle plain />
+        <EuRepRepresentativeAddress hideTitle plain linkifyCompany={false} showCopyButton />
       </AccountSection>
     </div>
   );

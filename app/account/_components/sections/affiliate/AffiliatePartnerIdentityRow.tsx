@@ -84,6 +84,7 @@ export function AffiliatePartnerIdentityRow({
 }) {
   const t = useTranslations('account.affiliate.links');
   const tDashboard = useTranslations('account.affiliate.dashboard');
+  const tCommon = useTranslations('common');
   const tRoot = useTranslations();
   const updateSlug = useUpdateAffiliateSlug();
   const editSlugDialog = useOverlayState();
@@ -173,8 +174,8 @@ export function AffiliatePartnerIdentityRow({
           <AffiliateReferralCopyButton
             copied={linkCopied}
             copyLabel={t('copyBaseUrl')}
-            copiedLabel={tDashboard('linkCopied')}
-            copiedTooltip={tDashboard('linkCopiedTooltip')}
+            copiedLabel={tCommon('copied')}
+            copiedTooltip={tCommon('copied')}
             buttonClassName={IDENTITY_ACTION_BUTTON_CLASS}
             iconSize={14}
             onCopy={() => {

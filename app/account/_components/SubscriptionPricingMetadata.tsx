@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   calculateEuRepQuote,
   calculateGeneratorPolicyQuote,
@@ -136,6 +137,7 @@ export function SubscriptionRenewalPricing({
   inactiveNote?: string | null;
 }) {
   const formatDate = useDateFormatter();
+  const tMembership = useTranslations('account.membershipPanel');
   const [isDiscountTooltipOpen, setIsDiscountTooltipOpen] = useState(false);
   const listPrice = pricing.renewalListPrice;
   const hasDiscount =
@@ -194,6 +196,9 @@ export function SubscriptionRenewalPricing({
             </Tooltip>
           ) : null}
         </div>
+        <p className="text-muted text-xs leading-snug">
+          {pricing.pricePeriod} ({tMembership('priceExclVat')})
+        </p>
         {pricing.renewalDate ? (
           <p className="text-muted text-sm leading-snug">{formatDate(pricing.renewalDate)}</p>
         ) : null}

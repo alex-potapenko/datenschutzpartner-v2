@@ -50,6 +50,7 @@ export function AffiliateReferralLinkRow({
   isDeleting,
 }: AffiliateReferralLinkRowProps) {
   const t = useTranslations('account.affiliate.dashboard');
+  const tCommon = useTranslations('common');
   const [linkCopied, setLinkCopied] = useState(false);
   const inputId = `affiliate-link-${id}`;
   const linkParts = splitPartnerReferralLinkDisplay(url);
@@ -119,8 +120,8 @@ export function AffiliateReferralLinkRow({
             <AffiliateReferralCopyButton
               copied={linkCopied}
               copyLabel={t('copyLink')}
-              copiedLabel={t('linkCopied')}
-              copiedTooltip={t('linkCopiedTooltip')}
+              copiedLabel={tCommon('copied')}
+              copiedTooltip={tCommon('copied')}
               onCopy={() => {
                 void copyReferralLink();
               }}

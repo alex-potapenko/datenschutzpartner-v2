@@ -15,11 +15,9 @@ import {
   resolvePolicySiteCount,
   useCancelSubscription,
   useContinueSubscription,
-  useCreateEuRepExtraRequest,
   useWithdrawEuRepExtraRequest,
   useOrders,
   hasSubscriptionAccessRemaining,
-  subscriptionGrantsProductAccess,
   subscriptionCoverageEnd,
   subscriptionRequiresPaidRenewal,
   subscriptionTermEndDate,
@@ -44,26 +42,16 @@ import {
   ChatTeardropText,
   CheckCircle,
   Chip,
-  CreditCard,
   FileText,
   Info,
   MapPin,
-  Plus,
   Question,
   Stack,
   Tooltip,
-  ModalRoot,
-  ModalBackdrop,
-  ModalContainer,
-  ModalDialog,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalHeading,
+  XCircle,
   useOverlayState,
   cn,
 } from '@/components/ui';
-import { Field, TextInput } from '@/app/result/ui/FormSection';
 import { NavigationLink } from '@/components/shared/NavigationLink';
 import { StatusPill, statusTone } from '@/components/shared/StatusPill';
 import { PriceBlock, priceBlockAmountClassName } from '@/components/shared/PriceBlock';
@@ -97,8 +85,8 @@ import { EuRepPlanRequestsNote } from '@/app/eu-rep/_components/EuRepPlanRequest
 const TERMS_CONTRACT_DURATION_SECTION_ID = '5-vertragslaufzeit';
 
 const CONTACT_SUBJECT: Record<BillingProductType, string> = {
-  euRep: 'eu-rep',
-  policy: 'generator',
+  euRep: 'eu-representative',
+  policy: 'privacy-policy-generator',
 };
 
 async function handleInvoiceDownload(orderId: string, onStarted: () => void) {
@@ -161,108 +149,19 @@ const STATUS_BLOCK_ICON_STYLE = {
   background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
 };
 
-function EuRepExtraRequestDialog({
-  subscription,
-  state,
-}: {
-  subscription: Subscription;
-  state: ReturnType<typeof useOverlayState>;
-}) {
-  const t = useTranslations('account.membershipPanel');
-  const tCommon = useTranslations('common');
-  const createExtraRequest = useCreateEuRepExtraRequest();
-  const [quantity, setQuantity] = useState('1');
-
-  function close() {
-    setQuantity('1');
-    state.close();
-  }
-
-  function submit() {
-    const parsed = Number.parseInt(quantity, 10);
-    if (!Number.isFinite(parsed) || parsed < 1) return;
-
-    createExtraRequest.mutate(
-      { subscriptionId: subscription.id, quantity: parsed },
-      {
-        onSuccess: () => {
-          close();
-        },
-        onError: () => {
-          toast.error(t('requestsExtraFailed'));
-        },
-      }
-    );
-  }
-
-  return (
-    <ModalRoot
-      state={{
-        ...state,
-        setOpen: (open: boolean) => {
-          if (!open) close();
-          else state.setOpen(open);
-        },
-        close,
-      }}
-    >
-      <ModalBackdrop isDismissable>
-        <ModalContainer size="sm">
-          <ModalDialog>
-            <ModalHeader>
-              <ModalHeading>{t('requestsRequestDialogTitle')}</ModalHeading>
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-5">
-                <p className="text-foreground text-sm leading-relaxed">
-                  {t('requestsRequestDialogBody', {
-                    price: formatMoney(EU_REP_EXTRA_REQUEST_PRICE, 'CHF'),
-                  })}
-                </p>
-                <Field label={t('requestsRequestQuantityLabel')}>
-                  <TextInput
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    value={quantity}
-                    fullWidth={false}
-                    className="w-16"
-                    onChange={(event) => {
-                      setQuantity(event.target.value);
-                    }}
-                  />
-                </Field>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="outline" onPress={close}>
-                {tCommon('cancel')}
-              </Button>
-              <Button
-                variant="primary"
-                isDisabled={createExtraRequest.isPending || Number.parseInt(quantity, 10) < 1}
-                onPress={submit}
-              >
-                {t('requestsRequestSubmit')}
-              </Button>
-            </ModalFooter>
-          </ModalDialog>
-        </ModalContainer>
-      </ModalBackdrop>
-    </ModalRoot>
-  );
-}
+const MEMBERSHIP_ROW_DIVIDER = (
+  <div className="bg-border h-px shrink-0 sm:h-auto sm:w-px sm:self-stretch" aria-hidden />
+);
 
 export function EuRepRequestsSection({ subscription }: { subscription: Subscription }) {
   const t = useTranslations('account.membershipPanel');
   const formatDate = useDateFormatter();
   const formatDateTime = useDateTimeFormatter();
-  const requestDialog = useOverlayState();
   const withdrawExtraRequest = useWithdrawEuRepExtraRequest();
   const remainingRequests = resolveEuRepRemainingRequests(subscription);
   const requestUsages = listEuRepRequestUsages(subscription);
   const requestedExtraRequests = listEuRepRequestedExtraRequests(subscription);
-  const canAddExtra = subscriptionGrantsProductAccess(subscription);
+  const extraRequestPrice = formatMoney(EU_REP_EXTRA_REQUEST_PRICE, 'CHF');
 
   return (
     <AccountSection title={t('sectionRequests')} contentClassName="gap-6">
@@ -286,20 +185,6 @@ export function EuRepRequestsSection({ subscription }: { subscription: Subscript
               >
                 {remainingRequests}
               </p>
-              {remainingRequests === 0 && requestedExtraRequests.length === 0 ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 gap-1.5"
-                  isDisabled={!canAddExtra}
-                  onPress={() => {
-                    requestDialog.open();
-                  }}
-                >
-                  <Plus size={14} weight="bold" aria-hidden />
-                  {t('requestsRequestCta')}
-                </Button>
-              ) : null}
               {requestedExtraRequests.map((request) => (
                 <div key={request.id} className="flex items-center gap-2">
                   <Chip variant="soft" size="sm" color="warning">
@@ -332,6 +217,26 @@ export function EuRepRequestsSection({ subscription }: { subscription: Subscript
                 </div>
               ))}
             </div>
+            {remainingRequests === 0 && requestedExtraRequests.length === 0 ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-foreground text-sm leading-snug">
+                  {t.rich('requestsNeedAnother', {
+                    contact: (chunks) => (
+                      <NavigationLink
+                        href="/contact?subject=eu-representative"
+                        size="sm"
+                        className="font-normal whitespace-nowrap"
+                      >
+                        {chunks}
+                      </NavigationLink>
+                    ),
+                  })}
+                </p>
+                <p className="text-muted text-sm leading-snug">
+                  {t('requestsExtraUnitPrice', { price: extraRequestPrice })}
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -363,7 +268,6 @@ export function EuRepRequestsSection({ subscription }: { subscription: Subscript
           </div>
         </div>
       </div>
-      <EuRepExtraRequestDialog subscription={subscription} state={requestDialog} />
     </AccountSection>
   );
 }
@@ -402,8 +306,13 @@ function CurrentPlanPanel({
   const { currency } = subscription.totals;
   const isEuRep = subscription.productType === 'euRep';
   const euRepPlanId = isEuRep ? resolveEuRepPlan(subscription.planId).id : null;
-  const [isDiscountTooltipOpen, setIsDiscountTooltipOpen] = useState(false);
   const [isRenewalReminderTooltipOpen, setIsRenewalReminderTooltipOpen] = useState(false);
+  const [isDiscountTooltipOpen, setIsDiscountTooltipOpen] = useState(false);
+  const hasDiscount = Boolean(
+    pricing.discountExplanation &&
+    pricing.renewalListPrice != null &&
+    pricing.renewalListPrice > pricing.renewalAmount
+  );
   const isRenewalInactive =
     subscription.status === 'cancelled' ||
     subscription.status === 'expired' ||
@@ -414,11 +323,6 @@ function CurrentPlanPanel({
     Boolean(
       coverageEnd && (subscription.status === 'active' || subscription.status === 'processing')
     );
-  const hasDiscount = Boolean(
-    pricing.discountExplanation &&
-    pricing.renewalListPrice != null &&
-    pricing.renewalListPrice > pricing.renewalAmount
-  );
   const renewalPeriod =
     subscription.startDate && coverageEnd
       ? subscriptionDaysLeft(subscription.startDate, coverageEnd)
@@ -434,15 +338,20 @@ function CurrentPlanPanel({
         : t('cancelledWithAccess', { date: formatDate(inactiveEndDate) })
       : inactiveEndDate && subscription.status === 'expired'
         ? t('expiredOn', { date: formatDate(inactiveEndDate) })
-        : inactiveEndDate && subscription.status === 'cancelled'
-          ? t('cancelledOn', { date: formatDate(inactiveEndDate) })
-          : null;
+        : null;
+
+  const statusSecondaryDate =
+    subscription.status === 'cancelled' && inactiveEndDate
+      ? t('cancelledOn', { date: formatDate(inactiveEndDate) })
+      : subscription.startDate
+        ? t('startedOn', { date: formatDate(subscription.startDate) })
+        : null;
 
   const renewsOnWithReminderTooltip = subscription.nextPaymentDate ? (
-    <>
-      <p className="text-muted text-sm">
+    <span className="inline-flex items-center gap-1">
+      <span className="text-muted text-sm">
         {t('renewsOn', { date: formatDate(subscription.nextPaymentDate) })}
-      </p>
+      </span>
       <Tooltip
         delay={0}
         closeDelay={0}
@@ -472,17 +381,12 @@ function CurrentPlanPanel({
           </NavigationLink>
         </Tooltip.Content>
       </Tooltip>
-    </>
+    </span>
   ) : null;
 
   return (
     <AccountSection
       title={hideHeader ? undefined : planTitle}
-      titleAside={
-        hideHeader ? undefined : (
-          <StatusPill tone={statusTone(subscription.status)}>{ts(subscription.status)}</StatusPill>
-        )
-      }
       action={
         hideHeader ? undefined : (
           <SubscriptionPlanActions subscription={subscription} showDownload={!hideDownload} />
@@ -491,8 +395,79 @@ function CurrentPlanPanel({
       contentClassName="gap-6"
     >
       <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
-        {isEuRep && euRepPlanId ? (
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                style={STATUS_BLOCK_ICON_STYLE}
+                aria-hidden
+              >
+                <Info size={18} weight="bold" />
+              </span>
+              <h3 className="text-foreground text-sm font-semibold">{t('sectionStatus')}</h3>
+            </div>
+            {!isRenewalInactive && onCancel ? (
+              <NavigationLink onPress={onCancel} size="sm" chevron="none" className="shrink-0">
+                {t('cancelCta')}
+              </NavigationLink>
+            ) : null}
+          </div>
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {subscription.status === 'active' ? (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-0.5',
+                    priceBlockAmountClassName('sm'),
+                    'text-success'
+                  )}
+                >
+                  <CheckCircle size={20} weight="fill" aria-hidden className="shrink-0" />
+                  {ts(subscription.status)}
+                </span>
+              ) : subscription.status === 'cancelled' ? (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-0.5',
+                    priceBlockAmountClassName('sm'),
+                    'text-danger-soft-foreground'
+                  )}
+                >
+                  <XCircle size={20} weight="fill" aria-hidden className="shrink-0" />
+                  {ts(subscription.status)}
+                </span>
+              ) : (
+                <StatusPill tone={statusTone(subscription.status)}>
+                  {ts(subscription.status)}
+                </StatusPill>
+              )}
+            </div>
+            {statusSecondaryDate ? (
+              <p className="text-muted text-sm leading-snug">{statusSecondaryDate}</p>
+            ) : null}
+            {inactiveDateLabel ? (
+              <p className="text-foreground text-sm leading-snug">{inactiveDateLabel}</p>
+            ) : null}
+            {isRenewalInactive && onContinue ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 w-fit gap-1.5"
+                onPress={onContinue}
+                isDisabled={isContinuing}
+              >
+                <ArrowsClockwise size={14} weight="bold" aria-hidden />
+                {t('resumeSubscription')}
+                {continueOpensCheckout ? <CaretRight size={14} weight="bold" aria-hidden /> : null}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+
+        {showRenewalBlock && !isRenewalInactive ? (
           <>
+            {MEMBERSHIP_ROW_DIVIDER}
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <div className="flex items-center gap-2.5">
                 <span
@@ -500,7 +475,102 @@ function CurrentPlanPanel({
                   style={STATUS_BLOCK_ICON_STYLE}
                   aria-hidden
                 >
-                  <Stack size={18} weight="fill" />
+                  <ArrowsClockwise size={16} weight="bold" />
+                </span>
+                <h3 className="text-foreground text-sm font-semibold">{t('sectionRenewal')}</h3>
+              </div>
+              <div className="flex min-w-0 flex-col gap-2">
+                {hasDiscount && pricing.renewalListPrice != null && pricing.discountExplanation ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-foreground text-sm leading-none font-bold">
+                      {currency}
+                    </span>
+                    <span
+                      className={`${priceBlockAmountClassName('sm')} text-muted/70 line-through decoration-from-font`}
+                    >
+                      {pricing.renewalListPrice.toFixed(2)}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className={`${priceBlockAmountClassName('sm')} text-danger`}>
+                        {pricing.renewalAmount.toFixed(2)}
+                      </span>
+                      <Tooltip
+                        delay={0}
+                        closeDelay={0}
+                        isOpen={isDiscountTooltipOpen}
+                        onOpenChange={setIsDiscountTooltipOpen}
+                      >
+                        <Tooltip.Trigger
+                          aria-label={t('renewalDiscountTooltipLabel')}
+                          className="text-accent hover:text-key-700 inline-flex cursor-pointer items-center justify-center"
+                          onPointerEnter={() => {
+                            setIsDiscountTooltipOpen(true);
+                          }}
+                          onPointerLeave={() => {
+                            setIsDiscountTooltipOpen(false);
+                          }}
+                        >
+                          <Info size={16} weight="bold" aria-hidden />
+                        </Tooltip.Trigger>
+                        <Tooltip.Content className="w-max max-w-none p-3 text-sm whitespace-nowrap">
+                          {t('renewalDiscountTooltip', {
+                            minSites: pricing.discountExplanation.minSites,
+                            percent: pricing.discountExplanation.percent,
+                          })}
+                        </Tooltip.Content>
+                      </Tooltip>
+                    </div>
+                    <span className="text-muted text-xs leading-snug whitespace-nowrap">
+                      {pricing.pricePeriod} ({t('priceExclVat')})
+                    </span>
+                  </div>
+                ) : (
+                  <PriceBlock
+                    currency={currency}
+                    amount={pricing.renewalAmount.toFixed(2)}
+                    notes={[`${pricing.pricePeriod} (${t('priceExclVat')})`]}
+                    size="sm"
+                  />
+                )}
+                {renewalPeriod && daysLeftLabel ? (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0">
+                    <DaysLeftDonut
+                      remaining={renewalPeriod.remainingDays}
+                      total={renewalPeriod.totalDays}
+                      label={daysLeftLabel}
+                    />
+                    <span className="text-muted text-sm">{daysLeftLabel}</span>
+                    <span className="text-muted text-sm" aria-hidden>
+                      ·
+                    </span>
+                    {renewsOnWithReminderTooltip}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0">
+                    {renewsOnWithReminderTooltip}
+                  </div>
+                )}
+                {priceIncreased ? (
+                  <p className="text-danger text-sm leading-relaxed">
+                    {t('renewalPriceIncreased')}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {isEuRep && euRepPlanId ? (
+          <>
+            {MEMBERSHIP_ROW_DIVIDER}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                  style={STATUS_BLOCK_ICON_STYLE}
+                  aria-hidden
+                >
+                  <Stack size={18} weight="bold" />
                 </span>
                 <h3 className="text-foreground text-sm font-semibold">{t('sectionPlan')}</h3>
               </div>
@@ -517,166 +587,6 @@ function CurrentPlanPanel({
                   animateCount={false}
                 />
               </div>
-            </div>
-            <div
-              className="bg-border h-px shrink-0 sm:h-auto sm:w-px sm:self-stretch"
-              aria-hidden
-            />
-          </>
-        ) : null}
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="flex items-center gap-2.5">
-            <span
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-              style={STATUS_BLOCK_ICON_STYLE}
-              aria-hidden
-            >
-              <CreditCard size={18} weight="fill" />
-            </span>
-            <h3 className="text-foreground text-sm font-semibold">{t('sectionPayment')}</h3>
-          </div>
-          <div className="flex flex-col gap-2">
-            <PriceBlock
-              currency={currency}
-              amount={pricing.annualAmount.toFixed(2)}
-              animatedAmount={pricing.annualAmount}
-              notes={[pricing.pricePeriod]}
-              size="sm"
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-muted text-sm">
-                {t('paidOn', { date: formatDate(pricing.paidDate) })}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {showRenewalBlock ? (
-          <>
-            <div
-              className="bg-border h-px shrink-0 sm:h-auto sm:w-px sm:self-stretch"
-              aria-hidden
-            />
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-                    style={STATUS_BLOCK_ICON_STYLE}
-                    aria-hidden
-                  >
-                    <ArrowsClockwise size={16} weight="bold" />
-                  </span>
-                  <h3 className="text-foreground text-sm font-semibold">{t('sectionRenewal')}</h3>
-                </div>
-                {!isRenewalInactive && onCancel ? (
-                  <NavigationLink onPress={onCancel} size="sm" chevron="none" className="shrink-0">
-                    {t('cancelCta')}
-                  </NavigationLink>
-                ) : null}
-              </div>
-              {isRenewalInactive ? (
-                <div className="flex flex-col gap-3">
-                  {inactiveDateLabel ? (
-                    <p className="text-foreground text-sm leading-relaxed">{inactiveDateLabel}</p>
-                  ) : null}
-                  {onContinue ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-fit gap-1.5"
-                      onPress={onContinue}
-                      isDisabled={isContinuing}
-                    >
-                      {t('continueSubscription')}
-                      {continueOpensCheckout ? (
-                        <CaretRight size={14} weight="bold" aria-hidden />
-                      ) : null}
-                    </Button>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="flex min-w-0 flex-col gap-2">
-                  {hasDiscount &&
-                  pricing.renewalListPrice != null &&
-                  pricing.discountExplanation ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-display text-foreground text-sm leading-none font-bold">
-                        {currency}
-                      </span>
-                      <span
-                        className={`${priceBlockAmountClassName('sm')} text-muted/70 line-through decoration-from-font`}
-                      >
-                        {pricing.renewalListPrice.toFixed(2)}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <span className={`${priceBlockAmountClassName('sm')} text-danger`}>
-                          {pricing.renewalAmount.toFixed(2)}
-                        </span>
-                        <Tooltip
-                          delay={0}
-                          closeDelay={0}
-                          isOpen={isDiscountTooltipOpen}
-                          onOpenChange={setIsDiscountTooltipOpen}
-                        >
-                          <Tooltip.Trigger
-                            aria-label={t('renewalDiscountTooltipLabel')}
-                            className="text-accent hover:text-key-700 inline-flex cursor-pointer items-center justify-center"
-                            onPointerEnter={() => {
-                              setIsDiscountTooltipOpen(true);
-                            }}
-                            onPointerLeave={() => {
-                              setIsDiscountTooltipOpen(false);
-                            }}
-                          >
-                            <Info size={16} weight="bold" aria-hidden />
-                          </Tooltip.Trigger>
-                          <Tooltip.Content className="w-max max-w-none p-3 text-sm whitespace-nowrap">
-                            {t('renewalDiscountTooltip', {
-                              minSites: pricing.discountExplanation.minSites,
-                              percent: pricing.discountExplanation.percent,
-                            })}
-                          </Tooltip.Content>
-                        </Tooltip>
-                      </div>
-                      <span className="text-muted text-xs leading-snug whitespace-nowrap">
-                        {pricing.pricePeriod}
-                      </span>
-                    </div>
-                  ) : (
-                    <PriceBlock
-                      currency={currency}
-                      amount={pricing.renewalAmount.toFixed(2)}
-                      animatedAmount={pricing.renewalAmount}
-                      notes={[pricing.pricePeriod]}
-                      size="sm"
-                    />
-                  )}
-                  {renewalPeriod && daysLeftLabel ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <DaysLeftDonut
-                        remaining={renewalPeriod.remainingDays}
-                        total={renewalPeriod.totalDays}
-                        label={daysLeftLabel}
-                      />
-                      <p className="text-muted text-sm">{daysLeftLabel}</p>
-                      <span className="text-muted text-sm" aria-hidden>
-                        ·
-                      </span>
-                      {renewsOnWithReminderTooltip}
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {renewsOnWithReminderTooltip}
-                    </div>
-                  )}
-                  {priceIncreased ? (
-                    <p className="text-danger text-sm leading-relaxed">
-                      {t('renewalPriceIncreased')}
-                    </p>
-                  ) : null}
-                </div>
-              )}
             </div>
           </>
         ) : null}

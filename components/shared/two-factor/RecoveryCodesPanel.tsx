@@ -2,16 +2,14 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 import { formatRecoveryCodesForDownload } from '@/lib/recovery-codes';
+import { CopyClipboardButton } from '@/components/shared/CopyClipboardButton';
 import {
   Button,
-  Check,
   Checkbox,
   CheckboxControl,
   CheckboxContent,
   CheckboxIndicator,
-  Copy,
   DownloadSimple,
 } from '@/components/ui';
 
@@ -32,19 +30,6 @@ export function RecoveryCodesPanel({
 }) {
   const t = useTranslations('twoFactor');
   const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  async function copyCodes() {
-    try {
-      await navigator.clipboard.writeText(codes.join('\n'));
-      setCopied(true);
-      window.setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-    } catch {
-      toast.error(t('secretCopyFailed'));
-    }
-  }
 
   function downloadCodes() {
     const blob = new Blob([formatRecoveryCodesForDownload(codes, accountName)], {
@@ -74,17 +59,15 @@ export function RecoveryCodesPanel({
       </ul>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
+        <CopyClipboardButton
+          copyLabel={t('recoveryCopy')}
+          copyErrorMessage={t('secretCopyFailed')}
+          iconSize={16}
           className="normal-case"
-          onPress={() => {
-            void copyCodes();
+          onCopy={async () => {
+            await navigator.clipboard.writeText(codes.join('\n'));
           }}
-        >
-          {copied ? <Check size={16} weight="bold" /> : <Copy size={16} />}
-          {t('recoveryCopy')}
-        </Button>
+        />
         <Button variant="outline" size="sm" className="normal-case" onPress={downloadCodes}>
           <DownloadSimple size={16} />
           {t('recoveryDownload')}

@@ -21,6 +21,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "saved": "Saved",
+    "copy": "Copy",
+    "copied": "Copied!",
     "delete": "Delete",
     "back": "Back",
     "details": "Details",
@@ -2476,9 +2478,12 @@
     },
     "membershipPanel": {
       "sectionPlan": "Plan",
+      "sectionStatus": "Status",
+      "startedOn": "Started on {date}",
       "sectionRequests": "Requests",
       "sectionPayment": "Payment",
       "sectionRenewal": "Renewal",
+      "priceExclVat": "excl. VAT",
       "renewalReminder": "We will remind you by email 30 days before renewal.",
       "renewsOn": "Renews on {date}",
       "renewalDiscountTooltip": "You have {minSites} or more active sites → {percent}% discount.",
@@ -2501,6 +2506,8 @@
       "requestsAvailableLabel": "Available",
       "requestsUsageLabel": "Usage",
       "requestsAddExtraLabel": "Add extra request ({price})",
+      "requestsNeedAnother": "Need more? <contact>Contact us</contact>",
+      "requestsExtraUnitPrice": "{price} per additional request",
       "requestsRequestCta": "Order",
       "requestsRequestDialogTitle": "Request extra requests",
       "requestsRequestDialogBody": "How many additional requests do you need? Each request is billed at {price}.",
@@ -2527,7 +2534,7 @@
       "cancelCta": "Cancel Subscription",
       "cancelConfirm": "Cancel Subscription",
       "keepSubscription": "Keep",
-      "continueSubscription": "Continue subscription",
+      "resumeSubscription": "Resume subscription",
       "cancelled": "Subscription cancelled.",
       "continued": "Subscription continued.",
       "renewedDialog": {
@@ -2558,12 +2565,12 @@
           "questionsBody": "If you have any questions on your membership, our team will answer within one business day."
         },
         "euRep": {
-          "planTitle": "Status",
+          "planTitle": "Details",
           "pricePeriod": "/ 12 months",
           "questionsBody": "If you have any questions on your EU representation, our team will answer within one business day."
         },
         "policy": {
-          "planTitle": "Status",
+          "planTitle": "Details",
           "planTitleWithSite": "{site}",
           "planTitleWithSites": "{count, plural, one {# website} other {# websites}}",
           "pricePeriod": "/ 12 months",
@@ -2789,7 +2796,10 @@
   },
   "euRepRepresentative": {
     "previewTitle": "Your EU representative",
-    "country": "Germany"
+    "country": "Germany",
+    "copyToClipboard": "Copy",
+    "copiedToClipboard": "Copied to clipboard.",
+    "copyFailed": "Could not copy. Please copy manually."
   },
   "policyDocument": {
     "exportHtml": "Export HTML",

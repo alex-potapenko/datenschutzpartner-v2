@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { EU_REP_REPRESENTATIVE } from '@/api/eu-rep';
+import { EU_REP_REPRESENTATIVE, formatEuRepRepresentativeAddressForClipboard } from '@/api/eu-rep';
+import { CopyClipboardButton } from '@/components/shared/CopyClipboardButton';
 import { navigationLinkClassName } from '@/components/shared/NavigationLink';
 
 /** Public Art. 27 address shown at purchase — never includes the forwarding email. */
@@ -9,15 +10,25 @@ export function EuRepRepresentativeAddress({
   hideTitle = false,
   plain = false,
   linkify = true,
+  linkifyCompany,
+  linkifyEmail,
+  showCopyButton = false,
 }: {
   hideTitle?: boolean;
   plain?: boolean;
   /** When false, company name and email render as plain text (e.g. wizard “already covered”). */
   linkify?: boolean;
+  linkifyCompany?: boolean;
+  linkifyEmail?: boolean;
+  showCopyButton?: boolean;
 }) {
   const t = useTranslations('euRepRepresentative');
   const representative = EU_REP_REPRESENTATIVE;
   const linkClassName = navigationLinkClassName('default');
+  const showCompanyLink = linkifyCompany ?? linkify;
+  const showEmailLink = linkifyEmail ?? linkify;
+  const countryLabel = t('country');
+  const clipboardText = formatEuRepRepresentativeAddressForClipboard(countryLabel);
 
   return (
     <div
@@ -31,7 +42,7 @@ export function EuRepRepresentativeAddress({
         <p className="text-foreground text-sm font-semibold">{t('previewTitle')}</p>
       )}
       <p className="text-foreground text-base leading-relaxed">
-        {linkify ? (
+        {showCompanyLink ? (
           <a
             href={representative.website}
             target="_blank"
@@ -50,7 +61,7 @@ export function EuRepRepresentativeAddress({
         <br />
         {t('country')}
         <br />
-        {linkify ? (
+        {showEmailLink ? (
           <a href={`mailto:${representative.email}`} className={linkClassName}>
             {representative.email}
           </a>
@@ -58,6 +69,15 @@ export function EuRepRepresentativeAddress({
           representative.email
         )}
       </p>
+      {showCopyButton ? (
+        <CopyClipboardButton
+          copyLabel={t('copyToClipboard')}
+          copyErrorMessage={t('copyFailed')}
+          onCopy={async () => {
+            await navigator.clipboard.writeText(clipboardText);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

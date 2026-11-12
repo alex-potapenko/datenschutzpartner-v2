@@ -2,17 +2,16 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 import {
   buildHostedPolicyPath,
   buildHostedPolicyUrl,
   resolveDocumentSite,
   type GeneratedDocument,
 } from '@/api/documents';
-import { Button, ArrowSquareOut, Check, Copy, Tabs } from '@/components/ui';
+import { ArrowSquareOut, Tabs } from '@/components/ui';
+import { CopyClipboardButton } from '@/components/shared/CopyClipboardButton';
 import { cn } from '@/lib/utils';
 
-type CopyKind = 'iframe' | 'script' | 'url';
 type InstallTab = 'embed' | 'url';
 
 function buildIframeEmbedCode(document: GeneratedDocument, hostedUrl: string): string {
@@ -30,15 +29,13 @@ function CopyCodeBlock({
   description,
   value,
   copyLabel,
-  copied,
-  onCopy,
+  copyErrorMessage,
 }: {
   label: string;
   description: string;
   value: string;
   copyLabel: string;
-  copied: boolean;
-  onCopy: () => void;
+  copyErrorMessage: string;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -50,14 +47,13 @@ function CopyCodeBlock({
         <pre className="text-foreground overflow-x-auto text-xs leading-relaxed whitespace-pre-wrap">
           {value}
         </pre>
-        <Button variant="outline" size="sm" className="w-fit gap-2" onPress={onCopy}>
-          {copied ? (
-            <Check size={14} weight="bold" aria-hidden />
-          ) : (
-            <Copy size={14} weight="bold" aria-hidden />
-          )}
-          {copyLabel}
-        </Button>
+        <CopyClipboardButton
+          copyLabel={copyLabel}
+          copyErrorMessage={copyErrorMessage}
+          onCopy={async () => {
+            await navigator.clipboard.writeText(value);
+          }}
+        />
       </div>
     </div>
   );
@@ -72,24 +68,10 @@ interface PolicyImplementationGuideProps {
 export function PolicyImplementationGuide({ document, className }: PolicyImplementationGuideProps) {
   const t = useTranslations('policyDocument.implementation');
   const [activeTab, setActiveTab] = useState<InstallTab>('embed');
-  const [copied, setCopied] = useState<CopyKind | null>(null);
   const hostedPath = buildHostedPolicyPath(document);
   const hostedUrl = buildHostedPolicyUrl(document);
   const iframeEmbedCode = buildIframeEmbedCode(document, hostedUrl);
   const scriptEmbedCode = buildScriptEmbedCode(document, hostedUrl);
-
-  async function copy(value: string, kind: CopyKind) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(kind);
-      toast.success(t('copied'));
-      window.setTimeout(() => {
-        setCopied(null);
-      }, 2000);
-    } catch {
-      toast.error(t('copyFailed'));
-    }
-  }
 
   return (
     <section className={cn('flex flex-col gap-6 px-8 py-8 sm:py-10', className)}>
@@ -119,10 +101,7 @@ export function PolicyImplementationGuide({ document, className }: PolicyImpleme
             description={t('steps.embedIframe')}
             value={iframeEmbedCode}
             copyLabel={t('copy')}
-            copied={copied === 'iframe'}
-            onCopy={() => {
-              void copy(iframeEmbedCode, 'iframe');
-            }}
+            copyErrorMessage={t('copyFailed')}
           />
 
           <CopyCodeBlock
@@ -130,10 +109,7 @@ export function PolicyImplementationGuide({ document, className }: PolicyImpleme
             description={t('steps.embedScript')}
             value={scriptEmbedCode}
             copyLabel={t('copy')}
-            copied={copied === 'script'}
-            onCopy={() => {
-              void copy(scriptEmbedCode, 'script');
-            }}
+            copyErrorMessage={t('copyFailed')}
           />
         </Tabs.Panel>
 
@@ -145,21 +121,13 @@ export function PolicyImplementationGuide({ document, className }: PolicyImpleme
             <div className="border-border bg-background flex flex-col gap-3 rounded-xl border p-4">
               <code className="text-foreground min-w-0 text-sm break-all">{hostedUrl}</code>
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onPress={() => {
-                    void copy(hostedUrl, 'url');
+                <CopyClipboardButton
+                  copyLabel={t('copy')}
+                  copyErrorMessage={t('copyFailed')}
+                  onCopy={async () => {
+                    await navigator.clipboard.writeText(hostedUrl);
                   }}
-                >
-                  {copied === 'url' ? (
-                    <Check size={14} weight="bold" aria-hidden />
-                  ) : (
-                    <Copy size={14} weight="bold" aria-hidden />
-                  )}
-                  {t('copy')}
-                </Button>
+                />
                 <a
                   href={hostedPath}
                   target="_blank"
